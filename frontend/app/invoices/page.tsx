@@ -39,15 +39,39 @@ export default function CreateInvoice() {
     prix: 0,
     tva: 0
   });
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [nextInvoiceNumber, setNextInvoiceNumber] = useState<number | null>(null);
 
   useEffect(() => {
     fetchClients();
     fetchArticles();
+    fetchNextInvoiceNumber();
   }, []);
+
+  const fetchNextInvoiceNumber = async () => {
+    try {
+      const response = await fetch('http://localhost:3005/api/sales/invoices/next-number', {
+        headers: {
+          'X-Tenant': '2025_bu01'
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setNextInvoiceNumber(data.data.next_number);
+        console.log('Next invoice number:', data.data.next_number);
+      }
+    } catch (error) {
+      console.error('Error fetching next invoice number:', error);
+    }
+  };
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('http://localhost:3005/api/clients');
+      const response = await fetch('http://localhost:3005/api/sales/clients', {
+        headers: {
+          'X-Tenant': '2025_bu01'
+        }
+      });
       const data = await response.json();
       if (data.success) {
         setClients(data.data);
@@ -59,7 +83,11 @@ export default function CreateInvoice() {
 
   const fetchArticles = async () => {
     try {
-      const response = await fetch('http://localhost:3005/api/articles');
+      const response = await fetch('http://localhost:3005/api/articles', {
+        headers: {
+          'X-Tenant': '2025_bu01'
+        }
+      });
       const data = await response.json();
       if (data.success) {
         setArticles(data.data);
@@ -70,13 +98,13 @@ export default function CreateInvoice() {
   };
 
   const handleArticleChange = (articleId: string) => {
-    const article = articles.find(a => a.Narticle === articleId);
+    const article = articles.find(a => a.narticle === articleId);
     if (article) {
       setCurrentLine({
         ...currentLine,
         Narticle: articleId,
-        prix: article.prix_vente,
-        tva: article.tva
+        prix: parseFloat(article.prix_vente.toString()) || 0,
+        tva: parseFloat(article.tva.toString()) || 0
       });
     }
   };
@@ -87,11 +115,11 @@ export default function CreateInvoice() {
       return;
     }
 
-    const article = articles.find(a => a.Narticle === currentLine.Narticle);
+    const article = articles.find(a => a.narticle === currentLine.Narticle);
     if (!article) return;
 
     if (currentLine.Qte > article.stock_f) {
-      alert(`Stock insuffisant! Stock disponible: ${article.stock_f}`);
+      alert(`Stock facture insuffisant! Stock facture disponible: ${article.stock_f}`);
       return;
     }
 
@@ -100,22 +128,63 @@ export default function CreateInvoice() {
       Narticle: currentLine.Narticle,
       designation: article.designation,
       Qte: currentLine.Qte,
-      prix: currentLine.prix,
-      tva: currentLine.tva,
+      prix: parseFloat(currentLine.prix.toString()) || 0,
+      tva: parseFloat(currentLine.tva.toString()) || 0,
       total_ligne: totalLigne
     };
 
-    setLines([...lines, newLine]);
-    setCurrentLine({ Narticle: '', Qte: 1, prix: 0, tva: 0 });
+    if (editingIndex !== null) {
+      // Mode modification : remplacer la ligne existante
+      const updatedLines = [...lines];
+      updatedLines[editingIndex] = newLine;
+      setLines(updatedLines);
+      console.log('Line updated at index:', editingIndex);
+    } else {
+      // Mode ajout : ajouter une nouvelle ligne
+      setLines([...lines, newLine]);
+    }
+    
+    // Reset form
+    resetCurrentLine();
   };
 
   const removeLine = (index: number) => {
     setLines(lines.filter((_, i) => i !== index));
+    // Si on supprime la ligne en cours de modification, annuler l'édition
+    if (editingIndex === index) {
+      setEditingIndex(null);
+      resetCurrentLine();
+    }
+  };
+
+  const editLine = (index: number) => {
+    const lineToEdit = lines[index];
+    setCurrentLine({
+      Narticle: lineToEdit.Narticle,
+      Qte: lineToEdit.Qte,
+      prix: parseFloat(lineToEdit.prix.toString()) || 0,
+      tva: parseFloat(lineToEdit.tva.toString()) || 0
+    });
+    setEditingIndex(index);
+  };
+
+  const resetCurrentLine = () => {
+    setCurrentLine({
+      Narticle: '',
+      Qte: 1,
+      prix: 0,
+      tva: 0
+    });
+    setEditingIndex(null);
+  };
+
+  const cancelEdit = () => {
+    resetCurrentLine();
   };
 
   const calculateTotals = () => {
-    const montantHT = lines.reduce((sum, line) => sum + line.total_ligne, 0);
-    const totalTVA = lines.reduce((sum, line) => sum + (line.total_ligne * line.tva / 100), 0);
+    const montantHT = lines.reduce((sum, line) => sum + parseFloat(line.total_ligne.toString()), 0);
+    const totalTVA = lines.reduce((sum, line) => sum + (parseFloat(line.total_ligne.toString()) * parseFloat(line.tva.toString()) / 100), 0);
     const totalTTC = montantHT + totalTVA;
 
     return { montantHT, totalTVA, totalTTC };
@@ -139,6 +208,7 @@ export default function CreateInvoice() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Tenant': '2025_bu01'
         },
         body: JSON.stringify({
           Nclient: selectedClient,
@@ -156,10 +226,29 @@ export default function CreateInvoice() {
       const data = await response.json();
 
       if (data.success) {
-        alert('Facture créée avec succès!');
-        router.push('/');
+        const invoiceNumber = data.data.nfact;
+        const message = `✅ ${data.data.message || 'Facture créée avec succès!'}\n\n` +
+                       `📋 Numéro: ${invoiceNumber}\n` +
+                       `👤 Client: ${selectedClient}\n` +
+                       `📅 Date: ${dateFacture}\n` +
+                       `💰 Total HT: ${data.data.montant_ht?.toFixed(2)} DA\n` +
+                       `💰 Total TTC: ${data.data.total_ttc?.toFixed(2)} DA\n` +
+                       `📦 Articles: ${lines.length} ligne(s)`;
+        
+        alert(message);
+        
+        // Réinitialiser le formulaire
+        setSelectedClient('');
+        setDateFacture(new Date().toISOString().split('T')[0]);
+        setLines([]);
+        resetCurrentLine();
+        
+        // Rediriger vers la liste des factures après 2 secondes
+        setTimeout(() => {
+          router.push('/invoices/list');
+        }, 2000);
       } else {
-        alert('Erreur: ' + data.error);
+        alert('❌ Erreur: ' + data.error);
       }
     } catch (error) {
       console.error('Error creating invoice:', error);
@@ -172,7 +261,7 @@ export default function CreateInvoice() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1>Créer une Facture</h1>
+        <h1>Créer une Facture {nextInvoiceNumber && `N° ${nextInvoiceNumber}`}</h1>
         <button onClick={() => router.push('/')}>Retour</button>
       </header>
 
@@ -220,8 +309,8 @@ export default function CreateInvoice() {
                 >
                   <option value="">Sélectionner un article</option>
                   {articles.map(article => (
-                    <option key={article.Narticle} value={article.Narticle}>
-                      {article.Narticle} - {article.designation} (Stock: {article.stock_f})
+                    <option key={article.narticle} value={article.narticle}>
+                      {article.narticle} - {article.designation} (Stock Facture: {article.stock_f})
                     </option>
                   ))}
                 </select>
@@ -258,8 +347,13 @@ export default function CreateInvoice() {
               </div>
 
               <button type="button" onClick={addLine} className={styles.primaryButton}>
-                Ajouter
+                {editingIndex !== null ? 'Modifier' : 'Ajouter'}
               </button>
+              {editingIndex !== null && (
+                <button type="button" onClick={cancelEdit} className={styles.secondaryButton}>
+                  Annuler
+                </button>
+              )}
             </div>
           </div>
 
@@ -283,10 +377,18 @@ export default function CreateInvoice() {
                     <td>{line.Narticle}</td>
                     <td>{line.designation}</td>
                     <td>{line.Qte}</td>
-                    <td>{line.prix.toFixed(2)} DA</td>
-                    <td>{line.tva}%</td>
-                    <td>{line.total_ligne.toFixed(2)} DA</td>
+                    <td>{parseFloat(line.prix.toString()).toFixed(2)} DA</td>
+                    <td>{parseFloat(line.tva.toString()).toFixed(0)}%</td>
+                    <td>{parseFloat(line.total_ligne.toString()).toFixed(2)} DA</td>
                     <td>
+                      <button
+                        type="button"
+                        onClick={() => editLine(index)}
+                        className={styles.editButton}
+                        style={{ marginRight: '10px' }}
+                      >
+                        Modifier
+                      </button>
                       <button
                         type="button"
                         onClick={() => removeLine(index)}

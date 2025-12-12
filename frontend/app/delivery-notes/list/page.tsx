@@ -5,14 +5,13 @@ import { useRouter } from 'next/navigation';
 import styles from '../../page.module.css';
 
 interface DeliveryNote {
-  nfact: number;
-  date_fact: string;
+  nbl: number;
   nclient: string;
+  date_fact: string;
   montant_ht: number;
   tva: number;
-  timbre: number;
-  autre_taxe: number;
-  facturer: boolean;
+  total_ttc: number;
+  created_at: string;
 }
 
 export default function DeliveryNotesList() {
@@ -26,10 +25,14 @@ export default function DeliveryNotesList() {
 
   const fetchDeliveryNotes = async () => {
     try {
-      const response = await fetch('http://localhost:3005/api/sales/delivery-notes');
+      const response = await fetch('http://localhost:3005/api/sales/delivery-notes', {
+        headers: {
+          'X-Tenant': '2025_bu01'
+        }
+      });
       const data = await response.json();
       if (data.success) {
-        setDeliveryNotes(data.data);
+        setDeliveryNotes(data.data || []);
       }
     } catch (error) {
       console.error('Error fetching delivery notes:', error);
@@ -37,49 +40,6 @@ export default function DeliveryNotesList() {
       setLoading(false);
     }
   };
-
-  const handlePrintBL = (blId: number) => {
-    // Open PDF in new tab
-    window.open(`http://localhost:3005/api/pdf/delivery-note/${blId}`, '_blank');
-  };
-
-  const handleConvertToInvoice = async (blId: number) => {
-    if (!confirm('Voulez-vous convertir ce bon de livraison en facture?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`http://localhost:3005/api/sales/convert-bl/${blId}`, {
-        method: 'POST',
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        alert('Bon de livraison converti en facture avec succès!');
-        fetchDeliveryNotes(); // Refresh list
-      } else {
-        alert('Erreur: ' + data.error);
-      }
-    } catch (error) {
-      console.error('Error converting BL:', error);
-      alert('Erreur lors de la conversion');
-    }
-  };
-
-  const calculateTotal = (bl: DeliveryNote) => {
-    return bl.montant_ht + bl.tva + bl.timbre + bl.autre_taxe;
-  };
-
-  if (loading) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.main}>
-          <p>Chargement...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={styles.page}>
@@ -89,74 +49,63 @@ export default function DeliveryNotesList() {
           <button onClick={() => router.push('/delivery-notes')} className={styles.primaryButton}>
             Nouveau BL
           </button>
-          <button onClick={() => router.push('/')} className={styles.secondaryButton}>
+          <button onClick={() => router.push('/dashboard')} className={styles.secondaryButton}>
             Retour
           </button>
         </div>
       </header>
 
       <main className={styles.main}>
-        <div className={styles.tableContainer}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>N° BL</th>
-                <th>Date</th>
-                <th>Client</th>
-                <th>Montant HT</th>
-                <th>TVA</th>
-                <th>Total TTC</th>
-                <th>Statut</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deliveryNotes.length === 0 ? (
+        {loading ? (
+          <p>Chargement...</p>
+        ) : deliveryNotes.length === 0 ? (
+          <div className={styles.emptyState}>
+            <h2>Aucun bon de livraison</h2>
+            <p>Vous n'avez pas encore créé de bon de livraison.</p>
+            <button 
+              onClick={() => router.push('/delivery-notes')} 
+              className={styles.primaryButton}
+            >
+              Créer le premier BL
+            </button>
+          </div>
+        ) : (
+          <div className={styles.tableContainer}>
+            <table className={styles.table}>
+              <thead>
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center' }}>
-                    Aucun bon de livraison trouvé
-                  </td>
+                  <th>N° BL</th>
+                  <th>Client</th>
+                  <th>Date</th>
+                  <th>Montant HT</th>
+                  <th>TVA</th>
+                  <th>Total TTC</th>
+                  <th>Actions</th>
                 </tr>
-              ) : (
-                deliveryNotes.map((bl) => (
-                  <tr key={bl.nfact}>
-                    <td>{bl.nfact}</td>
-                    <td>{new Date(bl.date_fact).toLocaleDateString('fr-FR')}</td>
+              </thead>
+              <tbody>
+                {deliveryNotes.map((bl) => (
+                  <tr key={bl.nbl}>
+                    <td><strong>{bl.nbl}</strong></td>
                     <td>{bl.nclient}</td>
-                    <td>{bl.montant_ht.toFixed(2)} DA</td>
-                    <td>{bl.tva.toFixed(2)} DA</td>
-                    <td><strong>{calculateTotal(bl).toFixed(2)} DA</strong></td>
+                    <td>{new Date(bl.date_fact).toLocaleDateString('fr-FR')}</td>
+                    <td>{bl.montant_ht?.toFixed(2)} DA</td>
+                    <td>{bl.tva?.toFixed(2)} DA</td>
+                    <td><strong>{bl.total_ttc?.toFixed(2)} DA</strong></td>
                     <td>
-                      {bl.facturer ? (
-                        <span style={{ color: 'green' }}>✓ Facturé</span>
-                      ) : (
-                        <span style={{ color: 'orange' }}>En attente</span>
-                      )}
-                    </td>
-                    <td>
-                      <button
-                        onClick={() => handlePrintBL(bl.nfact)}
-                        className={styles.primaryButton}
-                        style={{ marginRight: '5px', fontSize: '12px', padding: '5px 10px' }}
+                      <button 
+                        onClick={() => router.push(`/delivery-notes/${bl.nbl}`)}
+                        className={styles.viewButton}
                       >
-                        📄 Imprimer
+                        Voir
                       </button>
-                      {!bl.facturer && (
-                        <button
-                          onClick={() => handleConvertToInvoice(bl.nfact)}
-                          className={styles.primaryButton}
-                          style={{ fontSize: '12px', padding: '5px 10px', backgroundColor: '#28a745' }}
-                        >
-                          ➜ Facturer
-                        </button>
-                      )}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </main>
     </div>
   );

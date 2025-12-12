@@ -17,7 +17,7 @@ interface Article {
   stock_f: number;
 }
 
-interface DeliveryLine {
+interface ProformaLine {
   Narticle: string;
   designation: string;
   Qte: number;
@@ -26,13 +26,13 @@ interface DeliveryLine {
   total_ligne: number;
 }
 
-export default function CreateDeliveryNote() {
+export default function CreateProforma() {
   const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedClient, setSelectedClient] = useState('');
-  const [dateBL, setDateBL] = useState(new Date().toISOString().split('T')[0]);
-  const [lines, setLines] = useState<DeliveryLine[]>([]);
+  const [dateProforma, setDateProforma] = useState(new Date().toISOString().split('T')[0]);
+  const [lines, setLines] = useState<ProformaLine[]>([]);
   const [currentLine, setCurrentLine] = useState({
     Narticle: '',
     Qte: 1,
@@ -40,28 +40,28 @@ export default function CreateDeliveryNote() {
     tva: 0
   });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [nextBLNumber, setNextBLNumber] = useState<number | null>(null);
+  const [nextProformaNumber, setNextProformaNumber] = useState<number | null>(null);
 
   useEffect(() => {
     fetchClients();
     fetchArticles();
-    fetchNextBLNumber();
+    fetchNextProformaNumber();
   }, []);
 
-  const fetchNextBLNumber = async () => {
+  const fetchNextProformaNumber = async () => {
     try {
-      const response = await fetch('http://localhost:3005/api/sales/delivery-notes/next-number', {
+      const response = await fetch('http://localhost:3005/api/sales/proforma/next-number', {
         headers: {
           'X-Tenant': '2025_bu01'
         }
       });
       const data = await response.json();
       if (data.success) {
-        setNextBLNumber(data.data.next_number);
-        console.log('Next BL number:', data.data.next_number);
+        setNextProformaNumber(data.data.next_number);
+        console.log('Next proforma number:', data.data.next_number);
       }
     } catch (error) {
-      console.error('Error fetching next BL number:', error);
+      console.error('Error fetching next proforma number:', error);
     }
   };
 
@@ -102,48 +102,28 @@ export default function CreateDeliveryNote() {
   };
 
   const handleArticleChange = (articleId: string) => {
-    console.log('Article selected:', articleId);
     const article = articles.find(a => a.narticle === articleId);
-    console.log('Article found:', article);
     if (article) {
-      const newLine = {
+      setCurrentLine({
         ...currentLine,
         Narticle: articleId,
         prix: parseFloat(article.prix_vente.toString()) || 0,
         tva: parseFloat(article.tva.toString()) || 0
-      };
-      console.log('Setting current line:', newLine);
-      setCurrentLine(newLine);
+      });
     }
   };
 
   const addLine = () => {
-    console.log('addLine called, currentLine:', currentLine);
-    
     if (!currentLine.Narticle || currentLine.Qte <= 0) {
       alert('Veuillez sélectionner un article et une quantité valide');
       return;
     }
 
-    console.log('Looking for article:', currentLine.Narticle);
-    console.log('Available articles:', articles.map(a => a.narticle));
-    
     const article = articles.find(a => a.narticle === currentLine.Narticle);
-    if (!article) {
-      console.log('Article not found:', currentLine.Narticle);
-      alert('Article non trouvé!');
-      return;
-    }
-
-    console.log('Article found:', article);
-
-    if (currentLine.Qte > article.stock_bl) {
-      alert(`Stock BL insuffisant! Stock BL disponible: ${article.stock_bl}`);
-      return;
-    }
+    if (!article) return;
 
     const totalLigne = currentLine.Qte * currentLine.prix;
-    const newLine: DeliveryLine = {
+    const newLine: ProformaLine = {
       Narticle: currentLine.Narticle,
       designation: article.designation,
       Qte: currentLine.Qte,
@@ -153,24 +133,18 @@ export default function CreateDeliveryNote() {
     };
 
     if (editingIndex !== null) {
-      // Mode modification : remplacer la ligne existante
       const updatedLines = [...lines];
       updatedLines[editingIndex] = newLine;
       setLines(updatedLines);
-      console.log('Line updated at index:', editingIndex);
     } else {
-      // Mode ajout : ajouter une nouvelle ligne
-      console.log('Adding line:', newLine);
       setLines([...lines, newLine]);
     }
     
-    // Reset form
     resetCurrentLine();
   };
 
   const removeLine = (index: number) => {
     setLines(lines.filter((_, i) => i !== index));
-    // Si on supprime la ligne en cours de modification, annuler l'édition
     if (editingIndex === index) {
       setEditingIndex(null);
       resetCurrentLine();
@@ -224,7 +198,7 @@ export default function CreateDeliveryNote() {
     }
 
     try {
-      const response = await fetch('http://localhost:3005/api/sales/delivery-notes', {
+      const response = await fetch('http://localhost:3005/api/sales/proforma', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -232,13 +206,13 @@ export default function CreateDeliveryNote() {
         },
         body: JSON.stringify({
           Nclient: selectedClient,
-          date_fact: dateBL,
-          detail_bl: lines.map(line => ({
+          date_fact: dateProforma,
+          detail_fprof: lines.map(line => ({
             Narticle: line.Narticle,
             Qte: line.Qte,
             prix: line.prix,
             tva: line.tva,
-            facturer: false
+            pr_achat: 0
           }))
         }),
       });
@@ -246,33 +220,31 @@ export default function CreateDeliveryNote() {
       const data = await response.json();
 
       if (data.success) {
-        const blNumber = data.data.nbl || data.data.nfact;
-        const message = `✅ ${data.data.message || 'Bon de livraison créé avec succès!'}\n\n` +
-                       `📋 Numéro: ${blNumber}\n` +
+        const proformaNumber = data.data.nfprof;
+        const message = `✅ ${data.data.message || 'Facture proforma créée avec succès!'}\n\n` +
+                       `📋 Numéro: ${proformaNumber}\n` +
                        `👤 Client: ${selectedClient}\n` +
-                       `📅 Date: ${dateBL}\n` +
+                       `📅 Date: ${dateProforma}\n` +
                        `💰 Total HT: ${data.data.montant_ht?.toFixed(2)} DA\n` +
                        `💰 Total TTC: ${data.data.total_ttc?.toFixed(2)} DA\n` +
                        `📦 Articles: ${lines.length} ligne(s)`;
         
         alert(message);
         
-        // Réinitialiser le formulaire
         setSelectedClient('');
-        setDateBL(new Date().toISOString().split('T')[0]);
+        setDateProforma(new Date().toISOString().split('T')[0]);
         setLines([]);
         resetCurrentLine();
         
-        // Rediriger vers la liste des BL après 2 secondes
         setTimeout(() => {
-          router.push('/delivery-notes/list');
+          router.push('/proforma/list');
         }, 2000);
       } else {
         alert('❌ Erreur: ' + data.error);
       }
     } catch (error) {
-      console.error('Error creating delivery note:', error);
-      alert('Erreur lors de la création du bon de livraison');
+      console.error('Error creating proforma:', error);
+      alert('Erreur lors de la création de la facture proforma');
     }
   };
 
@@ -281,14 +253,14 @@ export default function CreateDeliveryNote() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1>Créer un Bon de Livraison {nextBLNumber && `N° ${nextBLNumber}`}</h1>
-        <button onClick={() => router.push('/')}>Retour</button>
+        <h1>Créer une Facture Proforma {nextProformaNumber && `N° ${nextProformaNumber}`}</h1>
+        <button onClick={() => router.push('/dashboard')}>Retour</button>
       </header>
 
       <main className={styles.main}>
         <form onSubmit={handleSubmit}>
           <div className={styles.formSection}>
-            <h2>Informations Bon de Livraison</h2>
+            <h2>Informations Facture Proforma</h2>
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label>Client:</label>
@@ -310,8 +282,8 @@ export default function CreateDeliveryNote() {
                 <label>Date:</label>
                 <input
                   type="date"
-                  value={dateBL}
-                  onChange={(e) => setDateBL(e.target.value)}
+                  value={dateProforma}
+                  onChange={(e) => setDateProforma(e.target.value)}
                   required
                 />
               </div>
@@ -330,7 +302,7 @@ export default function CreateDeliveryNote() {
                   <option value="">Sélectionner un article</option>
                   {articles.map(article => (
                     <option key={article.narticle} value={article.narticle}>
-                      {article.narticle} - {article.designation} (Stock BL: {article.stock_bl})
+                      {article.narticle} - {article.designation} (Prix: {parseFloat(article.prix_vente.toString()).toFixed(2)} DA)
                     </option>
                   ))}
                 </select>
@@ -378,7 +350,7 @@ export default function CreateDeliveryNote() {
           </div>
 
           <div className={styles.tableContainer}>
-            <h2>Lignes du Bon de Livraison</h2>
+            <h2>Lignes de Facture Proforma</h2>
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -440,9 +412,9 @@ export default function CreateDeliveryNote() {
 
           <div className={styles.formActions}>
             <button type="submit" className={styles.primaryButton}>
-              Créer le Bon de Livraison
+              Créer la Facture Proforma
             </button>
-            <button type="button" onClick={() => router.push('/')} className={styles.secondaryButton}>
+            <button type="button" onClick={() => router.push('/dashboard')} className={styles.secondaryButton}>
               Annuler
             </button>
           </div>

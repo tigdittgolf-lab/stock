@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../../page.module.css';
 
-interface Invoice {
-  nfact: number;
+interface Proforma {
+  nfprof: number;
   nclient: string;
   date_fact: string;
   montant_ht: number;
@@ -14,28 +14,28 @@ interface Invoice {
   created_at: string;
 }
 
-export default function InvoicesList() {
+export default function ProformaList() {
   const router = useRouter();
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [proformas, setProformas] = useState<Proforma[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchInvoices();
+    fetchProformas();
   }, []);
 
-  const fetchInvoices = async () => {
+  const fetchProformas = async () => {
     try {
-      const response = await fetch('http://localhost:3005/api/sales/invoices', {
+      const response = await fetch('http://localhost:3005/api/sales/proforma', {
         headers: {
           'X-Tenant': '2025_bu01'
         }
       });
       const data = await response.json();
       if (data.success) {
-        setInvoices(data.data || []);
+        setProformas(data.data || []);
       }
     } catch (error) {
-      console.error('Error fetching invoices:', error);
+      console.error('Error fetching proformas:', error);
     } finally {
       setLoading(false);
     }
@@ -44,10 +44,10 @@ export default function InvoicesList() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1>Liste des Factures</h1>
+        <h1>Liste des Factures Proforma</h1>
         <div>
-          <button onClick={() => router.push('/invoices')} className={styles.primaryButton}>
-            Nouvelle Facture
+          <button onClick={() => router.push('/proforma')} className={styles.primaryButton}>
+            Nouvelle Proforma
           </button>
           <button onClick={() => router.push('/dashboard')} className={styles.secondaryButton}>
             Retour
@@ -58,15 +58,15 @@ export default function InvoicesList() {
       <main className={styles.main}>
         {loading ? (
           <p>Chargement...</p>
-        ) : invoices.length === 0 ? (
+        ) : proformas.length === 0 ? (
           <div className={styles.emptyState}>
-            <h2>Aucune facture</h2>
-            <p>Vous n'avez pas encore créé de facture.</p>
+            <h2>Aucune facture proforma</h2>
+            <p>Vous n'avez pas encore créé de facture proforma.</p>
             <button 
-              onClick={() => router.push('/invoices')} 
+              onClick={() => router.push('/proforma')} 
               className={styles.primaryButton}
             >
-              Créer la première facture
+              Créer la première proforma
             </button>
           </div>
         ) : (
@@ -74,7 +74,7 @@ export default function InvoicesList() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>N° Facture</th>
+                  <th>N° Proforma</th>
                   <th>Client</th>
                   <th>Date</th>
                   <th>Montant HT</th>
@@ -84,17 +84,17 @@ export default function InvoicesList() {
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((invoice) => (
-                  <tr key={invoice.nfact}>
-                    <td><strong>{invoice.nfact}</strong></td>
-                    <td>{invoice.nclient}</td>
-                    <td>{new Date(invoice.date_fact).toLocaleDateString('fr-FR')}</td>
-                    <td>{invoice.montant_ht?.toFixed(2)} DA</td>
-                    <td>{invoice.tva?.toFixed(2)} DA</td>
-                    <td><strong>{invoice.total_ttc?.toFixed(2)} DA</strong></td>
+                {proformas.map((proforma) => (
+                  <tr key={proforma.nfprof}>
+                    <td><strong>{proforma.nfprof}</strong></td>
+                    <td>{proforma.nclient}</td>
+                    <td>{new Date(proforma.date_fact).toLocaleDateString('fr-FR')}</td>
+                    <td>{proforma.montant_ht?.toFixed(2)} DA</td>
+                    <td>{proforma.tva?.toFixed(2)} DA</td>
+                    <td><strong>{proforma.total_ttc?.toFixed(2)} DA</strong></td>
                     <td>
                       <button 
-                        onClick={() => router.push(`/invoices/${invoice.nfact}`)}
+                        onClick={() => router.push(`/proforma/${proforma.nfprof}`)}
                         className={styles.viewButton}
                       >
                         Voir

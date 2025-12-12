@@ -1468,34 +1468,96 @@ export default function Dashboard() {
                   <h3>Module Ventes</h3>
                   <p>Factures, bons de livraison, devis</p>
                   <div style={{ marginTop: '20px' }}>
-                    <button 
-                      onClick={() => router.push('/delivery-notes')}
-                      style={{
-                        margin: '10px',
-                        padding: '15px 30px',
-                        backgroundColor: '#007bff',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '5px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      📋 Bons de Livraison
-                    </button>
-                    <button 
-                      onClick={() => router.push('/invoices')}
-                      style={{
-                        margin: '10px',
-                        padding: '15px 30px',
-                        backgroundColor: '#28a745',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '5px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      🧾 Factures
-                    </button>
+                    <div style={{ marginBottom: '15px' }}>
+                      <button 
+                        onClick={() => router.push('/delivery-notes')}
+                        style={{
+                          margin: '5px',
+                          padding: '12px 25px',
+                          backgroundColor: '#007bff',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ➕ Nouveau BL
+                      </button>
+                      <button 
+                        onClick={() => router.push('/delivery-notes/list')}
+                        style={{
+                          margin: '5px',
+                          padding: '12px 25px',
+                          backgroundColor: '#6c757d',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        📋 Liste BL
+                      </button>
+                    </div>
+                    <div>
+                      <button 
+                        onClick={() => router.push('/invoices')}
+                        style={{
+                          margin: '5px',
+                          padding: '12px 25px',
+                          backgroundColor: '#28a745',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ➕ Nouvelle Facture
+                      </button>
+                      <button 
+                        onClick={() => router.push('/invoices/list')}
+                        style={{
+                          margin: '5px',
+                          padding: '12px 25px',
+                          backgroundColor: '#6c757d',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🧾 Liste Factures
+                      </button>
+                    </div>
+                    <div style={{ marginTop: '15px' }}>
+                      <button 
+                        onClick={() => router.push('/proforma')}
+                        style={{
+                          margin: '5px',
+                          padding: '12px 25px',
+                          backgroundColor: '#17a2b8',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ➕ Nouvelle Proforma
+                      </button>
+                      <button 
+                        onClick={() => router.push('/proforma/list')}
+                        style={{
+                          margin: '5px',
+                          padding: '12px 25px',
+                          backgroundColor: '#6c757d',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        📋 Liste Proforma
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

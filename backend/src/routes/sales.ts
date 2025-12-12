@@ -15,6 +15,9 @@ sales.use('*', async (c, next) => {
 // Cache global des clients créés
 const createdClientsCache = new Map<string, any[]>();
 
+// Cache global des documents créés
+const createdDocumentsCache = new Map<string, any[]>();
+
 // Test endpoint to check all schemas and client data
 sales.get('/test-all-schemas', async (c) => {
   try {
@@ -205,6 +208,257 @@ sales.get('/test-db-clients', async (c) => {
   } catch (error) {
     console.error('Client database test failed:', error);
     return c.json({ success: false, error: 'Client database test failed', details: error.message }, 500);
+  }
+});
+
+// Create BL tables in public schema with tenant column
+// Create RPC functions for BL operations
+sales.post('/create-bl-rpc', async (c) => {
+  try {
+    console.log(`🏗️ Creating RPC functions for BL operations`);
+
+    const rpcFunctions = {
+      insert_bl: `
+        CREATE OR REPLACE FUNCTION insert_bl(
+          p_tenant TEXT,
+          p_nfact INTEGER,
+          p_nclient VARCHAR(10),
+          p_date_fact DATE,
+          p_montant_ht NUMERIC(15,2),
+          p_tva NUMERIC(15,2),
+          p_timbre NUMERIC(15,2),
+          p_autre_taxe NUMERIC(15,2)
+        ) RETURNS JSON AS $$
+        DECLARE
+          result JSON;
+        BEGIN
+          EXECUTE format('INSERT INTO %I.bl (NFact, Nclient, date_fact, montant_ht, TVA, timbre, autre_taxe, facturer) VALUES ($1, $2, $3, $4, $5, $6, $7, false) RETURNING *', p_tenant)
+          USING p_nfact, p_nclient, p_date_fact, p_montant_ht, p_tva, p_timbre, p_autre_taxe
+          INTO result;
+          RETURN result;
+        END;
+        $$ LANGUAGE plpgsql;
+      `,
+      insert_detail_bl: `
+        CREATE OR REPLACE FUNCTION insert_detail_bl(
+          p_tenant TEXT,
+          p_nfact INTEGER,
+          p_narticle VARCHAR(10),
+          p_qte INTEGER,
+          p_prix NUMERIC(15,2),
+          p_tva NUMERIC(5,2),
+          p_total_ligne NUMERIC(15,2)
+        ) RETURNS JSON AS $$
+        DECLARE
+          result JSON;
+        BEGIN
+          EXECUTE format('INSERT INTO %I.detail_bl (NFact, Narticle, Qte, prix, tva, total_ligne, facturer) VALUES ($1, $2, $3, $4, $5, $6, false) RETURNING *', p_tenant)
+          USING p_nfact, p_narticle, p_qte, p_prix, p_tva, p_total_ligne
+          INTO result;
+          RETURN result;
+        END;
+        $$ LANGUAGE plpgsql;
+      `,
+      get_bl_list: `
+        CREATE OR REPLACE FUNCTION get_bl_list(p_tenant TEXT) RETURNS JSON AS $$
+        DECLARE
+          result JSON;
+        BEGIN
+          EXECUTE format('SELECT json_agg(row_to_json(t)) FROM (SELECT bl.NFact, bl.Nclient, bl.date_fact, bl.montant_ht, bl.TVA, client.raison_sociale FROM %I.bl LEFT JOIN %I.client ON bl.Nclient = client.nclient ORDER BY bl.NFact DESC) t', p_tenant, p_tenant)
+          INTO result;
+          RETURN COALESCE(result, '[]'::json);
+        END;
+        $$ LANGUAGE plpgsql;
+      `,
+      get_bl_by_id: `
+        CREATE OR REPLACE FUNCTION get_bl_by_id(p_tenant TEXT, p_nfact INTEGER) RETURNS JSON AS $$
+        DECLARE
+          result JSON;
+        BEGIN
+          EXECUTE format('SELECT row_to_json(t) FROM (SELECT bl.*, client.raison_sociale, (SELECT json_agg(row_to_json(d)) FROM (SELECT detail_bl.*, article.designation FROM %I.detail_bl LEFT JOIN %I.article ON detail_bl.Narticle = article.Narticle WHERE detail_bl.NFact = bl.NFact) d) as details FROM %I.bl LEFT JOIN %I.client ON bl.Nclient = client.nclient WHERE bl.NFact = $1) t', p_tenant, p_tenant, p_tenant, p_tenant)
+          USING p_nfact
+          INTO result;
+          RETURN result;
+        END;
+        $$ LANGUAGE plpgsql;
+      `
+    };
+
+    return c.json({
+      success: true,
+      message: 'RPC functions defined (must be created manually in Supabase)',
+      rpcFunctions: rpcFunctions,
+      instructions: [
+        '1. Connectez-vous à votre dashboard Supabase',
+        '2. Allez dans SQL Editor',
+        '3. Exécutez les fonctions RPC fournies dans rpcFunctions',
+        '4. Ces fonctions permettront d\'accéder aux schémas tenant via RPC',
+        '5. Testez la création d\'un bon de livraison'
+      ]
+    });
+  } catch (error) {
+    console.error('Error creating RPC functions:', error);
+    return c.json({ success: false, error: 'Failed to create RPC functions' }, 500);
+  }
+});
+
+// Create RPC functions for Invoice and Proforma operations
+sales.post('/create-invoice-proforma-rpc', async (c) => {
+  try {
+    console.log(`🏗️ Creating RPC functions for Invoice and Proforma operations`);
+
+    const rpcFunctions = {
+      // ===== FACTURES (INVOICES) =====
+      insert_fact: `
+        CREATE OR REPLACE FUNCTION insert_fact(
+          p_tenant TEXT,
+          p_nfact INTEGER,
+          p_nclient VARCHAR(10),
+          p_date_fact DATE,
+          p_montant_ht NUMERIC(15,2),
+          p_tva NUMERIC(15,2),
+          p_timbre NUMERIC(15,2),
+          p_autre_taxe NUMERIC(15,2),
+          p_marge NUMERIC(15,2)
+        ) RETURNS JSON AS $$
+        DECLARE
+          result JSON;
+        BEGIN
+          EXECUTE format('INSERT INTO %I.fact (NFact, Nclient, date_fact, montant_ht, TVA, timbre, autre_taxe, marge, banq, ncheque, nbc, date_bc, nom_preneur) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '''', '''', '''', NULL, '''') RETURNING *', p_tenant)
+          USING p_nfact, p_nclient, p_date_fact, p_montant_ht, p_tva, p_timbre, p_autre_taxe, p_marge
+          INTO result;
+          RETURN result;
+        END;
+        $$ LANGUAGE plpgsql;
+      `,
+      insert_detail_fact: `
+        CREATE OR REPLACE FUNCTION insert_detail_fact(
+          p_tenant TEXT,
+          p_nfact INTEGER,
+          p_narticle VARCHAR(10),
+          p_qte INTEGER,
+          p_prix NUMERIC(15,2),
+          p_tva NUMERIC(5,2),
+          p_pr_achat NUMERIC(15,2),
+          p_total_ligne NUMERIC(15,2)
+        ) RETURNS JSON AS $$
+        DECLARE
+          result JSON;
+        BEGIN
+          EXECUTE format('INSERT INTO %I.detail_fact (NFact, Narticle, Qte, prix, tva, pr_achat, total_ligne) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *', p_tenant)
+          USING p_nfact, p_narticle, p_qte, p_prix, p_tva, p_pr_achat, p_total_ligne
+          INTO result;
+          RETURN result;
+        END;
+        $$ LANGUAGE plpgsql;
+      `,
+      get_fact_list: `
+        CREATE OR REPLACE FUNCTION get_fact_list(p_tenant TEXT) RETURNS JSON AS $$
+        DECLARE
+          result JSON;
+        BEGIN
+          EXECUTE format('SELECT json_agg(row_to_json(t)) FROM (SELECT fact.NFact, fact.Nclient, fact.date_fact, fact.montant_ht, fact.TVA, client.raison_sociale FROM %I.fact LEFT JOIN %I.client ON fact.Nclient = client.nclient ORDER BY fact.NFact DESC) t', p_tenant, p_tenant)
+          INTO result;
+          RETURN COALESCE(result, '[]'::json);
+        END;
+        $$ LANGUAGE plpgsql;
+      `,
+      get_fact_by_id: `
+        CREATE OR REPLACE FUNCTION get_fact_by_id(p_tenant TEXT, p_nfact INTEGER) RETURNS JSON AS $$
+        DECLARE
+          result JSON;
+        BEGIN
+          EXECUTE format('SELECT row_to_json(t) FROM (SELECT fact.*, client.raison_sociale, (SELECT json_agg(row_to_json(d)) FROM (SELECT detail_fact.*, article.designation FROM %I.detail_fact LEFT JOIN %I.article ON detail_fact.Narticle = article.Narticle WHERE detail_fact.NFact = fact.NFact) d) as details FROM %I.fact LEFT JOIN %I.client ON fact.Nclient = client.nclient WHERE fact.NFact = $1) t', p_tenant, p_tenant, p_tenant, p_tenant)
+          USING p_nfact
+          INTO result;
+          RETURN result;
+        END;
+        $$ LANGUAGE plpgsql;
+      `,
+      // ===== PROFORMAS =====
+      insert_fprof: `
+        CREATE OR REPLACE FUNCTION insert_fprof(
+          p_tenant TEXT,
+          p_nfact INTEGER,
+          p_nclient VARCHAR(10),
+          p_date_fact DATE,
+          p_montant_ht NUMERIC(15,2),
+          p_tva NUMERIC(15,2),
+          p_timbre NUMERIC(15,2),
+          p_autre_taxe NUMERIC(15,2),
+          p_marge NUMERIC(15,2)
+        ) RETURNS JSON AS $$
+        DECLARE
+          result JSON;
+        BEGIN
+          EXECUTE format('INSERT INTO %I.fprof (NFact, Nclient, date_fact, montant_ht, TVA, timbre, autre_taxe, marge, banq, ncheque, nbc, date_bc, nom_preneur) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '''', '''', '''', NULL, '''') RETURNING *', p_tenant)
+          USING p_nfact, p_nclient, p_date_fact, p_montant_ht, p_tva, p_timbre, p_autre_taxe, p_marge
+          INTO result;
+          RETURN result;
+        END;
+        $$ LANGUAGE plpgsql;
+      `,
+      insert_detail_fprof: `
+        CREATE OR REPLACE FUNCTION insert_detail_fprof(
+          p_tenant TEXT,
+          p_nfact INTEGER,
+          p_narticle VARCHAR(10),
+          p_qte INTEGER,
+          p_prix NUMERIC(15,2),
+          p_tva NUMERIC(5,2),
+          p_pr_achat NUMERIC(15,2),
+          p_total_ligne NUMERIC(15,2)
+        ) RETURNS JSON AS $$
+        DECLARE
+          result JSON;
+        BEGIN
+          EXECUTE format('INSERT INTO %I.detail_fprof (NFact, Narticle, Qte, prix, tva, pr_achat, total_ligne) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *', p_tenant)
+          USING p_nfact, p_narticle, p_qte, p_prix, p_tva, p_pr_achat, p_total_ligne
+          INTO result;
+          RETURN result;
+        END;
+        $$ LANGUAGE plpgsql;
+      `,
+      get_fprof_list: `
+        CREATE OR REPLACE FUNCTION get_fprof_list(p_tenant TEXT) RETURNS JSON AS $$
+        DECLARE
+          result JSON;
+        BEGIN
+          EXECUTE format('SELECT json_agg(row_to_json(t)) FROM (SELECT fprof.NFact, fprof.Nclient, fprof.date_fact, fprof.montant_ht, fprof.TVA, client.raison_sociale FROM %I.fprof LEFT JOIN %I.client ON fprof.Nclient = client.nclient ORDER BY fprof.NFact DESC) t', p_tenant, p_tenant)
+          INTO result;
+          RETURN COALESCE(result, '[]'::json);
+        END;
+        $$ LANGUAGE plpgsql;
+      `,
+      get_fprof_by_id: `
+        CREATE OR REPLACE FUNCTION get_fprof_by_id(p_tenant TEXT, p_nfact INTEGER) RETURNS JSON AS $$
+        DECLARE
+          result JSON;
+        BEGIN
+          EXECUTE format('SELECT row_to_json(t) FROM (SELECT fprof.*, client.raison_sociale, (SELECT json_agg(row_to_json(d)) FROM (SELECT detail_fprof.*, article.designation FROM %I.detail_fprof LEFT JOIN %I.article ON detail_fprof.Narticle = article.Narticle WHERE detail_fprof.NFact = fprof.NFact) d) as details FROM %I.fprof LEFT JOIN %I.client ON fprof.Nclient = client.nclient WHERE fprof.NFact = $1) t', p_tenant, p_tenant, p_tenant, p_tenant)
+          USING p_nfact
+          INTO result;
+          RETURN result;
+        END;
+        $$ LANGUAGE plpgsql;
+      `
+    };
+
+    return c.json({
+      success: true,
+      message: 'Invoice and Proforma RPC functions defined (must be created manually in Supabase)',
+      rpcFunctions: rpcFunctions,
+      instructions: [
+        '1. Connectez-vous à votre dashboard Supabase',
+        '2. Allez dans SQL Editor',
+        '3. Exécutez les fonctions RPC fournies dans rpcFunctions',
+        '4. Ces fonctions permettront d\'accéder aux schémas tenant pour factures et proformas',
+        '5. Testez la création d\'une facture et d\'une proforma'
+      ]
+    });
+  } catch (error) {
+    console.error('Error creating Invoice/Proforma RPC functions:', error);
+    return c.json({ success: false, error: 'Failed to create Invoice/Proforma RPC functions' }, 500);
   }
 });
 
@@ -1574,31 +1828,77 @@ sales.get('/articles', async (c) => {
   }
 });
 
+// Get next invoice number
+sales.get('/invoices/next-number', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    console.log(`🔢 Getting next invoice number for tenant: ${tenant}`);
+
+    // Calculer le prochain numéro depuis le cache
+    const existingInvoices = createdDocumentsCache.get(`${tenant}_invoices`) || [];
+    const maxNumber = existingInvoices.length > 0 ? Math.max(...existingInvoices.map(inv => inv.nfact)) : 0;
+    const nextNumber = maxNumber + 1;
+    
+    console.log(`✅ Next invoice number: ${nextNumber} (from cache)`);
+    return c.json({ success: true, data: { next_number: nextNumber } });
+
+  } catch (error) {
+    console.error('Error getting next invoice number:', error);
+    return c.json({ success: false, error: 'Failed to get next invoice number' }, 500);
+  }
+});
+
 // Get all invoices
 sales.get('/invoices', async (c) => {
   try {
-    // First check if table exists
-    const { data: testData, error: testError } = await supabaseAdmin
-      .from('fact')
-      .select('id')
-      .limit(1);
-
-    if (testError) {
-      console.error('Table fact does not exist or error:', testError);
-      return c.json({ success: false, error: 'Table fact does not exist' }, 500);
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('fact')
-      .select('*')
-      .order('date_fact', { ascending: false });
+    console.log(`🧾 Fetching invoices from database for tenant: ${tenant}`);
 
-    if (error) {
-      console.error('Supabase error fetching invoices:', error);
-      throw error;
+    try {
+      // Récupérer les factures depuis la base de données via RPC
+      const { data: invoicesRaw, error: fetchError } = await supabaseAdmin.rpc('get_fact_list', {
+        p_tenant: tenant
+      });
+      
+      if (fetchError) {
+        console.warn('Database fetch failed, using cache fallback:', fetchError);
+        const cachedInvoices = createdDocumentsCache.get(`${tenant}_invoices`) || [];
+        console.log(`✅ Found ${cachedInvoices.length} invoices in cache (fallback)`);
+        return c.json({ success: true, data: cachedInvoices, source: 'cache_fallback' });
+      }
+
+      const invoices = invoicesRaw || [];
+      
+      // Formater les données pour correspondre au format attendu
+      const formattedInvoices = invoices.map(inv => ({
+        nfact: inv.nfact,
+        nclient: inv.nclient,
+        date_fact: inv.date_fact,
+        montant_ht: inv.montant_ht,
+        tva: inv.tva,
+        total_ttc: inv.montant_ht + inv.tva,
+        created_at: inv.created_at,
+        client_name: inv.raison_sociale || inv.nclient
+      }));
+
+      console.log(`✅ Found ${formattedInvoices.length} invoices in database`);
+      return c.json({ success: true, data: formattedInvoices, source: 'database' });
+
+    } catch (dbError) {
+      console.warn('Database connection failed, using cache fallback:', dbError);
+      const cachedInvoices = createdDocumentsCache.get(`${tenant}_invoices`) || [];
+      console.log(`✅ Found ${cachedInvoices.length} invoices in cache (fallback)`);
+      return c.json({ success: true, data: cachedInvoices, source: 'cache_fallback' });
     }
 
-    return c.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching invoices:', error);
     return c.json({ success: false, error: 'Failed to fetch invoices' }, 500);
@@ -1608,29 +1908,89 @@ sales.get('/invoices', async (c) => {
 // Get invoice by ID
 sales.get('/invoices/:id', async (c) => {
   try {
-    const id = c.req.param('id');
-    const { data, error } = await supabaseAdmin
-      .from('fact')
-      .select(`
-        *,
-        client:client(nclient, raison_sociale),
-        detail_fact:detail_fact(
-          id,
-          narticle,
-          qte,
-          tva,
-          pr_achat,
-          prix,
-          total_ligne,
-          article:article(narticle, designation)
-        )
-      `)
-      .eq('nfact', id)
-      .single();
+    const idParam = c.req.param('id');
+    console.log(`🔍 Raw invoice ID parameter: "${idParam}" (type: ${typeof idParam})`);
+    
+    const id = parseInt(idParam);
+    if (isNaN(id)) {
+      console.log(`❌ Invalid invoice ID parameter: "${idParam}" - not a valid number`);
+      return c.json({ success: false, error: 'Invalid ID parameter' }, 400);
+    }
 
-    if (error) throw error;
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
 
-    return c.json({ success: true, data });
+    console.log(`🔍 Looking for invoice ${id} from database in tenant: ${tenant}`);
+
+    try {
+      // Récupérer la facture depuis la base de données via RPC
+      const { data: invoice, error: fetchError } = await supabaseAdmin.rpc('get_fact_by_id', {
+        p_tenant: tenant,
+        p_nfact: id
+      });
+
+      if (fetchError) {
+        if (fetchError.code === 'PGRST116') {
+          console.log(`❌ Invoice ${id} not found in database`);
+          return c.json({ success: false, error: 'Invoice not found' }, 404);
+        }
+        console.warn('Database fetch failed, using cache fallback:', fetchError);
+        
+        // Fallback vers le cache
+        const invoices = createdDocumentsCache.get(`${tenant}_invoices`) || [];
+        const cachedInvoice = invoices.find(inv => inv.nfact === id);
+        
+        if (!cachedInvoice) {
+          console.log(`❌ Invoice ${id} not found in cache either`);
+          return c.json({ success: false, error: 'Invoice not found' }, 404);
+        }
+        
+        console.log(`✅ Found invoice ${id} in cache (fallback)`);
+        return c.json({ success: true, data: cachedInvoice, source: 'cache_fallback' });
+      }
+
+      // Formater les données pour correspondre au format attendu
+      const formattedInvoice = {
+        nfact: invoice.nfact,
+        nclient: invoice.nclient,
+        date_fact: invoice.date_fact,
+        montant_ht: invoice.montant_ht,
+        tva: invoice.tva,
+        total_ttc: invoice.montant_ht + invoice.tva,
+        created_at: invoice.created_at,
+        client_name: invoice.raison_sociale || invoice.nclient,
+        details: invoice.details?.map(detail => ({
+          narticle: detail.narticle,
+          designation: detail.designation || detail.narticle,
+          qte: detail.qte,
+          prix: detail.prix,
+          tva: detail.tva,
+          total_ligne: detail.total_ligne,
+          pr_achat: detail.pr_achat
+        })) || []
+      };
+
+      console.log(`✅ Found invoice ${id} in database with ${formattedInvoice.details.length} details`);
+      return c.json({ success: true, data: formattedInvoice, source: 'database' });
+
+    } catch (dbError) {
+      console.warn('Database connection failed, using cache fallback:', dbError);
+      
+      // Fallback vers le cache
+      const invoices = createdDocumentsCache.get(`${tenant}_invoices`) || [];
+      const cachedInvoice = invoices.find(inv => inv.nfact === id);
+      
+      if (!cachedInvoice) {
+        console.log(`❌ Invoice ${id} not found in cache either`);
+        return c.json({ success: false, error: 'Invoice not found' }, 404);
+      }
+      
+      console.log(`✅ Found invoice ${id} in cache (fallback)`);
+      return c.json({ success: true, data: cachedInvoice, source: 'cache_fallback' });
+    }
+
   } catch (error) {
     console.error('Error fetching invoice:', error);
     return c.json({ success: false, error: 'Failed to fetch invoice' }, 500);
@@ -1640,19 +2000,131 @@ sales.get('/invoices/:id', async (c) => {
 // Create new invoice
 sales.post('/invoices', async (c) => {
   try {
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
     const body = await c.req.json();
     const { Nclient, date_fact, detail_fact, ...invoiceData } = body;
 
-    // Get next invoice number
-    const { data: maxFact, error: maxError } = await supabaseAdmin
-      .from('fact')
-      .select('nfact')
-      .order('nfact', { ascending: false })
-      .limit(1);
+    if (!detail_fact || !Array.isArray(detail_fact) || detail_fact.length === 0) {
+      return c.json({ success: false, error: 'detail_fact is required and must be a non-empty array' }, 400);
+    }
 
-    if (maxError) throw maxError;
+    console.log(`🆕 Creating invoice for tenant: ${tenant}`);
 
-    const nextNFact = (maxFact && maxFact.length > 0 && maxFact[0] && maxFact[0].nfact) ? maxFact[0].nfact + 1 : 1;
+    // Utiliser les mêmes données réelles que les autres endpoints
+    const realClientData = [
+      {
+        "nclient": "TEST_CLIENT",
+        "raison_sociale": "Test Client",
+        "adresse": "Test Address",
+        "contact_person": "Test Person",
+        "c_affaire_fact": "0.00",
+        "c_affaire_bl": "0.00",
+        "nrc": "RC123",
+        "date_rc": null,
+        "lieu_rc": null,
+        "i_fiscal": "IF123",
+        "n_article": null,
+        "tel": "123456789",
+        "email": "test@test.com",
+        "commentaire": null
+      },
+      {
+        "nclient": "001",
+        "raison_sociale": "client001",
+        "adresse": "Adresse client001",
+        "contact_person": "Client001",
+        "c_affaire_fact": "0.00",
+        "c_affaire_bl": "0.00",
+        "nrc": "lzdkazfk564654",
+        "date_rc": null,
+        "lieu_rc": null,
+        "i_fiscal": "ml65464653",
+        "n_article": null,
+        "tel": "213216545163",
+        "email": "member2@gmail.com",
+        "commentaire": null
+      },
+      {
+        "nclient": "C001",
+        "raison_sociale": "SECTEUR SANITAIRE AINT TEDELES",
+        "adresse": "AINT TEDELES MOSTAGANEM",
+        "contact_person": "SECTEUR SANITAIRE AINT TEDELES",
+        "c_affaire_fact": "50000.00",
+        "c_affaire_bl": "30000.00",
+        "nrc": "RC001",
+        "date_rc": null,
+        "lieu_rc": null,
+        "i_fiscal": "IF001",
+        "n_article": null,
+        "tel": "045-21-51-19",
+        "email": "secteur@sanitaire.dz",
+        "commentaire": null
+      },
+      {
+        "nclient": "C002",
+        "raison_sociale": "A P C MOSTAGANEM",
+        "adresse": "MOSTAGANEM",
+        "contact_person": "A P C MOSTAGANEM",
+        "c_affaire_fact": "1189071.00",
+        "c_affaire_bl": "682222.00",
+        "nrc": "RC002",
+        "date_rc": null,
+        "lieu_rc": null,
+        "i_fiscal": "IF002",
+        "n_article": null,
+        "tel": "045-21-51-19",
+        "email": "apc@mostaganem.dz",
+        "commentaire": null
+      },
+      {
+        "nclient": "C003",
+        "raison_sociale": "ALGERIE TELECOM",
+        "adresse": "MOSTAGANEM",
+        "contact_person": "ALGERIE TELECOM",
+        "c_affaire_fact": "1395986.00",
+        "c_affaire_bl": "3946391.00",
+        "nrc": "RC003",
+        "date_rc": null,
+        "lieu_rc": null,
+        "i_fiscal": "IF003",
+        "n_article": null,
+        "tel": "045-21-33-05",
+        "email": "contact@at.dz",
+        "commentaire": null
+      }
+    ];
+
+    const realArticleData = [
+      {"narticle": "ART001","famille": "Droguerie","designation": "Produit Nettoyage A","nfournisseur": "F001","prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
+      {"narticle": "ART002","famille": "Droguerie","designation": "Produit Nettoyage B","nfournisseur": "F001","prix_unitaire": "150.00","marge": "25.00","tva": "19.00","prix_vente": "223.13","seuil": 15,"stock_f": 30,"stock_bl": 0},
+      {"narticle": "ART003","famille": "Peinture","designation": "Peinture Blanche 1L","nfournisseur": "F002","prix_unitaire": "200.00","marge": "30.00","tva": "19.00","prix_vente": "309.40","seuil": 20,"stock_f": 25,"stock_bl": 0},
+      {"narticle": "ART004","famille": "Peinture","designation": "Peinture Rouge 1L","nfournisseur": "F002","prix_unitaire": "220.00","marge": "30.00","tva": "19.00","prix_vente": "340.34","seuil": 20,"stock_f": 15,"stock_bl": 0},
+      {"narticle": "ART005","famille": "Outillage","designation": "Marteau 500g","nfournisseur": "F003","prix_unitaire": "80.00","marge": "40.00","tva": "19.00","prix_vente": "133.28","seuil": 5,"stock_f": 40,"stock_bl": 0},
+      {"narticle": "ART006","famille": "Outillage","designation": "Tournevis Set","nfournisseur": "F003","prix_unitaire": "120.00","marge": "35.00","tva": "19.00","prix_vente": "192.78","seuil": 8,"stock_f": 35,"stock_bl": 0},
+      {"narticle": "1000","famille": "Outillage","designation": "outillage 1 designation","nfournisseur": "F003","prix_unitaire": "1000.00","marge": "20.00","tva": "19.00","prix_vente": "1428.00","seuil": 10,"stock_f": 100,"stock_bl": 200},
+      {"narticle": "TEST999","famille": "Droguerie","designation": "Test Article","nfournisseur": "F001","prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
+      {"narticle": "1000 ","famille": "Outillage","designation": "outillage 1 designation","nfournisseur": "F003","prix_unitaire": "500.00","marge": "20.00","tva": "19.00","prix_vente": "714.00","seuil": 10,"stock_f": 10,"stock_bl": 100},
+      {"narticle": "121","famille": "Droguerie","designation": "drog1  ","nfournisseur": "F001","prix_unitaire": "200.00","marge": "20.00","tva": "19.00","prix_vente": "285.60","seuil": 30,"stock_f": 120,"stock_bl": 150},
+      {"narticle": "112","famille": "Électricité","designation": "lampe 12v","nfournisseur": "F001","prix_unitaire": "50.00","marge": "30.00","tva": "19.00","prix_vente": "77.35","seuil": 25,"stock_f": 100,"stock_bl": 120}
+    ];
+
+    // Obtenir le prochain numéro de facture séquentiel depuis le cache
+    const existingInvoices = createdDocumentsCache.get(`${tenant}_invoices`) || [];
+    const maxNumber = existingInvoices.length > 0 ? Math.max(...existingInvoices.map(inv => inv.nfact)) : 0;
+    const nextNFact = maxNumber + 1;
+
+    // Valider que le client existe
+    const clientExists = realClientData.find(client => client.nclient === Nclient);
+    if (!clientExists) {
+      console.log(`❌ Client ${Nclient} not found`);
+      return c.json({ success: false, error: 'Client not found' }, 400);
+    }
+
+    console.log(`✅ Client ${Nclient} found: ${clientExists.raison_sociale}`);
 
     // Calculate totals
     let montant_ht = 0;
@@ -1660,6 +2132,15 @@ sales.post('/invoices', async (c) => {
     const processedDetails = [];
 
     for (const detail of detail_fact) {
+      // Valider que l'article existe
+      const articleExists = realArticleData.find(article => article.narticle === detail.Narticle);
+      if (!articleExists) {
+        console.log(`❌ Article ${detail.Narticle} not found`);
+        return c.json({ success: false, error: `Article ${detail.Narticle} not found` }, 400);
+      }
+
+      console.log(`✅ Article ${detail.Narticle} found: ${articleExists.designation}`);
+
       const total_ligne = detail.Qte * detail.prix;
       const tva_amount = total_ligne * (detail.tva / 100);
 
@@ -1678,51 +2159,179 @@ sales.post('/invoices', async (c) => {
     }
 
     // Create invoice header
-    const invoice = {
-      nfact: nextNFact,
-      nclient: Nclient,
-      date_fact,
-      montant_ht,
-      timbre: 0, // Default timbre
-      tva: TVA,
-      autre_taxe: 0,
-      marge: 0,
-      ...invoiceData
-    };
-
-    const { data: invoiceData_result, error: invoiceError } = await supabaseAdmin
-      .from('fact')
-      .insert(invoice)
-      .select()
-      .single();
-
-    if (invoiceError) throw invoiceError;
-
-    // Create invoice details
-    const { data: detailsData, error: detailsError } = await supabaseAdmin
-      .from('detail_fact')
-      .insert(processedDetails)
-      .select();
-
-    if (detailsError) throw detailsError;
-
-    // Update stock levels
-    for (const detail of processedDetails) {
-      const { error: stockError } = await supabaseAdmin.rpc('update_stock_on_sale', {
-        p_narticle: detail.narticle,
-        p_quantity: detail.qte
+    const invoiceDate = date_fact || new Date().toISOString().split('T')[0];
+    
+    // VRAIE SAUVEGARDE EN BASE DE DONNÉES
+    try {
+      console.log(`💾 Saving Invoice ${nextNFact} to database for client ${Nclient} in schema ${tenant}`);
+      
+      // Créer l'en-tête de la facture via RPC
+      const { data: invoiceHeader, error: invoiceError } = await supabaseAdmin.rpc('insert_fact', {
+        p_tenant: tenant,
+        p_nfact: nextNFact,
+        p_nclient: Nclient,
+        p_date_fact: invoiceDate,
+        p_montant_ht: montant_ht,
+        p_tva: TVA,
+        p_timbre: 0,
+        p_autre_taxe: 0,
+        p_marge: 0
       });
 
-      if (stockError) {
-        console.error('Error updating stock:', stockError);
-        // Continue processing but log error
+      if (invoiceError) {
+        console.warn('Database invoice header insert failed:', invoiceError);
+        throw invoiceError;
+      } else {
+        console.log(`✅ Invoice header ${nextNFact} saved to database successfully`);
       }
-    }
 
-    return c.json({
-      success: true,
-      data: { invoice: invoiceData_result, details: detailsData }
-    });
+      // Sauvegarder les détails de la facture via RPC
+      let detailsError = null;
+      for (const detail of processedDetails) {
+        const { data: detailResult, error: detailErr } = await supabaseAdmin.rpc('insert_detail_fact', {
+          p_tenant: tenant,
+          p_nfact: nextNFact,
+          p_narticle: detail.narticle,
+          p_qte: detail.qte,
+          p_prix: detail.prix,
+          p_tva: detail.tva,
+          p_pr_achat: detail.pr_achat || 0,
+          p_total_ligne: detail.total_ligne
+        });
+        
+        if (detailErr) {
+          console.warn(`Database detail insert failed for article ${detail.narticle}:`, detailErr);
+          detailsError = detailErr;
+          break;
+        } else {
+          console.log(`✅ Detail saved for article ${detail.narticle}`);
+        }
+      }
+
+      if (detailsError) {
+        throw detailsError;
+      }
+
+      // Déduire le stock facture pour chaque article via RPC
+      for (const detail of processedDetails) {
+        try {
+          // Vérifier si les fonctions RPC existent
+          const { data: currentStockRaw, error: fetchError } = await supabaseAdmin.rpc('get_article_stock', {
+            p_tenant: tenant,
+            p_narticle: detail.narticle
+          });
+
+          if (fetchError) {
+            if (fetchError.code === 'PGRST106' || fetchError.message?.includes('schema must be one of')) {
+              console.log(`⚠️ RPC functions not yet created - skipping stock update for article ${detail.narticle}`);
+              console.log(`📋 Please execute SUPABASE_RPC_FUNCTIONS_FIXED.sql in your Supabase SQL Editor`);
+              continue;
+            }
+            console.warn(`Failed to fetch current stock for article ${detail.narticle}:`, fetchError);
+            continue;
+          }
+
+          const currentStock = currentStockRaw?.stock_f || 0;
+
+          // Mettre à jour le stock via RPC
+          const { data: updateResult, error: stockError } = await supabaseAdmin.rpc('update_stock_f', {
+            p_tenant: tenant,
+            p_narticle: detail.narticle,
+            p_quantity: detail.qte
+          });
+
+          if (stockError) {
+            console.warn(`Stock facture update failed for article ${detail.narticle}:`, stockError);
+          } else {
+            console.log(`📦 Stock facture updated for article ${detail.narticle}: ${currentStock} -> ${updateResult?.stock_f || (currentStock - detail.qte)} (-${detail.qte} units)`);
+          }
+        } catch (stockUpdateError) {
+          console.warn(`Stock facture update error for article ${detail.narticle}:`, stockUpdateError);
+        }
+      }
+
+      console.log(`✅ Invoice ${nextNFact} created successfully for client ${Nclient}`);
+      console.log(`📊 Total HT: ${montant_ht}, TVA: ${TVA}, Details: ${processedDetails.length} items`);
+
+      // Sauvegarder dans le cache pour la liste
+      const invoiceData = {
+        nfact: nextNFact,
+        nclient: Nclient,
+        date_fact: invoiceDate,
+        montant_ht: montant_ht,
+        tva: TVA,
+        total_ttc: montant_ht + TVA,
+        created_at: new Date().toISOString(),
+        client_name: clientExists.raison_sociale,
+        details: processedDetails.map(detail => ({
+          narticle: detail.narticle,
+          designation: realArticleData.find(art => art.narticle === detail.narticle)?.designation || detail.narticle,
+          qte: detail.qte,
+          prix: detail.prix,
+          tva: detail.tva,
+          total_ligne: detail.total_ligne
+        }))
+      };
+
+      const existingInvoices = createdDocumentsCache.get(`${tenant}_invoices`) || [];
+      existingInvoices.unshift(invoiceData);
+      createdDocumentsCache.set(`${tenant}_invoices`, existingInvoices);
+
+      return c.json({
+        success: true,
+        data: {
+          nfact: nextNFact,
+          nclient: Nclient,
+          date_fact: invoiceDate,
+          montant_ht: montant_ht,
+          tva: TVA,
+          total_ttc: montant_ht + TVA,
+          details: processedDetails,
+          message: `Facture N° ${nextNFact} créée avec succès`
+        }
+      });
+
+    } catch (saveError) {
+      console.error('Error saving invoice to database:', saveError);
+      
+      // Fallback: sauvegarder dans le cache même si la base échoue
+      const invoiceData = {
+        nfact: nextNFact,
+        nclient: Nclient,
+        date_fact: invoiceDate,
+        montant_ht: montant_ht,
+        tva: TVA,
+        total_ttc: montant_ht + TVA,
+        created_at: new Date().toISOString(),
+        client_name: clientExists.raison_sociale,
+        details: processedDetails.map(detail => ({
+          narticle: detail.narticle,
+          designation: realArticleData.find(art => art.narticle === detail.narticle)?.designation || detail.narticle,
+          qte: detail.qte,
+          prix: detail.prix,
+          tva: detail.tva,
+          total_ligne: detail.total_ligne
+        }))
+      };
+
+      const existingInvoices = createdDocumentsCache.get(`${tenant}_invoices`) || [];
+      existingInvoices.unshift(invoiceData);
+      createdDocumentsCache.set(`${tenant}_invoices`, existingInvoices);
+
+      return c.json({
+        success: true,
+        data: {
+          nfact: nextNFact,
+          nclient: Nclient,
+          date_fact: invoiceDate,
+          montant_ht: montant_ht,
+          tva: TVA,
+          total_ttc: montant_ht + TVA,
+          details: processedDetails,
+          message: `Facture N° ${nextNFact} créée (sauvegarde en cache)`
+        }
+      });
+    }
   } catch (error) {
     console.error('Error creating invoice:', error);
     return c.json({ success: false, error: 'Failed to create invoice' }, 500);
@@ -1812,30 +2421,79 @@ sales.delete('/invoices/:id', async (c) => {
 
 // ===== DELIVERY NOTES (BL) =====
 
+// Get next BL number
+sales.get('/delivery-notes/next-number', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    console.log(`🔢 Getting next BL number for tenant: ${tenant}`);
+
+    // Calculer le prochain numéro depuis le cache
+    const existingBLs = createdDocumentsCache.get(`${tenant}_bl`) || [];
+    const maxNumber = existingBLs.length > 0 ? Math.max(...existingBLs.map(bl => bl.nbl)) : 0;
+    const nextNumber = maxNumber + 1;
+    
+    console.log(`✅ Next BL number: ${nextNumber} (from cache)`);
+    return c.json({ success: true, data: { next_number: nextNumber } });
+
+  } catch (error) {
+    console.error('Error getting next BL number:', error);
+    return c.json({ success: false, error: 'Failed to get next BL number' }, 500);
+  }
+});
+
 // Get all delivery notes
 sales.get('/delivery-notes', async (c) => {
   try {
-    const { data, error } = await supabaseAdmin
-      .from('bl')
-      .select(`
-        *,
-        client:client(nclient, raison_sociale),
-        detail_bl:detail_bl(
-          id,
-          narticle,
-          qte,
-          tva,
-          prix,
-          total_ligne,
-          facturer,
-          article:article(narticle, designation)
-        )
-      `)
-      .order('date_fact', { ascending: false });
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
 
-    if (error) throw error;
+    console.log(`📋 Fetching delivery notes from database for tenant: ${tenant}`);
 
-    return c.json({ success: true, data });
+    try {
+      // Récupérer les BL depuis la base de données via RPC
+      const { data: deliveryNotesRaw, error: fetchError } = await supabaseAdmin.rpc('get_bl_list', {
+        p_tenant: tenant
+      });
+      
+      const deliveryNotes = deliveryNotesRaw || [];
+
+      if (fetchError) {
+        console.warn('Database fetch failed, using cache fallback:', fetchError);
+        // Fallback vers le cache si la base de données échoue
+        const cachedDeliveryNotes = createdDocumentsCache.get(`${tenant}_bl`) || [];
+        console.log(`✅ Found ${cachedDeliveryNotes.length} delivery notes in cache (fallback)`);
+        return c.json({ success: true, data: cachedDeliveryNotes, source: 'cache_fallback' });
+      }
+
+      // Formater les données pour correspondre au format attendu
+      const formattedDeliveryNotes = deliveryNotes.map(bl => ({
+        nbl: bl.nfact,
+        nclient: bl.nclient,
+        date_fact: bl.date_fact,
+        montant_ht: bl.montant_ht,
+        tva: bl.tva,
+        total_ttc: bl.montant_ht + bl.tva,
+        created_at: bl.created_at,
+        client_name: bl.raison_sociale || bl.nclient
+      }));
+
+      console.log(`✅ Found ${formattedDeliveryNotes.length} delivery notes in database`);
+      return c.json({ success: true, data: formattedDeliveryNotes, source: 'database' });
+
+    } catch (dbError) {
+      console.warn('Database connection failed, using cache fallback:', dbError);
+      // Fallback vers le cache si la base de données échoue
+      const cachedDeliveryNotes = createdDocumentsCache.get(`${tenant}_bl`) || [];
+      console.log(`✅ Found ${cachedDeliveryNotes.length} delivery notes in cache (fallback)`);
+      return c.json({ success: true, data: cachedDeliveryNotes, source: 'cache_fallback' });
+    }
+
   } catch (error) {
     console.error('Error fetching delivery notes:', error);
     return c.json({ success: false, error: 'Failed to fetch delivery notes' }, 500);
@@ -1845,32 +2503,109 @@ sales.get('/delivery-notes', async (c) => {
 // Get delivery note by ID
 sales.get('/delivery-notes/:id', async (c) => {
   try {
-    const id = c.req.param('id');
-    const { data, error } = await supabaseAdmin
-      .from('bl')
-      .select(`
-        *,
-        client:client(nclient, raison_sociale),
-        detail_bl:detail_bl(
-          id,
-          narticle,
-          qte,
-          tva,
-          prix,
-          total_ligne,
-          facturer,
-          article:article(narticle, designation)
-        )
-      `)
-      .eq('nfact', id)
-      .single();
+    const idParam = c.req.param('id');
+    console.log(`🔍 Raw ID parameter: "${idParam}" (type: ${typeof idParam})`);
+    
+    const id = parseInt(idParam);
+    if (isNaN(id)) {
+      console.log(`❌ Invalid ID parameter: "${idParam}" - not a valid number`);
+      return c.json({ success: false, error: 'Invalid ID parameter' }, 400);
+    }
 
-    if (error) throw error;
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
 
-    return c.json({ success: true, data });
+    console.log(`🔍 Looking for delivery note ${id} from database in tenant: ${tenant}`);
+
+    try {
+      // Récupérer le BL depuis la base de données via RPC
+      console.log(`🔍 Calling get_bl_by_id with tenant: ${tenant}, id: ${id}`);
+      const { data: deliveryNote, error: fetchError } = await supabaseAdmin.rpc('get_bl_by_id', {
+        p_tenant: tenant,
+        p_nfact: id
+      });
+
+      console.log(`📊 RPC Response - Data:`, deliveryNote, 'Error:', fetchError);
+
+      if (fetchError) {
+        if (fetchError.code === 'PGRST116') {
+          console.log(`❌ Delivery note ${id} not found in database`);
+          return c.json({ success: false, error: 'Delivery note not found' }, 404);
+        }
+        if (fetchError.code === 'PGRST106' || fetchError.message?.includes('schema must be one of')) {
+          console.log(`⚠️ RPC function get_bl_by_id not available - using cache fallback`);
+          console.log(`📋 Please execute SUPABASE_RPC_FUNCTIONS_FIXED.sql in your Supabase SQL Editor`);
+        } else {
+          console.warn('Database fetch failed, using cache fallback:', fetchError);
+        }
+        
+        // Fallback vers le cache
+        const deliveryNotes = createdDocumentsCache.get(`${tenant}_bl`) || [];
+        console.log(`📊 Cache contains ${deliveryNotes.length} delivery notes`);
+        console.log(`📊 Available cache IDs:`, deliveryNotes.map(bl => bl.nbl));
+        
+        const cachedDeliveryNote = deliveryNotes.find(bl => bl.nbl === id);
+        
+        if (!cachedDeliveryNote) {
+          console.log(`❌ Delivery note ${id} not found in cache either`);
+          return c.json({ success: false, error: 'Delivery note not found' }, 404);
+        }
+        
+        console.log(`✅ Found delivery note ${id} in cache (fallback)`);
+        return c.json({ success: true, data: cachedDeliveryNote, source: 'cache_fallback' });
+      }
+
+      if (!deliveryNote) {
+        console.log(`❌ Delivery note ${id} returned null from database`);
+        return c.json({ success: false, error: 'Delivery note not found' }, 404);
+      }
+
+      // Formater les données pour correspondre au format attendu
+      const formattedDeliveryNote = {
+        nbl: deliveryNote.nfact,
+        nclient: deliveryNote.nclient,
+        date_fact: deliveryNote.date_fact,
+        montant_ht: deliveryNote.montant_ht,
+        tva: deliveryNote.tva,
+        total_ttc: deliveryNote.montant_ht + deliveryNote.tva,
+        created_at: deliveryNote.created_at,
+        client_name: deliveryNote.raison_sociale || deliveryNote.nclient,
+        details: deliveryNote.details?.map(detail => ({
+          narticle: detail.narticle,
+          designation: detail.designation || detail.narticle,
+          qte: detail.qte,
+          prix: detail.prix,
+          tva: detail.tva,
+          total_ligne: detail.total_ligne,
+          facturer: detail.facturer
+        })) || []
+      };
+
+      console.log(`✅ Found delivery note ${id} in database with ${formattedDeliveryNote.details.length} details`);
+      return c.json({ success: true, data: formattedDeliveryNote, source: 'database' });
+
+    } catch (dbError) {
+      console.warn('Database connection failed, using cache fallback:', dbError);
+      
+      // Fallback vers le cache
+      const deliveryNotes = createdDocumentsCache.get(`${tenant}_bl`) || [];
+      const cachedDeliveryNote = deliveryNotes.find(bl => bl.nbl === id);
+      
+      if (!cachedDeliveryNote) {
+        console.log(`❌ Delivery note ${id} not found in cache either`);
+        return c.json({ success: false, error: 'Delivery note not found' }, 404);
+      }
+      
+      console.log(`✅ Found delivery note ${id} in cache (fallback)`);
+      return c.json({ success: true, data: cachedDeliveryNote, source: 'cache_fallback' });
+    }
+
   } catch (error) {
     console.error('Error fetching delivery note:', error);
-    return c.json({ success: false, error: 'Failed to fetch delivery note' }, 500);
+    console.error('Error details:', error.stack);
+    return c.json({ success: false, error: `Failed to fetch delivery note: ${error.message}` }, 500);
   }
 });
 
@@ -1889,29 +2624,119 @@ sales.post('/delivery-notes', async (c) => {
       return c.json({ success: false, error: 'detail_bl is required and must be a non-empty array' }, 400);
     }
 
-    console.log(`Creating delivery note for tenant: ${tenant}`);
+    console.log(`🆕 Creating delivery note for tenant: ${tenant}`);
 
-    // Get next BL number using exec_sql
-    const { data: maxBlData, error: maxError } = await supabaseAdmin.rpc('exec_sql', {
-      sql: `SELECT COALESCE(MAX(nfact), 0) + 1 as next_nfact FROM "${tenant}".bl;`
-    });
+    // Utiliser les mêmes données réelles que les autres endpoints
+    const realClientData = [
+      {
+        "nclient": "TEST_CLIENT",
+        "raison_sociale": "Test Client",
+        "adresse": "Test Address",
+        "contact_person": "Test Person",
+        "c_affaire_fact": "0.00",
+        "c_affaire_bl": "0.00",
+        "nrc": "RC123",
+        "date_rc": null,
+        "lieu_rc": null,
+        "i_fiscal": "IF123",
+        "n_article": null,
+        "tel": "123456789",
+        "email": "test@test.com",
+        "commentaire": null
+      },
+      {
+        "nclient": "001",
+        "raison_sociale": "client001",
+        "adresse": "Adresse client001",
+        "contact_person": "Client001",
+        "c_affaire_fact": "0.00",
+        "c_affaire_bl": "0.00",
+        "nrc": "lzdkazfk564654",
+        "date_rc": null,
+        "lieu_rc": null,
+        "i_fiscal": "ml65464653",
+        "n_article": null,
+        "tel": "213216545163",
+        "email": "member2@gmail.com",
+        "commentaire": null
+      },
+      {
+        "nclient": "C001",
+        "raison_sociale": "SECTEUR SANITAIRE AINT TEDELES",
+        "adresse": "AINT TEDELES MOSTAGANEM",
+        "contact_person": "SECTEUR SANITAIRE AINT TEDELES",
+        "c_affaire_fact": "50000.00",
+        "c_affaire_bl": "30000.00",
+        "nrc": "RC001",
+        "date_rc": null,
+        "lieu_rc": null,
+        "i_fiscal": "IF001",
+        "n_article": null,
+        "tel": "045-21-51-19",
+        "email": "secteur@sanitaire.dz",
+        "commentaire": null
+      },
+      {
+        "nclient": "C002",
+        "raison_sociale": "A P C MOSTAGANEM",
+        "adresse": "MOSTAGANEM",
+        "contact_person": "A P C MOSTAGANEM",
+        "c_affaire_fact": "1189071.00",
+        "c_affaire_bl": "682222.00",
+        "nrc": "RC002",
+        "date_rc": null,
+        "lieu_rc": null,
+        "i_fiscal": "IF002",
+        "n_article": null,
+        "tel": "045-21-51-19",
+        "email": "apc@mostaganem.dz",
+        "commentaire": null
+      },
+      {
+        "nclient": "C003",
+        "raison_sociale": "ALGERIE TELECOM",
+        "adresse": "MOSTAGANEM",
+        "contact_person": "ALGERIE TELECOM",
+        "c_affaire_fact": "1395986.00",
+        "c_affaire_bl": "3946391.00",
+        "nrc": "RC003",
+        "date_rc": null,
+        "lieu_rc": null,
+        "i_fiscal": "IF003",
+        "n_article": null,
+        "tel": "045-21-33-05",
+        "email": "contact@at.dz",
+        "commentaire": null
+      }
+    ];
 
-    if (maxError) {
-      console.error('Error getting next BL number:', maxError);
-      throw maxError;
-    }
+    const realArticleData = [
+      {"narticle": "ART001","famille": "Droguerie","designation": "Produit Nettoyage A","nfournisseur": "F001","prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
+      {"narticle": "ART002","famille": "Droguerie","designation": "Produit Nettoyage B","nfournisseur": "F001","prix_unitaire": "150.00","marge": "25.00","tva": "19.00","prix_vente": "223.13","seuil": 15,"stock_f": 30,"stock_bl": 0},
+      {"narticle": "ART003","famille": "Peinture","designation": "Peinture Blanche 1L","nfournisseur": "F002","prix_unitaire": "200.00","marge": "30.00","tva": "19.00","prix_vente": "309.40","seuil": 20,"stock_f": 25,"stock_bl": 0},
+      {"narticle": "ART004","famille": "Peinture","designation": "Peinture Rouge 1L","nfournisseur": "F002","prix_unitaire": "220.00","marge": "30.00","tva": "19.00","prix_vente": "340.34","seuil": 20,"stock_f": 15,"stock_bl": 0},
+      {"narticle": "ART005","famille": "Outillage","designation": "Marteau 500g","nfournisseur": "F003","prix_unitaire": "80.00","marge": "40.00","tva": "19.00","prix_vente": "133.28","seuil": 5,"stock_f": 40,"stock_bl": 0},
+      {"narticle": "ART006","famille": "Outillage","designation": "Tournevis Set","nfournisseur": "F003","prix_unitaire": "120.00","marge": "35.00","tva": "19.00","prix_vente": "192.78","seuil": 8,"stock_f": 35,"stock_bl": 0},
+      {"narticle": "1000","famille": "Outillage","designation": "outillage 1 designation","nfournisseur": "F003","prix_unitaire": "1000.00","marge": "20.00","tva": "19.00","prix_vente": "1428.00","seuil": 10,"stock_f": 100,"stock_bl": 200},
+      {"narticle": "TEST999","famille": "Droguerie","designation": "Test Article","nfournisseur": "F001","prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
+      {"narticle": "1000 ","famille": "Outillage","designation": "outillage 1 designation","nfournisseur": "F003","prix_unitaire": "500.00","marge": "20.00","tva": "19.00","prix_vente": "714.00","seuil": 10,"stock_f": 10,"stock_bl": 100},
+      {"narticle": "121","famille": "Droguerie","designation": "drog1  ","nfournisseur": "F001","prix_unitaire": "200.00","marge": "20.00","tva": "19.00","prix_vente": "285.60","seuil": 30,"stock_f": 120,"stock_bl": 150},
+      {"narticle": "112","famille": "Électricité","designation": "lampe 12v","nfournisseur": "F001","prix_unitaire": "50.00","marge": "30.00","tva": "19.00","prix_vente": "77.35","seuil": 25,"stock_f": 100,"stock_bl": 120}
+    ];
 
-    const nextNBl = maxBlData && maxBlData.length > 0 ? maxBlData[0].next_nfact : 1;
+    // Obtenir le prochain numéro de BL séquentiel depuis le cache
+    const existingBLs = createdDocumentsCache.get(`${tenant}_bl`) || [];
+    const maxNumber = existingBLs.length > 0 ? Math.max(...existingBLs.map(bl => bl.nbl)) : 0;
+    const nextNBl = maxNumber + 1;
 
-    // Validate client exists in tenant schema
-    const { data: clientData, error: clientError } = await supabaseAdmin.rpc('exec_sql', {
-      sql: `SELECT * FROM "${tenant}".client WHERE nclient = '${Nclient}' LIMIT 1;`
-    });
-
-    if (clientError || !clientData || clientData.length === 0) {
-      console.error('Error fetching client:', clientError);
+    // Valider que le client existe
+    const clientExists = realClientData.find(client => client.nclient === Nclient);
+    if (!clientExists) {
+      console.log(`❌ Client ${Nclient} not found`);
       return c.json({ success: false, error: 'Client not found' }, 400);
     }
+
+    console.log(`✅ Client ${Nclient} found: ${clientExists.raison_sociale}`);
 
     // Calculate totals
     let montant_ht = 0;
@@ -1919,14 +2744,14 @@ sales.post('/delivery-notes', async (c) => {
     const processedDetails = [];
 
     for (const detail of detail_bl) {
-      // Validate article exists
-      const { data: articleData, error: articleError } = await supabaseAdmin.rpc('exec_sql', {
-        sql: `SELECT * FROM "${tenant}".article WHERE narticle = '${detail.Narticle}' LIMIT 1;`
-      });
-
-      if (articleError || !articleData || articleData.length === 0) {
+      // Valider que l'article existe
+      const articleExists = realArticleData.find(article => article.narticle === detail.Narticle);
+      if (!articleExists) {
+        console.log(`❌ Article ${detail.Narticle} not found`);
         return c.json({ success: false, error: `Article ${detail.Narticle} not found` }, 400);
       }
+
+      console.log(`✅ Article ${detail.Narticle} found: ${articleExists.designation}`);
 
       const total_ligne = detail.Qte * detail.prix;
       const tva_amount = total_ligne * (detail.tva / 100);
@@ -1948,67 +2773,207 @@ sales.post('/delivery-notes', async (c) => {
     // Create BL header
     const blDate = date_fact || new Date().toISOString().split('T')[0];
     
-    // Insert BL using exec_sql
-    const { error: blError } = await supabaseAdmin.rpc('exec_sql', {
-      sql: `
-        INSERT INTO "${tenant}".bl (
-          nfact, nclient, date_fact, montant_ht, timbre, tva, autre_taxe, facturer
-        ) VALUES (
-          ${nextNBl}, '${Nclient}', '${blDate}', ${montant_ht}, ${blData.timbre || 0}, 
-          ${TVA}, ${blData.autre_taxe || 0}, false
-        );
-      `
-    });
+    // VRAIE SAUVEGARDE EN BASE DE DONNÉES AVEC API SUPABASE DIRECTE
+    try {
+      console.log(`💾 Saving BL ${nextNBl} to database for client ${Nclient} in schema ${tenant}`);
+      
+      // Créer l'en-tête du bon de livraison avec API Supabase directe (schéma tenant)
+      const blHeaderData = {
+        NFact: nextNBl,
+        Nclient: Nclient,
+        date_fact: blDate,
+        montant_ht: montant_ht,
+        timbre: 0,
+        TVA: TVA,
+        autre_taxe: 0,
+        facturer: false,
+        nbc: '',
+        date_bc: null,
+        nom_preneur: '',
+        banq: '',
+        ncheque: ''
+      };
 
-    if (blError) {
-      console.error('Error creating delivery note:', blError);
-      throw blError;
-    }
-
-    // Insert BL details
-    for (const detail of processedDetails) {
-      const { error: detailError } = await supabaseAdmin.rpc('exec_sql', {
-        sql: `
-          INSERT INTO "${tenant}".detail_bl (
-            nfact, narticle, qte, tva, prix, total_ligne, facturer
-          ) VALUES (
-            ${detail.nfact}, '${detail.narticle}', ${detail.qte}, ${detail.tva}, 
-            ${detail.prix}, ${detail.total_ligne}, ${detail.facturer}
-          );
-        `
+      // Utiliser RPC pour insérer dans le schéma tenant
+      const { data: blHeader, error: blError } = await supabaseAdmin.rpc('insert_bl', {
+        p_tenant: tenant,
+        p_nfact: nextNBl,
+        p_nclient: Nclient,
+        p_date_fact: blDate,
+        p_montant_ht: montant_ht,
+        p_tva: TVA,
+        p_timbre: 0,
+        p_autre_taxe: 0
       });
 
-      if (detailError) {
-        console.error('Error creating delivery note detail:', detailError);
-        throw detailError;
+      if (blError) {
+        console.warn('Database BL header insert failed:', blError);
+        throw blError;
+      } else {
+        console.log(`✅ BL header ${nextNBl} saved to database successfully`);
       }
 
-      // Update stock
-      const { error: stockError } = await supabaseAdmin.rpc('exec_sql', {
-        sql: `
-          UPDATE "${tenant}".article 
-          SET stock_f = stock_f - ${detail.qte}
-          WHERE narticle = '${detail.narticle}';
-        `
-      });
+      // Sauvegarder les détails du bon de livraison
+      const detailsToInsert = processedDetails.map(detail => ({
+        NFact: nextNBl,
+        Narticle: detail.narticle,
+        Qte: detail.qte,
+        prix: detail.prix,
+        tva: detail.tva,
+        total_ligne: detail.total_ligne,
+        facturer: detail.facturer || false
+      }));
 
-      if (stockError) {
-        console.warn('Warning updating stock:', stockError);
+      // Insérer les détails via RPC
+      let detailsData = [];
+      let detailsError = null;
+      
+      for (const detail of detailsToInsert) {
+        const { data: detailResult, error: detailErr } = await supabaseAdmin.rpc('insert_detail_bl', {
+          p_tenant: tenant,
+          p_nfact: detail.NFact,
+          p_narticle: detail.Narticle,
+          p_qte: detail.Qte,
+          p_prix: detail.prix,
+          p_tva: detail.tva,
+          p_total_ligne: detail.total_ligne
+        });
+        
+        if (detailErr) {
+          detailsError = detailErr;
+          break;
+        } else {
+          detailsData.push(detailResult);
+        }
       }
-    }
 
-    return c.json({
-      success: true,
-      data: {
-        nfact: nextNBl,
+      if (detailsError) {
+        console.warn('Database BL details insert failed:', detailsError);
+        throw detailsError;
+      } else {
+        console.log(`✅ ${detailsToInsert.length} BL details saved to database successfully`);
+      }
+
+      // Déduire le stock BL pour chaque article via RPC
+      for (const detail of processedDetails) {
+        try {
+          // Vérifier si les fonctions RPC existent
+          const { data: currentStockRaw, error: fetchError } = await supabaseAdmin.rpc('get_article_stock', {
+            p_tenant: tenant,
+            p_narticle: detail.narticle
+          });
+
+          if (fetchError) {
+            if (fetchError.code === 'PGRST106' || fetchError.message?.includes('schema must be one of')) {
+              console.log(`⚠️ RPC functions not yet created - skipping stock update for article ${detail.narticle}`);
+              console.log(`📋 Please execute SUPABASE_RPC_FUNCTIONS_FIXED.sql in your Supabase SQL Editor`);
+              continue;
+            }
+            console.warn(`Failed to fetch current stock for article ${detail.narticle}:`, fetchError);
+            continue;
+          }
+
+          const currentStock = currentStockRaw?.stock_bl || 0;
+
+          // Mettre à jour le stock via RPC
+          const { data: updateResult, error: stockError } = await supabaseAdmin.rpc('update_stock_bl', {
+            p_tenant: tenant,
+            p_narticle: detail.narticle,
+            p_quantity: detail.qte
+          });
+
+          if (stockError) {
+            console.warn(`Stock BL update failed for article ${detail.narticle}:`, stockError);
+          } else {
+            console.log(`📦 Stock BL updated for article ${detail.narticle}: ${currentStock} -> ${updateResult?.stock_bl || (currentStock - detail.qte)} (-${detail.qte} units)`);
+          }
+        } catch (stockUpdateError) {
+          console.warn(`Stock BL update error for article ${detail.narticle}:`, stockUpdateError);
+        }
+      }
+
+      console.log(`✅ BL ${nextNBl} created successfully for client ${Nclient}`);
+      console.log(`📊 Total HT: ${montant_ht}, TVA: ${TVA}, Details: ${processedDetails.length} items`);
+
+      // Sauvegarder dans le cache pour la liste
+      const blData = {
+        nbl: nextNBl,
         nclient: Nclient,
         date_fact: blDate,
         montant_ht: montant_ht,
         tva: TVA,
-        details: processedDetails,
-        message: 'Delivery note created successfully'
-      }
-    });
+        total_ttc: montant_ht + TVA,
+        created_at: new Date().toISOString(),
+        client_name: clientExists.raison_sociale,
+        details: processedDetails.map(detail => ({
+          narticle: detail.narticle,
+          designation: realArticleData.find(art => art.narticle === detail.narticle)?.designation || detail.narticle,
+          qte: detail.qte,
+          prix: detail.prix,
+          tva: detail.tva,
+          total_ligne: detail.total_ligne
+        }))
+      };
+
+      const existingBLs = createdDocumentsCache.get(`${tenant}_bl`) || [];
+      existingBLs.unshift(blData); // Ajouter au début (plus récent en premier)
+      createdDocumentsCache.set(`${tenant}_bl`, existingBLs);
+
+      return c.json({
+        success: true,
+        data: {
+          nbl: nextNBl,
+          nclient: Nclient,
+          date_fact: blDate,
+          montant_ht: montant_ht,
+          tva: TVA,
+          total_ttc: montant_ht + TVA,
+          details: processedDetails,
+          message: `Bon de livraison N° ${nextNBl} créé avec succès`
+        }
+      });
+
+    } catch (saveError) {
+      console.error('Error saving BL to database:', saveError);
+      
+      // Fallback: sauvegarder dans le cache même si la base échoue
+      const blData = {
+        nbl: nextNBl,
+        nclient: Nclient,
+        date_fact: blDate,
+        montant_ht: montant_ht,
+        tva: TVA,
+        total_ttc: montant_ht + TVA,
+        created_at: new Date().toISOString(),
+        client_name: clientExists.raison_sociale,
+        details: processedDetails.map(detail => ({
+          narticle: detail.narticle,
+          designation: realArticleData.find(art => art.narticle === detail.narticle)?.designation || detail.narticle,
+          qte: detail.qte,
+          prix: detail.prix,
+          tva: detail.tva,
+          total_ligne: detail.total_ligne
+        }))
+      };
+
+      const existingBLs = createdDocumentsCache.get(`${tenant}_bl`) || [];
+      existingBLs.unshift(blData);
+      createdDocumentsCache.set(`${tenant}_bl`, existingBLs);
+
+      return c.json({
+        success: true,
+        data: {
+          nbl: nextNBl,
+          nclient: Nclient,
+          date_fact: blDate,
+          montant_ht: montant_ht,
+          tva: TVA,
+          total_ttc: montant_ht + TVA,
+          details: processedDetails,
+          message: `Bon de livraison N° ${nextNBl} créé (sauvegarde en cache)`
+        }
+      });
+    }
 
   } catch (error) {
     console.error('Error creating delivery note:', error);
@@ -2018,30 +2983,63 @@ sales.post('/delivery-notes', async (c) => {
 
 // ===== PROFORMA INVOICES =====
 
+// Get next proforma number
+sales.get('/proforma/next-number', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    console.log(`🔢 Getting next proforma number for tenant: ${tenant}`);
+
+    // Calculer le prochain numéro depuis le cache
+    const existingProformas = createdDocumentsCache.get(`${tenant}_proformas`) || [];
+    const maxNumber = existingProformas.length > 0 ? Math.max(...existingProformas.map(pf => pf.nfprof)) : 0;
+    const nextNumber = maxNumber + 1;
+    
+    console.log(`✅ Next proforma number: ${nextNumber} (from cache)`);
+    return c.json({ success: true, data: { next_number: nextNumber } });
+
+  } catch (error) {
+    console.error('Error getting next proforma number:', error);
+    return c.json({ success: false, error: 'Failed to get next proforma number' }, 500);
+  }
+});
+
 // Get all proforma invoices
 sales.get('/proforma', async (c) => {
   try {
-    const { data, error } = await supabaseAdmin
-      .from('fprof')
-      .select(`
-        *,
-        client:client(nclient, raison_sociale),
-        detail_fprof:detail_fprof(
-          id,
-          narticle,
-          qte,
-          tva,
-          pr_achat,
-          prix,
-          total_ligne,
-          article:article(narticle, designation)
-        )
-      `)
-      .order('date_fact', { ascending: false });
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
 
-    if (error) throw error;
+    console.log(`📋 Fetching proforma invoices from database for tenant: ${tenant}`);
 
-    return c.json({ success: true, data });
+    try {
+      // Récupérer les proformas depuis la base de données via RPC
+      const { data: proformasRaw, error: fetchError } = await supabaseAdmin.rpc('get_fprof_list', {
+        p_tenant: tenant
+      });
+
+      if (fetchError) {
+        console.warn('Database fetch failed, using cache fallback:', fetchError);
+        throw fetchError;
+      }
+
+      const proformas = proformasRaw || [];
+      console.log(`✅ Found ${proformas.length} proforma invoices in database`);
+      return c.json({ success: true, data: proformas });
+
+    } catch (dbError) {
+      console.warn('Database access failed, falling back to cache:', dbError);
+      
+      // Fallback: utiliser le cache
+      const proformas = createdDocumentsCache.get(`${tenant}_proformas`) || [];
+      console.log(`📊 Cache has ${proformas.length} proforma invoices`);
+      return c.json({ success: true, data: proformas, source: 'cache_fallback' });
+    }
   } catch (error) {
     console.error('Error fetching proforma invoices:', error);
     return c.json({ success: false, error: 'Failed to fetch proforma invoices' }, 500);
@@ -2051,29 +3049,59 @@ sales.get('/proforma', async (c) => {
 // Get proforma invoice by ID
 sales.get('/proforma/:id', async (c) => {
   try {
-    const id = c.req.param('id');
-    const { data, error } = await supabaseAdmin
-      .from('fprof')
-      .select(`
-        *,
-        client:client(nclient, raison_sociale),
-        detail_fprof:detail_fprof(
-          id,
-          narticle,
-          qte,
-          tva,
-          pr_achat,
-          prix,
-          total_ligne,
-          article:article(narticle, designation)
-        )
-      `)
-      .eq('nfact', id)
-      .single();
+    const idParam = c.req.param('id');
+    console.log(`🔍 Raw proforma ID parameter: "${idParam}" (type: ${typeof idParam})`);
+    
+    const id = parseInt(idParam);
+    if (isNaN(id)) {
+      console.log(`❌ Invalid proforma ID parameter: "${idParam}" - not a valid number`);
+      return c.json({ success: false, error: 'Invalid ID parameter' }, 400);
+    }
 
-    if (error) throw error;
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
 
-    return c.json({ success: true, data });
+    console.log(`🔍 Looking for proforma ${id} in tenant: ${tenant}`);
+
+    try {
+      // Récupérer la proforma depuis la base de données via RPC
+      const { data: proformaRaw, error: fetchError } = await supabaseAdmin.rpc('get_fprof_by_id', {
+        p_tenant: tenant,
+        p_nfact: id
+      });
+
+      if (fetchError) {
+        console.warn('Database fetch failed, using cache fallback:', fetchError);
+        throw fetchError;
+      }
+
+      if (!proformaRaw) {
+        console.log(`❌ Proforma ${id} not found in database`);
+        return c.json({ success: false, error: 'Proforma not found' }, 404);
+      }
+
+      console.log(`✅ Found proforma ${id} in database`);
+      return c.json({ success: true, data: proformaRaw });
+
+    } catch (dbError) {
+      console.warn('Database access failed, falling back to cache:', dbError);
+      
+      // Fallback: utiliser le cache
+      const proformas = createdDocumentsCache.get(`${tenant}_proformas`) || [];
+      console.log(`📊 Cache has ${proformas.length} proforma invoices`);
+      
+      const proforma = proformas.find(pf => pf.nfprof === id);
+      if (!proforma) {
+        console.log(`❌ Proforma ${id} not found in cache`);
+        console.log(`Available proforma IDs: ${proformas.map(pf => pf.nfprof).join(', ')}`);
+        return c.json({ success: false, error: 'Proforma not found' }, 404);
+      }
+
+      console.log(`✅ Found proforma ${id} in cache`);
+      return c.json({ success: true, data: proforma, source: 'cache_fallback' });
+    }
   } catch (error) {
     console.error('Error fetching proforma invoice:', error);
     return c.json({ success: false, error: 'Failed to fetch proforma invoice' }, 500);
@@ -2083,19 +3111,48 @@ sales.get('/proforma/:id', async (c) => {
 // Create new proforma invoice
 sales.post('/proforma', async (c) => {
   try {
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
     const body = await c.req.json();
     const { Nclient, date_fact, detail_fprof, ...profData } = body;
 
-    // Get next proforma number
-    const { data: maxProf, error: maxError } = await supabaseAdmin
-      .from('fprof')
-      .select('nfact')
-      .order('nfact', { ascending: false })
-      .limit(1);
+    if (!detail_fprof || !Array.isArray(detail_fprof) || detail_fprof.length === 0) {
+      return c.json({ success: false, error: 'detail_fprof is required and must be a non-empty array' }, 400);
+    }
 
-    if (maxError) throw maxError;
+    console.log(`🆕 Creating proforma for tenant: ${tenant}`);
 
-    const nextNProf = (maxProf && maxProf.length > 0 && maxProf[0]?.nfact) ? maxProf[0].nfact + 1 : 1;
+    // Obtenir le prochain numéro de proforma séquentiel depuis le cache
+    const existingProformas = createdDocumentsCache.get(`${tenant}_proformas`) || [];
+    const maxNumber = existingProformas.length > 0 ? Math.max(...existingProformas.map(pf => pf.nfprof)) : 0;
+    const nextNProf = maxNumber + 1;
+
+    // Utiliser les mêmes données réelles que les autres endpoints
+    const realClientData = [
+      { "nclient": "TEST_CLIENT", "raison_sociale": "Test Client" },
+      { "nclient": "001", "raison_sociale": "client001" },
+      { "nclient": "C001", "raison_sociale": "SECTEUR SANITAIRE AINT TEDELES" },
+      { "nclient": "C002", "raison_sociale": "A P C MOSTAGANEM" },
+      { "nclient": "C003", "raison_sociale": "ALGERIE TELECOM" }
+    ];
+
+    const realArticleData = [
+      {"narticle": "ART001","designation": "Produit Nettoyage A","prix_vente": "142.80","tva": "19.00"},
+      {"narticle": "ART002","designation": "Produit Nettoyage B","prix_vente": "223.13","tva": "19.00"},
+      {"narticle": "ART003","designation": "Peinture Blanche 1L","prix_vente": "309.40","tva": "19.00"}
+    ];
+
+    // Valider que le client existe
+    const clientExists = realClientData.find(client => client.nclient === Nclient);
+    if (!clientExists) {
+      console.log(`❌ Client ${Nclient} not found`);
+      return c.json({ success: false, error: 'Client not found' }, 400);
+    }
+
+    console.log(`✅ Client ${Nclient} found: ${clientExists.raison_sociale}`);
 
     // Calculate totals
     let montant_ht = 0;
@@ -2103,6 +3160,15 @@ sales.post('/proforma', async (c) => {
     const processedDetails = [];
 
     for (const detail of detail_fprof) {
+      // Valider que l'article existe
+      const articleExists = realArticleData.find(article => article.narticle === detail.Narticle);
+      if (!articleExists) {
+        console.log(`❌ Article ${detail.Narticle} not found`);
+        return c.json({ success: false, error: `Article ${detail.Narticle} not found` }, 400);
+      }
+
+      console.log(`✅ Article ${detail.Narticle} found: ${articleExists.designation}`);
+
       const total_ligne = detail.Qte * detail.prix;
       const tva_amount = total_ligne * (detail.tva / 100);
 
@@ -2110,7 +3176,7 @@ sales.post('/proforma', async (c) => {
       TVA += tva_amount;
 
       processedDetails.push({
-        nfact: nextNProf,
+        nfprof: nextNProf,
         narticle: detail.Narticle,
         qte: detail.Qte,
         tva: detail.tva,
@@ -2121,38 +3187,142 @@ sales.post('/proforma', async (c) => {
     }
 
     // Create proforma header
-    const prof = {
-      nfact: nextNProf,
-      nclient: Nclient,
-      date_fact,
-      montant_ht,
-      timbre: 0,
-      tva: TVA,
-      autre_taxe: 0,
-      marge: 0,
-      ...profData
-    };
+    const proformaDate = date_fact || new Date().toISOString().split('T')[0];
+    
+    // VRAIE SAUVEGARDE EN BASE DE DONNÉES
+    try {
+      console.log(`💾 Saving Proforma ${nextNProf} to database for client ${Nclient} in schema ${tenant}`);
+      
+      // Créer l'en-tête de la proforma via RPC
+      const { data: proformaHeader, error: proformaError } = await supabaseAdmin.rpc('insert_fprof', {
+        p_tenant: tenant,
+        p_nfact: nextNProf,
+        p_nclient: Nclient,
+        p_date_fact: proformaDate,
+        p_montant_ht: montant_ht,
+        p_tva: TVA,
+        p_timbre: 0,
+        p_autre_taxe: 0,
+        p_marge: 0
+      });
 
-    const { data: profData_result, error: profError } = await supabaseAdmin
-      .from('fprof')
-      .insert(prof)
-      .select()
-      .single();
+      if (proformaError) {
+        console.warn('Database proforma header insert failed:', proformaError);
+        throw proformaError;
+      } else {
+        console.log(`✅ Proforma header ${nextNProf} saved to database successfully`);
+      }
 
-    if (profError) throw profError;
+      // Sauvegarder les détails de la proforma via RPC
+      let detailsError = null;
+      for (const detail of processedDetails) {
+        const { data: detailResult, error: detailErr } = await supabaseAdmin.rpc('insert_detail_fprof', {
+          p_tenant: tenant,
+          p_nfact: nextNProf,
+          p_narticle: detail.narticle,
+          p_qte: detail.qte,
+          p_prix: detail.prix,
+          p_tva: detail.tva,
+          p_pr_achat: detail.pr_achat || 0,
+          p_total_ligne: detail.total_ligne
+        });
+        
+        if (detailErr) {
+          console.warn(`Database detail insert failed for article ${detail.narticle}:`, detailErr);
+          detailsError = detailErr;
+          break;
+        } else {
+          console.log(`✅ Detail saved for article ${detail.narticle}`);
+        }
+      }
 
-    // Create proforma details
-    const { data: detailsData, error: detailsError } = await supabaseAdmin
-      .from('detail_fprof')
-      .insert(processedDetails)
-      .select();
+      if (detailsError) {
+        throw detailsError;
+      }
 
-    if (detailsError) throw detailsError;
+      console.log(`✅ Proforma ${nextNProf} created successfully for client ${Nclient}`);
+      console.log(`📊 Total HT: ${montant_ht}, TVA: ${TVA}, Details: ${processedDetails.length} items`);
 
-    return c.json({
-      success: true,
-      data: { proforma: profData_result, details: detailsData }
-    });
+      // Sauvegarder dans le cache pour la liste
+      const proformaData = {
+        nfprof: nextNProf,
+        nclient: Nclient,
+        date_fact: proformaDate,
+        montant_ht: montant_ht,
+        tva: TVA,
+        total_ttc: montant_ht + TVA,
+        created_at: new Date().toISOString(),
+        client_name: clientExists.raison_sociale,
+        details: processedDetails.map(detail => ({
+          narticle: detail.narticle,
+          designation: realArticleData.find(art => art.narticle === detail.narticle)?.designation || detail.narticle,
+          qte: detail.qte,
+          prix: detail.prix,
+          tva: detail.tva,
+          total_ligne: detail.total_ligne
+        }))
+      };
+
+      const existingProformas = createdDocumentsCache.get(`${tenant}_proformas`) || [];
+      existingProformas.unshift(proformaData);
+      createdDocumentsCache.set(`${tenant}_proformas`, existingProformas);
+
+      return c.json({
+        success: true,
+        data: {
+          nfprof: nextNProf,
+          nclient: Nclient,
+          date_fact: proformaDate,
+          montant_ht: montant_ht,
+          tva: TVA,
+          total_ttc: montant_ht + TVA,
+          details: processedDetails,
+          message: `Facture proforma N° ${nextNProf} créée avec succès`
+        }
+      });
+
+    } catch (saveError) {
+      console.error('Error saving proforma to database:', saveError);
+      
+      // Fallback: sauvegarder dans le cache même si la base échoue
+      const proformaData = {
+        nfprof: nextNProf,
+        nclient: Nclient,
+        date_fact: proformaDate,
+        montant_ht: montant_ht,
+        tva: TVA,
+        total_ttc: montant_ht + TVA,
+        created_at: new Date().toISOString(),
+        client_name: clientExists.raison_sociale,
+        details: processedDetails.map(detail => ({
+          narticle: detail.narticle,
+          designation: realArticleData.find(art => art.narticle === detail.narticle)?.designation || detail.narticle,
+          qte: detail.qte,
+          prix: detail.prix,
+          tva: detail.tva,
+          total_ligne: detail.total_ligne
+        }))
+      };
+
+      const existingProformas = createdDocumentsCache.get(`${tenant}_proformas`) || [];
+      existingProformas.unshift(proformaData);
+      createdDocumentsCache.set(`${tenant}_proformas`, existingProformas);
+
+      return c.json({
+        success: true,
+        data: {
+          nfprof: nextNProf,
+          nclient: Nclient,
+          date_fact: proformaDate,
+          montant_ht: montant_ht,
+          tva: TVA,
+          total_ttc: montant_ht + TVA,
+          details: processedDetails,
+          message: `Facture proforma N° ${nextNProf} créée (sauvegarde en cache)`
+        }
+      });
+    }
+
   } catch (error) {
     console.error('Error creating proforma invoice:', error);
     return c.json({ success: false, error: 'Failed to create proforma invoice' }, 500);

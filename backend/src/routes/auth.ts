@@ -283,6 +283,105 @@ auth.post('/init-test-data', async (c) => {
           );
         `
       });
+
+      // Create fact (factures) table
+      await supabaseAdmin.rpc('exec_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS "${schema}".fact (
+            nfact BIGINT PRIMARY KEY,
+            nclient VARCHAR(20),
+            date_fact DATE,
+            montant_ht DECIMAL(15,2) DEFAULT 0,
+            tva DECIMAL(15,2) DEFAULT 0,
+            total_ttc DECIMAL(15,2) DEFAULT 0,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+          );
+        `
+      });
+
+      // Create detail_fact table
+      await supabaseAdmin.rpc('exec_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS "${schema}".detail_fact (
+            id SERIAL PRIMARY KEY,
+            nfact BIGINT,
+            narticle VARCHAR(20),
+            qte INTEGER,
+            prix DECIMAL(15,2),
+            tva DECIMAL(5,2),
+            pr_achat DECIMAL(15,2) DEFAULT 0,
+            total_ligne DECIMAL(15,2),
+            created_at TIMESTAMP DEFAULT NOW()
+          );
+        `
+      });
+
+      // Create bl (bons de livraison) table
+      await supabaseAdmin.rpc('exec_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS "${schema}".bl (
+            nbl BIGINT PRIMARY KEY,
+            nclient VARCHAR(20),
+            date_fact DATE,
+            montant_ht DECIMAL(15,2) DEFAULT 0,
+            tva DECIMAL(15,2) DEFAULT 0,
+            total_ttc DECIMAL(15,2) DEFAULT 0,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+          );
+        `
+      });
+
+      // Create detail_bl table
+      await supabaseAdmin.rpc('exec_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS "${schema}".detail_bl (
+            id SERIAL PRIMARY KEY,
+            nbl BIGINT,
+            narticle VARCHAR(20),
+            qte INTEGER,
+            prix DECIMAL(15,2),
+            tva DECIMAL(5,2),
+            total_ligne DECIMAL(15,2),
+            facturer BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT NOW()
+          );
+        `
+      });
+
+      // Create fprof (factures proforma) table
+      await supabaseAdmin.rpc('exec_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS "${schema}".fprof (
+            nfprof BIGINT PRIMARY KEY,
+            nclient VARCHAR(20),
+            date_fact DATE,
+            montant_ht DECIMAL(15,2) DEFAULT 0,
+            tva DECIMAL(15,2) DEFAULT 0,
+            total_ttc DECIMAL(15,2) DEFAULT 0,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+          );
+        `
+      });
+
+      // Create detail_fprof table
+      await supabaseAdmin.rpc('exec_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS "${schema}".detail_fprof (
+            id SERIAL PRIMARY KEY,
+            nfprof BIGINT,
+            narticle VARCHAR(20),
+            qte INTEGER,
+            prix DECIMAL(15,2),
+            tva DECIMAL(5,2),
+            pr_achat DECIMAL(15,2) DEFAULT 0,
+            total_ligne DECIMAL(15,2),
+            created_at TIMESTAMP DEFAULT NOW()
+          );
+        `
+      });
       
       console.log(`✅ Tables created in schema ${schema}`);
 
