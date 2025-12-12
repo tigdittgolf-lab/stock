@@ -1,0 +1,31 @@
+yes we can call java methods from jasper reports. Just Follow the following steps
+
+ 
+
+Step1:
+
+create a java class with a static method which return something i.e either String or Integer.. 
+
+ 
+
+Step2:
+
+Create a jar file by command jar - cvf file.jar packagename
+
+ 
+
+Step3:
+
+set it as class path as 
+
+Tools > Options > ClassPath > Add Jar > Ok
+
+ 
+
+Step4: 
+
+Create a Static field. Edit its Expression by EditExpression to  "new packagename.classname().methodname(parameter) "
+
+Step5:
+
+Place this static field wherever you want

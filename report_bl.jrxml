@@ -1,0 +1,672 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="report2" language="groovy" pageWidth="595" pageHeight="842" columnWidth="565" leftMargin="15" rightMargin="15" topMargin="15" bottomMargin="15" scriptletClass="net.sf.jasperreports.engine.JRDefaultScriptlet" uuid="6d39f144-b538-4ebe-9c13-c6eabc12ade4">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="292"/>
+	<style name="table">
+		<box>
+			<pen lineWidth="1.0" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_TH" mode="Opaque" backcolor="#F0F8FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_CH" mode="Opaque" backcolor="#BFE1FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[new Boolean($V{REPORT_COUNT}.intValue()%2==0)]]></conditionExpression>
+			<style backcolor="#EFF7FF"/>
+		</conditionalStyle>
+	</style>
+	<style name="table 1">
+		<box>
+			<pen lineWidth="1.0" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 1_TH" mode="Opaque" backcolor="#F0F8FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 1_CH" mode="Opaque" backcolor="#BFE1FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 1_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[new Boolean($V{REPORT_COUNT}.intValue()%2==0)]]></conditionExpression>
+			<style backcolor="#EFF7FF"/>
+		</conditionalStyle>
+	</style>
+	<style name="table 2">
+		<box>
+			<pen lineWidth="1.0" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 2_TH" mode="Opaque" backcolor="#F5F5DC">
+		<box>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 2_CH" mode="Opaque" backcolor="#FFFFBF">
+		<box>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 2_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[new Boolean($V{REPORT_COUNT}.intValue()%2==0)]]></conditionExpression>
+			<style backcolor="#FFFFEF"/>
+		</conditionalStyle>
+	</style>
+	<subDataset name="New Dataset 1" uuid="6eaeea4d-392f-410d-b81e-dda67176f25c">
+		<queryString>
+			<![CDATA[SELECT      art.`designation` AS Designation,      fact.`NFact` AS fact_NFact,      fact.`Nclient` AS fact_Nclient,      fact.`date_fact` AS fact_date_fact,      fact.`montant_ht` AS fact_montant_ht,      fact.`timbre` AS fact_timbre,      fact.`TVA` AS fact_TVA,      fact.`autre_taxe` AS fact_autre_taxe,      client.`Nclient` AS client_Nclient,      client.`Raison_sociale` AS client_Raison_sociale,      client.`adresse` AS client_adresse,      client.`NRC` AS client_NRC,      client.`Date_RC` AS client_Date_RC,      client.`Lieu_RC` AS client_Lieu_RC,      client.`I_Fiscal` AS client_I_Fiscal,      client.`N_article` AS client_N_article,      detail_fact.`Narticle` AS detail_fact_Narticle,      detail_fact.`Qte` AS detail_fact_Qte,      detail_fact.`tva` AS detail_fact_tva,      detail_fact.`prix` AS detail_fact_prix,      detail_fact.`total_ligne` AS detail_fact_total_ligne FROM      `client` client INNER JOIN `fact` fact ON client.`Nclient` = fact.`Nclient`      INNER JOIN `detail_fact` detail_fact ON fact.`NFact` = detail_fact.`NFact`      INNER JOIN `article` art ON detail_fact.`Narticle` = art.`Narticle` where fact.`NFact`  ="14"]]>
+		</queryString>
+		<field name="Designation" class="java.lang.String">
+			<fieldDescription><![CDATA[]]></fieldDescription>
+		</field>
+		<field name="fact_NFact" class="java.lang.Integer"/>
+		<field name="fact_Nclient" class="java.lang.Integer"/>
+		<field name="fact_date_fact" class="java.sql.Date"/>
+		<field name="fact_montant_ht" class="java.lang.Double"/>
+		<field name="fact_timbre" class="java.lang.Double"/>
+		<field name="fact_TVA" class="java.lang.Double"/>
+		<field name="fact_autre_taxe" class="java.lang.Double"/>
+		<field name="client_Nclient" class="java.lang.Integer"/>
+		<field name="client_Raison_sociale" class="java.lang.String"/>
+		<field name="client_adresse" class="java.lang.String"/>
+		<field name="client_NRC" class="java.lang.String"/>
+		<field name="client_Date_RC" class="java.sql.Date"/>
+		<field name="client_Lieu_RC" class="java.lang.String"/>
+		<field name="client_I_Fiscal" class="java.lang.String"/>
+		<field name="client_N_article" class="java.lang.String"/>
+		<field name="detail_fact_Narticle" class="java.lang.String"/>
+		<field name="detail_fact_Qte" class="java.lang.Integer"/>
+		<field name="detail_fact_tva" class="java.lang.Double"/>
+		<field name="detail_fact_prix" class="java.lang.Double"/>
+		<field name="detail_fact_total_ligne" class="java.lang.Double"/>
+	</subDataset>
+	<subDataset name="facture_data" uuid="3175d02f-912f-4cd6-bb03-b59b6f615893">
+		<queryString>
+			<![CDATA[SELECT  fa.Narticle AS "Code Art.", art.designation AS "Designation", fa.Qte AS "Qté", fa.tva AS "TVA", fa.prix AS "Prix Unit.", fa.total_ligne AS "Total" FROM facture_temp AS fa, article AS art WHERE fa.narticle = art.narticle]]>
+		</queryString>
+		<field name="Code Art." class="java.lang.String"/>
+		<field name="Designation" class="java.lang.String">
+			<fieldDescription><![CDATA[]]></fieldDescription>
+		</field>
+		<field name="Qté" class="java.lang.Integer"/>
+		<field name="TVA" class="java.lang.Double">
+			<fieldDescription><![CDATA[]]></fieldDescription>
+		</field>
+		<field name="Prix Unit." class="java.lang.Double"/>
+		<field name="Total" class="java.lang.Double"/>
+	</subDataset>
+	<parameter name="fact_spell" class="java.lang.String"/>
+	<parameter name="domaine_activite_p" class="java.lang.String"/>
+	<parameter name="sous_domaine_p" class="java.lang.String"/>
+	<parameter name="raison_sociale_p" class="java.lang.String"/>
+	<parameter name="adress_p" class="java.lang.String"/>
+	<parameter name="commune_p" class="java.lang.String"/>
+	<parameter name="wilaya_p" class="java.lang.String"/>
+	<parameter name="tel_fixe_p" class="java.lang.String"/>
+	<parameter name="tel_port_p" class="java.lang.String"/>
+	<parameter name="nrc_p" class="java.lang.String"/>
+	<parameter name="nis_p" class="java.lang.String"/>
+	<parameter name="art_p" class="java.lang.String"/>
+	<parameter name="ident_fiscal_p" class="java.lang.String"/>
+	<parameter name="banq_p" class="java.lang.String"/>
+	<parameter name="e_mail_p" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[SELECT
+     fact.`NFact` AS fact_NFact,
+     fact.`Nclient` AS fact_Nclient,
+     fact.`date_fact` AS fact_date_fact,
+     fact.`montant_ht` AS fact_montant_ht,
+     fact.`timbre` AS fact_timbre,
+     fact.`TVA` AS fact_TVA,
+     fact.`autre_taxe` AS fact_autre_taxe,
+     client.`Nclient` AS client_Nclient,
+     client.`Raison_sociale` AS client_Raison_sociale,
+     client.`adresse` AS client_adresse,
+     client.`NRC` AS client_NRC,
+     client.`Date_RC` AS client_Date_RC,
+     client.`Lieu_RC` AS client_Lieu_RC,
+     client.`I_Fiscal` AS client_I_Fiscal,
+     client.`N_article` AS client_N_article,
+     fact.`nbc` AS fact_nbc,
+     fact.`date_bc` AS fact_date_bc,
+     fact.`nom_preneur` AS fact_nom_preneur
+FROM
+     `client` client INNER JOIN `fact` fact ON client.`Nclient` = fact.`Nclient`]]>
+	</queryString>
+	<field name="fact_NFact" class="java.lang.Integer"/>
+	<field name="fact_Nclient" class="java.lang.String"/>
+	<field name="fact_date_fact" class="java.sql.Date"/>
+	<field name="fact_montant_ht" class="java.lang.Double"/>
+	<field name="fact_timbre" class="java.lang.Double"/>
+	<field name="fact_TVA" class="java.lang.Double"/>
+	<field name="fact_autre_taxe" class="java.lang.Double"/>
+	<field name="client_Nclient" class="java.lang.String"/>
+	<field name="client_Raison_sociale" class="java.lang.String"/>
+	<field name="client_adresse" class="java.lang.String"/>
+	<field name="client_NRC" class="java.lang.String"/>
+	<field name="client_Date_RC" class="java.sql.Date"/>
+	<field name="client_Lieu_RC" class="java.lang.String"/>
+	<field name="client_I_Fiscal" class="java.lang.String"/>
+	<field name="client_N_article" class="java.lang.String"/>
+	<field name="fact_nbc" class="java.lang.String"/>
+	<field name="fact_date_bc" class="java.sql.Date"/>
+	<field name="fact_nom_preneur" class="java.lang.String"/>
+	<variable name="variable1" class="java.lang.String"/>
+	<title>
+		<band height="333" splitType="Stretch">
+			<staticText>
+				<reportElement x="263" y="50" width="149" height="24" uuid="8de73630-5c41-48dd-960e-51886b04f023"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Verdana" size="16" isBold="true" isItalic="true"/>
+				</textElement>
+				<text><![CDATA[Bon Livraison]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="339" y="114" width="84" height="20" uuid="c6de9062-d35a-45ce-a409-62c4b0e9a396"/>
+				<textElement>
+					<font fontName="Verdana" size="12" isBold="true" isItalic="true"/>
+				</textElement>
+				<text><![CDATA[      BL N°  :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="424" y="114" width="109" height="20" uuid="c028dabf-b347-4646-bfe1-863fbbdf0e49"/>
+				<textElement>
+					<font fontName="Verdana" size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fact_NFact}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="339" y="134" width="85" height="20" uuid="29eb2e52-0934-4643-87d0-526f583aa222"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<text><![CDATA[Date Facture  :]]></text>
+			</staticText>
+			<textField pattern="dd-MMM-yyyy">
+				<reportElement x="424" y="134" width="128" height="20" uuid="7ce17ab8-3c9a-4aef-bde8-a0a0c2f6ffbf"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fact_date_fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="0" y="0" width="565" height="20" uuid="878669e1-bdee-4876-a60c-090ff111beff"/>
+				<textElement textAlignment="Center">
+					<font fontName="Verdana" size="14" isBold="false" isItalic="true" isUnderline="true" isStrikeThrough="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{domaine_activite_p}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="0" y="20" width="565" height="20" uuid="8dc19d02-f0e5-4149-9cc5-bb0ed7b32d30"/>
+				<textElement textAlignment="Center">
+					<font fontName="Verdana" size="14" isBold="false" isItalic="true" isUnderline="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{sous_domaine_p}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="54" width="230" height="20" uuid="306d0592-4e2d-4682-8e58-007f405e12db"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{raison_sociale_p}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="74" width="230" height="20" uuid="6ed833e0-0f6a-4c6e-9f49-5fdabf5727ba"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{adress_p}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="94" width="90" height="20" uuid="a9d46391-9053-4240-ad7c-1382f1bdc54f"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{commune_p}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="90" y="94" width="75" height="20" uuid="c2847696-032f-4fc6-90b1-411a31e6b1dd"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{wilaya_p}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="114" width="165" height="20" uuid="7bbd4f55-dac3-4dcb-bc91-e8371e6e4963"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{tel_fixe_p}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="84" y="249" width="100" height="20" uuid="8a1ad3df-ab8a-4664-a23a-8a192ab19b66"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fact_Nclient}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="351" y="249" width="180" height="20" uuid="d18534a9-c315-44f9-8ed5-77d9d45af0cc"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{client_Raison_sociale}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="249" width="84" height="20" uuid="62387073-3554-4db5-af8b-e3e1bcf03b24"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<text><![CDATA[Code client    :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="263" y="249" width="88" height="20" uuid="cf230c3c-05b0-4c08-8aed-615714656154"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<text><![CDATA[Raison Sociale  :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="0" y="168" width="184" height="20" uuid="7301a7c4-cb95-4a1e-95a1-2d4eac4c00a9"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{nrc_p}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="290" y="168" width="230" height="20" uuid="c283785c-8aec-4957-ae7e-c8ec39a91442"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{nis_p}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="188" width="184" height="20" uuid="8abcbdcb-a9af-43c1-8c1c-a347b0503ebd"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{art_p}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="290" y="188" width="230" height="20" uuid="48d846db-f380-451c-816d-61405527403e"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{ident_fiscal_p}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="208" width="352" height="20" uuid="b2230a1e-70fd-4dcc-a0bd-5cb329bdfb9d"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{banq_p}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="84" y="269" width="100" height="20" uuid="df8127ac-68b5-4195-86a1-a67775e06a6b"/>
+				<textFieldExpression><![CDATA[$F{client_I_Fiscal}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="351" y="285" width="180" height="40" uuid="1b07c40d-a513-450e-aed5-1c4814cf6d82"/>
+				<textFieldExpression><![CDATA[$F{client_adresse}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="84" y="289" width="100" height="20" uuid="065d7495-f74b-4df9-9cf7-bf1ee628ff71"/>
+				<textFieldExpression><![CDATA[$F{client_N_article}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="84" y="309" width="100" height="16" uuid="6e4c0df8-b10c-4e4d-93a8-338693fcb463"/>
+				<textFieldExpression><![CDATA[$F{client_NRC}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="285" width="84" height="20" uuid="bd77adf4-642d-4569-bc08-82f27598f991"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<text><![CDATA[N°Art            :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="305" width="84" height="20" uuid="73784891-6abe-4c5d-abd5-87b6246ca03d"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<text><![CDATA[N°R.C           :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="269" width="84" height="20" uuid="c07c2e3a-17ad-4ebd-bed2-055f9e0f438e"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<text><![CDATA[I.F                :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="267" y="285" width="84" height="20" uuid="f620740c-f09b-4cdb-809f-91b6096c17d4"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<text><![CDATA[Adresse          :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="0" y="134" width="315" height="20" uuid="302e0ebd-8218-4c1e-a46f-ecfbe5e11d59"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{e_mail_p}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<detail>
+		<band height="246" splitType="Stretch">
+			<componentElement>
+				<reportElement key="table" style="table" x="0" y="0" width="565" height="246" uuid="4f07071d-1bf4-4781-bb18-67923aa796a3"/>
+				<jr:table xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd">
+					<datasetRun subDataset="facture_data" uuid="7d30ed1a-bbe8-4be9-9588-52b8557dff20">
+						<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+					</datasetRun>
+					<jr:column width="58" uuid="c012a601-f418-476f-b6bb-de39c2876b43">
+						<jr:columnHeader style="table" height="20" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="52" height="20" uuid="934087c1-0889-47f3-aded-e712afe1f97b"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font fontName="Verdana"/>
+								</textElement>
+								<text><![CDATA[Code]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table" height="26" rowSpan="1">
+							<textField isStretchWithOverflow="true">
+								<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="2" y="0" width="56" height="20" uuid="9a3ff836-530f-4f6f-b646-94f14d9dad93"/>
+								<textElement textAlignment="Left" verticalAlignment="Middle">
+									<font fontName="Verdana" size="8"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{Code Art.}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="261" uuid="db9cd6a5-e946-4af3-b36c-eb2b072902c0">
+						<jr:columnHeader height="20" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="238" height="20" uuid="f142202c-3c8c-4bfc-97bf-5fd4389218b8"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font fontName="Verdana"/>
+								</textElement>
+								<text><![CDATA[Désignation]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table" height="26" rowSpan="1">
+							<textField isStretchWithOverflow="true" pattern="">
+								<reportElement positionType="Float" stretchType="RelativeToTallestObject" mode="Transparent" x="5" y="0" width="256" height="20" uuid="f25b0f24-17df-480f-9c8d-9ee77c9d2cbc"/>
+								<textElement textAlignment="Justified" verticalAlignment="Middle" rotation="None">
+									<font fontName="Verdana"/>
+									<paragraph lineSpacing="1_1_2"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{Designation}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="43" uuid="68ee53a7-7a58-4e44-a9d2-f1734bd32a3b">
+						<jr:columnHeader style="table" height="20" rowSpan="1">
+							<staticText>
+								<reportElement stretchType="RelativeToBandHeight" x="0" y="0" width="43" height="20" uuid="3814379c-cf66-4b8d-8368-c286df132552"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font fontName="Verdana"/>
+								</textElement>
+								<text><![CDATA[Qté]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table" height="26" rowSpan="1">
+							<textField>
+								<reportElement x="0" y="0" width="43" height="20" uuid="40717ae8-3d6d-4b50-ab00-8588d9fc3cb5"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font fontName="Verdana"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{Qté}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="27" uuid="340897e1-8512-49c4-b1f3-c5637e50db86">
+						<jr:columnHeader style="table" height="20" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="24" height="20" uuid="7f6b5a54-ba3e-4e3f-8f56-4570290804a5"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font fontName="Verdana"/>
+								</textElement>
+								<text><![CDATA[TVA]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table" height="26" rowSpan="1">
+							<textField pattern="#,##0">
+								<reportElement x="2" y="0" width="22" height="20" uuid="a66d1d64-2842-4805-adff-bcd92ba1408e"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font fontName="Verdana"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{TVA}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="85" uuid="752be22f-b3a3-4d03-888a-fa4abe738ada">
+						<jr:columnHeader style="table" height="20" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="85" height="20" uuid="53a2c3b4-5947-45bd-8852-9f751e531dc1"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font fontName="Verdana"/>
+								</textElement>
+								<text><![CDATA[Prix Unit.]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table" height="26" rowSpan="1">
+							<textField pattern="#,##0.00">
+								<reportElement positionType="Float" x="0" y="0" width="85" height="20" uuid="c618787c-ec1b-4dba-81d6-54cbd4730fed"/>
+								<textElement textAlignment="Right" verticalAlignment="Middle">
+									<font fontName="Verdana"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{Prix Unit.}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="92" uuid="55ed5bea-94c8-483b-aa56-b0018dfbc997">
+						<jr:columnHeader style="table" height="20" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="87" height="20" uuid="2ceac70b-d479-45c9-94c0-be17a181e816"/>
+								<textElement textAlignment="Center" verticalAlignment="Middle">
+									<font fontName="Verdana"/>
+								</textElement>
+								<text><![CDATA[Total]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table" height="26" rowSpan="1">
+							<textField pattern="#,##0.00">
+								<reportElement x="0" y="0" width="87" height="20" uuid="c2396256-cb6e-4e87-8703-b7216bf0f873"/>
+								<textElement textAlignment="Right" verticalAlignment="Middle">
+									<font fontName="Verdana"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{Total}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+				</jr:table>
+			</componentElement>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="27" splitType="Stretch">
+			<textField>
+				<reportElement x="423" y="5" width="80" height="20" uuid="68b56180-285b-4860-b360-199bccac6947"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA["Page "+$V{PAGE_NUMBER}+" de"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="503" y="5" width="40" height="20" uuid="d6cfd102-5d07-4249-b8eb-3b286f8f310a"/>
+				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="169" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="80" width="484" height="31" uuid="ea08d1dd-2f1c-4acb-8da5-74e07f948fcc"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Arrêté le présent bon de livraison à la somme de : "+$P{fact_spell}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="111" width="202" height="20" uuid="3ed9e5a9-2ab9-46a5-a94f-bffa96e5a0b2"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<text><![CDATA[En votre aimable réglement.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="343" y="20" width="82" height="20" uuid="3e1da383-299e-4337-9359-43404eb7d17f"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<text><![CDATA[T.V.A:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="343" y="0" width="82" height="20" uuid="d01996ef-f730-4e2b-b1cc-224c054ff5d1"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<text><![CDATA[Montant en HT]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="343" y="40" width="82" height="20" uuid="017cddc2-484b-4cb3-b151-8aaf57f3b706"/>
+				<textElement>
+					<font fontName="Verdana"/>
+				</textElement>
+				<text><![CDATA[Timbre]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="343" y="60" width="82" height="20" uuid="d8de8243-bc0c-4e33-a951-0292358cbfa3"/>
+				<textElement>
+					<font fontName="Verdana" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Total  ]]></text>
+			</staticText>
+			<textField pattern="#,##0.00">
+				<reportElement x="438" y="20" width="100" height="20" uuid="2b95ace5-6cdc-4a76-8a27-b6f1e1479bfe"/>
+				<textElement textAlignment="Right">
+					<font fontName="Verdana" size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fact_TVA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="438" y="60" width="100" height="20" uuid="1abc910b-3e25-4a91-9d0f-8a9215db9354"/>
+				<textElement textAlignment="Right">
+					<font fontName="Verdana" size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fact_montant_ht}+$F{fact_TVA}+$F{fact_timbre}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="438" y="40" width="100" height="20" uuid="fef7ea22-92f8-4b90-adf3-b02febf79ee7"/>
+				<textElement textAlignment="Right">
+					<font fontName="Verdana" size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fact_timbre}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="438" y="0" width="100" height="20" uuid="a69bbc72-1fda-4bfb-b3b9-6c3ea16286d9"/>
+				<textElement textAlignment="Right">
+					<font fontName="Verdana" size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fact_montant_ht}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="437" y="0" width="10" height="20" uuid="05d3b768-4c73-4ff7-89a4-fd12dcaa83cc"/>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="425" y="20" width="10" height="20" uuid="9c9c28d4-d51c-4c8a-828e-6a709e17c69b"/>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="425" y="40" width="10" height="20" uuid="06a2f505-f122-4c24-88b7-a42cf4e59252"/>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="435" y="60" width="10" height="20" uuid="189a107e-53b0-4211-a8c8-f3378ff6100d"/>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="41" y="131" width="100" height="20" uuid="fb1233c6-e5e4-4c3c-8482-702fb533e7f3"/>
+				<textFieldExpression><![CDATA[$F{fact_nbc}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd-MMM-yyyy">
+				<reportElement x="184" y="131" width="83" height="20" uuid="2c637159-69cc-4d30-8e31-e8795a86f221"/>
+				<textFieldExpression><![CDATA[$F{fact_date_bc}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="90" y="147" width="100" height="20" uuid="9c6cdb92-a425-4373-9b6e-ab6f4e991533"/>
+				<textFieldExpression><![CDATA[$F{fact_nom_preneur}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="131" width="35" height="20" uuid="cebab862-2011-49c7-b886-7f66070dfde5"/>
+				<text><![CDATA[N°BC :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="150" y="131" width="34" height="20" uuid="e0966c2b-6556-431e-a00e-8889584a1b0d"/>
+				<text><![CDATA[ Du:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="147" width="90" height="20" uuid="b31d411a-ea5d-406c-a80b-e7ea5dc74bbb"/>
+				<text><![CDATA[Nom du preneur :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="539" y="40" width="21" height="20" uuid="3b988c3f-bebb-4751-9407-9e062f7b2e48"/>
+				<textElement>
+					<font fontName="Verdana" size="10" isBold="false"/>
+				</textElement>
+				<text><![CDATA[D.A]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="539" y="0" width="21" height="20" uuid="66e412f4-1577-4d1f-87f1-afecf8738d2a"/>
+				<textElement>
+					<font fontName="Verdana" size="10" isBold="false"/>
+				</textElement>
+				<text><![CDATA[D.A]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="539" y="60" width="21" height="20" uuid="3627f0b3-799c-46e3-9b52-1617dd9eb5c1"/>
+				<textElement>
+					<font fontName="Verdana" size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[D.A]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="539" y="20" width="21" height="20" uuid="5689d34e-2dd3-4824-a3f2-a45b55c35544"/>
+				<textElement>
+					<font fontName="Verdana" size="10" isBold="false"/>
+				</textElement>
+				<text><![CDATA[D.A]]></text>
+			</staticText>
+		</band>
+	</summary>
+</jasperReport>

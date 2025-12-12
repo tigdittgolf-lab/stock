@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="report2" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" scriptletClass="net.sf.jasperreports.engine.JRDefaultScriptlet" uuid="6d39f144-b538-4ebe-9c13-c6eabc12ade4">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="3"/>
+	<style name="table">
+		<box>
+			<pen lineWidth="1.0" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_TH" mode="Opaque" backcolor="#F0F8FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_CH" mode="Opaque" backcolor="#BFE1FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[new Boolean($V{REPORT_COUNT}.intValue()%2==0)]]></conditionExpression>
+			<style backcolor="#EFF7FF"/>
+		</conditionalStyle>
+	</style>
+	<style name="table 1">
+		<box>
+			<pen lineWidth="1.0" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 1_TH" mode="Opaque" backcolor="#F0F8FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 1_CH" mode="Opaque" backcolor="#BFE1FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 1_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[new Boolean($V{REPORT_COUNT}.intValue()%2==0)]]></conditionExpression>
+			<style backcolor="#EFF7FF"/>
+		</conditionalStyle>
+	</style>
+	<style name="table 2">
+		<box>
+			<pen lineWidth="1.0" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 2_TH" mode="Opaque" backcolor="#F5F5DC">
+		<box>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 2_CH" mode="Opaque" backcolor="#FFFFBF">
+		<box>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table 2_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[new Boolean($V{REPORT_COUNT}.intValue()%2==0)]]></conditionExpression>
+			<style backcolor="#FFFFEF"/>
+		</conditionalStyle>
+	</style>
+	<subDataset name="New Dataset 1" uuid="6eaeea4d-392f-410d-b81e-dda67176f25c">
+		<queryString>
+			<![CDATA[SELECT      art.`designation` AS Designation,      fact.`NFact` AS fact_NFact,      fact.`Nclient` AS fact_Nclient,      fact.`date_fact` AS fact_date_fact,      fact.`montant_ht` AS fact_montant_ht,      fact.`timbre` AS fact_timbre,      fact.`TVA` AS fact_TVA,      fact.`autre_taxe` AS fact_autre_taxe,      client.`Nclient` AS client_Nclient,      client.`Raison_sociale` AS client_Raison_sociale,      client.`adresse` AS client_adresse,      client.`NRC` AS client_NRC,      client.`Date_RC` AS client_Date_RC,      client.`Lieu_RC` AS client_Lieu_RC,      client.`I_Fiscal` AS client_I_Fiscal,      client.`N_article` AS client_N_article,      detail_fact.`Narticle` AS detail_fact_Narticle,      detail_fact.`Qte` AS detail_fact_Qte,      detail_fact.`tva` AS detail_fact_tva,      detail_fact.`prix` AS detail_fact_prix,      detail_fact.`total_ligne` AS detail_fact_total_ligne FROM      `client` client INNER JOIN `fact` fact ON client.`Nclient` = fact.`Nclient`      INNER JOIN `detail_fact` detail_fact ON fact.`NFact` = detail_fact.`NFact`      INNER JOIN `article` art ON detail_fact.`Narticle` = art.`Narticle` where fact.`NFact`  ="14"]]>
+		</queryString>
+		<field name="Designation" class="java.lang.String">
+			<fieldDescription><![CDATA[]]></fieldDescription>
+		</field>
+		<field name="fact_NFact" class="java.lang.Integer"/>
+		<field name="fact_Nclient" class="java.lang.Integer"/>
+		<field name="fact_date_fact" class="java.sql.Date"/>
+		<field name="fact_montant_ht" class="java.lang.Double"/>
+		<field name="fact_timbre" class="java.lang.Double"/>
+		<field name="fact_TVA" class="java.lang.Double"/>
+		<field name="fact_autre_taxe" class="java.lang.Double"/>
+		<field name="client_Nclient" class="java.lang.Integer"/>
+		<field name="client_Raison_sociale" class="java.lang.String"/>
+		<field name="client_adresse" class="java.lang.String"/>
+		<field name="client_NRC" class="java.lang.String"/>
+		<field name="client_Date_RC" class="java.sql.Date"/>
+		<field name="client_Lieu_RC" class="java.lang.String"/>
+		<field name="client_I_Fiscal" class="java.lang.String"/>
+		<field name="client_N_article" class="java.lang.String"/>
+		<field name="detail_fact_Narticle" class="java.lang.String"/>
+		<field name="detail_fact_Qte" class="java.lang.Integer"/>
+		<field name="detail_fact_tva" class="java.lang.Double"/>
+		<field name="detail_fact_prix" class="java.lang.Double"/>
+		<field name="detail_fact_total_ligne" class="java.lang.Double"/>
+	</subDataset>
+	<subDataset name="facture_data" uuid="3175d02f-912f-4cd6-bb03-b59b6f615893">
+		<queryString>
+			<![CDATA[]]>
+		</queryString>
+		<field name="Code Art." class="java.lang.String"/>
+		<field name="Designation" class="java.lang.String">
+			<fieldDescription><![CDATA[]]></fieldDescription>
+		</field>
+		<field name="Qté" class="java.lang.Integer"/>
+		<field name="TVA" class="java.lang.Double">
+			<fieldDescription><![CDATA[]]></fieldDescription>
+		</field>
+		<field name="Prix Unit." class="java.lang.Double"/>
+		<field name="Total" class="java.lang.Double"/>
+	</subDataset>
+	<queryString>
+		<![CDATA[SELECT
+fact.`NFact` AS fact_NFact,      fact.`Nclient` AS fact_Nclient,      fact.`date_fact` AS fact_date_fact,      fact.`montant_ht` AS fact_montant_ht,      fact.`timbre` AS fact_timbre,      fact.`TVA` AS fact_TVA,      fact.`autre_taxe` AS fact_autre_taxe,      client.`Nclient` AS client_Nclient,      client.`Raison_sociale` AS client_Raison_sociale,      client.`adresse` AS client_adresse,      client.`NRC` AS client_NRC,      client.`Date_RC` AS client_Date_RC,      client.`Lieu_RC` AS client_Lieu_RC,      client.`I_Fiscal` AS client_I_Fiscal,      client.`N_article` AS client_N_article       FROM      `client` client INNER JOIN `fact` fact ON client.`Nclient` = fact.`Nclient` ]]>
+	</queryString>
+	<field name="fact_NFact" class="java.lang.Integer"/>
+	<field name="fact_Nclient" class="java.lang.String"/>
+	<field name="fact_date_fact" class="java.sql.Date"/>
+	<field name="fact_montant_ht" class="java.lang.Double"/>
+	<field name="fact_timbre" class="java.lang.Double"/>
+	<field name="fact_TVA" class="java.lang.Double"/>
+	<field name="fact_autre_taxe" class="java.lang.Double"/>
+	<field name="client_Nclient" class="java.lang.String"/>
+	<field name="client_Raison_sociale" class="java.lang.String"/>
+	<field name="client_adresse" class="java.lang.String"/>
+	<field name="client_NRC" class="java.lang.String"/>
+	<field name="client_Date_RC" class="java.sql.Date"/>
+	<field name="client_Lieu_RC" class="java.lang.String"/>
+	<field name="client_I_Fiscal" class="java.lang.String"/>
+	<field name="client_N_article" class="java.lang.String"/>
+	<variable name="variable1" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="34" splitType="Stretch">
+			<staticText>
+				<reportElement uuid="8de73630-5c41-48dd-960e-51886b04f023" x="10" y="0" width="104" height="34"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="16"/>
+				</textElement>
+				<text><![CDATA[Facturation]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="98" splitType="Stretch">
+			<textField>
+				<reportElement uuid="c028dabf-b347-4646-bfe1-863fbbdf0e49" x="82" y="11" width="100" height="20"/>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{fact_NFact}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement uuid="8a1ad3df-ab8a-4664-a23a-8a192ab19b66" x="352" y="11" width="100" height="20"/>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{fact_Nclient}]]></textFieldExpression>
+			</textField>
+			<textField pattern="EEEEE dd MMMMM yyyy">
+				<reportElement uuid="7ce17ab8-3c9a-4aef-bde8-a0a0c2f6ffbf" x="82" y="31" width="147" height="20"/>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{fact_date_fact}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement uuid="d18534a9-c315-44f9-8ed5-77d9d45af0cc" x="352" y="31" width="100" height="20"/>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{client_Raison_sociale}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement uuid="c6de9062-d35a-45ce-a409-62c4b0e9a396" x="10" y="11" width="72" height="20"/>
+				<textElement/>
+				<text><![CDATA[Facture N°:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement uuid="62387073-3554-4db5-af8b-e3e1bcf03b24" x="268" y="11" width="84" height="20"/>
+				<textElement/>
+				<text><![CDATA[Code client  :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement uuid="cf230c3c-05b0-4c08-8aed-615714656154" x="268" y="31" width="84" height="20"/>
+				<textElement/>
+				<text><![CDATA[Raison Sociale:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement uuid="29eb2e52-0934-4643-87d0-526f583aa222" x="10" y="31" width="72" height="20"/>
+				<textElement/>
+				<text><![CDATA[Date Facture:]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<detail>
+		<band height="250" splitType="Stretch">
+			<textField pattern="#,##0.00">
+				<reportElement uuid="a69bbc72-1fda-4bfb-b3b9-6c3ea16286d9" x="455" y="185" width="100" height="20"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$F{fact_montant_ht}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement uuid="2b95ace5-6cdc-4a76-8a27-b6f1e1479bfe" x="455" y="165" width="100" height="20"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$F{fact_TVA}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement uuid="1abc910b-3e25-4a91-9d0f-8a9215db9354" x="455" y="230" width="100" height="20"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$F{fact_montant_ht}+$F{fact_TVA}+$F{fact_timbre}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement uuid="fef7ea22-92f8-4b90-adf3-b02febf79ee7" x="455" y="210" width="100" height="20"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$F{fact_timbre}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement uuid="3e1da383-299e-4337-9359-43404eb7d17f" x="371" y="165" width="81" height="20"/>
+				<textElement/>
+				<text><![CDATA[T.V.A                :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement uuid="d01996ef-f730-4e2b-b1cc-224c054ff5d1" x="371" y="185" width="81" height="20"/>
+				<textElement/>
+				<text><![CDATA[Montant en HT :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement uuid="017cddc2-484b-4cb3-b151-8aaf57f3b706" x="371" y="210" width="81" height="20"/>
+				<textElement/>
+				<text><![CDATA[Timbre              :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement uuid="d8de8243-bc0c-4e33-a951-0292358cbfa3" x="371" y="230" width="81" height="20"/>
+				<textElement/>
+				<text><![CDATA[Total Facture    :]]></text>
+			</staticText>
+			<componentElement>
+				<reportElement uuid="4f07071d-1bf4-4781-bb18-67923aa796a3" key="table 2" style="table 2" x="0" y="0" width="555" height="123"/>
+				<jr:table xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd">
+					<datasetRun subDataset="facture_data" uuid="7d30ed1a-bbe8-4be9-9588-52b8557dff20">
+						<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+					</datasetRun>
+					<jr:column width="4" uuid="3afba013-dd7a-428d-bdd3-bc9742da5b6b">
+						<jr:columnHeader style="table 2_CH" height="30" rowSpan="1"/>
+						<jr:columnFooter style="table 2_CH" height="30" rowSpan="1"/>
+						<jr:detailCell style="table 2_TD" height="20" rowSpan="1"/>
+					</jr:column>
+					<jr:column width="48" uuid="c012a601-f418-476f-b6bb-de39c2876b43">
+						<jr:columnHeader style="table 2_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="934087c1-0889-47f3-aded-e712afe1f97b" x="0" y="0" width="48" height="30"/>
+								<textElement textAlignment="Justified"/>
+								<text><![CDATA[Code Art.]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:columnFooter style="table 2_CH" height="30" rowSpan="1"/>
+						<jr:detailCell style="table 2_TD" height="20" rowSpan="1">
+							<textField>
+								<reportElement uuid="9a3ff836-530f-4f6f-b646-94f14d9dad93" x="0" y="0" width="48" height="20"/>
+								<textElement/>
+								<textFieldExpression><![CDATA[$F{Code Art.}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="218" uuid="db9cd6a5-e946-4af3-b36c-eb2b072902c0">
+						<jr:columnHeader style="table 2_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="f142202c-3c8c-4bfc-97bf-5fd4389218b8" x="0" y="0" width="218" height="30"/>
+								<textElement textAlignment="Center"/>
+								<text><![CDATA[Designation]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:columnFooter style="table 2_CH" height="30" rowSpan="1"/>
+						<jr:detailCell style="table 2_TD" height="20" rowSpan="1">
+							<textField>
+								<reportElement uuid="f25b0f24-17df-480f-9c8d-9ee77c9d2cbc" x="0" y="0" width="218" height="20"/>
+								<textElement/>
+								<textFieldExpression><![CDATA[$F{Designation}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="45" uuid="68ee53a7-7a58-4e44-a9d2-f1734bd32a3b">
+						<jr:columnHeader style="table 2_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="3814379c-cf66-4b8d-8368-c286df132552" x="0" y="0" width="45" height="30"/>
+								<textElement textAlignment="Center"/>
+								<text><![CDATA[Qté]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:columnFooter style="table 2_CH" height="30" rowSpan="1"/>
+						<jr:detailCell style="table 2_TD" height="20" rowSpan="1">
+							<textField>
+								<reportElement uuid="40717ae8-3d6d-4b50-ab00-8588d9fc3cb5" x="0" y="0" width="45" height="20"/>
+								<textElement textAlignment="Right"/>
+								<textFieldExpression><![CDATA[$F{Qté}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="42" uuid="340897e1-8512-49c4-b1f3-c5637e50db86">
+						<jr:columnHeader style="table 2_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="7f6b5a54-ba3e-4e3f-8f56-4570290804a5" x="0" y="0" width="42" height="30"/>
+								<textElement textAlignment="Center"/>
+								<text><![CDATA[TVA]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:columnFooter style="table 2_CH" height="30" rowSpan="1"/>
+						<jr:detailCell style="table 2_TD" height="20" rowSpan="1">
+							<textField pattern="#,##0.00">
+								<reportElement uuid="a66d1d64-2842-4805-adff-bcd92ba1408e" x="0" y="0" width="42" height="20"/>
+								<textElement textAlignment="Right"/>
+								<textFieldExpression><![CDATA[$F{TVA}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="91" uuid="752be22f-b3a3-4d03-888a-fa4abe738ada">
+						<jr:columnHeader style="table 2_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="53a2c3b4-5947-45bd-8852-9f751e531dc1" x="0" y="0" width="91" height="30"/>
+								<textElement textAlignment="Center"/>
+								<text><![CDATA[Prix Unit.]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:columnFooter style="table 2_CH" height="30" rowSpan="1"/>
+						<jr:detailCell style="table 2_TD" height="20" rowSpan="1">
+							<textField pattern="#,##0.00">
+								<reportElement uuid="c618787c-ec1b-4dba-81d6-54cbd4730fed" positionType="Float" x="0" y="0" width="91" height="20"/>
+								<textElement textAlignment="Right"/>
+								<textFieldExpression><![CDATA[$F{Prix Unit.}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="106" uuid="55ed5bea-94c8-483b-aa56-b0018dfbc997">
+						<jr:columnHeader style="table 2_CH" height="30" rowSpan="1">
+							<staticText>
+								<reportElement uuid="2ceac70b-d479-45c9-94c0-be17a181e816" x="0" y="0" width="106" height="30"/>
+								<textElement textAlignment="Center"/>
+								<text><![CDATA[Total]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:columnFooter style="table 2_CH" height="30" rowSpan="1"/>
+						<jr:detailCell style="table 2_TD" height="20" rowSpan="1">
+							<textField pattern="#,##0.00">
+								<reportElement uuid="c2396256-cb6e-4e87-8703-b7216bf0f873" x="0" y="0" width="106" height="20"/>
+								<textElement textAlignment="Right"/>
+								<textFieldExpression><![CDATA[$F{Total}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+				</jr:table>
+			</componentElement>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="24" splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="68" splitType="Stretch"/>
+	</summary>
+</jasperReport>

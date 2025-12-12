@@ -1,0 +1,1581 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import styles from "../page.module.css";
+
+interface TenantInfo {
+  business_unit: string;
+  year: number;
+  schema: string;
+}
+
+interface Article {
+  narticle: string;
+  designation: string;
+  famille: string;
+  nfournisseur?: string;
+  prix_unitaire: number;
+  marge: number;
+  tva: number;
+  prix_vente: number;
+  seuil: number;
+  stock_f: number;
+  stock_bl: number;
+}
+
+interface Client {
+  nclient: string;
+  raison_sociale: string;
+  adresse: string;
+  contact_person: string;
+  tel: string;
+  email: string;
+  c_affaire_fact: number;
+  c_affaire_bl: number;
+  nrc: string;
+  i_fiscal: string;
+}
+
+interface Supplier {
+  nfournisseur: string;
+  nom_fournisseur: string;
+  resp_fournisseur: string;
+  adresse_fourni: string;
+  tel: string;
+  email: string;
+  caf: number;
+  cabl: number;
+}
+
+export default function Dashboard() {
+  const router = useRouter();
+  const [tenantInfo, setTenantInfo] = useState<TenantInfo | null>(null);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  
+  // États pour les filtres
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFamily, setSelectedFamily] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedSupplier, setSelectedSupplier] = useState('');
+  
+  // États pour les filtres clients
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [selectedClientStatus, setSelectedClientStatus] = useState('');
+
+  useEffect(() => {
+    // Vérifier l'authentification et les informations de tenant
+    const tenantInfoStr = localStorage.getItem('tenant_info');
+    if (!tenantInfoStr) {
+      router.push('/login');
+      return;
+    }
+
+    try {
+      const tenant: TenantInfo = JSON.parse(tenantInfoStr);
+      setTenantInfo(tenant);
+      
+      // Charger les données initiales
+      loadDashboardData(tenant);
+    } catch (error) {
+      console.error('Error parsing tenant info:', error);
+      router.push('/login');
+    }
+  }, [router]);
+
+  // Gérer les paramètres URL pour les messages et onglets
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get('tab');
+      const message = urlParams.get('message');
+      
+      if (tab) {
+        setActiveTab(tab);
+      }
+      
+      if (message) {
+        // Afficher le message de succès temporairement
+        setError(null);
+        const successDiv = document.createElement('div');
+        successDiv.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: #d4edda;
+          color: #155724;
+          padding: 15px 20px;
+          border-radius: 5px;
+          border: 1px solid #c3e6cb;
+          z-index: 1000;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        `;
+        successDiv.textContent = decodeURIComponent(message);
+        document.body.appendChild(successDiv);
+        
+        // Supprimer le message après 3 secondes
+        setTimeout(() => {
+          if (document.body.contains(successDiv)) {
+            document.body.removeChild(successDiv);
+          }
+        }, 3000);
+        
+        // Nettoyer l'URL
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, []);
+
+  // Recharger les données quand tenantInfo change ou quand on revient avec un message
+  useEffect(() => {
+    if (tenantInfo && typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const message = urlParams.get('message');
+      
+      if (message) {
+        // Recharger les données immédiatement et plusieurs fois pour s'assurer
+        loadDashboardData(tenantInfo);
+        
+        setTimeout(() => {
+          loadDashboardData(tenantInfo);
+        }, 1000);
+        
+        setTimeout(() => {
+          loadDashboardData(tenantInfo);
+        }, 3000);
+      }
+    }
+  }, [tenantInfo]);
+
+  // Auto-reload supprimé - rechargement manuel uniquement
+
+  const loadDashboardData = async (tenant: TenantInfo) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-Tenant': tenant.schema
+      };
+
+      // Charger les données en parallèle
+      await Promise.all([
+        fetchArticles(headers),
+        fetchClients(headers),
+        fetchSuppliers(headers)
+      ]);
+
+    } catch (err) {
+      console.error('Error loading dashboard data:', err);
+      setError('Erreur lors du chargement des données');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchArticles = async (headers: any) => {
+    try {
+      console.log('🔄 Fetching articles...');
+      
+      // Essayer d'abord l'endpoint de refresh pour forcer les vraies données
+      let response = await fetch('http://localhost:3005/api/articles/force-refresh', { headers });
+      let data = await response.json();
+      
+      console.log('📊 Refresh response:', { success: data.success, dataLength: data.data?.length || 0 });
+      
+      if (data.success && data.data && data.data.length > 0) {
+        setArticles(data.data);
+        console.log('✅ Articles loaded from database refresh:', data.data.length);
+        return;
+      }
+      
+      // Si refresh échoue, essayer l'API normale
+      response = await fetch('http://localhost:3005/api/articles', { headers });
+      data = await response.json();
+      
+      if (data.success && data.data && data.data.length > 0) {
+        setArticles(data.data);
+        console.log('✅ Articles loaded from normal API:', data.data.length);
+        return;
+      }
+      
+      // Si toujours pas de données, combiner fallback + localStorage
+      console.log('⚠️ No articles from API, using combined fallback');
+      
+      const localArticles = JSON.parse(localStorage.getItem('created_articles') || '[]');
+      const fallbackResponse = await fetch('http://localhost:3005/api/sales/articles', { headers });
+      const fallbackData = await fallbackResponse.json();
+      
+      let allArticles = [];
+      if (fallbackData.success) {
+        allArticles = [...(fallbackData.data || [])];
+      }
+      
+      // Ajouter les articles créés localement
+      allArticles = [...allArticles, ...localArticles];
+      
+      setArticles(allArticles);
+      console.log('📦 Using combined data:', allArticles.length, 'articles');
+      
+    } catch (err) {
+      console.error('Error fetching articles:', err);
+      // En cas d'erreur totale, au moins afficher les articles créés localement
+      const localArticles = JSON.parse(localStorage.getItem('created_articles') || '[]');
+      setArticles(localArticles);
+      console.log('🔧 Using only localStorage:', localArticles.length, 'articles');
+    }
+  };
+
+  const fetchClients = async (headers: any) => {
+    try {
+      const response = await fetch('http://localhost:3005/api/sales/clients', { headers });
+      const data = await response.json();
+      
+      if (data.success) {
+        setClients(data.data || []);
+      } else {
+        console.warn('Clients not loaded:', data.error);
+      }
+    } catch (err) {
+      console.error('Error fetching clients:', err);
+    }
+  };
+
+  const fetchSuppliers = async (headers: any) => {
+    try {
+      const response = await fetch('http://localhost:3005/api/sales/suppliers', { headers });
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuppliers(data.data || []);
+      } else {
+        console.warn('Suppliers not loaded:', data.error);
+      }
+    } catch (err) {
+      console.error('Error fetching suppliers:', err);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('tenant_info');
+    router.push('/login');
+  };
+
+  const handleChangeTenant = () => {
+    router.push('/tenant-selection');
+  };
+
+  const handleNewExercise = () => {
+    router.push('/new-exercise');
+  };
+
+  const getLowStockArticles = () => {
+    return articles.filter(article => {
+      const stockTotal = (article.stock_f || 0) + (article.stock_bl || 0);
+      return stockTotal <= article.seuil;
+    });
+  };
+
+  const getTotalValue = () => {
+    return articles.reduce((total, article) => total + (article.stock_f * article.prix_vente), 0);
+  };
+
+  // Fonctions de filtrage
+  const getUniqueFamily = () => {
+    const families = articles.map(article => article.famille).filter(Boolean);
+    return [...new Set(families)].sort();
+  };
+
+  const getUniqueSuppliers = () => {
+    const supplierCodes = articles.map(article => article.nfournisseur).filter(Boolean);
+    const uniqueCodes = [...new Set(supplierCodes)].sort();
+    
+    // Mapper les codes avec les noms des fournisseurs
+    return uniqueCodes.map(code => {
+      const supplier = suppliers.find(s => s.nfournisseur === code);
+      return {
+        code: code,
+        name: supplier ? supplier.nom_fournisseur : code
+      };
+    });
+  };
+
+  const getFilteredArticles = () => {
+    return articles.filter(article => {
+      // Filtre par recherche (code ou désignation)
+      const matchesSearch = searchTerm === '' || 
+        article.narticle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        article.designation.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // Filtre par famille
+      const matchesFamily = selectedFamily === '' || article.famille === selectedFamily;
+
+      // Filtre par fournisseur
+      const matchesSupplier = selectedSupplier === '' || 
+        article.nfournisseur === selectedSupplier ||
+        (selectedSupplier === 'none' && (!article.nfournisseur || article.nfournisseur === null));
+
+      // Filtre par statut de stock (stock total = stock_f + stock_bl)
+      const stockTotal = (article.stock_f || 0) + (article.stock_bl || 0);
+      const matchesStatus = selectedStatus === '' || 
+        (selectedStatus === 'low' && stockTotal <= article.seuil) ||
+        (selectedStatus === 'normal' && stockTotal > article.seuil) ||
+        (selectedStatus === 'zero' && stockTotal === 0);
+
+      return matchesSearch && matchesFamily && matchesSupplier && matchesStatus;
+    });
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedFamily('');
+    setSelectedStatus('');
+    setSelectedSupplier('');
+  };
+
+  // Fonctions de filtrage pour les clients
+  const getFilteredClients = () => {
+    return clients.filter(client => {
+      // Filtre par recherche (code, raison sociale, contact)
+      const matchesSearch = clientSearchTerm === '' || 
+        client.nclient.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+        client.raison_sociale.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+        (client.contact_person && client.contact_person.toLowerCase().includes(clientSearchTerm.toLowerCase()));
+
+      // Filtre par statut (basé sur le chiffre d'affaires)
+      const matchesStatus = selectedClientStatus === '' || 
+        (selectedClientStatus === 'active' && (client.c_affaire_fact || 0) > 0) ||
+        (selectedClientStatus === 'inactive' && (client.c_affaire_fact || 0) === 0);
+
+      return matchesSearch && matchesStatus;
+    });
+  };
+
+  const clearClientFilters = () => {
+    setClientSearchTerm('');
+    setSelectedClientStatus('');
+  };
+
+  // États pour les filtres fournisseurs
+  const [supplierSearchTerm, setSupplierSearchTerm] = useState('');
+  const [selectedSupplierStatus, setSelectedSupplierStatus] = useState('');
+
+  // Fonctions de filtrage pour les fournisseurs
+  const getFilteredSuppliers = () => {
+    return suppliers.filter(supplier => {
+      // Filtre par recherche (code, nom, responsable)
+      const matchesSearch = supplierSearchTerm === '' || 
+        supplier.nfournisseur.toLowerCase().includes(supplierSearchTerm.toLowerCase()) ||
+        supplier.nom_fournisseur.toLowerCase().includes(supplierSearchTerm.toLowerCase()) ||
+        (supplier.resp_fournisseur && supplier.resp_fournisseur.toLowerCase().includes(supplierSearchTerm.toLowerCase()));
+
+      // Filtre par statut (basé sur le chiffre d'affaires)
+      const matchesStatus = selectedSupplierStatus === '' || 
+        (selectedSupplierStatus === 'active' && (supplier.caf || 0) > 0) ||
+        (selectedSupplierStatus === 'inactive' && (supplier.caf || 0) === 0);
+
+      return matchesSearch && matchesStatus;
+    });
+  };
+
+  const clearSupplierFilters = () => {
+    setSupplierSearchTerm('');
+    setSelectedSupplierStatus('');
+  };
+
+  // Fonctions pour les actions sur les fournisseurs
+  const handleEditSupplier = (supplier: Supplier) => {
+    router.push(`/dashboard/edit-supplier/${supplier.nfournisseur}`);
+  };
+
+  const handleDeleteSupplier = async (supplier: Supplier) => {
+    if (!tenantInfo) return;
+
+    const confirmDelete = window.confirm(
+      `⚠️ ATTENTION ⚠️\n\n` +
+      `Êtes-vous sûr de vouloir supprimer le fournisseur "${supplier.nfournisseur}" ?\n\n` +
+      `Fournisseur: ${supplier.nom_fournisseur}\n\n` +
+      `⚠️ IMPORTANT : Cette action est irréversible !\n\n` +
+      `Avant de supprimer, assurez-vous que ce fournisseur :\n` +
+      `• N'a aucune commande en cours\n` +
+      `• N'a aucun article associé\n` +
+      `• N'a aucune transaction en cours\n\n` +
+      `Tapez "SUPPRIMER" pour confirmer :`
+    );
+
+    if (!confirmDelete) return;
+
+    const finalConfirm = window.prompt(
+      `Dernière confirmation !\n\n` +
+      `Pour supprimer définitivement le fournisseur "${supplier.nfournisseur}", tapez exactement : SUPPRIMER`
+    );
+
+    if (finalConfirm !== 'SUPPRIMER') {
+      alert('❌ Suppression annulée - Confirmation incorrecte');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const response = await fetch(`http://localhost:3005/api/sales/suppliers/${supplier.nfournisseur}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Tenant': tenantInfo.schema
+        }
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        await loadDashboardData(tenantInfo);
+        alert(`✅ Fournisseur "${supplier.nfournisseur}" supprimé avec succès !`);
+      } else {
+        throw new Error(result.error || 'Erreur lors de la suppression');
+      }
+    } catch (error) {
+      console.error('Error deleting supplier:', error);
+      alert(`❌ Erreur lors de la suppression : ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fonctions pour les actions sur les articles
+  const handleEditArticle = (article: Article) => {
+    // Rediriger vers la page de modification (à créer)
+    router.push(`/dashboard/edit-article/${article.narticle}`);
+  };
+
+  // Fonctions pour les actions sur les clients
+  const handleEditClient = (client: Client) => {
+    router.push(`/dashboard/edit-client/${client.nclient}`);
+  };
+
+  const handleDeleteClient = async (client: Client) => {
+    if (!tenantInfo) return;
+
+    const confirmDelete = window.confirm(
+      `⚠️ ATTENTION ⚠️\n\n` +
+      `Êtes-vous sûr de vouloir supprimer le client "${client.nclient}" ?\n\n` +
+      `Client: ${client.raison_sociale}\n\n` +
+      `⚠️ IMPORTANT : Cette action est irréversible !\n\n` +
+      `Avant de supprimer, assurez-vous que ce client :\n` +
+      `• N'a aucune facture en cours\n` +
+      `• N'a aucun bon de livraison\n` +
+      `• N'a aucune transaction en cours\n\n` +
+      `Tapez "SUPPRIMER" pour confirmer :`
+    );
+
+    if (!confirmDelete) return;
+
+    const finalConfirm = window.prompt(
+      `Dernière confirmation !\n\n` +
+      `Pour supprimer définitivement le client "${client.nclient}", tapez exactement : SUPPRIMER`
+    );
+
+    if (finalConfirm !== 'SUPPRIMER') {
+      alert('❌ Suppression annulée - Confirmation incorrecte');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const response = await fetch(`http://localhost:3005/api/sales/clients/${client.nclient}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Tenant': tenantInfo.schema
+        }
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        await loadDashboardData(tenantInfo);
+        alert(`✅ Client "${client.nclient}" supprimé avec succès !`);
+      } else {
+        throw new Error(result.error || 'Erreur lors de la suppression');
+      }
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      alert(`❌ Erreur lors de la suppression : ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteArticle = async (article: Article) => {
+    if (!tenantInfo) return;
+
+    // Vérification de sécurité
+    const confirmDelete = window.confirm(
+      `⚠️ ATTENTION ⚠️\n\n` +
+      `Êtes-vous sûr de vouloir supprimer l'article "${article.narticle}" ?\n\n` +
+      `⚠️ IMPORTANT : Cette action est irréversible !\n\n` +
+      `Avant de supprimer, assurez-vous que cet article :\n` +
+      `• N'a jamais été facturé\n` +
+      `• N'apparaît dans aucun bon de livraison\n` +
+      `• N'a aucune transaction en cours\n\n` +
+      `Tapez "SUPPRIMER" pour confirmer :`
+    );
+
+    if (!confirmDelete) return;
+
+    // Demander une confirmation supplémentaire
+    const finalConfirm = window.prompt(
+      `Dernière confirmation !\n\n` +
+      `Pour supprimer définitivement l'article "${article.narticle}", tapez exactement : SUPPRIMER`
+    );
+
+    if (finalConfirm !== 'SUPPRIMER') {
+      alert('❌ Suppression annulée - Confirmation incorrecte');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const response = await fetch(`http://localhost:3005/api/articles/${article.narticle}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Tenant': tenantInfo.schema
+        }
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Recharger les données
+        await loadDashboardData(tenantInfo);
+        
+        // Afficher un message de succès
+        alert(`✅ Article "${article.narticle}" supprimé avec succès !`);
+      } else {
+        throw new Error(result.error || 'Erreur lors de la suppression');
+      }
+    } catch (error) {
+      console.error('Error deleting article:', error);
+      alert(`❌ Erreur lors de la suppression : ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!tenantInfo) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh'
+      }}>
+        <div>Vérification de l'authentification...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+          <div>
+            <h1>Système de Gestion de Stock</h1>
+            <div style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
+              <strong>Contexte:</strong> {tenantInfo.business_unit.toUpperCase()} - Exercice {tenantInfo.year} ({tenantInfo.schema})
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={handleNewExercise}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              ➕ Nouvel Exercice
+            </button>
+            <button 
+              onClick={handleChangeTenant}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              🔄 Changer Contexte
+            </button>
+            <button 
+              onClick={handleLogout}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              🚪 Déconnexion
+            </button>
+          </div>
+        </div>
+        
+        <nav className={styles.nav}>
+          <button
+            className={activeTab === 'dashboard' ? styles.active : ''}
+            onClick={() => setActiveTab('dashboard')}
+          >
+            📊 Tableau de Bord
+          </button>
+          <button
+            className={activeTab === 'articles' ? styles.active : ''}
+            onClick={() => setActiveTab('articles')}
+          >
+            📦 Articles ({articles.length})
+          </button>
+          <button
+            className={activeTab === 'clients' ? styles.active : ''}
+            onClick={() => setActiveTab('clients')}
+          >
+            👥 Clients ({clients.length})
+          </button>
+          <button
+            className={activeTab === 'suppliers' ? styles.active : ''}
+            onClick={() => setActiveTab('suppliers')}
+          >
+            🏭 Fournisseurs ({suppliers.length})
+          </button>
+          <button
+            className={activeTab === 'sales' ? styles.active : ''}
+            onClick={() => setActiveTab('sales')}
+          >
+            💰 Ventes
+          </button>
+          <button
+            className={activeTab === 'purchases' ? styles.active : ''}
+            onClick={() => setActiveTab('purchases')}
+          >
+            🛒 Achats
+          </button>
+          <button
+            className={activeTab === 'stock' ? styles.active : ''}
+            onClick={() => setActiveTab('stock')}
+          >
+            📈 Stock
+          </button>
+        </nav>
+      </header>
+
+      <main className={styles.main}>
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              border: '4px solid #f3f3f3',
+              borderTop: '4px solid #667eea',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 20px'
+            }}></div>
+            <p>Chargement des données...</p>
+          </div>
+        )}
+
+        {error && (
+          <div style={{
+            background: '#f8d7da',
+            color: '#721c24',
+            padding: '15px',
+            borderRadius: '5px',
+            margin: '20px',
+            textAlign: 'center'
+          }}>
+            <p>{error}</p>
+            <button 
+              onClick={() => loadDashboardData(tenantInfo)}
+              style={{
+                marginTop: '10px',
+                padding: '8px 16px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Réessayer
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && (
+          <>
+            {activeTab === 'dashboard' && (
+              <div className={styles.dashboard}>
+                <div className={styles.stats}>
+                  <div className={styles.statCard}>
+                    <h3>📦 Total Articles</h3>
+                    <p className={styles.statNumber}>{articles.length}</p>
+                  </div>
+                  <div className={styles.statCard}>
+                    <h3>⚠️ Articles en Rupture</h3>
+                    <p className={styles.statNumber}>{getLowStockArticles().length}</p>
+                  </div>
+                  <div className={styles.statCard}>
+                    <h3>👥 Total Clients</h3>
+                    <p className={styles.statNumber}>{clients.length}</p>
+                  </div>
+                  <div className={styles.statCard}>
+                    <h3>🏭 Total Fournisseurs</h3>
+                    <p className={styles.statNumber}>{suppliers.length}</p>
+                  </div>
+                  <div className={styles.statCard}>
+                    <h3>💰 Valeur Totale Stock</h3>
+                    <p className={styles.statNumber}>{getTotalValue().toLocaleString('fr-FR')} DA</p>
+                  </div>
+                </div>
+
+                <div className={styles.quickActions}>
+                  <h3>Actions Rapides</h3>
+                  <div className={styles.actions}>
+                    <button onClick={() => setActiveTab('articles')}>📦 Voir Articles</button>
+                    <button onClick={() => setActiveTab('clients')}>👥 Voir Clients</button>
+                    <button onClick={() => setActiveTab('suppliers')}>🏭 Voir Fournisseurs</button>
+                    <button onClick={() => setActiveTab('sales')}>💰 Nouvelle Vente</button>
+                  </div>
+                </div>
+
+                {getLowStockArticles().length > 0 && (
+                  <div style={{
+                    background: '#fff3cd',
+                    border: '1px solid #ffeaa7',
+                    borderRadius: '5px',
+                    padding: '15px',
+                    margin: '20px 0'
+                  }}>
+                    <h3 style={{ color: '#856404', margin: '0 0 10px 0' }}>⚠️ Alertes Stock</h3>
+                    <p style={{ color: '#856404', margin: '0' }}>
+                      {getLowStockArticles().length} article(s) sous le seuil minimum
+                    </p>
+                    <button 
+                      onClick={() => setActiveTab('stock')}
+                      style={{
+                        marginTop: '10px',
+                        padding: '8px 16px',
+                        backgroundColor: '#ffc107',
+                        color: '#212529',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Voir Détails
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'articles' && (
+              <div className={styles.articles}>
+                <div className={styles.sectionHeader}>
+                  <h2>📦 Gestion des Articles</h2>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button 
+                      onClick={() => tenantInfo && loadDashboardData(tenantInfo)}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#17a2b8',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🔄 Actualiser
+                    </button>
+                    <button 
+                      className={styles.primaryButton}
+                      onClick={() => router.push('/dashboard/add-article')}
+                    >
+                      ➕ Ajouter un Article
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filtres */}
+                <div style={{
+                  background: '#f8f9fa',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  marginBottom: '20px',
+                  border: '1px solid #dee2e6'
+                }}>
+                  <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontWeight: 'bold', color: '#495057' }}>🔍 Filtres:</span>
+                    </div>
+                    
+                    {/* Recherche */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <label style={{ fontSize: '12px', color: '#6c757d', fontWeight: 'bold' }}>
+                        Recherche (Code/Désignation)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Rechercher..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{
+                          padding: '8px 12px',
+                          border: '1px solid #ced4da',
+                          borderRadius: '4px',
+                          fontSize: '14px',
+                          minWidth: '200px'
+                        }}
+                      />
+                    </div>
+
+                    {/* Filtre par famille */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <label style={{ fontSize: '12px', color: '#6c757d', fontWeight: 'bold' }}>
+                        Famille
+                      </label>
+                      <select
+                        value={selectedFamily}
+                        onChange={(e) => setSelectedFamily(e.target.value)}
+                        style={{
+                          padding: '8px 12px',
+                          border: '1px solid #ced4da',
+                          borderRadius: '4px',
+                          fontSize: '14px',
+                          minWidth: '150px'
+                        }}
+                      >
+                        <option value="">Toutes les familles</option>
+                        {getUniqueFamily().map(family => (
+                          <option key={family} value={family}>{family}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Filtre par fournisseur */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <label style={{ fontSize: '12px', color: '#6c757d', fontWeight: 'bold' }}>
+                        Fournisseur
+                      </label>
+                      <select
+                        value={selectedSupplier}
+                        onChange={(e) => setSelectedSupplier(e.target.value)}
+                        style={{
+                          padding: '8px 12px',
+                          border: '1px solid #ced4da',
+                          borderRadius: '4px',
+                          fontSize: '14px',
+                          minWidth: '180px'
+                        }}
+                      >
+                        <option value="">Tous les fournisseurs</option>
+                        <option value="none">🚫 Sans fournisseur</option>
+                        {getUniqueSuppliers().map(supplier => (
+                          <option key={supplier.code} value={supplier.code}>
+                            {supplier.name} ({supplier.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Filtre par statut de stock */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <label style={{ fontSize: '12px', color: '#6c757d', fontWeight: 'bold' }}>
+                        Statut Stock
+                      </label>
+                      <select
+                        value={selectedStatus}
+                        onChange={(e) => setSelectedStatus(e.target.value)}
+                        style={{
+                          padding: '8px 12px',
+                          border: '1px solid #ced4da',
+                          borderRadius: '4px',
+                          fontSize: '14px',
+                          minWidth: '130px'
+                        }}
+                      >
+                        <option value="">Tous les statuts</option>
+                        <option value="normal">✅ En Stock</option>
+                        <option value="low">⚠️ Stock Faible</option>
+                        <option value="zero">❌ Rupture</option>
+                      </select>
+                    </div>
+
+                    {/* Bouton effacer filtres */}
+                    <button
+                      onClick={clearFilters}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        marginTop: '20px'
+                      }}
+                    >
+                      🗑️ Effacer
+                    </button>
+
+                    {/* Compteur de résultats */}
+                    <div style={{ 
+                      marginLeft: 'auto', 
+                      fontSize: '14px', 
+                      color: '#495057',
+                      fontWeight: 'bold',
+                      marginTop: '20px'
+                    }}>
+                      📊 {getFilteredArticles().length} / {articles.length} articles
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.tableContainer}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Code</th>
+                        <th>Désignation</th>
+                        <th>Famille</th>
+                        <th>Stock Facture</th>
+                        <th>Stock BL</th>
+                        <th>Seuil</th>
+                        <th>Prix Vente</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getFilteredArticles().length === 0 ? (
+                        <tr>
+                          <td colSpan={9} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                            {articles.length === 0 
+                              ? `Aucun article trouvé pour ${tenantInfo.schema}`
+                              : 'Aucun article ne correspond aux filtres sélectionnés'
+                            }
+                          </td>
+                        </tr>
+                      ) : (
+                        getFilteredArticles().map((article) => (
+                          <tr key={article.narticle}>
+                            <td>{article.narticle}</td>
+                            <td>{article.designation}</td>
+                            <td>{article.famille}</td>
+                            <td>{article.stock_f}</td>
+                            <td>{article.stock_bl}</td>
+                            <td>{article.seuil}</td>
+                            <td>{article.prix_vente?.toLocaleString('fr-FR')} DA</td>
+                            <td>
+                              {(() => {
+                                const stockTotal = (article.stock_f || 0) + (article.stock_bl || 0);
+                                const isLowStock = stockTotal <= article.seuil;
+                                const isZeroStock = stockTotal === 0;
+                                
+                                return (
+                                  <span className={
+                                    isZeroStock ? styles.zeroStock : 
+                                    isLowStock ? styles.lowStock : styles.inStock
+                                  }>
+                                    {isZeroStock ? '❌ Rupture' : 
+                                     isLowStock ? '⚠️ Stock Faible' : '✅ En Stock'}
+                                  </span>
+                                );
+                              })()}
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                <button 
+                                  onClick={() => handleEditArticle(article)}
+                                  style={{
+                                    padding: '6px 12px',
+                                    backgroundColor: '#007bff',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                  title="Modifier l'article"
+                                >
+                                  ✏️ Modifier
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteArticle(article)}
+                                  style={{
+                                    padding: '6px 12px',
+                                    backgroundColor: '#dc3545',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                  title="Supprimer l'article (vérifiez qu'il n'a jamais été facturé)"
+                                >
+                                  🗑️ Supprimer
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'clients' && (
+              <div className={styles.clients}>
+                <div className={styles.sectionHeader}>
+                  <h2>👥 Gestion des Clients</h2>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button 
+                      onClick={() => tenantInfo && loadDashboardData(tenantInfo)}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#17a2b8',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🔄 Actualiser
+                    </button>
+                    <button 
+                      className={styles.primaryButton}
+                      onClick={() => router.push('/dashboard/add-client')}
+                    >
+                      ➕ Ajouter un Client
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filtres Clients */}
+                <div style={{
+                  background: '#f8f9fa',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  marginBottom: '20px',
+                  border: '1px solid #dee2e6'
+                }}>
+                  <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontWeight: 'bold', color: '#495057' }}>🔍 Filtres:</span>
+                    </div>
+                    
+                    {/* Recherche clients */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <label style={{ fontSize: '12px', color: '#6c757d', fontWeight: 'bold' }}>
+                        Recherche (Code/Raison Sociale/Contact)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Rechercher un client..."
+                        value={clientSearchTerm}
+                        onChange={(e) => setClientSearchTerm(e.target.value)}
+                        style={{
+                          padding: '8px 12px',
+                          border: '1px solid #ced4da',
+                          borderRadius: '4px',
+                          fontSize: '14px',
+                          minWidth: '250px'
+                        }}
+                      />
+                    </div>
+
+                    {/* Filtre par statut client */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <label style={{ fontSize: '12px', color: '#6c757d', fontWeight: 'bold' }}>
+                        Statut Client
+                      </label>
+                      <select
+                        value={selectedClientStatus}
+                        onChange={(e) => setSelectedClientStatus(e.target.value)}
+                        style={{
+                          padding: '8px 12px',
+                          border: '1px solid #ced4da',
+                          borderRadius: '4px',
+                          fontSize: '14px',
+                          minWidth: '150px'
+                        }}
+                      >
+                        <option value="">Tous les clients</option>
+                        <option value="active">✅ Clients Actifs (CA &gt; 0)</option>
+                        <option value="inactive">⚠️ Clients Inactifs (CA = 0)</option>
+                      </select>
+                    </div>
+
+                    {/* Bouton effacer filtres */}
+                    <button
+                      onClick={clearClientFilters}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        marginTop: '20px'
+                      }}
+                    >
+                      🗑️ Effacer
+                    </button>
+
+                    {/* Compteur de résultats */}
+                    <div style={{ 
+                      marginLeft: 'auto', 
+                      fontSize: '14px', 
+                      color: '#495057',
+                      fontWeight: 'bold',
+                      marginTop: '20px'
+                    }}>
+                      📊 {getFilteredClients().length} / {clients.length} clients
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.tableContainer}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Code</th>
+                        <th>Raison Sociale</th>
+                        <th>Contact</th>
+                        <th>Téléphone</th>
+                        <th>Email</th>
+                        <th>CA Factures</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getFilteredClients().length === 0 ? (
+                        <tr>
+                          <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                            {clients.length === 0 
+                              ? `Aucun client trouvé pour ${tenantInfo.schema}`
+                              : 'Aucun client ne correspond aux filtres sélectionnés'
+                            }
+                          </td>
+                        </tr>
+                      ) : (
+                        getFilteredClients().map((client) => (
+                          <tr key={client.nclient}>
+                            <td>{client.nclient}</td>
+                            <td>{client.raison_sociale}</td>
+                            <td>{client.contact_person}</td>
+                            <td>{client.tel}</td>
+                            <td>{client.email}</td>
+                            <td>{client.c_affaire_fact?.toLocaleString('fr-FR')} DA</td>
+                            <td>
+                              <span className={
+                                (client.c_affaire_fact || 0) > 0 ? styles.inStock : styles.lowStock
+                              }>
+                                {(client.c_affaire_fact || 0) > 0 ? '✅ Actif' : '⚠️ Inactif'}
+                              </span>
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                <button 
+                                  onClick={() => handleEditClient(client)}
+                                  style={{
+                                    padding: '6px 12px',
+                                    backgroundColor: '#007bff',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                  title="Modifier le client"
+                                >
+                                  ✏️ Modifier
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteClient(client)}
+                                  style={{
+                                    padding: '6px 12px',
+                                    backgroundColor: '#dc3545',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                  title="Supprimer le client (vérifiez qu'il n'a aucune transaction)"
+                                >
+                                  🗑️ Supprimer
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'suppliers' && (
+              <div className={styles.suppliers}>
+                <div className={styles.sectionHeader}>
+                  <h2>🏭 Gestion des Fournisseurs</h2>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button 
+                      onClick={() => tenantInfo && loadDashboardData(tenantInfo)}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#17a2b8',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🔄 Actualiser
+                    </button>
+                    <button 
+                      className={styles.primaryButton}
+                      onClick={() => router.push('/dashboard/add-supplier')}
+                    >
+                      ➕ Ajouter un Fournisseur
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filtres Fournisseurs */}
+                <div style={{
+                  background: '#f8f9fa',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  marginBottom: '20px',
+                  border: '1px solid #dee2e6'
+                }}>
+                  <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontWeight: 'bold', color: '#495057' }}>🔍 Filtres:</span>
+                    </div>
+                    
+                    {/* Recherche fournisseurs */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <label style={{ fontSize: '12px', color: '#6c757d', fontWeight: 'bold' }}>
+                        Recherche (Code/Nom/Responsable)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Rechercher un fournisseur..."
+                        value={supplierSearchTerm}
+                        onChange={(e) => setSupplierSearchTerm(e.target.value)}
+                        style={{
+                          padding: '8px 12px',
+                          border: '1px solid #ced4da',
+                          borderRadius: '4px',
+                          fontSize: '14px',
+                          minWidth: '250px'
+                        }}
+                      />
+                    </div>
+
+                    {/* Filtre par statut fournisseur */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <label style={{ fontSize: '12px', color: '#6c757d', fontWeight: 'bold' }}>
+                        Statut Fournisseur
+                      </label>
+                      <select
+                        value={selectedSupplierStatus}
+                        onChange={(e) => setSelectedSupplierStatus(e.target.value)}
+                        style={{
+                          padding: '8px 12px',
+                          border: '1px solid #ced4da',
+                          borderRadius: '4px',
+                          fontSize: '14px',
+                          minWidth: '180px'
+                        }}
+                      >
+                        <option value="">Tous les fournisseurs</option>
+                        <option value="active">✅ Fournisseurs Actifs (CA &gt; 0)</option>
+                        <option value="inactive">⚠️ Fournisseurs Inactifs (CA = 0)</option>
+                      </select>
+                    </div>
+
+                    {/* Bouton effacer filtres */}
+                    <button
+                      onClick={clearSupplierFilters}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        marginTop: '20px'
+                      }}
+                    >
+                      🗑️ Effacer
+                    </button>
+
+                    {/* Compteur de résultats */}
+                    <div style={{ 
+                      marginLeft: 'auto', 
+                      fontSize: '14px', 
+                      color: '#495057',
+                      fontWeight: 'bold',
+                      marginTop: '20px'
+                    }}>
+                      📊 {getFilteredSuppliers().length} / {suppliers.length} fournisseurs
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.tableContainer}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Code</th>
+                        <th>Nom Fournisseur</th>
+                        <th>Responsable</th>
+                        <th>Téléphone</th>
+                        <th>Email</th>
+                        <th>CA Factures</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getFilteredSuppliers().length === 0 ? (
+                        <tr>
+                          <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                            {suppliers.length === 0 
+                              ? `Aucun fournisseur trouvé pour ${tenantInfo.schema}`
+                              : 'Aucun fournisseur ne correspond aux filtres sélectionnés'
+                            }
+                          </td>
+                        </tr>
+                      ) : (
+                        getFilteredSuppliers().map((supplier) => (
+                          <tr key={supplier.nfournisseur}>
+                            <td>{supplier.nfournisseur}</td>
+                            <td>{supplier.nom_fournisseur}</td>
+                            <td>{supplier.resp_fournisseur}</td>
+                            <td>{supplier.tel}</td>
+                            <td>{supplier.email}</td>
+                            <td>{supplier.caf?.toLocaleString('fr-FR')} DA</td>
+                            <td>
+                              <span className={
+                                (supplier.caf || 0) > 0 ? styles.inStock : styles.lowStock
+                              }>
+                                {(supplier.caf || 0) > 0 ? '✅ Actif' : '⚠️ Inactif'}
+                              </span>
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                <button 
+                                  onClick={() => handleEditSupplier(supplier)}
+                                  style={{
+                                    padding: '6px 12px',
+                                    backgroundColor: '#007bff',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                  title="Modifier le fournisseur"
+                                >
+                                  ✏️ Modifier
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteSupplier(supplier)}
+                                  style={{
+                                    padding: '6px 12px',
+                                    backgroundColor: '#dc3545',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                  title="Supprimer le fournisseur (vérifiez qu'il n'a aucun article associé)"
+                                >
+                                  🗑️ Supprimer
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'sales' && (
+              <div className={styles.sales}>
+                <div className={styles.sectionHeader}>
+                  <h2>💰 Gestion des Ventes</h2>
+                </div>
+                <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+                  <h3>Module Ventes</h3>
+                  <p>Factures, bons de livraison, devis</p>
+                  <div style={{ marginTop: '20px' }}>
+                    <button 
+                      onClick={() => router.push('/delivery-notes')}
+                      style={{
+                        margin: '10px',
+                        padding: '15px 30px',
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      📋 Bons de Livraison
+                    </button>
+                    <button 
+                      onClick={() => router.push('/invoices')}
+                      style={{
+                        margin: '10px',
+                        padding: '15px 30px',
+                        backgroundColor: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🧾 Factures
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'purchases' && (
+              <div className={styles.purchases}>
+                <div className={styles.sectionHeader}>
+                  <h2>🛒 Gestion des Achats</h2>
+                </div>
+                <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+                  <h3>Module Achats</h3>
+                  <p>Commandes fournisseurs, réceptions</p>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'stock' && (
+              <div className={styles.stock}>
+                <div className={styles.sectionHeader}>
+                  <h2>📈 Gestion du Stock</h2>
+                </div>
+                
+                {getLowStockArticles().length > 0 && (
+                  <div>
+                    <h3>⚠️ Articles sous seuil</h3>
+                    <div className={styles.tableContainer}>
+                      <table className={styles.table}>
+                        <thead>
+                          <tr>
+                            <th>Code</th>
+                            <th>Désignation</th>
+                            <th>Stock Total</th>
+                            <th>Stock Facture</th>
+                            <th>Stock BL</th>
+                            <th>Seuil</th>
+                            <th>Différence</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {getLowStockArticles().map((article) => {
+                            const stockTotal = (article.stock_f || 0) + (article.stock_bl || 0);
+                            const difference = stockTotal - article.seuil;
+                            
+                            return (
+                              <tr key={article.narticle}>
+                                <td>{article.narticle}</td>
+                                <td>{article.designation}</td>
+                                <td style={{ fontWeight: 'bold', color: stockTotal === 0 ? '#dc3545' : '#495057' }}>
+                                  {stockTotal}
+                                </td>
+                                <td>{article.stock_f}</td>
+                                <td>{article.stock_bl}</td>
+                                <td>{article.seuil}</td>
+                                <td style={{ 
+                                  color: difference < 0 ? '#dc3545' : '#28a745', 
+                                  fontWeight: 'bold' 
+                                }}>
+                                  {difference > 0 ? '+' : ''}{difference}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </main>
+
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+}

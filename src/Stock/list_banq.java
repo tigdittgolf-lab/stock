@@ -84,6 +84,8 @@ public class list_banq extends javax.swing.JFrame {
         txt_tot_table = new javax.swing.JTextField();
         txt_tot_marge = new javax.swing.JTextField();
         jLabel13 = new javax.swing.JLabel();
+        txt_tst = new javax.swing.JTextField();
+        jLabel14 = new javax.swing.JLabel();
         btn_recette_jour = new javax.swing.JButton();
         btn_quitter = new javax.swing.JButton();
 
@@ -360,6 +362,13 @@ public class list_banq extends javax.swing.JFrame {
 
         jLabel13.setText("Marge   :");
 
+        txt_tst.setEditable(false);
+        txt_tst.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
+        txt_tst.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
+        txt_tst.setEnabled(false);
+
+        jLabel14.setText("H.T :");
+
         javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
         jPanel5.setLayout(jPanel5Layout);
         jPanel5Layout.setHorizontalGroup(
@@ -367,7 +376,7 @@ public class list_banq extends javax.swing.JFrame {
             .addGroup(jPanel5Layout.createSequentialGroup()
                 .addGap(16, 16, 16)
                 .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                         .addGroup(jPanel5Layout.createSequentialGroup()
                             .addComponent(jLabel9)
                             .addGap(18, 18, 18)
@@ -381,7 +390,11 @@ public class list_banq extends javax.swing.JFrame {
                             .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                                 .addComponent(txt_tot_banq, javax.swing.GroupLayout.DEFAULT_SIZE, 143, Short.MAX_VALUE)
                                 .addComponent(txt_tot_term)
-                                .addComponent(txt_tot_table))))
+                                .addComponent(txt_tot_table)))
+                        .addGroup(jPanel5Layout.createSequentialGroup()
+                            .addComponent(jLabel14)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(txt_tst, javax.swing.GroupLayout.PREFERRED_SIZE, 143, javax.swing.GroupLayout.PREFERRED_SIZE)))
                     .addGroup(jPanel5Layout.createSequentialGroup()
                         .addComponent(jLabel13)
                         .addGap(18, 18, 18)
@@ -391,7 +404,10 @@ public class list_banq extends javax.swing.JFrame {
         jPanel5Layout.setVerticalGroup(
             jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel5Layout.createSequentialGroup()
-                .addGap(0, 22, Short.MAX_VALUE)
+                .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(txt_tst, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel14))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(txt_tot_esp, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel9))
@@ -449,8 +465,7 @@ public class list_banq extends javax.swing.JFrame {
                         .addContainerGap()
                         .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)))
+                        .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
                         .addGap(182, 182, 182)
@@ -781,37 +796,45 @@ private void calcul_recette() {
     try {
         String sql = "drop table tmp_banq";
         St.execute(sql);
-        sql ="create table tmp_banq as SELECT banq, sum(montant_ht+tva+timbre) as ttc, sum(marge) as marge FROM fact_tmp group by banq";
+        sql ="create table tmp_banq as SELECT banq, sum(montant_ht) as total_st,sum(montant_ht+tva+timbre) as ttc, sum(marge) as marge FROM fact_tmp group by banq";
         St.execute(sql);
-        sql="select sum(ttc) as s_tot_esp, sum(marge) as marge from tmp_banq where banq =''";
+        sql="select sum(total_st) as tst, sum(ttc) as s_tot_esp, sum(marge) as marge from tmp_banq where banq =''";
         
                    Rs = St.executeQuery(sql);
                     if (Rs.next()) {
                         String add1 = Rs.getString("s_tot_esp");                        
-                        String add2 = Rs.getString("marge");                        
+                        String add2 = Rs.getString("marge");
+                        String add3 = Rs.getString("tst");
                         if (add1 != null) {                           
                         Double som_tot_esp = Double.parseDouble(add1);
                         add1 = mntFmt.mntFmt(som_tot_esp);
                         txt_tot_esp.setText(add1);
                         Double marge = Double.parseDouble(add2);
                         add2 = mntFmt.mntFmt(marge);
+                        Double tst = Double.parseDouble(add3);
+                        add3 = mntFmt.mntFmt(tst);
+                        txt_tst.setText(add3);
                         txt_tot_marge.setText(add2);
                         tot_banq=tot_banq+som_tot_esp;
                         }
                     }
                     
-                sql="select sum(ttc) as s_tot_term , sum(marge) as marge from tmp_banq where banq ='TERM'";
+                sql="select sum(total_st) as tst,sum(ttc) as s_tot_term , sum(marge) as marge from tmp_banq where banq ='TERM'";
                   
                    Rs = St.executeQuery(sql);
                     if (Rs.next()) {                    
                         String add1 = Rs.getString("s_tot_term");
                         String add2 = Rs.getString("marge");                        
+                        String add3 = Rs.getString("tst");
                         if (add1 != null) {                                                                            
                         Double som_tot_term = Double.parseDouble(add1);                          
                         add1 =mntFmt.mntFmt(som_tot_term);
                         txt_tot_term.setText(add1);
                         Double marge = Double.parseDouble(add2);
                         add2 = mntFmt.mntFmt(marge);
+                        Double tst = Double.parseDouble(add3);
+                        add3 = mntFmt.mntFmt(tst);
+                        txt_tst.setText(add3);
                         txt_tot_marge.setText(add2);
                         tot_banq=tot_banq+som_tot_term;
                         } 
@@ -819,12 +842,13 @@ private void calcul_recette() {
     } 
                     
                     
-        sql="select sum(ttc) as s_tot_table , sum(marge) as marge from tmp_banq ";
+        sql="select sum(total_st) as tst, sum(ttc) as s_tot_table , sum(marge) as marge from tmp_banq ";
         
                     Rs = St.executeQuery(sql);
                     if (Rs.next()) {
                         String add1 = Rs.getString("s_tot_table");
                         String add2 = Rs.getString("marge");                        
+                        String add3 = Rs.getString("tst");
                         if (add1 != null) {                            
                         Double som_tot_table = Double.parseDouble(add1);
                         add1 =mntFmt.mntFmt(som_tot_table);
@@ -833,6 +857,9 @@ private void calcul_recette() {
                         add1=mntFmt.mntFmt(tot_banq);
                         Double marge = Double.parseDouble(add2);
                         add2 = mntFmt.mntFmt(marge);
+                        Double tst = Double.parseDouble(add3);
+                        add3 = mntFmt.mntFmt(tst);
+                        txt_tst.setText(add3);
                         txt_tot_marge.setText(add2);
                         txt_tot_banq.setText(add1);
                     }
@@ -960,6 +987,7 @@ try
     private javax.swing.JLabel jLabel11;
     private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel13;
+    private javax.swing.JLabel jLabel14;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
@@ -986,5 +1014,6 @@ try
     private javax.swing.JTextField txt_tot_marge;
     private javax.swing.JTextField txt_tot_table;
     private javax.swing.JTextField txt_tot_term;
+    private javax.swing.JTextField txt_tst;
     // End of variables declaration//GEN-END:variables
 }

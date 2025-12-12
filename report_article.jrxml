@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="report_article" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="04c5194a-4b92-4bdf-9103-ab09ca1d1316">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<subDataset name="New Dataset 1" uuid="e5654a84-d6d4-46f4-8f47-8ecabeb25e8c">
+		<queryString language="SQL">
+			<![CDATA[SELECT
+     article.`Narticle` AS article_Narticle,
+     article.`designation` AS article_designation,
+     article.`prix_unitaire` AS article_prix_unitaire,
+     article.`tva` AS article_tva,
+     article.`prix_vente` AS article_prix_vente,
+     article.`stock_f` AS article_stock_f,
+     article.`stock_bl` AS article_stock_bl
+FROM
+     `article` article order by narticle+famille]]>
+		</queryString>
+		<field name="article_Narticle" class="java.lang.String"/>
+		<field name="article_designation" class="java.lang.String"/>
+		<field name="article_prix_unitaire" class="java.lang.Double"/>
+		<field name="article_tva" class="java.lang.Double"/>
+		<field name="article_prix_vente" class="java.lang.Double"/>
+		<field name="article_stock_f" class="java.lang.Integer"/>
+		<field name="article_stock_bl" class="java.lang.Integer"/>
+	</subDataset>
+	<queryString>
+		<![CDATA[SELECT
+     article.`Narticle` AS article_Narticle,
+     article.`designation` AS article_designation,
+     article.`prix_unitaire` AS article_prix_unitaire,
+     article.`tva` AS article_tva,
+     article.`prix_vente` AS article_prix_vente,
+     article.`stock_f` AS article_stock_f,
+     article.`stock_bl` AS article_stock_bl
+FROM
+     `article` article order by narticle+famille]]>
+	</queryString>
+	<field name="article_Narticle" class="java.lang.String"/>
+	<field name="article_designation" class="java.lang.String"/>
+	<field name="article_prix_unitaire" class="java.lang.Double"/>
+	<field name="article_tva" class="java.lang.Double"/>
+	<field name="article_prix_vente" class="java.lang.Double"/>
+	<field name="article_stock_f" class="java.lang.Integer"/>
+	<field name="article_stock_bl" class="java.lang.Integer"/>
+	<group name="article_famille">
+		<groupExpression><![CDATA[$F{article_famille}]]></groupExpression>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="79" splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band height="36" splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="61" splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="125" splitType="Stretch">
+			<componentElement>
+				<reportElement uuid="24d8873b-4e2b-47db-be7f-d88b904ab747" x="0" y="0" width="555" height="125"/>
+				<jr:table xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd">
+					<datasetRun subDataset="New Dataset 1" uuid="58cc7448-b925-4a3e-b4d2-6d513caee6f4">
+						<dataSourceExpression><![CDATA[new net.sf.jasperreports.engine.JREmptyDataSource(1)]]></dataSourceExpression>
+					</datasetRun>
+					<jr:column width="90" uuid="eee1c191-2eab-4165-85d4-28b3b571e291">
+						<jr:tableHeader height="30" rowSpan="1">
+							<textField>
+								<reportElement uuid="65be997d-3eba-42aa-b726-2045c72db782" x="0" y="0" width="90" height="30"/>
+								<textElement/>
+								<textFieldExpression><![CDATA[$F{article_Narticle}]]></textFieldExpression>
+							</textField>
+						</jr:tableHeader>
+						<jr:tableFooter height="30" rowSpan="1"/>
+						<jr:columnHeader height="30" rowSpan="1"/>
+						<jr:columnFooter height="30" rowSpan="1"/>
+						<jr:detailCell height="30" rowSpan="1"/>
+					</jr:column>
+					<jr:column width="90" uuid="a33b8722-c5b2-4a77-9c64-95cd9f577e8d">
+						<jr:tableHeader height="30" rowSpan="1">
+							<textField>
+								<reportElement uuid="359b73d1-c8e5-4743-969e-5cf8a83b6a2d" x="0" y="0" width="90" height="30"/>
+								<textElement/>
+								<textFieldExpression><![CDATA[$F{article_designation}]]></textFieldExpression>
+							</textField>
+						</jr:tableHeader>
+						<jr:tableFooter height="30" rowSpan="1"/>
+						<jr:columnHeader height="30" rowSpan="1"/>
+						<jr:columnFooter height="30" rowSpan="1"/>
+						<jr:detailCell height="30" rowSpan="1"/>
+					</jr:column>
+					<jr:column width="90" uuid="c8782816-269e-460d-a0bb-17f71dec437f">
+						<jr:tableHeader height="30" rowSpan="1">
+							<textField>
+								<reportElement uuid="06f04998-02cf-4d5c-8c80-2c2e472b1ac6" x="0" y="0" width="90" height="30"/>
+								<textElement/>
+								<textFieldExpression><![CDATA[$F{article_prix_unitaire}]]></textFieldExpression>
+							</textField>
+						</jr:tableHeader>
+						<jr:tableFooter height="30" rowSpan="1"/>
+						<jr:columnHeader height="30" rowSpan="1"/>
+						<jr:columnFooter height="30" rowSpan="1"/>
+						<jr:detailCell height="30" rowSpan="1"/>
+					</jr:column>
+					<jr:column width="90" uuid="2caab776-6d0d-4c8e-9075-cadfd0991c6c">
+						<jr:tableHeader height="30" rowSpan="1">
+							<textField>
+								<reportElement uuid="35158bc5-56cb-4cf3-a39b-3e50a553f3cb" x="0" y="0" width="90" height="30"/>
+								<textElement/>
+								<textFieldExpression><![CDATA[$F{article_tva}]]></textFieldExpression>
+							</textField>
+						</jr:tableHeader>
+						<jr:tableFooter height="30" rowSpan="1"/>
+						<jr:columnHeader height="30" rowSpan="1"/>
+						<jr:columnFooter height="30" rowSpan="1"/>
+						<jr:detailCell height="30" rowSpan="1"/>
+					</jr:column>
+					<jr:column width="90" uuid="fce847e4-6696-4980-a023-e51652434454">
+						<jr:tableHeader height="30" rowSpan="1">
+							<textField>
+								<reportElement uuid="1bbb4cf3-5f24-427b-b78b-77b4a157f163" x="0" y="0" width="90" height="30"/>
+								<textElement/>
+								<textFieldExpression><![CDATA[$F{article_prix_vente}]]></textFieldExpression>
+							</textField>
+						</jr:tableHeader>
+						<jr:tableFooter height="30" rowSpan="1"/>
+						<jr:columnHeader height="30" rowSpan="1"/>
+						<jr:columnFooter height="30" rowSpan="1"/>
+						<jr:detailCell height="30" rowSpan="1"/>
+					</jr:column>
+					<jr:column width="90" uuid="c771eaf4-c4ea-40d6-b218-569a0c15ccc5">
+						<jr:tableHeader height="30" rowSpan="1">
+							<textField>
+								<reportElement uuid="64aabe4f-fd24-4efa-a9c7-63742899d6f6" x="0" y="0" width="90" height="30"/>
+								<textElement/>
+								<textFieldExpression><![CDATA[$F{article_stock_f}]]></textFieldExpression>
+							</textField>
+						</jr:tableHeader>
+						<jr:tableFooter height="30" rowSpan="1"/>
+						<jr:columnHeader height="30" rowSpan="1"/>
+						<jr:columnFooter height="30" rowSpan="1"/>
+						<jr:detailCell height="30" rowSpan="1"/>
+					</jr:column>
+					<jr:column width="90" uuid="41660638-6bd9-4b77-983b-3b2bb27ae399">
+						<jr:tableHeader height="30" rowSpan="1">
+							<textField>
+								<reportElement uuid="dc3cdd7b-2a41-4fe0-9d35-ff0a8dcaf171" x="0" y="0" width="90" height="30"/>
+								<textElement/>
+								<textFieldExpression><![CDATA[$F{article_stock_bl}]]></textFieldExpression>
+							</textField>
+						</jr:tableHeader>
+						<jr:tableFooter height="30" rowSpan="1"/>
+						<jr:columnHeader height="30" rowSpan="1"/>
+						<jr:columnFooter height="30" rowSpan="1"/>
+						<jr:detailCell height="30" rowSpan="1"/>
+					</jr:column>
+				</jr:table>
+			</componentElement>
+		</band>
+	</detail>
+	<columnFooter>
+		<band height="45" splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="54" splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="42" splitType="Stretch"/>
+	</summary>
+</jasperReport>

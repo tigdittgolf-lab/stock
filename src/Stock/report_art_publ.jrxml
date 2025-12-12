@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.17.0.final using JasperReports Library version 6.17.0-6d93193241dd8cc42629e188b94f9e0bc5722efd  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="report_art_publ" language="groovy" pageWidth="107" pageHeight="70" columnWidth="107" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="2668de1d-7b44-42dc-836a-77d971c7a904">
+	<property name="ireport.zoom" value="6.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="mysql"/>
+	<parameter name="p_pourcentage" class="java.lang.Double"/>
+	<queryString>
+		<![CDATA[SELECT
+     Narticle,
+     prix_unitaire,
+     prix_vente,
+     tva,
+     designation
+FROM
+     article]]>
+	</queryString>
+	<field name="Narticle" class="java.lang.String">
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="prix_unitaire" class="java.lang.Double">
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="prix_vente" class="java.lang.Double">
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="tva" class="java.lang.Double">
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="designation" class="java.lang.String">
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<title>
+		<band height="51">
+			<textField pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement x="3" y="17" width="123" height="18" uuid="08009391-c2ec-4ff4-b2e1-04c99d0cfdee"/>
+				<textElement textAlignment="Justified">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new BigDecimal($F{prix_unitaire}+$F{prix_unitaire}*$P{p_pourcentage}/100).setScale(0, BigDecimal.ROUND_HALF_DOWN)]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement key="" x="3" y="29" width="123" height="17" uuid="d88ebcfe-6168-41da-98c9-62787525340a"/>
+				<textElement textAlignment="Justified">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new BigDecimal($F{prix_vente}+$F{prix_vente}*$F{tva}/100).setScale(0, BigDecimal.ROUND_HALF_DOWN)]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="24" y="3" width="89" height="18" uuid="e6be90a5-1b33-41de-99b7-7fbb51751915"/>
+				<textElement textAlignment="Justified">
+					<font size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Narticle}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="10" y="4" width="13" height="19" uuid="3f7ca74e-f061-4341-a9a2-c474c3d548ef"/>
+				<textElement>
+					<font size="12" isBold="true" isItalic="true" isUnderline="false"/>
+				</textElement>
+				<text><![CDATA[C:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="85" y="16" width="25" height="18" uuid="3d613214-52f3-4046-aff3-03674a9f118c"/>
+				<textElement>
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[DA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="85" y="30" width="25" height="17" uuid="69c47c2b-8ad6-4121-adbe-0f268e81a2f4"/>
+				<textElement>
+					<font size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[DA]]></text>
+			</staticText>
+		</band>
+	</title>
+</jasperReport>

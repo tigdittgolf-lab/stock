@@ -23,9 +23,9 @@ import net.sf.jasperreports.engine.design.JasperDesign;
  * @author IT
  */
 
-public class list_banq extends javax.swing.JFrame {
+public class list_banq1 extends javax.swing.JFrame {
 
-    public list_banq(String par, String det, String mas, String bas) {
+    public list_banq1(String par, String det, String mas, String bas) {
         //JOptionPane.showMessageDialog(null, parametre);        
         parametre = par;        
         fichier_detail = det;
@@ -54,18 +54,6 @@ public class list_banq extends javax.swing.JFrame {
         jLabel1 = new javax.swing.JLabel();
         txt_banque = new javax.swing.JTextField();
         btn_selectioner = new javax.swing.JButton();
-        jPanel2 = new javax.swing.JPanel();
-        btn_modifier = new javax.swing.JButton();
-        txt_nfact = new javax.swing.JTextField();
-        jLabel2 = new javax.swing.JLabel();
-        txt_tot_fact = new javax.swing.JTextField();
-        jLabel3 = new javax.swing.JLabel();
-        jLabel4 = new javax.swing.JLabel();
-        txt_raison_sociale = new javax.swing.JTextField();
-        jLabel5 = new javax.swing.JLabel();
-        jLabel6 = new javax.swing.JLabel();
-        txt_bnq_dest = new javax.swing.JTextField();
-        txt_ncheque = new javax.swing.JTextField();
         jPanel3 = new javax.swing.JPanel();
         jLabel7 = new javax.swing.JLabel();
         date_debut = new com.toedter.calendar.JDateChooser();
@@ -82,9 +70,7 @@ public class list_banq extends javax.swing.JFrame {
         txt_tot_banq = new javax.swing.JTextField();
         txt_tot_term = new javax.swing.JTextField();
         txt_tot_table = new javax.swing.JTextField();
-        txt_tot_marge = new javax.swing.JTextField();
-        jLabel13 = new javax.swing.JLabel();
-        btn_recette_jour = new javax.swing.JButton();
+        btn_achat_jour = new javax.swing.JButton();
         btn_quitter = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
@@ -164,102 +150,6 @@ public class list_banq extends javax.swing.JFrame {
                 .addContainerGap(19, Short.MAX_VALUE))
         );
 
-        btn_modifier.setText("Modifier");
-        btn_modifier.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_modifierActionPerformed(evt);
-            }
-        });
-
-        txt_nfact.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyReleased(java.awt.event.KeyEvent evt) {
-                txt_nfactKeyReleased(evt);
-            }
-        });
-
-        jLabel2.setText("N° Facture:");
-
-        txt_tot_fact.setEditable(false);
-        txt_tot_fact.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
-
-        jLabel3.setText("Montant");
-
-        jLabel4.setText("Client :");
-
-        txt_raison_sociale.setEditable(false);
-        txt_raison_sociale.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txt_raison_socialeActionPerformed(evt);
-            }
-        });
-
-        jLabel5.setText("Banque à utiliser : ");
-
-        jLabel6.setText("N°chèque:");
-
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-        jPanel2.setLayout(jPanel2Layout);
-        jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel2)
-                    .addComponent(jLabel3))
-                .addGap(47, 47, 47)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addComponent(txt_tot_fact, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(0, 0, Short.MAX_VALUE))
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addGap(4, 4, 4)
-                                .addComponent(txt_bnq_dest, javax.swing.GroupLayout.PREFERRED_SIZE, 48, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(jLabel6)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addComponent(txt_ncheque, javax.swing.GroupLayout.PREFERRED_SIZE, 73, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addComponent(txt_nfact, javax.swing.GroupLayout.DEFAULT_SIZE, 99, Short.MAX_VALUE)
-                                .addGap(39, 39, 39)
-                                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(txt_raison_sociale, javax.swing.GroupLayout.PREFERRED_SIZE, 156, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addContainerGap())))
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addComponent(jLabel5)
-                .addGap(0, 0, Short.MAX_VALUE))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(btn_modifier)
-                .addGap(154, 154, 154))
-        );
-        jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(jLabel2)
-                        .addComponent(txt_raison_sociale, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(txt_nfact, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(jLabel4)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel3)
-                    .addComponent(txt_tot_fact, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 14, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(txt_bnq_dest, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel6)
-                    .addComponent(txt_ncheque, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btn_modifier)
-                .addGap(15, 15, 15))
-        );
-
         jLabel7.setText("Période du :");
 
         jLabel8.setText("Au :");
@@ -322,7 +212,7 @@ public class list_banq extends javax.swing.JFrame {
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 55, Short.MAX_VALUE)
+            .addGap(0, 84, Short.MAX_VALUE)
         );
 
         jLabel9.setText("Espèce :");
@@ -353,39 +243,27 @@ public class list_banq extends javax.swing.JFrame {
         txt_tot_table.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
         txt_tot_table.setEnabled(false);
 
-        txt_tot_marge.setEditable(false);
-        txt_tot_marge.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
-        txt_tot_marge.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
-        txt_tot_marge.setEnabled(false);
-
-        jLabel13.setText("Marge   :");
-
         javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
         jPanel5.setLayout(jPanel5Layout);
         jPanel5Layout.setHorizontalGroup(
             jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel5Layout.createSequentialGroup()
-                .addGap(16, 16, 16)
-                .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel5Layout.createSequentialGroup()
-                            .addComponent(jLabel9)
-                            .addGap(18, 18, 18)
-                            .addComponent(txt_tot_esp, javax.swing.GroupLayout.PREFERRED_SIZE, 143, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGroup(jPanel5Layout.createSequentialGroup()
-                            .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(jLabel12)
-                                .addComponent(jLabel11)
-                                .addComponent(jLabel10))
-                            .addGap(16, 16, 16)
-                            .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                .addComponent(txt_tot_banq, javax.swing.GroupLayout.DEFAULT_SIZE, 143, Short.MAX_VALUE)
-                                .addComponent(txt_tot_term)
-                                .addComponent(txt_tot_table))))
+                .addGap(18, 18, 18)
+                .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel5Layout.createSequentialGroup()
-                        .addComponent(jLabel13)
+                        .addComponent(jLabel9)
                         .addGap(18, 18, 18)
-                        .addComponent(txt_tot_marge, javax.swing.GroupLayout.PREFERRED_SIZE, 143, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(txt_tot_esp, javax.swing.GroupLayout.PREFERRED_SIZE, 143, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel5Layout.createSequentialGroup()
+                        .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel12)
+                            .addComponent(jLabel11)
+                            .addComponent(jLabel10))
+                        .addGap(16, 16, 16)
+                        .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(txt_tot_banq, javax.swing.GroupLayout.DEFAULT_SIZE, 143, Short.MAX_VALUE)
+                            .addComponent(txt_tot_term)
+                            .addComponent(txt_tot_table))))
                 .addContainerGap(22, Short.MAX_VALUE))
         );
         jPanel5Layout.setVerticalGroup(
@@ -407,17 +285,13 @@ public class list_banq extends javax.swing.JFrame {
                 .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(txt_tot_table, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel12))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(txt_tot_marge, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel13))
-                .addGap(5, 5, 5))
+                .addGap(28, 28, 28))
         );
 
-        btn_recette_jour.setText("Recette du jour");
-        btn_recette_jour.addActionListener(new java.awt.event.ActionListener() {
+        btn_achat_jour.setText("Achat du jour");
+        btn_achat_jour.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_recette_jourActionPerformed(evt);
+                btn_achat_jourActionPerformed(evt);
             }
         });
 
@@ -435,10 +309,6 @@ public class list_banq extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jScrollPane1))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(btn_quitter)
-                .addContainerGap())
             .addGroup(layout.createSequentialGroup()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addGroup(layout.createSequentialGroup()
@@ -449,22 +319,18 @@ public class list_banq extends javax.swing.JFrame {
                         .addContainerGap()
                         .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)))
+                        .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
                         .addGap(182, 182, 182)
                         .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addContainerGap())
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(btn_quitter)
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addContainerGap())
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addComponent(btn_recette_jour, javax.swing.GroupLayout.PREFERRED_SIZE, 121, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(119, 119, 119))))))
+                        .addComponent(btn_achat_jour, javax.swing.GroupLayout.PREFERRED_SIZE, 121, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(119, 119, 119))))
             .addGroup(layout.createSequentialGroup()
                 .addGap(314, 314, 314)
                 .addComponent(txt_titre, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -479,12 +345,16 @@ public class list_banq extends javax.swing.JFrame {
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 229, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addGap(27, 27, 27)
-                        .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(56, 56, 56)
-                        .addComponent(btn_recette_jour, javax.swing.GroupLayout.PREFERRED_SIZE, 33, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(73, 73, 73)
-                        .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(227, 227, 227)
+                        .addComponent(btn_achat_jour, javax.swing.GroupLayout.PREFERRED_SIZE, 33, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createSequentialGroup()
+                                .addGap(73, 73, 73)
+                                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(btn_quitter)
+                                .addGap(40, 40, 40))))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(45, 45, 45)
                         .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -492,9 +362,7 @@ public class list_banq extends javax.swing.JFrame {
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 35, Short.MAX_VALUE)
-                .addComponent(btn_quitter)
-                .addGap(25, 25, 25))
+                .addContainerGap(54, Short.MAX_VALUE))
         );
 
         pack();
@@ -502,27 +370,22 @@ public class list_banq extends javax.swing.JFrame {
 
     private void formWindowOpened(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowOpened
              String pilote = "com.mysql.jdbc.Driver";
-             jPanel1.setVisible(false);
-             jPanel2.setVisible(false);
+             jPanel1.setVisible(false);          
              jPanel3.setVisible(false);
              jPanel4.setVisible(false);
              jPanel5.setVisible(false);
      //parametre ="banque";
         String titre="";
         query1="";
-        list ="select NFact, f.Nclient, c.raison_sociale, date_fact,montant_ht, timbre, TVA,montant_ht+timbre+TVA, marge, banq, ncheque, nbc, nom_preneur,'F' from fact f, client c where f.nclient=c.nclient and banq " ;
+        list ="select NFact, f.nfournisseur, c.nom_fournisseur, date_fact,montant_ht, timbre, TVA,montant_ht+timbre+TVA,  banque, ncheque, 'F' from fachat f, fournisseur c where f.nfournisseur=c.nfournisseur and f.banque " ;
             switch (parametre) {
                 case "banque":
                     jPanel1.setVisible(true);
                     titre = "BANQUE";
-                    condition=" not in('TERM','') order by banq" ;
+                    condition=" not in('TERM','') order by banque" ;
                     query2= list+" "+ condition;
                     break;
-                case "TERM" :   
-                    titre = "TERM";
-                    condition="  ='TERM'" ;
-                    jPanel2.setVisible(true);
-                    break;
+
                 case "Espece" :   
                     titre = "ESPECE";
                  condition=" =''";
@@ -530,8 +393,8 @@ public class list_banq extends javax.swing.JFrame {
                     
                 case "periode" :   
                     titre = "Période";
-                 condition=" <> 'y' order by banq ";
-                 query1 ="select NFact, f.Nclient, c.raison_sociale, date_fact,montant_ht, timbre, TVA,montant_ht+timbre+TVA, marge, banq, ncheque, nbc, nom_preneur,'BL' from bl f, client c where f.nclient=c.nclient";
+                 condition=" <> 'y' order by banque ";
+                 query1 ="select NFact, f.nfournisseur, c.nom_fournisseur, date_fact,montant_ht, timbre, TVA,montant_ht+timbre+TVA,  banque, ncheque, 'BL' from bachat f, fournisseur c where f.nfournisseur=c.nfournisseur" ;                                 
                  jPanel3.setVisible(true);
                  jPanel4.setVisible(true);
                  jPanel5.setVisible(true);
@@ -543,6 +406,7 @@ public class list_banq extends javax.swing.JFrame {
             txt_titre.setForeground(Color.WHITE);
             
         try {
+            //JOptionPane.showMessageDialog(null, "Salam");
             Class.forName(pilote);
             cnx = DriverManager.getConnection("jdbc:mysql://localhost:3306/mysql", "root", "");
             St = cnx.createStatement();  
@@ -556,19 +420,24 @@ public class list_banq extends javax.swing.JFrame {
             cnx = DriverManager.getConnection(var_cnx, user_bd, passwd_bd);
             St = cnx.createStatement();
             }
-            sql = "truncate table fact_tmp";
-            St.execute(sql);
-            sql="insert into fact_tmp " + query;
+            sql = "truncate table fact_tmp_achat";
+            St.execute(sql);            
+            sql="insert into fact_tmp_achat " + query;            
+            //JOptionPane.showMessageDialog(null, query);
+            //JOptionPane.showMessageDialog(null, sql);
             St.execute(sql);
            if (!query1.equals("")) {             
-            sql="insert into fact_tmp " + query1;
-            St.execute(sql);
+              // JOptionPane.showMessageDialog(null, query1);
+              // JOptionPane.showMessageDialog(null, sql);
+            sql="insert into fact_tmp_achat " + query1;           
+           St.execute(sql);            
            }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Erreur de connexcion\n" + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Erreur de connexion\n" + e.getMessage());
         }
-        query = "select * from fact_tmp";
+        query = "select * from fact_tmp_achat";
         Update_Table_Banq();       
+        calcul_recette();
     }//GEN-LAST:event_formWindowOpened
 
     private void btn_selectionerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_selectionerActionPerformed
@@ -582,75 +451,17 @@ public class list_banq extends javax.swing.JFrame {
     private void btn_quitterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_quitterActionPerformed
        this.dispose();
     }//GEN-LAST:event_btn_quitterActionPerformed
-
-    private void btn_modifierActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_modifierActionPerformed
-        try
-            {
-            
-          if ( txt_nfact.getText().equals(""))   {
-             JOptionPane.showMessageDialog(null, "N°Facture vide !");
-          }else {
-              
-           query =" select * from fact_tmp where nfact ='" + txt_nfact.getText() + "'";
-           
-           
-           Rs = St.executeQuery(query);                        
-           if (Rs.next()) {
-           String sql_up="update fact set banq ='" 
-                   +txt_bnq_dest.getText() +"', ncheque = '"
-                   +txt_ncheque.getText() + "' where nfact = '" + txt_nfact.getText() + "'";
-          
-           St.executeUpdate(sql_up);
-           sql_up ="delete from fact_tmp where nfact ='" + txt_nfact.getText() + "'";
-           St.executeUpdate(sql_up);
-           } else {
-            JOptionPane.showMessageDialog(null, "Facture n'existe pas!" );
-           }
-           
-           }
-           Update_Table_Banq();       
-        }catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Erreur dans la recherche\n" + e.getMessage());
-        }  
-    }//GEN-LAST:event_btn_modifierActionPerformed
-
-    private void txt_raison_socialeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_raison_socialeActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_raison_socialeActionPerformed
-
-    private void txt_nfactKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txt_nfactKeyReleased
-     
-        try {
-            //select f.Nclient, c.raison_sociale,montant_ht, timbre, TVA, autre_taxe, banq, ncheque from fact f, client c where f.nclient=c.nclient  " ;
-        query =" SELECT nfact, f.Nclient, c.raison_sociale as raison_sociale, montant_ht+timbre+ TVA as tot_fact, marge, banq, ncheque from fact_tmp f, client c where f.nclient=c.nclient and nfact LIKE '" + txt_nfact.getText() + "%'";
-       // JOptionPane.showMessageDialog(null, query);
-           
-           Rs = St.executeQuery(query);                        
-           if (Rs.next()) {               ;
-                affiche_enr();
-           } else {
-                txt_tot_fact.setText(mntFmt.mntFmt(Double.parseDouble("0.00")));                
-                txt_raison_sociale.setText("");
-                txt_bnq_dest.setText("");                
-                txt_ncheque.setText("");
-            //JOptionPane.showMessageDialog(null, "Facture n'existe pas!" );
-           }   
-           Update_Table_Banq();
-        }catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Erreur dans la recherche\n" + e.getMessage());
-        }
-    }//GEN-LAST:event_txt_nfactKeyReleased
 private void affiche_enr() {
  try {
                 
                 String add5 = Rs.getString("tot_fact");
-                txt_tot_fact.setText(mntFmt.mntFmt(Double.parseDouble(add5)));                
+               // txt_tot_fact.setText(mntFmt.mntFmt(Double.parseDouble(add5)));                
                 String add6 = Rs.getString("raison_sociale");
-                txt_raison_sociale.setText(add6);
+               // txt_raison_sociale.setText(add6);
                 String add7 = Rs.getString("banq");
-                txt_bnq_dest.setText(add7);
+               // txt_bnq_dest.setText(add7);
                 String add8 = Rs.getString("ncheque");
-                txt_ncheque.setText(add8);                
+              //  txt_ncheque.setText(add8);                
 }catch (Exception e) {
             JOptionPane.showMessageDialog(null, "Erreur dans la recherche\n" + e.getMessage());
         }
@@ -659,43 +470,43 @@ private void affiche_enr() {
     
     private void Table_BanqMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_Table_BanqMouseClicked
         
-        
+        /*
         try {
             int row = Table_Banq.getSelectedRow();
             String Table_click = (Table_Banq.getModel().getValueAt(row, 0).toString());            
-           query=  " SELECT nfact, f.Nclient, c.raison_sociale as raison_sociale, montant_ht+timbre+ TVA as tot_fact, marge, banq, ncheque from fact_tmp f, client c where f.nclient=c.nclient and nfact = '"+ Table_click + "'";
+           query=  " SELECT nfact, f.Nfournisseur, c.nom_fournisseur as nom_fournisseur, montant_ht+timbre+ TVA as tot_fact,  banq, ncheque from fact_tmp_achat f, fournisseur c where f.nfournisseur=c.nfournisseur and nfact = '"+ Table_click + "'";
            //JOptionPane.showMessageDialog(null, query);
            Rs = St.executeQuery(query);
            if (Rs.next()) {
                String add4 = Rs.getString("nfact");
-                txt_nfact.setText(add4);
+               // txt_nfact.setText(add4);
             affiche_enr();
            }
                     
         } catch (Exception e) {
             JOptionPane.showMessageDialog(null, "Erreur dans la table\n" + e.getMessage());
         }
-                 
+          */       
     }//GEN-LAST:event_Table_BanqMouseClicked
 
     private void Table_BanqKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_Table_BanqKeyReleased
-       
+        /*
         try {
             int row = Table_Banq.getSelectedRow();
             String Table_click = (Table_Banq.getModel().getValueAt(row, 0).toString());            
-           query=  " SELECT nfact, f.Nclient, c.raison_sociale as raison_sociale, montant_ht+timbre+ TVA as tot_fact, marge, banq, ncheque from fact_tmp f, client c where f.nclient=c.nclient and nfact = '"+ Table_click + "'";
+           query=  " SELECT nfact, f.Nfournisseur, c.nom_fournisseur as nom_fournisseur, montant_ht+timbre+ TVA as tot_fact,  banq, ncheque from fact_tmp_achat f, fournisseur c where f.nfournisseur=c.nfournisseur and nfact = '"+ Table_click + "'";
            //JOptionPane.showMessageDialog(null, query);
            Rs = St.executeQuery(query);
            if (Rs.next()) {
                 String add4 = Rs.getString("nfact");
-                txt_nfact.setText(add4);
+               // txt_nfact.setText(add4);
                affiche_enr();
            }
                     
         } catch (Exception e) {
             JOptionPane.showMessageDialog(null, "Erreur dans la table\n" + e.getMessage());
         }
-        
+        */
     }//GEN-LAST:event_Table_BanqKeyReleased
 
     private void date_finFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_date_finFocusLost
@@ -715,60 +526,61 @@ private void affiche_enr() {
   
            String dt1= lol.format(dt_deb1);
            String dt2= lol.format(dt_fin1);
-      
-        query ="select NFact, f.Nclient, c.raison_sociale, date_fact,montant_ht, timbre, TVA, montant_ht + timbre + tva, marge, banq, ncheque, nbc, nom_preneur,'F' from fact f, client c where f.nclient=c.nclient and  date_fact >= '"+dt1+"' and date_fact <= '"+dt2+"'";
-        query1 ="select NFact, f.Nclient, c.raison_sociale, date_fact,montant_ht, timbre, TVA, montant_ht + timbre + tva,  marge, banq, ncheque, nbc, nom_preneur,'BL' from bl f, client c where f.nclient=c.nclient and  date_fact >= '"+dt1+"' and date_fact <= '"+dt2+"'";
-         String sql = "truncate table fact_tmp";
+                
+        query ="select NFact, f.nfournisseur, c.nom_fournisseur, date_fact,montant_ht, timbre, TVA,montant_ht+timbre+TVA,  banque, ncheque, 'F' from fachat f, fournisseur c where f.nfournisseur=c.nfournisseur and  date_fact >= '"+dt1+"' and date_fact <= '"+dt2+"'";
+        query1 ="select NFact, f.nfournisseur, c.nom_fournisseur, date_fact,montant_ht, timbre, TVA,montant_ht+timbre+TVA,  banque, ncheque, 'BL' from bachat f, fournisseur c where f.nfournisseur=c.nfournisseur and  date_fact >= '"+dt1+"' and date_fact <= '"+dt2+"'";
+         String sql = "truncate table fact_tmp_achat";
         try {
             St.execute(sql);
-                sql="insert into fact_tmp " + query;      
-                //JOptionPane.showMessageDialog(null,sql);
+                sql="insert into fact_tmp_achat " + query;      
+              //  JOptionPane.showMessageDialog(null,sql);
                 St.execute(sql);               
-                sql="insert into fact_tmp " + query1;
-                //JOptionPane.showMessageDialog(null,sql);
+                sql="insert into fact_tmp_achat " + query1;
+               //JOptionPane.showMessageDialog(null,sql);
                 St.execute(sql);
                
         } catch (SQLException ex) {
-            Logger.getLogger(list_banq.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(list_banq1.class.getName()).log(Level.SEVERE, null, ex);
         }
-        query="select * from fact_tmp";
+        query="select * from fact_tmp_achat";
         Update_Table_Banq();
-        //calcul_recette();
+        calcul_recette();
     }//GEN-LAST:event_btn_validerActionPerformed
 
-    private void btn_recette_jourActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_recette_jourActionPerformed
+    private void btn_achat_jourActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_achat_jourActionPerformed
        
        Date dt = new Date();
        SimpleDateFormat lol = new SimpleDateFormat("yyyy-MM-dd");
        String date_jour = lol.format(dt);    
-       query ="select NFact, f.Nclient, c.raison_sociale, date_fact,montant_ht, timbre, TVA,montant_ht+timbre+TVA, marge, banq, ncheque, nbc, nom_preneur,'F' from fact f, client c where f.nclient=c.nclient and date_fact = '"+date_jour+"'";
-       query1 ="select NFact, f.Nclient, c.raison_sociale, date_fact,montant_ht, timbre, TVA,montant_ht+timbre+TVA, marge, banq, ncheque, nbc, nom_preneur,'BL' from bl f, client c where f.nclient=c.nclient and date_fact = '"+date_jour+"'";
+       query = "select NFact, f.nfournisseur, c.nom_fournisseur, date_fact,montant_ht, timbre, TVA,montant_ht+timbre+TVA,  banque, ncheque, 'F' from fachat f, fournisseur c where f.nfournisseur=c.nfournisseur and date_fact = '"+date_jour+"'";
+       query1 ="select NFact, f.nfournisseur, c.nom_fournisseur, date_fact,montant_ht, timbre, TVA,montant_ht+timbre+TVA,  banque, ncheque, 'BL' from bachat f, fournisseur c where f.nfournisseur=c.nfournisseur and date_fact = '"+date_jour+"'";
        
         
-         String sql = "truncate table fact_tmp";
+         String sql = "truncate table fact_tmp_achat";
         try {
             St.execute(sql);
-                sql="insert into fact_tmp " + query;
-                St.execute(sql);
-                
-                sql="insert into fact_tmp " + query1;
-                St.execute(sql);
-                
-       query="select nfact as Facture, nclient as Code_Client, raison_sociale, date_fact as Date ,montant_ht as HT, timbre, TVA,montant_ht+timbre+TVA, marge, banq, ncheque,  nom_preneur, type from fact_tmp";
+                sql="insert into fact_tmp_achat " + query;
+               // JOptionPane.showMessageDialog(null, "Pas d'achat pour aujourd'hui le : "+sql);
+                St.execute(sql);                  
+                sql="insert into fact_tmp_achat " + query1;                       
+               // JOptionPane.showMessageDialog(null, "Pas d'achat pour aujourd'hui le : "+sql);
+                St.execute(sql);                
+       query="select * from fact_tmp_achat";
        Rs = St.executeQuery(query);
+      ;
         if (Rs.next()) { 
         Update_Table_Banq();
-        //calcul_recette();
+        calcul_recette();
         } else {
-        JOptionPane.showMessageDialog(null, "Pas de vente pour aujourd'hui le : "+date_jour);
+        JOptionPane.showMessageDialog(null, "Pas d'achat pour aujourd'hui le : "+date_jour);
         }
         } catch (SQLException ex) {
-            Logger.getLogger(list_banq.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(list_banq1.class.getName()).log(Level.SEVERE, null, ex);
         }
         
         
                     
-    }//GEN-LAST:event_btn_recette_jourActionPerformed
+    }//GEN-LAST:event_btn_achat_jourActionPerformed
 
 private void calcul_recette() {
     tot_banq=0.00;
@@ -776,64 +588,64 @@ private void calcul_recette() {
     txt_tot_term.setText("");
     txt_tot_banq.setText("");
     txt_tot_table.setText("");
-    txt_tot_marge.setText("");
+//    txt_tot_marge.setText("");
     
     try {
         String sql = "drop table tmp_banq";
         St.execute(sql);
-        sql ="create table tmp_banq as SELECT banq, sum(montant_ht+tva+timbre) as ttc, sum(marge) as marge FROM fact_tmp group by banq";
+        sql ="create table tmp_banq as SELECT banque, sum(montant_ht+tva+timbre) as ttc FROM fact_tmp_achat group by banque";
         St.execute(sql);
-        sql="select sum(ttc) as s_tot_esp, sum(marge) as marge from tmp_banq where banq =''";
+        sql="select sum(ttc) as s_tot_esp from tmp_banq where banque =''";
         
                    Rs = St.executeQuery(sql);
                     if (Rs.next()) {
                         String add1 = Rs.getString("s_tot_esp");                        
-                        String add2 = Rs.getString("marge");                        
+                       // String add2 = Rs.getString("marge");                        
                         if (add1 != null) {                           
                         Double som_tot_esp = Double.parseDouble(add1);
                         add1 = mntFmt.mntFmt(som_tot_esp);
                         txt_tot_esp.setText(add1);
-                        Double marge = Double.parseDouble(add2);
-                        add2 = mntFmt.mntFmt(marge);
-                        txt_tot_marge.setText(add2);
+                     //   Double marge = Double.parseDouble(add2);
+                      //  add2 = mntFmt.mntFmt(marge);
+                       // txt_tot_marge.setText(add2);
                         tot_banq=tot_banq+som_tot_esp;
                         }
                     }
                     
-                sql="select sum(ttc) as s_tot_term , sum(marge) as marge from tmp_banq where banq ='TERM'";
+                sql="select sum(ttc) as s_tot_term  from tmp_banq where banque ='TERM'";
                   
                    Rs = St.executeQuery(sql);
                     if (Rs.next()) {                    
                         String add1 = Rs.getString("s_tot_term");
-                        String add2 = Rs.getString("marge");                        
+                      //  String add2 = Rs.getString("marge");                        
                         if (add1 != null) {                                                                            
                         Double som_tot_term = Double.parseDouble(add1);                          
                         add1 =mntFmt.mntFmt(som_tot_term);
                         txt_tot_term.setText(add1);
-                        Double marge = Double.parseDouble(add2);
-                        add2 = mntFmt.mntFmt(marge);
-                        txt_tot_marge.setText(add2);
+                      //  Double marge = Double.parseDouble(add2);
+                       // add2 = mntFmt.mntFmt(marge);
+                        //txt_tot_marge.setText(add2);
                         tot_banq=tot_banq+som_tot_term;
                         } 
                                               
     } 
                     
                     
-        sql="select sum(ttc) as s_tot_table , sum(marge) as marge from tmp_banq ";
+        sql="select sum(ttc) as s_tot_table  from tmp_banq ";
         
                     Rs = St.executeQuery(sql);
                     if (Rs.next()) {
                         String add1 = Rs.getString("s_tot_table");
-                        String add2 = Rs.getString("marge");                        
+                      //  String add2 = Rs.getString("marge");                        
                         if (add1 != null) {                            
                         Double som_tot_table = Double.parseDouble(add1);
                         add1 =mntFmt.mntFmt(som_tot_table);
                         txt_tot_table.setText(add1);
                         tot_banq=som_tot_table-tot_banq;
                         add1=mntFmt.mntFmt(tot_banq);
-                        Double marge = Double.parseDouble(add2);
-                        add2 = mntFmt.mntFmt(marge);
-                        txt_tot_marge.setText(add2);
+                      //  Double marge = Double.parseDouble(add2);
+                       // add2 = mntFmt.mntFmt(marge);
+                        //txt_tot_marge.setText(add2);
                         txt_tot_banq.setText(add1);
                     }
                     }
@@ -850,18 +662,18 @@ try
             {
             
           if ( txt_banque.getText().equals(""))   {
-            String sql = "truncate table fact_tmp";
+            String sql = "truncate table fact_tmp_achat";
             St.execute(sql);
-            sql="insert into fact_tmp " + query2;
+            sql="insert into fact_tmp_achat " + query2;
             //JOptionPane.showMessageDialog(null, sql);
             St.execute(sql);
-            query = "SELECT * from fact_tmp order by banq "; 
+            query = "SELECT * from fact_tmp_achat order by banque "; 
           }else {
               
-           query = "DELETE from fact_tmp where banq <> '" + txt_banque.getText() + "'";
+           query = "DELETE from fact_tmp_achat where banque <> '" + txt_banque.getText() + "'";
            //JOptionPane.showMessageDialog(null, query);
            St.execute(query);
-           query = "SELECT * from fact_tmp "; 
+           query = "SELECT * from fact_tmp_achat "; 
            Rs = St.executeQuery(query);                        
            if (Rs.next()) {
             
@@ -880,7 +692,7 @@ try
         try {   
             
             jPanel5.setVisible(true);
-            calcul_recette();
+           // calcul_recette();
             //query="select NFact, Nclient, date_fact,montant_ht, timbre, TVA, autre_taxe, banq, ncheque, nbc, nom_preneur from "+fichier_master+ condition;
             
             //JOptionPane.showMessageDialog(null, query);
@@ -897,7 +709,7 @@ try
     /**
      * @param args the command line arguments
      */ 
-  public static void list_banq(final String par, final String det, final String mas, final String bas) {
+  public static void list_banq1(final String par, final String det, final String mas, final String bas) {
   //  public static void main(String args[]) {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
@@ -912,20 +724,21 @@ try
                 }
             }
         } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(list_banq.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(list_banq1.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(list_banq.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(list_banq1.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(list_banq.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(list_banq1.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(list_banq.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(list_banq1.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
+        //</editor-fold>
         //</editor-fold>
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new list_banq(par, det, mas, bas).setVisible(true);
+                new list_banq1(par, det, mas, bas).setVisible(true);
               //  new list_banq().setVisible(true);
             }
         });
@@ -934,7 +747,7 @@ try
     private ResultSet Rs;
     private Connection cnx;
     double tot_montant_ht,tot_timbre,tot_tva,tot_autre_taxe,tot_g,tot_banq, marge;
-    public String fichier_master="fact",fichier_detail,parametre,query,query1,query2,sql,condition,list;
+    public String fichier_master="fachat",fichier_detail,parametre,query,query1,query2,sql,condition,list;
     public String cell_click,title,title1, base;
     public int nbre_enr, rang_champ_select=7, int_nfact;
     boolean sele_deselect = false;
@@ -948,9 +761,8 @@ try
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTable Table_Banq;
-    private javax.swing.JButton btn_modifier;
+    private javax.swing.JButton btn_achat_jour;
     private javax.swing.JButton btn_quitter;
-    private javax.swing.JButton btn_recette_jour;
     private javax.swing.JButton btn_selectioner;
     private javax.swing.JButton btn_valider;
     private com.toedter.calendar.JDateChooser date_debut;
@@ -959,31 +771,18 @@ try
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
     private javax.swing.JLabel jLabel12;
-    private javax.swing.JLabel jLabel13;
-    private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel4;
-    private javax.swing.JLabel jLabel5;
-    private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel jLabel9;
     private javax.swing.JPanel jPanel1;
-    private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JPanel jPanel5;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTextField txt_banque;
-    private javax.swing.JTextField txt_bnq_dest;
-    private javax.swing.JTextField txt_ncheque;
-    private javax.swing.JTextField txt_nfact;
-    private javax.swing.JTextField txt_raison_sociale;
     private javax.swing.JTextField txt_titre;
     private javax.swing.JTextField txt_tot_banq;
     private javax.swing.JTextField txt_tot_esp;
-    private javax.swing.JTextField txt_tot_fact;
-    private javax.swing.JTextField txt_tot_marge;
     private javax.swing.JTextField txt_tot_table;
     private javax.swing.JTextField txt_tot_term;
     // End of variables declaration//GEN-END:variables

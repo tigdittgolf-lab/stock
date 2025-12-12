@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="report4" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="64c422bd-4773-49c9-ad25-e167e1933e19">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<style name="table">
+		<box>
+			<pen lineWidth="1.0" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_TH" mode="Opaque" backcolor="#F0F8FF">
+		<box>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_CH" mode="Opaque" backcolor="#BFE1FF">
+		<box>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[new Boolean($V{REPORT_COUNT}.intValue()%2==0)]]></conditionExpression>
+			<style backcolor="#EFF7FF"/>
+		</conditionalStyle>
+	</style>
+	<subDataset name="New Dataset 1_1" uuid="3e87346c-a9d7-4f17-a1ec-23a8715ef1c4">
+		<queryString>
+			<![CDATA[SELECT
+     art.`designation` AS Designation,
+     fact.`NFact` AS fact_NFact,
+     fact.`Nclient` AS fact_Nclient,
+     fact.`date_fact` AS fact_date_fact,
+     fact.`montant_ht` AS fact_montant_ht,
+     fact.`timbre` AS fact_timbre,
+     fact.`TVA` AS fact_TVA,
+     fact.`autre_taxe` AS fact_autre_taxe,
+     client.`Nclient` AS client_Nclient,
+     client.`Raison_sociale` AS client_Raison_sociale,
+     client.`adresse` AS client_adresse,
+     client.`NRC` AS client_NRC,
+     client.`Date_RC` AS client_Date_RC,
+     client.`Lieu_RC` AS client_Lieu_RC,
+     client.`I_Fiscal` AS client_I_Fiscal,
+     client.`N_article` AS client_N_article,
+     detail_fact.`Narticle` AS detail_fact_Narticle,
+     detail_fact.`Qte` AS detail_fact_Qte,
+     detail_fact.`tva` AS detail_fact_tva,
+     detail_fact.`prix` AS detail_fact_prix,
+     detail_fact.`total_ligne` AS detail_fact_total_ligne
+FROM
+     `client` client INNER JOIN `fact` fact ON client.`Nclient` = fact.`Nclient`
+     INNER JOIN `detail_fact` detail_fact ON fact.`NFact` = detail_fact.`NFact`
+     INNER JOIN `article` art ON detail_fact.`Narticle` = art.`Narticle`
+where
+fact.`NFact`  ="12121"]]>
+		</queryString>
+		<field name="Designation" class="java.lang.String">
+			<fieldDescription><![CDATA[]]></fieldDescription>
+		</field>
+		<field name="fact_NFact" class="java.lang.Integer"/>
+		<field name="fact_Nclient" class="java.lang.Integer"/>
+		<field name="fact_date_fact" class="java.sql.Date"/>
+		<field name="fact_montant_ht" class="java.lang.Double"/>
+		<field name="fact_timbre" class="java.lang.Double"/>
+		<field name="fact_TVA" class="java.lang.Double"/>
+		<field name="fact_autre_taxe" class="java.lang.Double"/>
+		<field name="client_Nclient" class="java.lang.Integer"/>
+		<field name="client_Raison_sociale" class="java.lang.String"/>
+		<field name="client_adresse" class="java.lang.String"/>
+		<field name="client_NRC" class="java.lang.String"/>
+		<field name="client_Date_RC" class="java.sql.Date"/>
+		<field name="client_Lieu_RC" class="java.lang.String"/>
+		<field name="client_I_Fiscal" class="java.lang.String"/>
+		<field name="client_N_article" class="java.lang.String"/>
+		<field name="detail_fact_Narticle" class="java.lang.String"/>
+		<field name="detail_fact_Qte" class="java.lang.Integer"/>
+		<field name="detail_fact_tva" class="java.lang.Double"/>
+		<field name="detail_fact_prix" class="java.lang.Double"/>
+		<field name="detail_fact_total_ligne" class="java.lang.Double"/>
+	</subDataset>
+	<queryString>
+		<![CDATA[select 1 from dual]]>
+	</queryString>
+	<field name="1" class="java.lang.Long"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="79" splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band height="35" splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="61" splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="161" splitType="Stretch">
+			<textField>
+				<reportElement uuid="000bcb09-1f6b-434a-8a22-a7083df93ba6" x="69" y="61" width="100" height="20"/>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{field}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band height="45" splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="54" splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="42" splitType="Stretch"/>
+	</summary>
+</jasperReport>

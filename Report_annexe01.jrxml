@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="report name" pageWidth="595" pageHeight="842" columnWidth="535" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="c9d2e2b3-04be-452c-8fb5-78d7fc15c6c0">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="nom_article" class="java.lang.String">
+		<parameterDescription><![CDATA[]]></parameterDescription>
+	</parameter>
+	<parameter name="longueur" class="java.lang.String"/>
+	<parameter name="largeur" class="java.lang.String"/>
+	<parameter name="hauteur" class="java.lang.String"/>
+	<parameter name="cat_climatique" class="java.lang.String"/>
+	<parameter name="temperature" class="java.lang.String"/>
+	<parameter name="voltage" class="java.lang.String"/>
+	<parameter name="isolation_poly" class="java.lang.String"/>
+	<parameter name="parameter1_g" class="java.lang.String"/>
+	<parameter name="parameter1_d" class="java.lang.String"/>
+	<parameter name="parameter2_g" class="java.lang.String"/>
+	<parameter name="parameter2_d" class="java.lang.String"/>
+	<parameter name="parameter3_g" class="java.lang.String"/>
+	<parameter name="parameter3_d" class="java.lang.String"/>
+	<parameter name="garantie" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[select * from dual]]>
+	</queryString>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="53" splitType="Stretch">
+			<staticText>
+				<reportElement x="34" y="16" width="487" height="33" uuid="198a0411-2779-493e-a59a-92ea072bd515"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" size="24" isBold="true"/>
+				</textElement>
+				<text><![CDATA[BASMA EQUIPEMENTS]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="16" splitType="Stretch"/>
+	</pageHeader>
+	<detail>
+		<band height="601" splitType="Stretch">
+			<rectangle>
+				<reportElement x="97" y="115" width="266" height="31" uuid="8cb30c68-7944-4e73-bb63-334cb696d0bf"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="107" y="115" width="256" height="31" uuid="5e271400-6245-41c0-8e1b-5bb313835ff5"/>
+				<textElement>
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Longueur (cm)]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="363" y="115" width="81" height="31" uuid="822b2cad-dbfd-474b-be98-9b263f436b7a"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="363" y="146" width="81" height="31" uuid="cda90c60-0254-452c-99af-dffdaffafd11"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="107" y="146" width="143" height="31" uuid="bba307f6-209d-4ecf-9819-d7c41cbb7695"/>
+				<textElement>
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Longueur (cm)]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="97" y="146" width="266" height="31" uuid="7a42ca42-1f58-4bf8-b0b7-d1337eb3d374"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="363" y="177" width="81" height="31" uuid="b903118f-19c5-4d8c-89d7-889cffbfb9f7"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="107" y="177" width="143" height="31" uuid="673726c4-772f-46a3-991c-3e9e7a0f4f23"/>
+				<textElement>
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Longueur (cm)]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="97" y="177" width="266" height="31" uuid="6cb64d70-7b00-4eb3-b302-dda8be9c1958"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="363" y="208" width="81" height="31" uuid="83e2b524-51bd-4419-9580-1c06fce0e9e8"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="107" y="208" width="143" height="31" uuid="ca2019b0-a617-4e33-a71a-44d65378d0d4"/>
+				<textElement>
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Longueur (cm)]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="97" y="208" width="266" height="31" uuid="5245dea4-0c07-4591-8011-3cd9666d1911"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="363" y="239" width="81" height="31" uuid="d8a568cf-ba25-4be9-8bb2-ec8c51725e31"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="107" y="239" width="143" height="31" uuid="e382bfef-b1f1-46dc-911e-6bfed3625a8f"/>
+				<textElement>
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Longueur (cm)]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="97" y="239" width="266" height="31" uuid="cb07780b-82c6-4e5f-8e84-8d7b227e9b62"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="363" y="270" width="81" height="31" uuid="1c2403fb-a4c6-4d26-97d3-ca492bd14487"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="107" y="270" width="143" height="31" uuid="a7ee564d-3aae-47d3-a066-27639fc01217"/>
+				<textElement>
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Longueur (cm)]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="97" y="270" width="266" height="31" uuid="3fdee63b-a857-436d-aae6-d6721a6ac4f1"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="363" y="301" width="81" height="31" uuid="a3466e2f-fe9f-4b33-9e8d-c45dd738d072"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="107" y="301" width="143" height="31" uuid="5ab3c6e6-d202-4ac0-8b18-6e882545e21d"/>
+				<textElement>
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Longueur (cm)]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="97" y="301" width="266" height="31" uuid="f075bf54-3a9e-4716-8a1d-74637fe4e01d"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="107" y="146" width="256" height="31" uuid="8967c9a0-81c0-4af9-9dc6-46e9e8e360ba"/>
+				<textElement>
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Largeur (cm)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="107" y="208" width="217" height="31" uuid="2aba5e76-b94b-4cc6-922d-8d5500361b84"/>
+				<textElement>
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Catégorie climatique]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="107" y="177" width="256" height="31" uuid="ddab0dc9-3d65-4303-b7eb-7026a38b3014"/>
+				<textElement>
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Hauteur (cm)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="107" y="239" width="217" height="31" uuid="75cf311d-c7fd-4429-8f34-f6cc5430e513"/>
+				<textElement>
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Température (C°)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="107" y="270" width="217" height="31" uuid="aceff5a6-d843-4396-9f5c-a71faabb8b1c"/>
+				<textElement>
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Voltage (V°)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="107" y="301" width="217" height="31" uuid="5e6cff4e-40b0-4a1b-a06b-27e701374c30"/>
+				<textElement>
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Isolation polyuréthane]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="185" y="384" width="217" height="31" uuid="6cb4fc82-4651-4ccf-80e6-1f39d721cb26"/>
+				<textElement textAlignment="Center">
+					<font size="18" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Prix en TTC]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="107" y="476" width="91" height="31" uuid="960168b3-c3e3-4b6f-8806-4b7b4b7d016b"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="107" y="445" width="91" height="31" uuid="87844aa8-2c00-417f-b519-535e56b0329d"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="198" y="476" width="256" height="31" uuid="a82f822b-6716-4896-bd05-37eb2329c5d1"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="198" y="445" width="256" height="31" uuid="88dcd1cb-56b9-4c2c-a204-7fee18cb48a8"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="198" y="414" width="256" height="31" uuid="8755cc28-ffbc-45cb-b7a1-92c32755514a"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="107" y="414" width="91" height="31" uuid="e1e0ba81-d0c1-4ce7-b769-a3728d2138b6"/>
+			</rectangle>
+			<textField>
+				<reportElement x="363" y="115" width="81" height="31" uuid="8a89b3ff-f183-4ed0-8c81-ab6e936ae9db"/>
+				<textElement textAlignment="Center">
+					<font size="18" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{longueur}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="363" y="146" width="81" height="31" uuid="b80d4b07-1100-4632-8bec-acbaeb2a70ec"/>
+				<textElement textAlignment="Center">
+					<font size="18" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{largeur}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="363" y="177" width="81" height="31" uuid="17338c3c-2257-4706-be2b-1e35a41dc454"/>
+				<textElement textAlignment="Center">
+					<font size="18" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{hauteur}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="363" y="208" width="81" height="31" uuid="27c49e02-6be9-4af8-b52c-90d4990b0a62"/>
+				<textElement textAlignment="Center">
+					<font size="18" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{cat_climatique}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="363" y="239" width="81" height="31" uuid="e81fdf24-d42c-41fb-a399-87f4d404a54f"/>
+				<textElement textAlignment="Center">
+					<font size="18" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{temperature}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="363" y="270" width="81" height="31" uuid="982a7f3d-a5d4-4516-b012-2365c360c62a"/>
+				<textElement textAlignment="Center">
+					<font size="18" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{voltage}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="363" y="301" width="81" height="31" uuid="37b33794-a9b3-433f-996b-77abee5b738a"/>
+				<textElement textAlignment="Center">
+					<font size="18" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{isolation_poly}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="117" y="415" width="81" height="30" uuid="6c296b9f-8cb4-44fe-9e8f-06305679d866"/>
+				<textElement>
+					<font size="18" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{parameter1_g}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="198" y="415" width="238" height="30" uuid="dedcd63a-e7e0-4f94-be3f-a719c2f8242c"/>
+				<textElement textAlignment="Right">
+					<font size="18" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{parameter1_d}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="117" y="445" width="81" height="31" uuid="97358bc0-62ef-495f-9542-e90f361b60ea"/>
+				<textElement>
+					<font size="18" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{parameter2_g}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="198" y="445" width="238" height="31" uuid="7952cf79-75d1-4f07-ad2f-93813c804b4a"/>
+				<textElement textAlignment="Right">
+					<font size="18" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{parameter2_d}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="117" y="476" width="81" height="31" uuid="07023ab5-7cc5-4b37-a67d-ee86c2f607b3"/>
+				<textElement>
+					<font size="18" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{parameter3_g}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="198" y="476" width="238" height="31" uuid="58516245-505e-4906-845d-c6b1cd5d7370"/>
+				<textElement textAlignment="Right">
+					<font size="18" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{parameter3_d}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="34" y="55" width="487" height="35" uuid="7a47bd75-efa6-4f21-9c6f-59bb653eaf08"/>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" size="22" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{nom_article}]]></textFieldExpression>
+			</textField>
+			<textField pattern="">
+				<reportElement mode="Opaque" x="196" y="548" width="325" height="42" forecolor="#FFFFFF" backcolor="#000000" uuid="3ef59eae-6313-43e5-b62d-96b6462bdb02"/>
+				<textElement textAlignment="Center">
+					<font size="24" isBold="true" isItalic="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{garantie}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

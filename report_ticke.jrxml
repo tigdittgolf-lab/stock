@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="report_ticke" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="4ae48b21-ccbb-40fe-a127-ad68775c3ef6">
+	<queryString language="SQL">
+		<![CDATA[SELECT
+     bl.`NFact` AS bl_NFact,
+     bl.`Nclient` AS bl_Nclient,
+     bl.`date_fact` AS bl_date_fact,
+     bl.`montant_ht` AS bl_montant_ht,
+     bl.`timbre` AS bl_timbre,
+     bl.`TVA` AS bl_TVA,
+     bl.`autre_taxe` AS bl_autre_taxe,
+     detail_bl.`Narticle` AS detail_bl_Narticle,
+     detail_bl.`Qte` AS detail_bl_Qte,
+     detail_bl.`tva` AS detail_bl_tva,
+     detail_bl.`pr_achat` AS detail_bl_pr_achat,
+     detail_bl.`prix` AS detail_bl_prix,
+     detail_bl.`total_ligne` AS detail_bl_total_ligne,
+     client.`Raison_sociale` AS client_Raison_sociale
+FROM
+     `detail_bl` detail_bl INNER JOIN `bl` bl ON detail_bl.`NFact` = bl.`NFact`
+     INNER JOIN `client` client ON bl.`Nclient` = client.`Nclient`
+WHERE
+     bl.`Nfact` = null]]>
+	</queryString>
+	<field name="bl_NFact" class="java.lang.Integer"/>
+	<field name="bl_Nclient" class="java.lang.String"/>
+	<field name="bl_date_fact" class="java.sql.Date"/>
+	<field name="bl_montant_ht" class="java.lang.Double"/>
+	<field name="bl_timbre" class="java.lang.Double"/>
+	<field name="bl_TVA" class="java.lang.Double"/>
+	<field name="bl_autre_taxe" class="java.lang.Double"/>
+	<field name="detail_bl_Narticle" class="java.lang.String"/>
+	<field name="detail_bl_Qte" class="java.lang.Integer"/>
+	<field name="detail_bl_tva" class="java.lang.Double"/>
+	<field name="detail_bl_pr_achat" class="java.lang.Double"/>
+	<field name="detail_bl_prix" class="java.lang.Double"/>
+	<field name="detail_bl_total_ligne" class="java.lang.Double"/>
+	<field name="client_Raison_sociale" class="java.lang.String"/>
+	<group name="bl_NFact">
+		<groupExpression><![CDATA[$F{bl_NFact}]]></groupExpression>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="79" splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band height="35" splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="61" splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="125" splitType="Stretch"/>
+	</detail>
+	<columnFooter>
+		<band height="45" splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="54" splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="42" splitType="Stretch"/>
+	</summary>
+</jasperReport>

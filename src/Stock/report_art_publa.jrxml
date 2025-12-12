@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="report_art_publ" language="groovy" pageWidth="101" pageHeight="127" columnWidth="101" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="2668de1d-7b44-42dc-836a-77d971c7a904">
+	<property name="ireport.zoom" value="3.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<queryString>
+		<![CDATA[SELECT
+     Narticle,
+     prix_vente,
+     tva
+FROM
+     article]]>
+	</queryString>
+	<field name="Narticle" class="java.lang.String">
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="prix_vente" class="java.lang.Double">
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="tva" class="java.lang.Double">
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<pageHeader>
+		<band height="1" splitType="Stretch"/>
+	</pageHeader>
+	<detail>
+		<band height="126" splitType="Stretch">
+			<elementGroup>
+				<textField pattern="#,##0.00">
+					<reportElement x="1" y="31" width="82" height="20" uuid="2ac2dee9-60a8-4661-ae60-a2ca5c6c8630"/>
+					<textElement textAlignment="Right">
+						<font size="11" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{prix_vente}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="1" y="11" width="17" height="20" uuid="ebde12a2-adb3-4dc4-88bd-7a23383e3e2d"/>
+					<text><![CDATA[C/]]></text>
+				</staticText>
+				<textField>
+					<reportElement x="18" y="11" width="65" height="20" uuid="0dad0533-6625-40f5-8974-594117b3f30c"/>
+					<textElement textAlignment="Center">
+						<font size="11" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{Narticle}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#,##0.00">
+					<reportElement x="1" y="51" width="82" height="20" uuid="94da4a78-0740-44b4-87dc-4024585f3839"/>
+					<textElement textAlignment="Right">
+						<font size="11" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{prix_vente}+$F{prix_vente}*$F{tva}/100]]></textFieldExpression>
+				</textField>
+			</elementGroup>
+			<componentElement>
+				<reportElement x="18" y="82" width="65" height="22" uuid="6a8e9443-b273-41f9-ad64-1a9d6a9cd540"/>
+				<jr:barbecue xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd" type="Code39 (Extended)" drawText="false" checksumRequired="false">
+					<jr:codeExpression><![CDATA[$F{Narticle}]]></jr:codeExpression>
+				</jr:barbecue>
+			</componentElement>
+		</band>
+	</detail>
+</jasperReport>

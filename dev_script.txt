@@ -1,0 +1,589 @@
+-- phpMyAdmin SQL Dump
+-- version 4.0.4
+-- http://www.phpmyadmin.net
+--
+-- Client: localhost
+-- Généré le: Ven 10 Janvier 2014 à 11:14
+-- Version du serveur: 5.6.12-log
+-- Version de PHP: 5.4.16
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8 */;
+
+--
+-- Base de données: `dev`
+--
+CREATE DATABASE IF NOT EXISTS `dev` DEFAULT CHARACTER SET latin1 COLLATE latin1_swedish_ci;
+USE `dev`;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `activite`
+--
+
+CREATE TABLE IF NOT EXISTS `activite` (
+  `domaine_activite` varchar(50) DEFAULT NULL,
+  `sous_domaine` varchar(50) DEFAULT NULL,
+  `raison_sociale` varchar(50) NOT NULL,
+  `adresse` varchar(60) NOT NULL,
+  `commune` varchar(30) DEFAULT NULL,
+  `wilaya` varchar(30) NOT NULL,
+  `tel_fixe` varchar(30) NOT NULL,
+  `tel_port` varchar(30) DEFAULT NULL,
+  `nrc` varchar(20) NOT NULL,
+  `nis` varchar(30) NOT NULL,
+  `nart` varchar(20) NOT NULL,
+  `ident_fiscal` varchar(30) NOT NULL,
+  `banq` varchar(40) NOT NULL,
+  PRIMARY KEY (`nrc`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `article`
+--
+
+CREATE TABLE IF NOT EXISTS `article` (
+  `Narticle` varchar(10) NOT NULL,
+  `famille` varchar(20) NOT NULL,
+  `designation` varchar(80) NOT NULL,
+  `Nfournisseur` varchar(10) NOT NULL,
+  `prix_unitaire` double(12,2) NOT NULL,
+  `marge` int(11) NOT NULL,
+  `tva` double(12,2) NOT NULL,
+  `prix_vente` double(12,2) NOT NULL,
+  `seuil` int(11) NOT NULL,
+  `stock_f` int(11) DEFAULT NULL,
+  `stock_bl` int(11) DEFAULT NULL,
+  PRIMARY KEY (`Narticle`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `bachat`
+--
+
+CREATE TABLE IF NOT EXISTS `bachat` (
+  `nfact` varchar(20) NOT NULL,
+  `date_fact` date NOT NULL,
+  `nfournisseur` varchar(10) NOT NULL,
+  `montant_ht` double(12,2) NOT NULL,
+  `ncheque` varchar(20) NOT NULL,
+  `banque` varchar(20) NOT NULL,
+  `tva` double(12,2) NOT NULL,
+  `timbre` double(12,2) NOT NULL,
+  `autre_taxe` double(12,2) NOT NULL,
+  PRIMARY KEY (`nfact`,`nfournisseur`),
+  KEY `nfournisseur` (`nfournisseur`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `bachat_detail`
+--
+
+CREATE TABLE IF NOT EXISTS `bachat_detail` (
+  `NFact` varchar(20) NOT NULL,
+  `nfournisseur` varchar(20) NOT NULL,
+  `Narticle` varchar(10) NOT NULL,
+  `Qte` int(11) NOT NULL,
+  `tva` double(12,2) DEFAULT NULL,
+  `prix` double(12,2) NOT NULL,
+  `total_ligne` double(12,2) NOT NULL,
+  PRIMARY KEY (`NFact`,`nfournisseur`,`Narticle`),
+  KEY `Narticle` (`Narticle`),
+  KEY `fachat_detail_idx1` (`NFact`,`nfournisseur`),
+  KEY `nfournisseur` (`nfournisseur`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `bl`
+--
+
+CREATE TABLE IF NOT EXISTS `bl` (
+  `NFact` int(11) NOT NULL,
+  `Nclient` varchar(10) NOT NULL,
+  `date_fact` date NOT NULL,
+  `montant_ht` double(12,2) NOT NULL,
+  `timbre` double(12,2) NOT NULL,
+  `TVA` double(12,2) NOT NULL,
+  `autre_taxe` double(12,2) NOT NULL,
+  `facturer` tinyint(1) DEFAULT '0',
+  `banq` varchar(10) DEFAULT NULL,
+  `ncheque` varchar(20) DEFAULT NULL,
+  `NBC` varchar(12) DEFAULT NULL,
+  `date_bc` date DEFAULT NULL,
+  `nom_preneur` varchar(30) DEFAULT NULL,
+  KEY `bl_ibfk_2` (`Nclient`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `client`
+--
+
+CREATE TABLE IF NOT EXISTS `client` (
+  `Nclient` varchar(10) NOT NULL,
+  `Raison_sociale` varchar(30) DEFAULT NULL,
+  `adresse` varchar(90) DEFAULT NULL,
+  `contact_person` varchar(30) DEFAULT NULL,
+  `C_affaire_fact` double(12,2) DEFAULT NULL,
+  `C_affaire_bl` double(12,2) DEFAULT NULL,
+  `NRC` varchar(20) DEFAULT NULL,
+  `Date_RC` date DEFAULT NULL,
+  `Lieu_RC` varchar(20) DEFAULT NULL,
+  `I_Fiscal` varchar(20) DEFAULT NULL,
+  `N_article` varchar(20) DEFAULT NULL,
+  `Tel` varchar(12) DEFAULT NULL,
+  `email` varchar(60) DEFAULT NULL,
+  `Commentaire` varchar(150) DEFAULT NULL,
+  PRIMARY KEY (`Nclient`),
+  KEY `ncli_raison` (`Nclient`,`Raison_sociale`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `detail_bl`
+--
+
+CREATE TABLE IF NOT EXISTS `detail_bl` (
+  `NFact` int(11) NOT NULL,
+  `Narticle` varchar(10) NOT NULL,
+  `Qte` int(11) NOT NULL,
+  `tva` double(12,2) DEFAULT NULL,
+  `prix` double(12,2) NOT NULL,
+  `total_ligne` double(12,2) NOT NULL,
+  `facturer` tinyint(1) DEFAULT NULL,
+  PRIMARY KEY (`NFact`,`Narticle`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `detail_fact`
+--
+
+CREATE TABLE IF NOT EXISTS `detail_fact` (
+  `NFact` int(11) NOT NULL,
+  `Narticle` varchar(10) NOT NULL,
+  `Qte` int(11) NOT NULL,
+  `tva` double(12,2) DEFAULT NULL,
+  `prix` double(12,2) NOT NULL,
+  `total_ligne` double(12,2) NOT NULL,
+  PRIMARY KEY (`NFact`,`Narticle`),
+  KEY `NFact` (`NFact`),
+  KEY `Narcticle` (`Narticle`),
+  KEY `Narcticle_2` (`Narticle`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+SELECT nfactv, codart, sum( qtevbl ) , pv * sum( qtevbl ) , tva
+FROM `tmp_detail_bl`
+WHERE nfactv = '43'
+GROUP BY nfactv, codart
+LIMIT 0 , 30
+-- 1062 - Duplicate entry '43-1913' for key 'PRIMARY'
+-- Structure de la table `detail_fprof`
+--
+
+CREATE TABLE IF NOT EXISTS `detail_fprof` (
+  `NFact` int(11) NOT NULL,
+  `Narticle` varchar(10) NOT NULL,
+  `Qte` int(11) NOT NULL,
+  `tva` double(12,2) DEFAULT NULL,
+  `prix` double(12,2) NOT NULL,
+  `total_ligne` double(12,2) NOT NULL,
+  PRIMARY KEY (`NFact`,`Narticle`),
+  KEY `NFact` (`NFact`),
+  KEY `Narcticle` (`Narticle`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `fachat`
+--
+
+CREATE TABLE IF NOT EXISTS `fachat` (
+  `nfact` varchar(20) NOT NULL,
+  `date_fact` date NOT NULL,
+  `nfournisseur` varchar(10) NOT NULL,
+  `montant_ht` double(12,2) NOT NULL,
+  `ncheque` varchar(20) DEFAULT NULL,
+  `banque` varchar(20) DEFAULT NULL,
+  `tva` double(12,2) NOT NULL,
+  `timbre` double(12,2) NOT NULL,
+  `autre_taxe` double(12,2) NOT NULL,
+  PRIMARY KEY (`nfact`,`nfournisseur`),
+  UNIQUE KEY `fachat_u_idx` (`nfact`,`nfournisseur`),
+  KEY `nfournisseur` (`nfournisseur`),
+  KEY `nfact_idx` (`nfact`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `fachat_detail`
+--
+
+CREATE TABLE IF NOT EXISTS `fachat_detail` (
+  `NFact` varchar(20) NOT NULL,
+  `nfournisseur` varchar(20) NOT NULL,
+  `Narticle` varchar(10) NOT NULL,
+  `Qte` int(11) NOT NULL,
+  `tva` double(12,2) DEFAULT NULL,
+  `prix` double(12,2) NOT NULL,
+  `total_ligne` double(12,2) NOT NULL,
+  PRIMARY KEY (`NFact`,`nfournisseur`,`Narticle`),
+  KEY `Narticle` (`Narticle`),
+  KEY `fachat_detail_idx1` (`NFact`,`nfournisseur`),
+  KEY `nfournisseur` (`nfournisseur`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `fact`
+--
+
+CREATE TABLE IF NOT EXISTS `fact` (
+  `NFact` int(11) NOT NULL,
+  `Nclient` varchar(10) NOT NULL,
+  `date_fact` date NOT NULL,
+  `montant_ht` double(12,2) NOT NULL,
+  `timbre` double(12,2) NOT NULL,
+  `TVA` double(12,2) NOT NULL,
+  `autre_taxe` double(12,2) NOT NULL,
+  `banq` varchar(10) DEFAULT NULL,
+  `ncheque` varchar(20) DEFAULT NULL,
+  `nbc` varchar(12) DEFAULT NULL,
+  `date_bc` date DEFAULT NULL,
+  `nom_preneur` varchar(30) DEFAULT NULL,
+  PRIMARY KEY (`NFact`),
+  KEY `fact_ibfk_2` (`Nclient`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `facture`
+--
+
+CREATE TABLE IF NOT EXISTS `facture` (
+  `id` mediumint(9) NOT NULL AUTO_INCREMENT,
+  `NFact` int(11) NOT NULL,
+  `Narticle` varchar(10) NOT NULL,
+  `Qte` int(11) NOT NULL,
+  `tva` double(12,2) DEFAULT NULL,
+  `prix` double(12,2) NOT NULL,
+  `total_ligne` double(12,2) NOT NULL,
+  `type_fact` varchar(10) DEFAULT NULL,
+  UNIQUE KEY `id` (`id`),
+  KEY `Narticle` (`Narticle`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `facture_a`
+--
+
+CREATE TABLE IF NOT EXISTS `facture_a` (
+  `id` tinyint(4) NOT NULL AUTO_INCREMENT,
+  `NFact` varchar(20) NOT NULL,
+  `nfournisseur` varchar(20) NOT NULL,
+  `Narticle` varchar(10) NOT NULL,
+  `Qte` int(11) NOT NULL,
+  `tva` double(12,2) DEFAULT NULL,
+  `prix` double(12,2) NOT NULL,
+  `total_ligne` double(12,2) NOT NULL,
+  `type_fact` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=6 ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `facture_model`
+--
+
+CREATE TABLE IF NOT EXISTS `facture_model` (
+  `id` mediumint(9) NOT NULL AUTO_INCREMENT,
+  `NFact` int(11) NOT NULL,
+  `Narticle` varchar(10) NOT NULL,
+  `Qte` int(11) NOT NULL,
+  `prix` double NOT NULL,
+  `total_ligne` double NOT NULL,
+  UNIQUE KEY `facture_model_idx` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `facture_temp`
+--
+
+CREATE TABLE IF NOT EXISTS `facture_temp` (
+  `id` mediumint(9) NOT NULL AUTO_INCREMENT,
+  `NFact` int(11) NOT NULL,
+  `Narticle` varchar(10) NOT NULL,
+  `Qte` int(11) NOT NULL,
+  `tva` double(12,2) DEFAULT NULL,
+  `prix` double(12,2) NOT NULL,
+  `total_ligne` double(12,2) NOT NULL,
+  `type_fact` varchar(10) DEFAULT NULL,
+  UNIQUE KEY `id` (`id`),
+  KEY `Narticle` (`Narticle`)
+) ENGINE=InnoDB  DEFAULT CHARSET=latin1 AUTO_INCREMENT=2 ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `famille_art`
+--
+
+CREATE TABLE IF NOT EXISTS `famille_art` (
+  `famille` varchar(20) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `fournisseur`
+--
+
+CREATE TABLE IF NOT EXISTS `fournisseur` (
+  `Nfournisseur` varchar(10) NOT NULL,
+  `Nom_fournisseur` varchar(30) NOT NULL,
+  `Resp_fournisseur` varchar(30) NOT NULL,
+  `Adresse_fourni` varchar(50) NOT NULL,
+  `Tel` varchar(11) NOT NULL,
+  `tel1` varchar(20) DEFAULT NULL,
+  `tel2` varchar(20) DEFAULT NULL,
+  `CAF` double DEFAULT NULL,
+  `CABL` double DEFAULT NULL,
+  `EMAIL` varchar(30) DEFAULT NULL,
+  `commentaire` varchar(200) DEFAULT NULL,
+  PRIMARY KEY (`Nfournisseur`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COMMENT='EMAIL';
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `fprof`
+--
+
+CREATE TABLE IF NOT EXISTS `fprof` (
+  `NFact` int(11) NOT NULL,
+  `Nclient` varchar(10) NOT NULL,
+  `date_fact` date NOT NULL,
+  `montant_ht` double NOT NULL,
+  `timbre` double NOT NULL,
+  `TVA` double NOT NULL,
+  `autre_taxe` double NOT NULL,
+  `banq` varchar(10) DEFAULT NULL,
+  `ncheque` varchar(20) DEFAULT NULL,
+  `nbc` varchar(12) DEFAULT NULL,
+  `date_bc` date DEFAULT NULL,
+  `nom_preneur` varchar(30) DEFAULT NULL,
+  PRIMARY KEY (`NFact`),
+  KEY `fact_ibfk_2` (`Nclient`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- --------------------------------------------------------
+
+--
+
+-- --------------------------------------------------------
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `user_info`
+--
+
+CREATE TABLE IF NOT EXISTS `user_info` (
+  `username` varchar(30) NOT NULL,
+  `pass_word` varchar(30) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+--
+-- Contraintes pour les tables exportées
+--
+
+--
+-- Contraintes pour la table `bachat_detail`
+--
+ALTER TABLE `bachat_detail`
+  ADD CONSTRAINT `bachat_detail_ibfk_1` FOREIGN KEY (`nfournisseur`) REFERENCES `fournisseur` (`Nfournisseur`),
+  ADD CONSTRAINT `bachat_detail_ibfk_2` FOREIGN KEY (`Narticle`) REFERENCES `article` (`Narticle`),
+  ADD CONSTRAINT `bachat_detail_ibfk_3` FOREIGN KEY (`NFact`, `nfournisseur`) REFERENCES `bachat` (`nfact`, `nfournisseur`);
+
+--
+-- Contraintes pour la table `bl`
+--
+ALTER TABLE `bl`
+  ADD CONSTRAINT `bl_ibfk_2` FOREIGN KEY (`Nclient`) REFERENCES `client` (`Nclient`);
+
+--
+-- Contraintes pour la table `detail_fact`
+--
+ALTER TABLE `detail_fact`
+  ADD CONSTRAINT `detail_fact_ibfk_2` FOREIGN KEY (`Narticle`) REFERENCES `article` (`Narticle`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `detail_fact_ibfk_3` FOREIGN KEY (`NFact`) REFERENCES `fact` (`NFact`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `detail_fprof`
+--
+ALTER TABLE `detail_fprof`
+  ADD CONSTRAINT `detail_fprof_ibfk_2` FOREIGN KEY (`Narticle`) REFERENCES `article` (`Narticle`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `detail_fprof_ibfk_3` FOREIGN KEY (`NFact`) REFERENCES `fprof` (`NFact`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `fachat`
+--
+ALTER TABLE `fachat`
+  ADD CONSTRAINT `fachat_ibfk_1` FOREIGN KEY (`nfournisseur`) REFERENCES `fournisseur` (`Nfournisseur`);
+
+--
+-- Contraintes pour la table `fachat_detail`
+--
+ALTER TABLE `fachat_detail`
+  ADD CONSTRAINT `fachat_detail_ibfk_1` FOREIGN KEY (`nfournisseur`) REFERENCES `fournisseur` (`Nfournisseur`),
+  ADD CONSTRAINT `fachat_detail_ibfk_2` FOREIGN KEY (`Narticle`) REFERENCES `article` (`Narticle`),
+  ADD CONSTRAINT `fachat_detail_ibfk_3` FOREIGN KEY (`NFact`, `nfournisseur`) REFERENCES `fachat` (`nfact`, `nfournisseur`);
+
+--
+-- Contraintes pour la table `fact`
+--
+ALTER TABLE `fact`
+  ADD CONSTRAINT `fact_ibfk_2` FOREIGN KEY (`Nclient`) REFERENCES `client` (`Nclient`);
+
+--
+-- Contraintes pour la table `fprof`
+--
+ALTER TABLE `fprof`
+  ADD CONSTRAINT `fprof_ibfk_2` FOREIGN KEY (`Nclient`) REFERENCES `client` (`Nclient`);
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+insert into `article` (`Narticle`,`famille`,`designation`,`Nfournisseur`,`prix_unitaire`,`marge`,`tva`,
+  `prix_vente`,`seuil`,`stock_f`,`stock_bl`) 
+SELECT codart,famille,desig,fourni,pa,marge,tva,pv,seuil,stod,stodb FROM `tmp_article`  
+
+
+//////////////////////////////////////////////////////////////
+
+INSERT INTO `client` ( `Nclient` , `Raison_sociale` , `adresse` , `contact_person` , `C_affaire_fact` , `C_affaire_bl` , `NRC` , `Date_RC` , `Lieu_RC` , `I_Fiscal` , `N_article` , `Tel` , `email` , `Commentaire` )
+SELECT codcli, ncli, adr, ncli, caf, cabl, nrc, datrc, lieurc, ident, nart, tel, "", obser
+FROM `tmp_client`  
+/////////////////////////////////////////////////////////////
+
+insert into `fact` (
+  `NFact` ,
+  `Nclient` ,
+  `date_fact` ,
+  `montant_ht` ,
+  `timbre` ,
+  `TVA` ,
+  `autre_taxe` ,
+  `banq` ,
+  `ncheque` ,
+  `nbc` ,
+  `date_bc` ,
+  `nom_preneur` ) select nfact,codcli,datef,toimtg,totm20,totm10,totm30, nbnq,ncheq,nbc,datbc,nom_pre from `tmp_fact` where typfac='0'
+
+//////////////////////////////////////////////////////////////
+
+insert into `bl` (
+  `NFact` ,
+  `Nclient` ,
+  `date_fact` ,
+  `montant_ht` ,
+  `timbre` ,
+  `TVA` ,
+  `autre_taxe` ,
+  `banq` ,
+  `ncheque` ,
+  `nbc` ,
+  `date_bc` ,
+  `nom_preneur` ) select nfact,codcli,datef,toimtg,totm20,totm10,totm30, nbnq,ncheq,nbc,datbc,nom_pre from `tmp_fact` where typfac='1'
+
+
+//////////////////////////////////////////////////////////////
+insert into detail_fact (
+  `NFact`,
+  `Narticle`,
+  `Qte`,
+  `tva`,
+  `prix` ,
+  `total_ligne`) SELECT nfactv, codart, sum( qtevf ) , tva, pv, pv * sum( qtevf )
+FROM `tmp_fvente`
+WHERE typfac = '0'
+GROUP BY nfactv, codart
+
+/////////////////////////////////////////////////////////////
+
+insert into detail_bl (
+  `NFact`,
+  `Narticle`,
+  `Qte`,
+  `tva`,
+  `prix` ,
+  `total_ligne`) SELECT nfactv, codart, sum( qtevbl ) , tva, pv, pv * sum( qtevbl )
+FROM `tmp_fvente`
+WHERE typfac = '1'
+GROUP BY nfactv, codart
+//////////////////////////////////////////////////////////////
+insert into `fprof` (
+  `NFact` ,
+  `Nclient` ,
+  `date_fact` ,
+  `montant_ht` ,
+  `timbre` ,
+  `TVA` ,
+  `autre_taxe` ,
+  `banq` ,
+  `ncheque` ,
+  `nbc` ,
+  `date_bc` ,
+  `nom_preneur` ) select nfact,codcli,datef,toimtg,totm20,totm10,totm30, nbnq,ncheq,nbc,datbc,nom_pre from `tmp_fprof` 
+//////////////////////////////////////////////////////////////
+insert into detail_fprof (
+  `NFact`,
+  `Narticle`,
+  `Qte`,
+  `tva`,
+  `prix` ,
+  `total_ligne`) SELECT nfactv, codart, sum( qtevbl ) , tva, pv, pv * sum( qtevbl )
+FROM `tmp_prof`
+GROUP BY nfactv, codart
+
+
+
+
+
+//////////////////////////////////////////////////////////////
+insert into `fournisseur` (`Nfournisseur`,`Nom_fournisseur`,`Resp_fournisseur`,`Adresse_fourni`,`Tel`,`tel1`,`tel2`,`CAF`,`CABL`,`EMAIL`,`commentaire`) SELECT nfourni,nresp,nfourni,adref,ntel,ntel,ntel,caf,cabl,"",commen FROM tmp_fourni
+
+
+////////////////////////////////////////////////////////////
+
