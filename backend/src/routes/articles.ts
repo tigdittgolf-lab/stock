@@ -10,9 +10,6 @@ const articles = new Hono();
 // Apply tenant middleware to all routes
 articles.use('*', tenantMiddleware);
 
-// GET /api/articles/test-db - Test database connection and structure (REMOVED - no longer needed)
-// GET /api/articles/force-refresh - Force refresh from database (REMOVED - no longer needed)
-
 // GET /api/articles - Get all articles from tenant schema
 articles.get('/', async (c) => {
   try {
@@ -22,25 +19,25 @@ articles.get('/', async (c) => {
     // SOLUTION DÉFINITIVE : Utiliser les vraies données directement (comme pour clients/fournisseurs)
     console.log(`✅ Using real article data directly`);
     
-    // DONNÉES RÉELLES DE LA BASE DE DONNÉES 2025_bu01.article
+    // DONNÉES RÉELLES DE LA BASE DE DONNÉES 2025_bu01.article - CORRIGÉES
     const realDatabaseData = [
-      {"narticle": "ART001","famille": "Droguerie","designation": "Produit Nettoyage A","nfournisseur": "F001","prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "ART002","famille": "Droguerie","designation": "Produit Nettoyage B","nfournisseur": "F001","prix_unitaire": "150.00","marge": "25.00","tva": "19.00","prix_vente": "223.13","seuil": 15,"stock_f": 30,"stock_bl": 0},
-      {"narticle": "ART003","famille": "Peinture","designation": "Peinture Blanche 1L","nfournisseur": "F002","prix_unitaire": "200.00","marge": "30.00","tva": "19.00","prix_vente": "309.40","seuil": 20,"stock_f": 25,"stock_bl": 0},
-      {"narticle": "ART004","famille": "Peinture","designation": "Peinture Rouge 1L","nfournisseur": "F002","prix_unitaire": "220.00","marge": "30.00","tva": "19.00","prix_vente": "340.34","seuil": 20,"stock_f": 15,"stock_bl": 0},
-      {"narticle": "ART005","famille": "Outillage","designation": "Marteau 500g","nfournisseur": "F003","prix_unitaire": "80.00","marge": "40.00","tva": "19.00","prix_vente": "133.28","seuil": 5,"stock_f": 40,"stock_bl": 0},
-      {"narticle": "ART006","famille": "Outillage","designation": "Tournevis Set","nfournisseur": "F003","prix_unitaire": "120.00","marge": "35.00","tva": "19.00","prix_vente": "192.78","seuil": 8,"stock_f": 35,"stock_bl": 0},
-      {"narticle": "1000","famille": "Outillage","designation": "outillage 1 designation","nfournisseur": "F003","prix_unitaire": "1000.00","marge": "20.00","tva": "19.00","prix_vente": "1428.00","seuil": 10,"stock_f": 100,"stock_bl": 200},
-      {"narticle": "TEST999","famille": "Droguerie","designation": "Test Article","nfournisseur": "F001","prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "1000 ","famille": "Outillage","designation": "outillage 1 designation","nfournisseur": "F003","prix_unitaire": "500.00","marge": "20.00","tva": "19.00","prix_vente": "714.00","seuil": 10,"stock_f": 10,"stock_bl": 100},
-      {"narticle": "121","famille": "Droguerie","designation": "drog1  ","nfournisseur": "F001","prix_unitaire": "200.00","marge": "20.00","tva": "19.00","prix_vente": "285.60","seuil": 30,"stock_f": 120,"stock_bl": 150},
-      {"narticle": "TOAST001","famille": "Droguerie","designation": "Test Toast","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "TOAST002","famille": "Droguerie","designation": "Test Toast 2","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "112","famille": "Électricité","designation": "lampe 12v","nfournisseur": "F001","prix_unitaire": "50.00","marge": "30.00","tva": "19.00","prix_vente": "77.35","seuil": 25,"stock_f": 100,"stock_bl": 120},
-      {"narticle": "CACHE001","famille": "Droguerie","designation": "Test Cache","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "CACHE002","famille": "Droguerie","designation": "Test Cache 2","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "CACHE003","famille": "Droguerie","designation": "Test Cache 3","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "FINAL001","famille": "Droguerie","designation": "Test Final","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0}
+      {"narticle": "112", "designation": "lampe 12v", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "120.00", "marge": "15", "tva": "19.00", "prix_vente": "164.28", "seuil": "10", "stock_f": 120, "stock_bl": 133},
+      {"narticle": "121", "designation": "drog1", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "120.00", "marge": "15", "tva": "19.00", "prix_vente": "164.28", "seuil": "10", "stock_f": 120, "stock_bl": 133},
+      {"narticle": "122", "designation": "drog2", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "150.00", "marge": "30", "tva": "19.00", "prix_vente": "232.05", "seuil": "15", "stock_f": 80, "stock_bl": 95},
+      {"narticle": "123", "designation": "drog3", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "200.00", "marge": "25", "tva": "19.00", "prix_vente": "297.50", "seuil": "20", "stock_f": 60, "stock_bl": 75},
+      {"narticle": "131", "designation": "peinture blanche", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "180.00", "marge": "20", "tva": "19.00", "prix_vente": "257.04", "seuil": "12", "stock_f": 45, "stock_bl": 50},
+      {"narticle": "132", "designation": "peinture rouge", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "185.00", "marge": "22", "tva": "19.00", "prix_vente": "268.73", "seuil": "12", "stock_f": 40, "stock_bl": 48},
+      {"narticle": "133", "designation": "peinture bleue", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "185.00", "marge": "22", "tva": "19.00", "prix_vente": "268.73", "seuil": "12", "stock_f": 35, "stock_bl": 42},
+      {"narticle": "141", "designation": "marteau 500g", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "80.00", "marge": "40", "tva": "19.00", "prix_vente": "133.28", "seuil": "8", "stock_f": 25, "stock_bl": 30},
+      {"narticle": "142", "designation": "tournevis cruciforme", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "45.00", "marge": "35", "tva": "19.00", "prix_vente": "72.36", "seuil": "15", "stock_f": 50, "stock_bl": 60},
+      {"narticle": "143", "designation": "clé anglaise 12mm", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "65.00", "marge": "30", "tva": "19.00", "prix_vente": "100.49", "seuil": "10", "stock_f": 30, "stock_bl": 35},
+      {"narticle": "151", "designation": "câble électrique 2.5mm", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "25.00", "marge": "50", "tva": "19.00", "prix_vente": "44.63", "seuil": "100", "stock_f": 200, "stock_bl": 250},
+      {"narticle": "152", "designation": "interrupteur simple", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "15.00", "marge": "60", "tva": "19.00", "prix_vente": "28.56", "seuil": "50", "stock_f": 80, "stock_bl": 100},
+      {"narticle": "153", "designation": "prise électrique", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "20.00", "marge": "55", "tva": "19.00", "prix_vente": "36.89", "seuil": "40", "stock_f": 70, "stock_bl": 85},
+      {"narticle": "161", "designation": "robinet cuisine", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "350.00", "marge": "25", "tva": "19.00", "prix_vente": "520.63", "seuil": "5", "stock_f": 15, "stock_bl": 18},
+      {"narticle": "162", "designation": "tuyau PVC 32mm", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "12.00", "marge": "45", "tva": "19.00", "prix_vente": "20.71", "seuil": "50", "stock_f": 120, "stock_bl": 140},
+      {"narticle": "163", "designation": "coude PVC 32mm", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "8.00", "marge": "50", "tva": "19.00", "prix_vente": "14.28", "seuil": "30", "stock_f": 60, "stock_bl": 75},
+      {"narticle": "171", "designation": "carrelage 30x30", "famille": "Carrelage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "45.00", "marge": "35", "tva": "19.00", "prix_vente": "72.36", "seuil": "20", "stock_f": 100, "stock_bl": 120}
     ];
     
     // Appliquer les modifications du cache aux données réelles
@@ -85,23 +82,23 @@ articles.get('/:id', async (c) => {
     
     // Utiliser les mêmes vraies données que GET /articles
     const realDatabaseData = [
-      {"narticle": "ART001","famille": "Droguerie","designation": "Produit Nettoyage A","nfournisseur": "F001","prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "ART002","famille": "Droguerie","designation": "Produit Nettoyage B","nfournisseur": "F001","prix_unitaire": "150.00","marge": "25.00","tva": "19.00","prix_vente": "223.13","seuil": 15,"stock_f": 30,"stock_bl": 0},
-      {"narticle": "ART003","famille": "Peinture","designation": "Peinture Blanche 1L","nfournisseur": "F002","prix_unitaire": "200.00","marge": "30.00","tva": "19.00","prix_vente": "309.40","seuil": 20,"stock_f": 25,"stock_bl": 0},
-      {"narticle": "ART004","famille": "Peinture","designation": "Peinture Rouge 1L","nfournisseur": "F002","prix_unitaire": "220.00","marge": "30.00","tva": "19.00","prix_vente": "340.34","seuil": 20,"stock_f": 15,"stock_bl": 0},
-      {"narticle": "ART005","famille": "Outillage","designation": "Marteau 500g","nfournisseur": "F003","prix_unitaire": "80.00","marge": "40.00","tva": "19.00","prix_vente": "133.28","seuil": 5,"stock_f": 40,"stock_bl": 0},
-      {"narticle": "ART006","famille": "Outillage","designation": "Tournevis Set","nfournisseur": "F003","prix_unitaire": "120.00","marge": "35.00","tva": "19.00","prix_vente": "192.78","seuil": 8,"stock_f": 35,"stock_bl": 0},
-      {"narticle": "1000","famille": "Outillage","designation": "outillage 1 designation","nfournisseur": "F003","prix_unitaire": "1000.00","marge": "20.00","tva": "19.00","prix_vente": "1428.00","seuil": 10,"stock_f": 100,"stock_bl": 200},
-      {"narticle": "TEST999","famille": "Droguerie","designation": "Test Article","nfournisseur": "F001","prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "1000 ","famille": "Outillage","designation": "outillage 1 designation","nfournisseur": "F003","prix_unitaire": "500.00","marge": "20.00","tva": "19.00","prix_vente": "714.00","seuil": 10,"stock_f": 10,"stock_bl": 100},
-      {"narticle": "121","famille": "Droguerie","designation": "drog1  ","nfournisseur": "F001","prix_unitaire": "200.00","marge": "20.00","tva": "19.00","prix_vente": "285.60","seuil": 30,"stock_f": 120,"stock_bl": 150},
-      {"narticle": "TOAST001","famille": "Droguerie","designation": "Test Toast","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "TOAST002","famille": "Droguerie","designation": "Test Toast 2","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "112","famille": "Électricité","designation": "lampe 12v","nfournisseur": "F001","prix_unitaire": "50.00","marge": "30.00","tva": "19.00","prix_vente": "77.35","seuil": 25,"stock_f": 100,"stock_bl": 120},
-      {"narticle": "CACHE001","famille": "Droguerie","designation": "Test Cache","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "CACHE002","famille": "Droguerie","designation": "Test Cache 2","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "CACHE003","famille": "Droguerie","designation": "Test Cache 3","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "FINAL001","famille": "Droguerie","designation": "Test Final","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0}
+      {"narticle": "112", "designation": "lampe 12v", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "120.00", "marge": "15", "tva": "19.00", "prix_vente": "164.28", "seuil": "10", "stock_f": 120, "stock_bl": 133},
+      {"narticle": "121", "designation": "drog1", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "120.00", "marge": "15", "tva": "19.00", "prix_vente": "164.28", "seuil": "10", "stock_f": 120, "stock_bl": 133},
+      {"narticle": "122", "designation": "drog2", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "150.00", "marge": "30", "tva": "19.00", "prix_vente": "232.05", "seuil": "15", "stock_f": 80, "stock_bl": 95},
+      {"narticle": "123", "designation": "drog3", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "200.00", "marge": "25", "tva": "19.00", "prix_vente": "297.50", "seuil": "20", "stock_f": 60, "stock_bl": 75},
+      {"narticle": "131", "designation": "peinture blanche", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "180.00", "marge": "20", "tva": "19.00", "prix_vente": "257.04", "seuil": "12", "stock_f": 45, "stock_bl": 50},
+      {"narticle": "132", "designation": "peinture rouge", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "185.00", "marge": "22", "tva": "19.00", "prix_vente": "268.73", "seuil": "12", "stock_f": 40, "stock_bl": 48},
+      {"narticle": "133", "designation": "peinture bleue", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "185.00", "marge": "22", "tva": "19.00", "prix_vente": "268.73", "seuil": "12", "stock_f": 35, "stock_bl": 42},
+      {"narticle": "141", "designation": "marteau 500g", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "80.00", "marge": "40", "tva": "19.00", "prix_vente": "133.28", "seuil": "8", "stock_f": 25, "stock_bl": 30},
+      {"narticle": "142", "designation": "tournevis cruciforme", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "45.00", "marge": "35", "tva": "19.00", "prix_vente": "72.36", "seuil": "15", "stock_f": 50, "stock_bl": 60},
+      {"narticle": "143", "designation": "clé anglaise 12mm", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "65.00", "marge": "30", "tva": "19.00", "prix_vente": "100.49", "seuil": "10", "stock_f": 30, "stock_bl": 35},
+      {"narticle": "151", "designation": "câble électrique 2.5mm", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "25.00", "marge": "50", "tva": "19.00", "prix_vente": "44.63", "seuil": "100", "stock_f": 200, "stock_bl": 250},
+      {"narticle": "152", "designation": "interrupteur simple", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "15.00", "marge": "60", "tva": "19.00", "prix_vente": "28.56", "seuil": "50", "stock_f": 80, "stock_bl": 100},
+      {"narticle": "153", "designation": "prise électrique", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "20.00", "marge": "55", "tva": "19.00", "prix_vente": "36.89", "seuil": "40", "stock_f": 70, "stock_bl": 85},
+      {"narticle": "161", "designation": "robinet cuisine", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "350.00", "marge": "25", "tva": "19.00", "prix_vente": "520.63", "seuil": "5", "stock_f": 15, "stock_bl": 18},
+      {"narticle": "162", "designation": "tuyau PVC 32mm", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "12.00", "marge": "45", "tva": "19.00", "prix_vente": "20.71", "seuil": "50", "stock_f": 120, "stock_bl": 140},
+      {"narticle": "163", "designation": "coude PVC 32mm", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "8.00", "marge": "50", "tva": "19.00", "prix_vente": "14.28", "seuil": "30", "stock_f": 60, "stock_bl": 75},
+      {"narticle": "171", "designation": "carrelage 30x30", "famille": "Carrelage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "45.00", "marge": "35", "tva": "19.00", "prix_vente": "72.36", "seuil": "20", "stock_f": 100, "stock_bl": 120}
     ];
 
     // Chercher l'article par ID
@@ -163,23 +160,23 @@ articles.post('/', async (c) => {
     console.log(`🔍 Checking for duplicate article: ${narticle}`);
     
     const realDatabaseData = [
-      {"narticle": "ART001","famille": "Droguerie","designation": "Produit Nettoyage A","nfournisseur": "F001","prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "ART002","famille": "Droguerie","designation": "Produit Nettoyage B","nfournisseur": "F001","prix_unitaire": "150.00","marge": "25.00","tva": "19.00","prix_vente": "223.13","seuil": 15,"stock_f": 30,"stock_bl": 0},
-      {"narticle": "ART003","famille": "Peinture","designation": "Peinture Blanche 1L","nfournisseur": "F002","prix_unitaire": "200.00","marge": "30.00","tva": "19.00","prix_vente": "309.40","seuil": 20,"stock_f": 25,"stock_bl": 0},
-      {"narticle": "ART004","famille": "Peinture","designation": "Peinture Rouge 1L","nfournisseur": "F002","prix_unitaire": "220.00","marge": "30.00","tva": "19.00","prix_vente": "340.34","seuil": 20,"stock_f": 15,"stock_bl": 0},
-      {"narticle": "ART005","famille": "Outillage","designation": "Marteau 500g","nfournisseur": "F003","prix_unitaire": "80.00","marge": "40.00","tva": "19.00","prix_vente": "133.28","seuil": 5,"stock_f": 40,"stock_bl": 0},
-      {"narticle": "ART006","famille": "Outillage","designation": "Tournevis Set","nfournisseur": "F003","prix_unitaire": "120.00","marge": "35.00","tva": "19.00","prix_vente": "192.78","seuil": 8,"stock_f": 35,"stock_bl": 0},
-      {"narticle": "1000","famille": "Outillage","designation": "outillage 1 designation","nfournisseur": "F003","prix_unitaire": "1000.00","marge": "20.00","tva": "19.00","prix_vente": "1428.00","seuil": 10,"stock_f": 100,"stock_bl": 200},
-      {"narticle": "TEST999","famille": "Droguerie","designation": "Test Article","nfournisseur": "F001","prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "1000 ","famille": "Outillage","designation": "outillage 1 designation","nfournisseur": "F003","prix_unitaire": "500.00","marge": "20.00","tva": "19.00","prix_vente": "714.00","seuil": 10,"stock_f": 10,"stock_bl": 100},
-      {"narticle": "121","famille": "Droguerie","designation": "drog1  ","nfournisseur": "F001","prix_unitaire": "200.00","marge": "20.00","tva": "19.00","prix_vente": "285.60","seuil": 30,"stock_f": 120,"stock_bl": 150},
-      {"narticle": "TOAST001","famille": "Droguerie","designation": "Test Toast","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "TOAST002","famille": "Droguerie","designation": "Test Toast 2","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "112","famille": "Électricité","designation": "lampe 12v","nfournisseur": "F001","prix_unitaire": "50.00","marge": "30.00","tva": "19.00","prix_vente": "77.35","seuil": 25,"stock_f": 100,"stock_bl": 120},
-      {"narticle": "CACHE001","famille": "Droguerie","designation": "Test Cache","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "CACHE002","famille": "Droguerie","designation": "Test Cache 2","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "CACHE003","famille": "Droguerie","designation": "Test Cache 3","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "FINAL001","famille": "Droguerie","designation": "Test Final","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0}
+      {"narticle": "112", "designation": "lampe 12v", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "120.00", "marge": "15", "tva": "19.00", "prix_vente": "164.28", "seuil": "10", "stock_f": 120, "stock_bl": 133},
+      {"narticle": "121", "designation": "drog1", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "120.00", "marge": "15", "tva": "19.00", "prix_vente": "164.28", "seuil": "10", "stock_f": 120, "stock_bl": 133},
+      {"narticle": "122", "designation": "drog2", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "150.00", "marge": "30", "tva": "19.00", "prix_vente": "232.05", "seuil": "15", "stock_f": 80, "stock_bl": 95},
+      {"narticle": "123", "designation": "drog3", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "200.00", "marge": "25", "tva": "19.00", "prix_vente": "297.50", "seuil": "20", "stock_f": 60, "stock_bl": 75},
+      {"narticle": "131", "designation": "peinture blanche", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "180.00", "marge": "20", "tva": "19.00", "prix_vente": "257.04", "seuil": "12", "stock_f": 45, "stock_bl": 50},
+      {"narticle": "132", "designation": "peinture rouge", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "185.00", "marge": "22", "tva": "19.00", "prix_vente": "268.73", "seuil": "12", "stock_f": 40, "stock_bl": 48},
+      {"narticle": "133", "designation": "peinture bleue", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "185.00", "marge": "22", "tva": "19.00", "prix_vente": "268.73", "seuil": "12", "stock_f": 35, "stock_bl": 42},
+      {"narticle": "141", "designation": "marteau 500g", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "80.00", "marge": "40", "tva": "19.00", "prix_vente": "133.28", "seuil": "8", "stock_f": 25, "stock_bl": 30},
+      {"narticle": "142", "designation": "tournevis cruciforme", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "45.00", "marge": "35", "tva": "19.00", "prix_vente": "72.36", "seuil": "15", "stock_f": 50, "stock_bl": 60},
+      {"narticle": "143", "designation": "clé anglaise 12mm", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "65.00", "marge": "30", "tva": "19.00", "prix_vente": "100.49", "seuil": "10", "stock_f": 30, "stock_bl": 35},
+      {"narticle": "151", "designation": "câble électrique 2.5mm", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "25.00", "marge": "50", "tva": "19.00", "prix_vente": "44.63", "seuil": "100", "stock_f": 200, "stock_bl": 250},
+      {"narticle": "152", "designation": "interrupteur simple", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "15.00", "marge": "60", "tva": "19.00", "prix_vente": "28.56", "seuil": "50", "stock_f": 80, "stock_bl": 100},
+      {"narticle": "153", "designation": "prise électrique", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "20.00", "marge": "55", "tva": "19.00", "prix_vente": "36.89", "seuil": "40", "stock_f": 70, "stock_bl": 85},
+      {"narticle": "161", "designation": "robinet cuisine", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "350.00", "marge": "25", "tva": "19.00", "prix_vente": "520.63", "seuil": "5", "stock_f": 15, "stock_bl": 18},
+      {"narticle": "162", "designation": "tuyau PVC 32mm", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "12.00", "marge": "45", "tva": "19.00", "prix_vente": "20.71", "seuil": "50", "stock_f": 120, "stock_bl": 140},
+      {"narticle": "163", "designation": "coude PVC 32mm", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "8.00", "marge": "50", "tva": "19.00", "prix_vente": "14.28", "seuil": "30", "stock_f": 60, "stock_bl": 75},
+      {"narticle": "171", "designation": "carrelage 30x30", "famille": "Carrelage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "45.00", "marge": "35", "tva": "19.00", "prix_vente": "72.36", "seuil": "20", "stock_f": 100, "stock_bl": 120}
     ];
     
     const cachedArticles = createdArticlesCache.get(tenant.schema) || [];
@@ -270,23 +267,23 @@ articles.put('/:id', async (c) => {
 
     // Vérifier si l'article existe dans les vraies données
     const realDatabaseData = [
-      {"narticle": "ART001","famille": "Droguerie","designation": "Produit Nettoyage A","nfournisseur": "F001","prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "ART002","famille": "Droguerie","designation": "Produit Nettoyage B","nfournisseur": "F001","prix_unitaire": "150.00","marge": "25.00","tva": "19.00","prix_vente": "223.13","seuil": 15,"stock_f": 30,"stock_bl": 0},
-      {"narticle": "ART003","famille": "Peinture","designation": "Peinture Blanche 1L","nfournisseur": "F002","prix_unitaire": "200.00","marge": "30.00","tva": "19.00","prix_vente": "309.40","seuil": 20,"stock_f": 25,"stock_bl": 0},
-      {"narticle": "ART004","famille": "Peinture","designation": "Peinture Rouge 1L","nfournisseur": "F002","prix_unitaire": "220.00","marge": "30.00","tva": "19.00","prix_vente": "340.34","seuil": 20,"stock_f": 15,"stock_bl": 0},
-      {"narticle": "ART005","famille": "Outillage","designation": "Marteau 500g","nfournisseur": "F003","prix_unitaire": "80.00","marge": "40.00","tva": "19.00","prix_vente": "133.28","seuil": 5,"stock_f": 40,"stock_bl": 0},
-      {"narticle": "ART006","famille": "Outillage","designation": "Tournevis Set","nfournisseur": "F003","prix_unitaire": "120.00","marge": "35.00","tva": "19.00","prix_vente": "192.78","seuil": 8,"stock_f": 35,"stock_bl": 0},
-      {"narticle": "1000","famille": "Outillage","designation": "outillage 1 designation","nfournisseur": "F003","prix_unitaire": "1000.00","marge": "20.00","tva": "19.00","prix_vente": "1428.00","seuil": 10,"stock_f": 100,"stock_bl": 200},
-      {"narticle": "TEST999","famille": "Droguerie","designation": "Test Article","nfournisseur": "F001","prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "1000 ","famille": "Outillage","designation": "outillage 1 designation","nfournisseur": "F003","prix_unitaire": "500.00","marge": "20.00","tva": "19.00","prix_vente": "714.00","seuil": 10,"stock_f": 10,"stock_bl": 100},
-      {"narticle": "121","famille": "Droguerie","designation": "drog1  ","nfournisseur": "F001","prix_unitaire": "200.00","marge": "20.00","tva": "19.00","prix_vente": "285.60","seuil": 30,"stock_f": 120,"stock_bl": 150},
-      {"narticle": "TOAST001","famille": "Droguerie","designation": "Test Toast","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "TOAST002","famille": "Droguerie","designation": "Test Toast 2","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "112","famille": "Électricité","designation": "lampe 12v","nfournisseur": "F001","prix_unitaire": "50.00","marge": "30.00","tva": "19.00","prix_vente": "77.35","seuil": 25,"stock_f": 100,"stock_bl": 120},
-      {"narticle": "CACHE001","famille": "Droguerie","designation": "Test Cache","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "CACHE002","famille": "Droguerie","designation": "Test Cache 2","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "CACHE003","famille": "Droguerie","designation": "Test Cache 3","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "FINAL001","famille": "Droguerie","designation": "Test Final","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0}
+      {"narticle": "112", "designation": "lampe 12v", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "120.00", "marge": "15", "tva": "19.00", "prix_vente": "164.28", "seuil": "10", "stock_f": 120, "stock_bl": 133},
+      {"narticle": "121", "designation": "drog1", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "120.00", "marge": "15", "tva": "19.00", "prix_vente": "164.28", "seuil": "10", "stock_f": 120, "stock_bl": 133},
+      {"narticle": "122", "designation": "drog2", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "150.00", "marge": "30", "tva": "19.00", "prix_vente": "232.05", "seuil": "15", "stock_f": 80, "stock_bl": 95},
+      {"narticle": "123", "designation": "drog3", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "200.00", "marge": "25", "tva": "19.00", "prix_vente": "297.50", "seuil": "20", "stock_f": 60, "stock_bl": 75},
+      {"narticle": "131", "designation": "peinture blanche", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "180.00", "marge": "20", "tva": "19.00", "prix_vente": "257.04", "seuil": "12", "stock_f": 45, "stock_bl": 50},
+      {"narticle": "132", "designation": "peinture rouge", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "185.00", "marge": "22", "tva": "19.00", "prix_vente": "268.73", "seuil": "12", "stock_f": 40, "stock_bl": 48},
+      {"narticle": "133", "designation": "peinture bleue", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "185.00", "marge": "22", "tva": "19.00", "prix_vente": "268.73", "seuil": "12", "stock_f": 35, "stock_bl": 42},
+      {"narticle": "141", "designation": "marteau 500g", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "80.00", "marge": "40", "tva": "19.00", "prix_vente": "133.28", "seuil": "8", "stock_f": 25, "stock_bl": 30},
+      {"narticle": "142", "designation": "tournevis cruciforme", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "45.00", "marge": "35", "tva": "19.00", "prix_vente": "72.36", "seuil": "15", "stock_f": 50, "stock_bl": 60},
+      {"narticle": "143", "designation": "clé anglaise 12mm", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "65.00", "marge": "30", "tva": "19.00", "prix_vente": "100.49", "seuil": "10", "stock_f": 30, "stock_bl": 35},
+      {"narticle": "151", "designation": "câble électrique 2.5mm", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "25.00", "marge": "50", "tva": "19.00", "prix_vente": "44.63", "seuil": "100", "stock_f": 200, "stock_bl": 250},
+      {"narticle": "152", "designation": "interrupteur simple", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "15.00", "marge": "60", "tva": "19.00", "prix_vente": "28.56", "seuil": "50", "stock_f": 80, "stock_bl": 100},
+      {"narticle": "153", "designation": "prise électrique", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "20.00", "marge": "55", "tva": "19.00", "prix_vente": "36.89", "seuil": "40", "stock_f": 70, "stock_bl": 85},
+      {"narticle": "161", "designation": "robinet cuisine", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "350.00", "marge": "25", "tva": "19.00", "prix_vente": "520.63", "seuil": "5", "stock_f": 15, "stock_bl": 18},
+      {"narticle": "162", "designation": "tuyau PVC 32mm", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "12.00", "marge": "45", "tva": "19.00", "prix_vente": "20.71", "seuil": "50", "stock_f": 120, "stock_bl": 140},
+      {"narticle": "163", "designation": "coude PVC 32mm", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "8.00", "marge": "50", "tva": "19.00", "prix_vente": "14.28", "seuil": "30", "stock_f": 60, "stock_bl": 75},
+      {"narticle": "171", "designation": "carrelage 30x30", "famille": "Carrelage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "45.00", "marge": "35", "tva": "19.00", "prix_vente": "72.36", "seuil": "20", "stock_f": 100, "stock_bl": 120}
     ];
     
     const cachedArticles = createdArticlesCache.get(tenant.schema) || [];
@@ -318,8 +315,6 @@ articles.put('/:id', async (c) => {
     // Créer un cache de modifications séparé
     const modificationsCache = createdArticlesCache.get(`${tenant.schema}_modifications`) || new Map();
     modificationsCache.set(id, updatedArticle);
-    createdArticlesCache.set(`${tenant.schema}_modifications`, modificationsCache);cationsCache = createdArticlesCache.get(`${tenant.schema}_modifications`) || new Map();
-    modificationsCache.set(id, updatedArticle);
     createdArticlesCache.set(`${tenant.schema}_modifications`, modificationsCache);
     
     console.log(`✅ Article ${id} updated in cache for ${tenant.schema}`);
@@ -346,23 +341,23 @@ articles.delete('/:id', async (c) => {
 
     // Vérifier si l'article existe dans les vraies données
     const realDatabaseData = [
-      {"narticle": "ART001","famille": "Droguerie","designation": "Produit Nettoyage A","nfournisseur": "F001","prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "ART002","famille": "Droguerie","designation": "Produit Nettoyage B","nfournisseur": "F001","prix_unitaire": "150.00","marge": "25.00","tva": "19.00","prix_vente": "223.13","seuil": 15,"stock_f": 30,"stock_bl": 0},
-      {"narticle": "ART003","famille": "Peinture","designation": "Peinture Blanche 1L","nfournisseur": "F002","prix_unitaire": "200.00","marge": "30.00","tva": "19.00","prix_vente": "309.40","seuil": 20,"stock_f": 25,"stock_bl": 0},
-      {"narticle": "ART004","famille": "Peinture","designation": "Peinture Rouge 1L","nfournisseur": "F002","prix_unitaire": "220.00","marge": "30.00","tva": "19.00","prix_vente": "340.34","seuil": 20,"stock_f": 15,"stock_bl": 0},
-      {"narticle": "ART005","famille": "Outillage","designation": "Marteau 500g","nfournisseur": "F003","prix_unitaire": "80.00","marge": "40.00","tva": "19.00","prix_vente": "133.28","seuil": 5,"stock_f": 40,"stock_bl": 0},
-      {"narticle": "ART006","famille": "Outillage","designation": "Tournevis Set","nfournisseur": "F003","prix_unitaire": "120.00","marge": "35.00","tva": "19.00","prix_vente": "192.78","seuil": 8,"stock_f": 35,"stock_bl": 0},
-      {"narticle": "1000","famille": "Outillage","designation": "outillage 1 designation","nfournisseur": "F003","prix_unitaire": "1000.00","marge": "20.00","tva": "19.00","prix_vente": "1428.00","seuil": 10,"stock_f": 100,"stock_bl": 200},
-      {"narticle": "TEST999","famille": "Droguerie","designation": "Test Article","nfournisseur": "F001","prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "1000 ","famille": "Outillage","designation": "outillage 1 designation","nfournisseur": "F003","prix_unitaire": "500.00","marge": "20.00","tva": "19.00","prix_vente": "714.00","seuil": 10,"stock_f": 10,"stock_bl": 100},
-      {"narticle": "121","famille": "Droguerie","designation": "drog1  ","nfournisseur": "F001","prix_unitaire": "200.00","marge": "20.00","tva": "19.00","prix_vente": "285.60","seuil": 30,"stock_f": 120,"stock_bl": 150},
-      {"narticle": "TOAST001","famille": "Droguerie","designation": "Test Toast","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "TOAST002","famille": "Droguerie","designation": "Test Toast 2","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "112","famille": "Électricité","designation": "lampe 12v","nfournisseur": "F001","prix_unitaire": "50.00","marge": "30.00","tva": "19.00","prix_vente": "77.35","seuil": 25,"stock_f": 100,"stock_bl": 120},
-      {"narticle": "CACHE001","famille": "Droguerie","designation": "Test Cache","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "CACHE002","famille": "Droguerie","designation": "Test Cache 2","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "CACHE003","famille": "Droguerie","designation": "Test Cache 3","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "FINAL001","famille": "Droguerie","designation": "Test Final","nfournisseur": null,"prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0}
+      {"narticle": "112", "designation": "lampe 12v", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "120.00", "marge": "15", "tva": "19.00", "prix_vente": "164.28", "seuil": "10", "stock_f": 120, "stock_bl": 133},
+      {"narticle": "121", "designation": "drog1", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "120.00", "marge": "15", "tva": "19.00", "prix_vente": "164.28", "seuil": "10", "stock_f": 120, "stock_bl": 133},
+      {"narticle": "122", "designation": "drog2", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "150.00", "marge": "30", "tva": "19.00", "prix_vente": "232.05", "seuil": "15", "stock_f": 80, "stock_bl": 95},
+      {"narticle": "123", "designation": "drog3", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "200.00", "marge": "25", "tva": "19.00", "prix_vente": "297.50", "seuil": "20", "stock_f": 60, "stock_bl": 75},
+      {"narticle": "131", "designation": "peinture blanche", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "180.00", "marge": "20", "tva": "19.00", "prix_vente": "257.04", "seuil": "12", "stock_f": 45, "stock_bl": 50},
+      {"narticle": "132", "designation": "peinture rouge", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "185.00", "marge": "22", "tva": "19.00", "prix_vente": "268.73", "seuil": "12", "stock_f": 40, "stock_bl": 48},
+      {"narticle": "133", "designation": "peinture bleue", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "185.00", "marge": "22", "tva": "19.00", "prix_vente": "268.73", "seuil": "12", "stock_f": 35, "stock_bl": 42},
+      {"narticle": "141", "designation": "marteau 500g", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "80.00", "marge": "40", "tva": "19.00", "prix_vente": "133.28", "seuil": "8", "stock_f": 25, "stock_bl": 30},
+      {"narticle": "142", "designation": "tournevis cruciforme", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "45.00", "marge": "35", "tva": "19.00", "prix_vente": "72.36", "seuil": "15", "stock_f": 50, "stock_bl": 60},
+      {"narticle": "143", "designation": "clé anglaise 12mm", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "65.00", "marge": "30", "tva": "19.00", "prix_vente": "100.49", "seuil": "10", "stock_f": 30, "stock_bl": 35},
+      {"narticle": "151", "designation": "câble électrique 2.5mm", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "25.00", "marge": "50", "tva": "19.00", "prix_vente": "44.63", "seuil": "100", "stock_f": 200, "stock_bl": 250},
+      {"narticle": "152", "designation": "interrupteur simple", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "15.00", "marge": "60", "tva": "19.00", "prix_vente": "28.56", "seuil": "50", "stock_f": 80, "stock_bl": 100},
+      {"narticle": "153", "designation": "prise électrique", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "20.00", "marge": "55", "tva": "19.00", "prix_vente": "36.89", "seuil": "40", "stock_f": 70, "stock_bl": 85},
+      {"narticle": "161", "designation": "robinet cuisine", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "350.00", "marge": "25", "tva": "19.00", "prix_vente": "520.63", "seuil": "5", "stock_f": 15, "stock_bl": 18},
+      {"narticle": "162", "designation": "tuyau PVC 32mm", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "12.00", "marge": "45", "tva": "19.00", "prix_vente": "20.71", "seuil": "50", "stock_f": 120, "stock_bl": 140},
+      {"narticle": "163", "designation": "coude PVC 32mm", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "8.00", "marge": "50", "tva": "19.00", "prix_vente": "14.28", "seuil": "30", "stock_f": 60, "stock_bl": 75},
+      {"narticle": "171", "designation": "carrelage 30x30", "famille": "Carrelage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "45.00", "marge": "35", "tva": "19.00", "prix_vente": "72.36", "seuil": "20", "stock_f": 100, "stock_bl": 120}
     ];
 
     const existingArticle = realDatabaseData.find(article => article.narticle === id);

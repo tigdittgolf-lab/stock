@@ -139,66 +139,68 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
       </header>
 
       <main className={styles.main}>
-        <div className={styles.documentContainer}>
+        <div>
           {/* En-tête du document */}
-          <div className={styles.documentHeader}>
-            <div className={styles.companyInfo}>
-              <h2>VOTRE ENTREPRISE</h2>
-              <p>Adresse de votre entreprise</p>
-              <p>Téléphone : +213 XX XX XX XX</p>
-              <p>Email : contact@entreprise.dz</p>
-            </div>
-            <div className={styles.documentInfo}>
-              <h3>FACTURE</h3>
-              <p><strong>N° :</strong> {invoice.nfact}</p>
-              <p><strong>Date :</strong> {new Date(invoice.date_fact).toLocaleDateString('fr-FR')}</p>
+          <div className={styles.formSection}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h2>VOTRE ENTREPRISE</h2>
+                <p>Adresse de votre entreprise</p>
+                <p>Téléphone : +213 XX XX XX XX</p>
+                <p>Email : contact@entreprise.dz</p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <h2 style={{ color: '#007bff', fontSize: '1.8rem' }}>FACTURE</h2>
+                <p><strong>N° :</strong> {invoice.nfact}</p>
+                <p><strong>Date :</strong> {new Date(invoice.date_fact).toLocaleDateString('fr-FR')}</p>
+              </div>
             </div>
           </div>
 
           {/* Informations client */}
-          <div className={styles.clientInfo}>
-            <h3>Facturé à :</h3>
-            <div className={styles.clientDetails}>
-              <p><strong>Code :</strong> {invoice.nclient}</p>
-              <p><strong>Raison sociale :</strong> {invoice.client_name || invoice.nclient}</p>
-            </div>
+          <div className={styles.formSection}>
+            <h2>Facturé à :</h2>
+            <p><strong>Code :</strong> {invoice.nclient}</p>
+            <p><strong>Raison sociale :</strong> {invoice.client_name || invoice.nclient}</p>
           </div>
 
           {/* Détails des articles */}
-          <div className={styles.itemsSection}>
-            <h3>Articles facturés :</h3>
-            <table className={styles.itemsTable}>
-              <thead>
-                <tr>
-                  <th>Article</th>
-                  <th>Désignation</th>
-                  <th>Quantité</th>
-                  <th>Prix unitaire</th>
-                  <th>TVA (%)</th>
-                  <th>Total ligne</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoice.details && invoice.details.length > 0 ? (
-                  invoice.details.map((detail, index) => (
-                    <tr key={index}>
-                      <td>{detail.narticle}</td>
-                      <td>{detail.designation}</td>
-                      <td>{detail.qte}</td>
-                      <td>{parseFloat(detail.prix.toString()).toFixed(2)} DA</td>
-                      <td>{parseFloat(detail.tva.toString()).toFixed(0)}%</td>
-                      <td>{parseFloat(detail.total_ligne.toString()).toFixed(2)} DA</td>
-                    </tr>
-                  ))
-                ) : (
+          <div className={styles.formSection}>
+            <h2>Articles facturés :</h2>
+            <div className={styles.tableContainer}>
+              <table className={styles.table}>
+                <thead>
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', fontStyle: 'italic' }}>
-                      Détails des articles non disponibles
-                    </td>
+                    <th>Article</th>
+                    <th>Désignation</th>
+                    <th style={{ textAlign: 'right' }}>Quantité</th>
+                    <th style={{ textAlign: 'right' }}>Prix unitaire</th>
+                    <th style={{ textAlign: 'right' }}>TVA (%)</th>
+                    <th style={{ textAlign: 'right' }}>Total ligne</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {invoice.details && invoice.details.length > 0 ? (
+                    invoice.details.map((detail, index) => (
+                      <tr key={index}>
+                        <td>{detail.narticle}</td>
+                        <td>{detail.designation}</td>
+                        <td style={{ textAlign: 'right' }}>{Math.round(detail.qte).toLocaleString('fr-FR')}</td>
+                        <td style={{ textAlign: 'right' }}>{parseFloat(detail.prix.toString()).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</td>
+                        <td style={{ textAlign: 'right' }}>{parseFloat(detail.tva.toString()).toFixed(0)}%</td>
+                        <td style={{ textAlign: 'right' }}>{parseFloat(detail.total_ligne.toString()).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', fontStyle: 'italic' }}>
+                        Détails des articles non disponibles
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Totaux */}
@@ -206,144 +208,34 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
             <div className={styles.totalsGrid}>
               <div className={styles.totalRow}>
                 <span>Montant HT :</span>
-                <span>{invoice.montant_ht?.toFixed(2)} DA</span>
+                <span>{invoice.montant_ht?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</span>
               </div>
               <div className={styles.totalRow}>
                 <span>TVA :</span>
-                <span>{invoice.tva?.toFixed(2)} DA</span>
+                <span>{invoice.tva?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</span>
               </div>
               <div className={styles.totalRow}>
                 <strong>Total TTC :</strong>
-                <strong>{invoice.total_ttc?.toFixed(2)} DA</strong>
+                <strong>{invoice.total_ttc?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</strong>
               </div>
             </div>
           </div>
 
           {/* Conditions de paiement */}
-          <div className={styles.paymentSection}>
-            <h4>Conditions de paiement :</h4>
+          <div className={styles.formSection}>
+            <h2>Conditions de paiement :</h2>
             <p>Paiement à 30 jours fin de mois</p>
             <p>En cas de retard de paiement, des pénalités pourront être appliquées.</p>
           </div>
 
           {/* Informations de création */}
-          <div className={styles.metaInfo}>
+          <div className={styles.formSection} style={{ textAlign: 'center', color: '#666' }}>
             <p><small>Facture créée le : {new Date(invoice.created_at).toLocaleString('fr-FR')}</small></p>
           </div>
         </div>
       </main>
 
-      <style jsx>{`
-        .documentContainer {
-          max-width: 800px;
-          margin: 0 auto;
-          padding: 20px;
-          background: white;
-          box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
 
-        .documentHeader {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 30px;
-          padding-bottom: 20px;
-          border-bottom: 2px solid #333;
-        }
-
-        .companyInfo h2 {
-          color: #333;
-          margin-bottom: 10px;
-        }
-
-        .documentInfo {
-          text-align: right;
-        }
-
-        .documentInfo h3 {
-          color: #333;
-          font-size: 24px;
-          margin-bottom: 10px;
-        }
-
-        .clientInfo {
-          margin-bottom: 30px;
-          padding: 15px;
-          background: #f8f9fa;
-          border-radius: 5px;
-        }
-
-        .clientDetails {
-          margin-top: 10px;
-        }
-
-        .itemsSection {
-          margin-bottom: 30px;
-        }
-
-        .itemsTable {
-          width: 100%;
-          border-collapse: collapse;
-          margin-top: 15px;
-        }
-
-        .itemsTable th,
-        .itemsTable td {
-          border: 1px solid #ddd;
-          padding: 10px;
-          text-align: left;
-        }
-
-        .itemsTable th {
-          background-color: #f8f9fa;
-          font-weight: bold;
-        }
-
-        .totalsGrid {
-          max-width: 300px;
-          margin-left: auto;
-        }
-
-        .totalRow {
-          display: flex;
-          justify-content: space-between;
-          padding: 5px 0;
-          border-bottom: 1px solid #eee;
-        }
-
-        .totalRow:last-child {
-          border-bottom: 2px solid #333;
-          font-size: 18px;
-          margin-top: 10px;
-          padding-top: 10px;
-        }
-
-        .paymentSection {
-          margin-top: 40px;
-          padding: 15px;
-          background: #f8f9fa;
-          border-radius: 5px;
-        }
-
-        .paymentSection h4 {
-          margin-bottom: 10px;
-          color: #333;
-        }
-
-        .metaInfo {
-          text-align: center;
-          color: #666;
-          border-top: 1px solid #eee;
-          padding-top: 15px;
-          margin-top: 30px;
-        }
-
-        @media print {
-          .documentContainer {
-            box-shadow: none;
-            max-width: none;
-          }
-        }
-      `}</style>
     </div>
   );
 }

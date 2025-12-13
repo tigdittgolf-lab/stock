@@ -1,147 +1,191 @@
-/**
- * Convert numbers to French words
- * Example: 1500 -> "mille cinq cents"
- */
+// Utilitaire pour convertir les nombres en lettres (français)
+// Conforme à la réglementation algérienne/française
 
-const units = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
-const teens = ['dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
-const tens = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante', 'quatre-vingt', 'quatre-vingt'];
+const units = [
+  '', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf',
+  'dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'
+];
 
-function convertLessThanThousand(num: number): string {
-  if (num === 0) return '';
-  
+const tens = [
+  '', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante-dix', 'quatre-vingt', 'quatre-vingt-dix'
+];
+
+const scales = [
+  '', 'mille', 'million', 'milliard', 'billion'
+];
+
+function convertHundreds(num: number): string {
   let result = '';
   
-  // Hundreds
-  const hundreds = Math.floor(num / 100);
-  if (hundreds > 0) {
-    if (hundreds === 1) {
-      result += 'cent';
-    } else {
-      result += units[hundreds] + ' cent';
-    }
-    if (num % 100 === 0 && hundreds > 1) {
-      result += 's'; // "cents" when plural and no remainder
-    }
-  }
-  
+  const hundred = Math.floor(num / 100);
   const remainder = num % 100;
   
-  if (remainder === 0) {
-    return result.trim();
+  if (hundred > 0) {
+    if (hundred === 1) {
+      result += 'cent';
+    } else {
+      result += units[hundred] + ' cent';
+    }
+    if (hundred > 1 && remainder === 0) {
+      result += 's';
+    }
   }
   
-  if (result) result += ' ';
-  
-  // Tens and units
-  if (remainder < 10) {
-    result += units[remainder];
-  } else if (remainder < 20) {
-    result += teens[remainder - 10];
-  } else {
-    const tensDigit = Math.floor(remainder / 10);
-    const unitsDigit = remainder % 10;
+  if (remainder > 0) {
+    if (result) result += ' ';
     
-    if (tensDigit === 7 || tensDigit === 9) {
-      // Special cases: 70-79 (soixante-dix) and 90-99 (quatre-vingt-dix)
-      if (tensDigit === 7) {
-        if (unitsDigit === 0) {
-          result += 'soixante-dix';
-        } else if (unitsDigit === 1) {
-          result += 'soixante et onze';
+    if (remainder < 20) {
+      result += units[remainder];
+    } else {
+      const ten = Math.floor(remainder / 10);
+      const unit = remainder % 10;
+      
+      if (ten === 7 || ten === 9) {
+        // Soixante-dix, quatre-vingt-dix
+        result += tens[ten - 1];
+        if (ten === 7) {
+          result += '-' + units[10 + unit];
         } else {
-          result += 'soixante-' + teens[unitsDigit - 10];
+          result += '-' + units[10 + unit];
         }
-      } else { // 9
-        if (unitsDigit === 0) {
-          result += 'quatre-vingt-dix';
-        } else if (unitsDigit === 1) {
-          result += 'quatre-vingt-onze';
+      } else if (ten === 8) {
+        // Quatre-vingt
+        result += tens[ten];
+        if (unit === 0) {
+          result += 's';
         } else {
-          result += 'quatre-vingt-' + teens[unitsDigit - 10];
+          result += '-' + units[unit];
+        }
+      } else {
+        result += tens[ten];
+        if (unit > 0) {
+          if (unit === 1 && (ten === 2 || ten === 3 || ten === 4 || ten === 5 || ten === 6)) {
+            result += ' et un';
+          } else {
+            result += '-' + units[unit];
+          }
         }
       }
-    } else {
-      result += tens[tensDigit];
-      if (tensDigit === 8 && unitsDigit === 0) {
-        result += 's'; // "quatre-vingts" when exactly 80
-      }
-      if (unitsDigit > 0) {
-        if (unitsDigit === 1 && tensDigit !== 8) {
-          result += ' et ' + units[unitsDigit];
-        } else {
-          result += '-' + units[unitsDigit];
-        }
-      }
     }
-  }
-  
-  return result.trim();
-}
-
-export function numberToWordsFr(num: number): string {
-  if (num === 0) return 'zéro';
-  if (num < 0) return 'moins ' + numberToWordsFr(-num);
-  
-  let result = '';
-  
-  // Billions
-  const billions = Math.floor(num / 1000000000);
-  if (billions > 0) {
-    if (billions === 1) {
-      result += 'un milliard';
-    } else {
-      result += convertLessThanThousand(billions) + ' milliards';
-    }
-    num %= 1000000000;
-  }
-  
-  // Millions
-  const millions = Math.floor(num / 1000000);
-  if (millions > 0) {
-    if (result) result += ' ';
-    if (millions === 1) {
-      result += 'un million';
-    } else {
-      result += convertLessThanThousand(millions) + ' millions';
-    }
-    num %= 1000000;
-  }
-  
-  // Thousands
-  const thousands = Math.floor(num / 1000);
-  if (thousands > 0) {
-    if (result) result += ' ';
-    if (thousands === 1) {
-      result += 'mille';
-    } else {
-      result += convertLessThanThousand(thousands) + ' mille';
-    }
-    num %= 1000;
-  }
-  
-  // Remainder
-  if (num > 0) {
-    if (result) result += ' ';
-    result += convertLessThanThousand(num);
-  }
-  
-  return result.trim();
-}
-
-/**
- * Convert amount to French words with currency
- * Example: 1500.50 -> "mille cinq cents dinars et cinquante centimes"
- */
-export function amountToWordsFr(amount: number, currency: string = 'dinars', subunit: string = 'centimes'): string {
-  const integerPart = Math.floor(amount);
-  const decimalPart = Math.round((amount - integerPart) * 100);
-  
-  let result = numberToWordsFr(integerPart) + ' ' + currency;
-  
-  if (decimalPart > 0) {
-    result += ' et ' + numberToWordsFr(decimalPart) + ' ' + subunit;
   }
   
   return result;
+}
+
+function convertThousands(num: number, scaleIndex: number): string {
+  if (num === 0) return '';
+  
+  const hundreds = convertHundreds(num);
+  const scale = scales[scaleIndex];
+  
+  if (scaleIndex === 0) {
+    return hundreds;
+  }
+  
+  if (scaleIndex === 1) { // mille
+    if (num === 1) {
+      return 'mille';
+    } else {
+      return hundreds + ' ' + scale;
+    }
+  } else { // million, milliard, etc.
+    let result = hundreds + ' ' + scale;
+    if (num > 1) {
+      result += 's';
+    }
+    return result;
+  }
+}
+
+export function numberToWords(amount: number): string {
+  if (amount === 0) return 'zéro';
+  
+  // Séparer la partie entière et décimale
+  const integerPart = Math.floor(amount);
+  const decimalPart = Math.round((amount - integerPart) * 100);
+  
+  let result = '';
+  
+  // Convertir la partie entière
+  if (integerPart === 0) {
+    result = 'zéro';
+  } else {
+    const groups = [];
+    let temp = integerPart;
+    
+    while (temp > 0) {
+      groups.push(temp % 1000);
+      temp = Math.floor(temp / 1000);
+    }
+    
+    const parts = [];
+    for (let i = groups.length - 1; i >= 0; i--) {
+      const group = groups[i];
+      if (group > 0) {
+        parts.push(convertThousands(group, i));
+      }
+    }
+    
+    result = parts.join(' ');
+  }
+  
+  // Ajouter "dinars"
+  if (integerPart <= 1) {
+    result += ' dinar';
+  } else {
+    result += ' dinars';
+  }
+  
+  // Ajouter la partie décimale (centimes)
+  if (decimalPart > 0) {
+    result += ' et ';
+    if (decimalPart === 1) {
+      result += 'un centime';
+    } else {
+      result += convertHundreds(decimalPart) + ' centimes';
+    }
+  }
+  
+  // Capitaliser la première lettre
+  return result.charAt(0).toUpperCase() + result.slice(1);
+}
+
+// Fonction spécifique pour les documents officiels
+export function amountInWords(amount: number): string {
+  const words = numberToWords(amount);
+  return `Arrêté la présente ${getDocumentType()} à la somme de : ${words}`;
+}
+
+function getDocumentType(): string {
+  // Cette fonction peut être adaptée selon le contexte
+  return 'facture'; // Par défaut, peut être modifié selon le document
+}
+
+// Fonction pour formater le montant avec devise
+export function formatAmountWithCurrency(amount: number): string {
+  return `${amount.toFixed(2).replace('.', ',')} DA`;
+}
+
+// Tests unitaires (pour vérification)
+export function testNumberToWords() {
+  const tests = [
+    { input: 0, expected: 'Zéro dinar' },
+    { input: 1, expected: 'Un dinar' },
+    { input: 21, expected: 'Vingt et un dinars' },
+    { input: 80, expected: 'Quatre-vingts dinars' },
+    { input: 81, expected: 'Quatre-vingt-un dinars' },
+    { input: 100, expected: 'Cent dinars' },
+    { input: 200, expected: 'Deux cents dinars' },
+    { input: 201, expected: 'Deux cent un dinars' },
+    { input: 1000, expected: 'Mille dinars' },
+    { input: 2000, expected: 'Deux mille dinars' },
+    { input: 1000000, expected: 'Un million dinars' },
+    { input: 1234.56, expected: 'Mille deux cent trente-quatre dinars et cinquante-six centimes' }
+  ];
+  
+  console.log('Tests de conversion nombre en lettres:');
+  tests.forEach(test => {
+    const result = numberToWords(test.input);
+    console.log(`${test.input} -> ${result} (attendu: ${test.expected})`);
+  });
 }
