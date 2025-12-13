@@ -5,17 +5,8 @@ import { numberToWords } from '../utils/numberToWords.js';
 
 const pdf = new Hono();
 
-// Company information - should be loaded from database or config
-const companyInfo = {
-  name: 'VOTRE ENTREPRISE',
-  address: '123 Rue Example, Alger, Algérie',
-  phone: '+213 XX XX XX XX',
-  email: 'contact@entreprise.dz',
-  nif: '000000000000000',
-  rc: '00/00-0000000'
-};
-
-const pdfService = new PDFService(companyInfo);
+// PDF service will load company info from database dynamically
+const pdfService = new PDFService();
 
 // Middleware to extract tenant from header
 pdf.use('*', async (c, next) => {
@@ -77,8 +68,8 @@ pdf.get('/invoice/:id', async (c) => {
       autre_taxe: invoiceData.autre_taxe || 0
     };
 
-    // Generate PDF
-    const doc = pdfService.generateInvoice(adaptedData);
+    // Generate PDF with tenant info
+    const doc = await pdfService.generateInvoice(adaptedData, tenant);
     const pdfBuffer = doc.output('arraybuffer');
 
     // Set response headers and return PDF
@@ -143,8 +134,8 @@ pdf.get('/delivery-note/:id', async (c) => {
 
     console.log('📋 Adapted data for PDF:', JSON.stringify(adaptedData, null, 2));
 
-    // Generate PDF
-    const doc = pdfService.generateDeliveryNote(adaptedData);
+    // Generate PDF with tenant info
+    const doc = await pdfService.generateDeliveryNote(adaptedData, tenant);
     const pdfBuffer = doc.output('arraybuffer');
 
     // Set response headers and return PDF
@@ -205,8 +196,8 @@ pdf.get('/delivery-note-small/:id', async (c) => {
       autre_taxe: blData.autre_taxe || 0
     };
 
-    // Generate small format PDF
-    const doc = pdfService.generateSmallDeliveryNote(adaptedData);
+    // Generate small format PDF with tenant info
+    const doc = await pdfService.generateSmallDeliveryNote(adaptedData, tenant);
     const pdfBuffer = doc.output('arraybuffer');
 
     // Set response headers and return PDF
@@ -267,8 +258,8 @@ pdf.get('/delivery-note-ticket/:id', async (c) => {
       autre_taxe: blData.autre_taxe || 0
     };
 
-    // Generate ticket format PDF
-    const doc = pdfService.generateTicketReceipt(adaptedData);
+    // Generate ticket format PDF with tenant info
+    const doc = await pdfService.generateTicketReceipt(adaptedData, tenant);
     const pdfBuffer = doc.output('arraybuffer');
 
     // Set response headers and return PDF
@@ -333,8 +324,8 @@ pdf.get('/proforma/:id', async (c) => {
       autre_taxe: profData.autre_taxe || 0
     };
 
-    // Generate PDF with PROFORMA watermark
-    const doc = pdfService.generateProforma(adaptedData);
+    // Generate PDF with PROFORMA watermark and tenant info
+    const doc = await pdfService.generateProforma(adaptedData, tenant);
     const pdfBuffer = doc.output('arraybuffer');
 
     // Set response headers and return PDF
@@ -394,7 +385,7 @@ pdf.get('/purchase-invoice/:id', async (c) => {
     };
 
     // Generate PDF
-    const doc = pdfService.generateInvoice(mappedData);
+    const doc = await pdfService.generateInvoice(mappedData);
     const pdfBuffer = doc.output('arraybuffer');
 
     // Set response headers and return PDF
@@ -449,7 +440,7 @@ pdf.get('/purchase-delivery-note/:id', async (c) => {
     };
 
     // Generate PDF
-    const doc = pdfService.generateDeliveryNote(mappedData);
+    const doc = await pdfService.generateDeliveryNote(mappedData);
     const pdfBuffer = doc.output('arraybuffer');
 
     // Set response headers and return PDF
@@ -530,7 +521,7 @@ pdf.get('/test-invoice-pdf', async (c) => {
     };
 
     // Generate PDF
-    const doc = pdfService.generateInvoice(sampleInvoiceData);
+    const doc = await pdfService.generateInvoice(sampleInvoiceData);
     const pdfBuffer = doc.output('arraybuffer');
 
     // Set response headers and return PDF
@@ -611,7 +602,7 @@ pdf.get('/test-delivery-note-pdf', async (c) => {
     };
 
     // Generate PDF
-    const doc = pdfService.generateDeliveryNote(sampleDeliveryData);
+    const doc = await pdfService.generateDeliveryNote(sampleDeliveryData);
     const pdfBuffer = doc.output('arraybuffer');
 
     // Set response headers and return PDF

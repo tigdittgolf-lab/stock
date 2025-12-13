@@ -43,7 +43,8 @@ export class SchemaManager {
       this.getDetailFprofTableSQL(schemaName),
       this.getFachatTableSQL(schemaName),
       this.getFachatDetailTableSQL(schemaName),
-      this.getStockMovementsTableSQL(schemaName)
+      this.getStockMovementsTableSQL(schemaName),
+      this.getActiviteTableSQL(schemaName)
     ];
 
     for (const tableSQL of tables) {
@@ -461,6 +462,39 @@ export class SchemaManager {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         created_by VARCHAR(100),
         FOREIGN KEY (narticle) REFERENCES "${schema}".article(narticle)
+      );
+    `;
+  }
+
+  private static getActiviteTableSQL(schema: string): string {
+    return `
+      CREATE TABLE IF NOT EXISTS "${schema}".activite (
+        id SERIAL PRIMARY KEY,
+        code_activite VARCHAR(20),
+        domaine_activite TEXT,
+        sous_domaine TEXT,
+        raison_sociale TEXT,
+        adresse TEXT,
+        commune TEXT,
+        wilaya TEXT,
+        tel_fixe TEXT,
+        tel_port TEXT,
+        nrc TEXT,
+        nis TEXT,
+        nart TEXT,
+        ident_fiscal TEXT,
+        banq TEXT,
+        entete_bon TEXT,
+        e_mail TEXT,
+        nom_entreprise TEXT,
+        telephone TEXT,
+        email TEXT,
+        nif TEXT,
+        rc TEXT,
+        logo_url TEXT,
+        slogan TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `;
   }

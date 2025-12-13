@@ -1,15 +1,9 @@
 import { jsPDF } from 'jspdf';
 import { numberToWords, amountInWords } from '../utils/numberToWords.js';
 import { formatAmount, formatNumber, formatPercentage, formatQuantity } from '../utils/numberFormatter.js';
+import { CompanyService, CompanyInfo } from './companyService.js';
 
-interface CompanyInfo {
-  name: string;
-  address: string;
-  phone: string;
-  email?: string;
-  nif?: string;
-  rc?: string;
-}
+// CompanyInfo interface is now imported from companyService.ts
 
 interface InvoiceData {
   nfact: number;
@@ -60,18 +54,31 @@ interface DeliveryNoteData {
 }
 
 export class PDFService {
-  private companyInfo: CompanyInfo;
+  private companyInfo: CompanyInfo | null = null;
 
-  constructor(companyInfo: CompanyInfo) {
-    this.companyInfo = companyInfo;
+  constructor(companyInfo?: CompanyInfo) {
+    this.companyInfo = companyInfo || null;
+  }
+
+  /**
+   * Get company info (from database or fallback to constructor)
+   */
+  private async getCompanyInfo(tenant?: string): Promise<CompanyInfo> {
+    if (!this.companyInfo) {
+      this.companyInfo = await CompanyService.getCompanyInfo(tenant);
+    }
+    return this.companyInfo;
   }
 
   /**
    * Generate invoice PDF
    */
-  generateInvoice(invoiceData: InvoiceData): jsPDF {
+  async generateInvoice(invoiceData: InvoiceData, tenant?: string): Promise<jsPDF> {
     const doc = new jsPDF();
     let yPos = 20;
+
+    // Get company info from database for the specific tenant
+    const companyInfo = await this.getCompanyInfo(tenant);
 
     // Header - Title
     doc.setFontSize(20);
@@ -87,27 +94,50 @@ export class PDFService {
     // Company info (left side)
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(this.companyInfo.name, 20, yPos);
+    doc.text(companyInfo.name, 20, yPos);
     yPos += 5;
+    
+    // Add domain of activity if available
+    if (companyInfo.domaine_activite) {
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.text(companyInfo.domaine_activite, 20, yPos);
+      yPos += 4;
+      if (companyInfo.sous_domaine) {
+        doc.text(companyInfo.sous_domaine, 20, yPos);
+        yPos += 4;
+      }
+    }
+    
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.text(this.companyInfo.address, 20, yPos);
+    doc.text(companyInfo.address, 20, yPos);
     yPos += 5;
-    doc.text(`Tel: ${this.companyInfo.phone}`, 20, yPos);
+    doc.text(`Tél: ${companyInfo.phone}`, 20, yPos);
     yPos += 5;
 
-    if (this.companyInfo.email) {
-      doc.text(`Email: ${this.companyInfo.email}`, 20, yPos);
+    if (companyInfo.tel_port) {
+      doc.text(`Mobile: ${companyInfo.tel_port}`, 20, yPos);
       yPos += 5;
     }
 
-    if (this.companyInfo.nif) {
-      doc.text(`NIF: ${this.companyInfo.nif}`, 20, yPos);
+    if (companyInfo.email) {
+      doc.text(`Email: ${companyInfo.email}`, 20, yPos);
       yPos += 5;
     }
 
-    if (this.companyInfo.rc) {
-      doc.text(`RC: ${this.companyInfo.rc}`, 20, yPos);
+    if (companyInfo.nif || companyInfo.ident_fiscal) {
+      doc.text(`NIF: ${companyInfo.nif || companyInfo.ident_fiscal}`, 20, yPos);
+      yPos += 5;
+    }
+
+    if (companyInfo.rc) {
+      doc.text(`RC: ${companyInfo.rc}`, 20, yPos);
+      yPos += 5;
+    }
+
+    if (companyInfo.art) {
+      doc.text(`Art: ${companyInfo.art}`, 20, yPos);
     }
 
     // Invoice info (right side)
@@ -244,9 +274,12 @@ export class PDFService {
   /**
    * Generate delivery note PDF (format complet)
    */
-  generateDeliveryNote(deliveryData: DeliveryNoteData): jsPDF {
+  async generateDeliveryNote(deliveryData: DeliveryNoteData, tenant?: string): Promise<jsPDF> {
     const doc = new jsPDF();
     let yPos = 20;
+
+    // Get company info from database for the specific tenant
+    const companyInfo = await this.getCompanyInfo(tenant);
 
     // Header - Title
     doc.setFontSize(20);
@@ -262,13 +295,26 @@ export class PDFService {
     // Company info (left side)
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(this.companyInfo.name, 20, yPos);
+    doc.text(companyInfo.name, 20, yPos);
     yPos += 5;
+    
+    // Add domain of activity if available
+    if (companyInfo.domaine_activite) {
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.text(companyInfo.domaine_activite, 20, yPos);
+      yPos += 4;
+      if (companyInfo.sous_domaine) {
+        doc.text(companyInfo.sous_domaine, 20, yPos);
+        yPos += 4;
+      }
+    }
+    
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.text(this.companyInfo.address, 20, yPos);
+    doc.text(companyInfo.address, 20, yPos);
     yPos += 5;
-    doc.text(`Tel: ${this.companyInfo.phone}`, 20, yPos);
+    doc.text(`Tél: ${companyInfo.phone}`, 20, yPos);
 
     // BL info (right side)
     yPos = 45;
@@ -422,9 +468,12 @@ export class PDFService {
   /**
    * Generate small delivery note PDF (format réduit)
    */
-  generateSmallDeliveryNote(deliveryData: DeliveryNoteData): jsPDF {
+  async generateSmallDeliveryNote(deliveryData: DeliveryNoteData, tenant?: string): Promise<jsPDF> {
     const doc = new jsPDF();
     let yPos = 20;
+
+    // Get company info from database for the specific tenant
+    const companyInfo = await this.getCompanyInfo(tenant);
 
     // Title - Plus compact
     doc.setFontSize(14);
@@ -493,7 +542,10 @@ export class PDFService {
   /**
    * Generate ticket receipt PDF (format ticket de caisse)
    */
-  generateTicketReceipt(deliveryData: DeliveryNoteData): jsPDF {
+  async generateTicketReceipt(deliveryData: DeliveryNoteData, tenant?: string): Promise<jsPDF> {
+    // Get company info from database for the specific tenant
+    const companyInfo = await this.getCompanyInfo(tenant);
+
     // Format ticket - plus petit (80mm de large)
     const doc = new jsPDF({
       orientation: 'portrait',
@@ -506,12 +558,12 @@ export class PDFService {
     // En-tête entreprise - Centré
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(this.companyInfo.name, 40, yPos, { align: 'center' });
+    doc.text(companyInfo.name, 40, yPos, { align: 'center' });
     yPos += 5;
     
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text(this.companyInfo.phone, 40, yPos, { align: 'center' });
+    doc.text(companyInfo.phone, 40, yPos, { align: 'center' });
     yPos += 10;
 
     // Numéro de bon et date
@@ -592,8 +644,8 @@ export class PDFService {
   /**
    * Generate proforma invoice PDF
    */
-  generateProforma(invoiceData: InvoiceData): jsPDF {
-    const doc = this.generateInvoice(invoiceData);
+  async generateProforma(invoiceData: InvoiceData, tenant?: string): Promise<jsPDF> {
+    const doc = await this.generateInvoice(invoiceData, tenant);
 
     // Add "PROFORMA" watermark
     doc.setFontSize(60);
