@@ -20,7 +20,7 @@
 
 .header {
   background: var(--foreground);
-  padding: 1rem 2rem;
+  padding: 1rem 1rem;
   box-shadow: var(--shadow);
   position: fixed;
   top: 0;
@@ -61,10 +61,9 @@
 
 .main {
   margin-top: 120px;
-  padding: 2rem;
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
+  padding: 1rem;
+  width: 100%;
+  max-width: none;
 }
 
 /* Dashboard Styles */
@@ -179,18 +178,24 @@
 
 .tableContainer {
   overflow-x: auto;
+  width: 100%;
+  margin: 0;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: auto;
+  min-width: 100%;
 }
 
 .table th,
 .table td {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   text-align: left;
   border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .table th {
@@ -198,8 +203,10 @@
   font-weight: 600;
   color: var(--text-primary);
   text-transform: uppercase;
-  font-size: 0.8rem;
-  letter-spacing: 0.5px;
+  font-size: 0.75rem;
+  letter-spacing: 0.3px;
+  padding: 0.6rem 0.75rem;
+  white-space: nowrap;
 }
 
 .table tbody tr:hover {
@@ -479,14 +486,43 @@
   background: var(--primary-hover);
 }
 
+/* Full Width Optimization */
+.fullWidthTable {
+  width: 100%;
+  min-width: 1400px;
+}
+
+.compactCell {
+  padding: 0.4rem 0.6rem !important;
+  font-size: 12px !important;
+}
+
+.numberCell {
+  text-align: right;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+}
+
 /* Responsive Design */
+@media (max-width: 1200px) {
+  .table th,
+  .table td {
+    padding: 0.4rem 0.5rem;
+    font-size: 12px;
+  }
+  
+  .table th {
+    font-size: 0.7rem;
+  }
+}
+
 @media (max-width: 768px) {
   .header {
-    padding: 1rem;
+    padding: 0.5rem;
   }
 
   .header h1 {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
   }
 
   .nav {
@@ -494,13 +530,13 @@
   }
 
   .nav button {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.9rem;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
   }
 
   .main {
     margin-top: 140px;
-    padding: 1rem;
+    padding: 0.5rem;
   }
 
   .stats {
@@ -536,6 +572,15 @@
 
   .modalActions button {
     width: 100%;
+  }
+
+  .table {
+    font-size: 11px;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.3rem 0.4rem;
   }
 }
 

@@ -348,10 +348,11 @@ export default function Dashboard() {
         client.raison_sociale.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
         (client.contact_person && client.contact_person.toLowerCase().includes(clientSearchTerm.toLowerCase()));
 
-      // Filtre par statut (basé sur le chiffre d'affaires)
+      // Filtre par statut (basé sur le chiffre d'affaires total: Factures + BL)
+      const totalCA = (client.c_affaire_fact || 0) + (client.c_affaire_bl || 0);
       const matchesStatus = selectedClientStatus === '' || 
-        (selectedClientStatus === 'active' && (client.c_affaire_fact || 0) > 0) ||
-        (selectedClientStatus === 'inactive' && (client.c_affaire_fact || 0) === 0);
+        (selectedClientStatus === 'active' && totalCA > 0) ||
+        (selectedClientStatus === 'inactive' && totalCA === 0);
 
       return matchesSearch && matchesStatus;
     });
@@ -969,10 +970,15 @@ export default function Dashboard() {
                         <th>Code</th>
                         <th>Désignation</th>
                         <th>Famille</th>
-                        <th>Stock Facture</th>
-                        <th>Stock BL</th>
-                        <th>Seuil</th>
+                        <th>Fournisseur</th>
+                        <th>Prix Unit.</th>
+                        <th>Marge %</th>
+                        <th>TVA %</th>
                         <th>Prix Vente</th>
+                        <th>Stock F</th>
+                        <th>Stock BL</th>
+                        <th>Stock Total</th>
+                        <th>Seuil</th>
                         <th>Statut</th>
                         <th>Actions</th>
                       </tr>
@@ -980,7 +986,7 @@ export default function Dashboard() {
                     <tbody>
                       {getFilteredArticles().length === 0 ? (
                         <tr>
-                          <td colSpan={9} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                          <td colSpan={14} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
                             {articles.length === 0 
                               ? `Aucun article trouvé pour ${tenantInfo.schema}`
                               : 'Aucun article ne correspond aux filtres sélectionnés'
@@ -988,74 +994,92 @@ export default function Dashboard() {
                           </td>
                         </tr>
                       ) : (
-                        getFilteredArticles().map((article) => (
-                          <tr key={article.narticle}>
-                            <td>{article.narticle}</td>
-                            <td>{article.designation}</td>
-                            <td>{article.famille}</td>
-                            <td>{article.stock_f}</td>
-                            <td>{article.stock_bl}</td>
-                            <td>{article.seuil}</td>
-                            <td>{article.prix_vente?.toLocaleString('fr-FR')} DA</td>
-                            <td>
-                              {(() => {
-                                const stockTotal = (article.stock_f || 0) + (article.stock_bl || 0);
-                                const isLowStock = stockTotal <= article.seuil;
-                                const isZeroStock = stockTotal === 0;
-                                
-                                return (
-                                  <span className={
-                                    isZeroStock ? styles.zeroStock : 
-                                    isLowStock ? styles.lowStock : styles.inStock
-                                  }>
-                                    {isZeroStock ? '❌ Rupture' : 
-                                     isLowStock ? '⚠️ Stock Faible' : '✅ En Stock'}
-                                  </span>
-                                );
-                              })()}
-                            </td>
-                            <td>
-                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                <button 
-                                  onClick={() => handleEditArticle(article)}
-                                  style={{
-                                    padding: '6px 12px',
-                                    backgroundColor: '#007bff',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                  }}
-                                  title="Modifier l'article"
-                                >
-                                  ✏️ Modifier
-                                </button>
-                                <button 
-                                  onClick={() => handleDeleteArticle(article)}
-                                  style={{
-                                    padding: '6px 12px',
-                                    backgroundColor: '#dc3545',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                  }}
-                                  title="Supprimer l'article (vérifiez qu'il n'a jamais été facturé)"
-                                >
-                                  🗑️ Supprimer
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
+                        getFilteredArticles().map((article) => {
+                          const stockTotal = (article.stock_f || 0) + (article.stock_bl || 0);
+                          const isLowStock = stockTotal <= article.seuil;
+                          const isZeroStock = stockTotal === 0;
+                          const supplierName = suppliers.find(s => s.nfournisseur === article.nfournisseur)?.nom_fournisseur || article.nfournisseur || '-';
+                          
+                          return (
+                            <tr key={article.narticle}>
+                              <td style={{ fontWeight: 'bold' }}>{article.narticle}</td>
+                              <td style={{ fontWeight: 'bold', color: '#007bff', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={article.designation}>
+                                {article.designation}
+                              </td>
+                              <td style={{ fontSize: '12px' }}>{article.famille}</td>
+                              <td style={{ fontSize: '11px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={supplierName}>
+                                {supplierName}
+                              </td>
+                              <td style={{ textAlign: 'right', fontSize: '12px' }}>
+                                {article.prix_unitaire?.toLocaleString('fr-FR')} DA
+                              </td>
+                              <td style={{ textAlign: 'center', fontSize: '12px' }}>
+                                {article.marge}%
+                              </td>
+                              <td style={{ textAlign: 'center', fontSize: '12px' }}>
+                                {article.tva}%
+                              </td>
+                              <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#28a745' }}>
+                                {article.prix_vente?.toLocaleString('fr-FR')} DA
+                              </td>
+                              <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{article.stock_f}</td>
+                              <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{article.stock_bl}</td>
+                              <td style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14px', color: isZeroStock ? '#dc3545' : isLowStock ? '#ffc107' : '#28a745' }}>
+                                {stockTotal}
+                              </td>
+                              <td style={{ textAlign: 'center', fontSize: '12px' }}>{article.seuil}</td>
+                              <td>
+                                <span className={
+                                  isZeroStock ? styles.zeroStock : 
+                                  isLowStock ? styles.lowStock : styles.inStock
+                                }>
+                                  {isZeroStock ? '❌ Rupture' : 
+                                   isLowStock ? '⚠️ Faible' : '✅ OK'}
+                                </span>
+                              </td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                                  <button 
+                                    onClick={() => handleEditArticle(article)}
+                                    style={{
+                                      padding: '4px 8px',
+                                      backgroundColor: '#007bff',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '3px',
+                                      cursor: 'pointer',
+                                      fontSize: '11px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '2px'
+                                    }}
+                                    title="Modifier l'article"
+                                  >
+                                    ✏️
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteArticle(article)}
+                                    style={{
+                                      padding: '4px 8px',
+                                      backgroundColor: '#dc3545',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '3px',
+                                      cursor: 'pointer',
+                                      fontSize: '11px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '2px'
+                                    }}
+                                    title="Supprimer l'article (vérifiez qu'il n'a jamais été facturé)"
+                                  >
+                                    🗑️
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>
@@ -1184,7 +1208,10 @@ export default function Dashboard() {
                         <th>Contact</th>
                         <th>Téléphone</th>
                         <th>Email</th>
+                        <th>Adresse</th>
                         <th>CA Factures</th>
+                        <th>CA Bons Livraison</th>
+                        <th>CA Total</th>
                         <th>Statut</th>
                         <th>Actions</th>
                       </tr>
@@ -1192,7 +1219,7 @@ export default function Dashboard() {
                     <tbody>
                       {getFilteredClients().length === 0 ? (
                         <tr>
-                          <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                          <td colSpan={11} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
                             {clients.length === 0 
                               ? `Aucun client trouvé pour ${tenantInfo.schema}`
                               : 'Aucun client ne correspond aux filtres sélectionnés'
@@ -1200,63 +1227,77 @@ export default function Dashboard() {
                           </td>
                         </tr>
                       ) : (
-                        getFilteredClients().map((client) => (
-                          <tr key={client.nclient}>
-                            <td>{client.nclient}</td>
-                            <td>{client.raison_sociale}</td>
-                            <td>{client.contact_person}</td>
-                            <td>{client.tel}</td>
-                            <td>{client.email}</td>
-                            <td>{client.c_affaire_fact?.toLocaleString('fr-FR')} DA</td>
-                            <td>
-                              <span className={
-                                (client.c_affaire_fact || 0) > 0 ? styles.inStock : styles.lowStock
-                              }>
-                                {(client.c_affaire_fact || 0) > 0 ? '✅ Actif' : '⚠️ Inactif'}
-                              </span>
-                            </td>
-                            <td>
-                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                <button 
-                                  onClick={() => handleEditClient(client)}
-                                  style={{
-                                    padding: '6px 12px',
-                                    backgroundColor: '#007bff',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                  }}
-                                  title="Modifier le client"
-                                >
-                                  ✏️ Modifier
-                                </button>
-                                <button 
-                                  onClick={() => handleDeleteClient(client)}
-                                  style={{
-                                    padding: '6px 12px',
-                                    backgroundColor: '#dc3545',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                  }}
-                                  title="Supprimer le client (vérifiez qu'il n'a aucune transaction)"
-                                >
-                                  🗑️ Supprimer
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
+                        getFilteredClients().map((client) => {
+                          const totalCA = (client.c_affaire_fact || 0) + (client.c_affaire_bl || 0);
+                          return (
+                            <tr key={client.nclient}>
+                              <td style={{ fontWeight: 'bold', fontSize: '14px' }}>{client.nclient}</td>
+                              <td style={{ fontWeight: 'bold', color: '#007bff', fontSize: '14px' }}>{client.raison_sociale}</td>
+                              <td style={{ fontSize: '13px' }}>{client.contact_person}</td>
+                              <td style={{ fontSize: '13px' }}>{client.tel}</td>
+                              <td style={{ fontSize: '13px' }}>{client.email}</td>
+                              <td style={{ fontSize: '13px', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={client.adresse}>
+                                {client.adresse}
+                              </td>
+                              <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#28a745', fontSize: '13px' }}>
+                                {client.c_affaire_fact?.toLocaleString('fr-FR')} DA
+                              </td>
+                              <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#17a2b8', fontSize: '13px' }}>
+                                {client.c_affaire_bl?.toLocaleString('fr-FR')} DA
+                              </td>
+                              <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#6f42c1', fontSize: '15px' }}>
+                                {totalCA.toLocaleString('fr-FR')} DA
+                              </td>
+                              <td>
+                                <span className={
+                                  totalCA > 0 ? styles.inStock : styles.lowStock
+                                }>
+                                  {totalCA > 0 ? '✅ Actif' : '⚠️ Inactif'}
+                                </span>
+                              </td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                                  <button 
+                                    onClick={() => handleEditClient(client)}
+                                    style={{
+                                      padding: '6px 10px',
+                                      backgroundColor: '#007bff',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      fontSize: '12px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '3px'
+                                    }}
+                                    title="Modifier le client"
+                                  >
+                                    ✏️
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteClient(client)}
+                                    style={{
+                                      padding: '6px 10px',
+                                      backgroundColor: '#dc3545',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      fontSize: '12px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '3px'
+                                    }}
+                                    title="Supprimer le client (vérifiez qu'il n'a aucune transaction)"
+                                  >
+                                    🗑️
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>
@@ -1383,9 +1424,12 @@ export default function Dashboard() {
                         <th>Code</th>
                         <th>Nom Fournisseur</th>
                         <th>Responsable</th>
+                        <th>Adresse</th>
                         <th>Téléphone</th>
                         <th>Email</th>
                         <th>CA Factures</th>
+                        <th>CA BL</th>
+                        <th>CA Total</th>
                         <th>Statut</th>
                         <th>Actions</th>
                       </tr>
@@ -1393,7 +1437,7 @@ export default function Dashboard() {
                     <tbody>
                       {getFilteredSuppliers().length === 0 ? (
                         <tr>
-                          <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                          <td colSpan={11} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
                             {suppliers.length === 0 
                               ? `Aucun fournisseur trouvé pour ${tenantInfo.schema}`
                               : 'Aucun fournisseur ne correspond aux filtres sélectionnés'
@@ -1401,63 +1445,77 @@ export default function Dashboard() {
                           </td>
                         </tr>
                       ) : (
-                        getFilteredSuppliers().map((supplier) => (
-                          <tr key={supplier.nfournisseur}>
-                            <td>{supplier.nfournisseur}</td>
-                            <td>{supplier.nom_fournisseur}</td>
-                            <td>{supplier.resp_fournisseur}</td>
-                            <td>{supplier.tel}</td>
-                            <td>{supplier.email}</td>
-                            <td>{supplier.caf?.toLocaleString('fr-FR')} DA</td>
-                            <td>
-                              <span className={
-                                (supplier.caf || 0) > 0 ? styles.inStock : styles.lowStock
-                              }>
-                                {(supplier.caf || 0) > 0 ? '✅ Actif' : '⚠️ Inactif'}
-                              </span>
-                            </td>
-                            <td>
-                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                <button 
-                                  onClick={() => handleEditSupplier(supplier)}
-                                  style={{
-                                    padding: '6px 12px',
-                                    backgroundColor: '#007bff',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                  }}
-                                  title="Modifier le fournisseur"
-                                >
-                                  ✏️ Modifier
-                                </button>
-                                <button 
-                                  onClick={() => handleDeleteSupplier(supplier)}
-                                  style={{
-                                    padding: '6px 12px',
-                                    backgroundColor: '#dc3545',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                  }}
-                                  title="Supprimer le fournisseur (vérifiez qu'il n'a aucun article associé)"
-                                >
-                                  🗑️ Supprimer
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
+                        getFilteredSuppliers().map((supplier) => {
+                          const totalCA = (supplier.caf || 0) + (supplier.cabl || 0);
+                          return (
+                            <tr key={supplier.nfournisseur}>
+                              <td style={{ fontWeight: 'bold' }}>{supplier.nfournisseur}</td>
+                              <td style={{ fontWeight: 'bold', color: '#007bff' }}>{supplier.nom_fournisseur}</td>
+                              <td>{supplier.resp_fournisseur}</td>
+                              <td style={{ fontSize: '12px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={supplier.adresse_fourni}>
+                                {supplier.adresse_fourni}
+                              </td>
+                              <td>{supplier.tel}</td>
+                              <td style={{ fontSize: '12px' }}>{supplier.email}</td>
+                              <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#28a745' }}>
+                                {supplier.caf?.toLocaleString('fr-FR')} DA
+                              </td>
+                              <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#17a2b8' }}>
+                                {supplier.cabl?.toLocaleString('fr-FR')} DA
+                              </td>
+                              <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#6f42c1', fontSize: '14px' }}>
+                                {totalCA.toLocaleString('fr-FR')} DA
+                              </td>
+                              <td>
+                                <span className={
+                                  totalCA > 0 ? styles.inStock : styles.lowStock
+                                }>
+                                  {totalCA > 0 ? '✅ Actif' : '⚠️ Inactif'}
+                                </span>
+                              </td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                                  <button 
+                                    onClick={() => handleEditSupplier(supplier)}
+                                    style={{
+                                      padding: '4px 8px',
+                                      backgroundColor: '#007bff',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '3px',
+                                      cursor: 'pointer',
+                                      fontSize: '11px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '2px'
+                                    }}
+                                    title="Modifier le fournisseur"
+                                  >
+                                    ✏️
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteSupplier(supplier)}
+                                    style={{
+                                      padding: '4px 8px',
+                                      backgroundColor: '#dc3545',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '3px',
+                                      cursor: 'pointer',
+                                      fontSize: '11px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '2px'
+                                    }}
+                                    title="Supprimer le fournisseur (vérifiez qu'il n'a aucun article associé)"
+                                  >
+                                    🗑️
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>
