@@ -5,7 +5,7 @@
 -- FONCTIONS POUR LES ARTICLES
 -- ========================================
 
--- 1. Récupérer les articles
+-- 1. Récupérer tous les articles
 CREATE OR REPLACE FUNCTION get_articles_by_tenant(p_tenant TEXT)
 RETURNS TABLE(
     narticle VARCHAR(20),
@@ -36,7 +36,43 @@ EXCEPTION
 END;
 $$;
 
--- 2. Insérer un article
+-- 2. Récupérer un article spécifique par ID
+CREATE OR REPLACE FUNCTION get_article_by_id_from_tenant(
+    p_tenant TEXT,
+    p_narticle VARCHAR(20)
+)
+RETURNS TABLE(
+    narticle VARCHAR(20),
+    famille VARCHAR(50),
+    designation VARCHAR(200),
+    nfournisseur VARCHAR(20),
+    prix_unitaire DECIMAL(15,2),
+    marge DECIMAL(5,2),
+    tva DECIMAL(5,2),
+    prix_vente DECIMAL(15,2),
+    seuil INTEGER,
+    stock_f INTEGER,
+    stock_bl INTEGER
+)
+SECURITY DEFINER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY EXECUTE format('
+        SELECT narticle, famille, designation, nfournisseur,
+               prix_unitaire, marge, tva, prix_vente,
+               seuil, stock_f, stock_bl
+        FROM %I.article 
+        WHERE narticle = %L',
+        p_tenant, p_narticle
+    );
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN;
+END;
+$$;
+
+-- 3. Insérer un article
 CREATE OR REPLACE FUNCTION insert_article_to_tenant(
     p_tenant TEXT,
     p_narticle VARCHAR(20),
@@ -77,7 +113,7 @@ EXCEPTION
 END;
 $$;
 
--- 3. Modifier un article
+-- 4. Modifier un article
 CREATE OR REPLACE FUNCTION update_article_in_tenant(
     p_tenant TEXT,
     p_narticle VARCHAR(20),
@@ -123,7 +159,7 @@ EXCEPTION
 END;
 $$;
 
--- 4. Supprimer un article
+-- 5. Supprimer un article
 CREATE OR REPLACE FUNCTION delete_article_from_tenant(
     p_tenant TEXT,
     p_narticle VARCHAR(20)

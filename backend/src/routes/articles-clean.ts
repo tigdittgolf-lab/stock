@@ -79,8 +79,10 @@ articles.get('/:id', async (c) => {
 
     console.log(`🔍 Looking for article: ${id} in schema: ${tenant.schema}`);
     
-    const { data: articlesData, error } = await supabaseAdmin.rpc('get_articles_by_tenant', {
-      p_tenant: tenant.schema
+    // Utiliser la fonction RPC spécifique pour récupérer un article par ID
+    const { data: articleData, error } = await supabaseAdmin.rpc('get_article_by_id_from_tenant', {
+      p_tenant: tenant.schema,
+      p_narticle: id
     });
     
     if (error) {
@@ -88,10 +90,9 @@ articles.get('/:id', async (c) => {
       return c.json({ success: false, error: 'Article not found' }, 404);
     }
     
-    const foundArticle = articlesData?.find((article: any) => article.narticle === id);
-    
-    if (foundArticle) {
-      console.log(`✅ Found article ${id} in database`);
+    if (articleData && articleData.length > 0) {
+      const foundArticle = articleData[0];
+      console.log(`✅ Found article ${id} in database:`, foundArticle);
       return c.json({ success: true, data: foundArticle });
     }
 
