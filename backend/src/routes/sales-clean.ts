@@ -378,6 +378,65 @@ sales.get('/debug/delivery-notes', async (c) => {
   }
 });
 
+// DELETE /api/sales/delivery-notes/:id - Supprimer un bon de livraison
+sales.delete('/delivery-notes/:id', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    const id = c.req.param('id');
+    
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    const blId = parseInt(id);
+    if (isNaN(blId)) {
+      return c.json({ success: false, error: 'ID de BL invalide' }, 400);
+    }
+
+    console.log(`🗑️ Deleting delivery note ${blId} for tenant: ${tenant}`);
+
+    // Appeler la fonction RPC de suppression avec récupération de stock
+    const { data: deleteResult, error: deleteError } = await supabaseAdmin.rpc('delete_bl_with_stock_recovery', {
+      p_tenant: tenant,
+      p_nfact: blId
+    });
+
+    if (deleteError) {
+      console.error('❌ Failed to delete delivery note:', deleteError);
+      return c.json({ 
+        success: false, 
+        error: `Erreur lors de la suppression: ${deleteError.message}` 
+      }, 500);
+    }
+
+    if (deleteResult && !deleteResult.success) {
+      return c.json({ 
+        success: false, 
+        error: deleteResult.error || 'Erreur inconnue lors de la suppression' 
+      }, 404);
+    }
+
+    console.log(`✅ Delivery note ${blId} deleted successfully with stock recovery`);
+
+    return c.json({
+      success: true,
+      message: `Bon de livraison ${blId} supprimé avec succès`,
+      data: {
+        nfact: blId,
+        stock_recovered: true,
+        ca_updated: true
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error deleting delivery note:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Erreur lors de la suppression du bon de livraison'
+    }, 500);
+  }
+});
+
 export default sales;
 
 // ===== BONS DE LIVRAISON (BL) - CORRIGÉ AVEC RPC =====

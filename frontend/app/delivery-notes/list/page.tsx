@@ -10,7 +10,7 @@ interface DeliveryNote {
   date_fact: string;
   montant_ht: number;
   tva: number;
-  total_ttc: number;
+  montant_ttc: number;
   created_at: string;
 }
 
@@ -18,6 +18,7 @@ export default function DeliveryNotesList() {
   const router = useRouter();
   const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<number | null>(null);
 
   useEffect(() => {
     fetchDeliveryNotes();
@@ -25,9 +26,10 @@ export default function DeliveryNotesList() {
 
   const fetchDeliveryNotes = async () => {
     try {
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const response = await fetch('http://localhost:3005/api/sales/delivery-notes', {
         headers: {
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenant
         }
       });
       const data = await response.json();
@@ -38,6 +40,50 @@ export default function DeliveryNotesList() {
       console.error('Error fetching delivery notes:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (blId: number) => {
+    // Confirmation de suppression
+    const confirmed = window.confirm(
+      `Êtes-vous sûr de vouloir supprimer le bon de livraison N° ${blId} ?\n\n` +
+      `Cette action va :\n` +
+      `• Supprimer définitivement le BL\n` +
+      `• Récupérer le stock des articles\n` +
+      `• Diminuer le chiffre d'affaires du client\n\n` +
+      `Cette action est irréversible.`
+    );
+
+    if (!confirmed) return;
+
+    setDeleting(blId);
+
+    try {
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
+      const response = await fetch(`http://localhost:3005/api/sales/delivery-notes/${blId}`, {
+        method: 'DELETE',
+        headers: {
+          'X-Tenant': tenant
+        }
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(`✅ Bon de livraison N° ${blId} supprimé avec succès !\n\n` +
+              `• Stock récupéré automatiquement\n` +
+              `• Chiffre d'affaires client mis à jour`);
+        
+        // Recharger la liste
+        await fetchDeliveryNotes();
+      } else {
+        alert(`❌ Erreur lors de la suppression :\n${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting delivery note:', error);
+      alert('❌ Erreur de connexion lors de la suppression');
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -91,14 +137,33 @@ export default function DeliveryNotesList() {
                     <td>{new Date(bl.date_fact).toLocaleDateString('fr-FR')}</td>
                     <td>{bl.montant_ht?.toFixed(2)} DA</td>
                     <td>{bl.tva?.toFixed(2)} DA</td>
-                    <td><strong>{bl.total_ttc?.toFixed(2)} DA</strong></td>
+                    <td><strong>{bl.montant_ttc?.toFixed(2)} DA</strong></td>
                     <td>
-                      <button 
-                        onClick={() => router.push(`/delivery-notes/${bl.nbl}`)}
-                        className={styles.viewButton}
-                      >
-                        Voir
-                      </button>
+                      <div style={{ display: 'flex', gap: '5px' }}>
+                        <button 
+                          onClick={() => router.push(`/delivery-notes/${bl.nbl}`)}
+                          className={styles.viewButton}
+                          style={{ fontSize: '12px', padding: '4px 8px' }}
+                        >
+                          👁️ Voir
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(bl.nbl)}
+                          disabled={deleting === bl.nbl}
+                          className={styles.deleteButton}
+                          style={{ 
+                            fontSize: '12px', 
+                            padding: '4px 8px',
+                            backgroundColor: deleting === bl.nbl ? '#ccc' : '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: deleting === bl.nbl ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          {deleting === bl.nbl ? '⏳' : '🗑️'} Supprimer
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -63,7 +63,7 @@ export class CompanyService {
       const companyInfo: CompanyInfo = {
         name: companyData.raison_sociale || 'VOTRE ENTREPRISE',
         address: this.formatAddress(companyData),
-        phone: companyData.tel_fixe || '+213 XX XX XX XX',
+        phone: this.cleanPhoneNumber(companyData.tel_fixe) || '+213 XX XX XX XX',
         email: companyData.e_mail || `contact@${(companyData.raison_sociale || 'entreprise').toLowerCase().replace(/\s+/g, '')}.dz`,
         nif: companyData.nif || companyData.ident_fiscal || companyData.nis || '',
         rc: companyData.rc || companyData.nrc || '',
@@ -146,6 +146,21 @@ export class CompanyService {
     }
     
     return header;
+  }
+
+  /**
+   * Clean phone number by removing prefixes like "Tèl :" or "Tél :"
+   */
+  private static cleanPhoneNumber(phone: string | null): string | null {
+    if (!phone) return null;
+    
+    // Remove common prefixes
+    return phone
+      .replace(/^Tèl\s*:\s*/i, '')  // Remove "Tèl :" or "Tèl:"
+      .replace(/^Tél\s*:\s*/i, '')  // Remove "Tél :" or "Tél:"
+      .replace(/^Tel\s*:\s*/i, '')  // Remove "Tel :" or "Tel:"
+      .replace(/^Téléphone\s*:\s*/i, '') // Remove "Téléphone :"
+      .trim();
   }
 
   /**
