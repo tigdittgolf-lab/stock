@@ -2614,7 +2614,7 @@ sales.get('/delivery-notes/:id', async (c) => {
   }
 });
 
-// Create new delivery note
+// Create new delivery note - CORRIGÉ AVEC RPC
 sales.post('/delivery-notes', async (c) => {
   try {
     const tenant = c.get('tenant');
@@ -2623,143 +2623,83 @@ sales.post('/delivery-notes', async (c) => {
     }
 
     const body = await c.req.json();
-    const { Nclient, date_fact, detail_bl, ...blData } = body;
+    const { Nclient, date_fact, detail_bl } = body;
 
     if (!detail_bl || !Array.isArray(detail_bl) || detail_bl.length === 0) {
       return c.json({ success: false, error: 'detail_bl is required and must be a non-empty array' }, 400);
     }
 
-    console.log(`🆕 Creating delivery note for tenant: ${tenant}`);
+    console.log(`🆕 Creating delivery note for tenant: ${tenant}, Client: ${Nclient}`);
 
-    // Utiliser les mêmes données réelles que les autres endpoints
-    const realClientData = [
-      {
-        "nclient": "TEST_CLIENT",
-        "raison_sociale": "Test Client",
-        "adresse": "Test Address",
-        "contact_person": "Test Person",
-        "c_affaire_fact": "0.00",
-        "c_affaire_bl": "0.00",
-        "nrc": "RC123",
-        "date_rc": null,
-        "lieu_rc": null,
-        "i_fiscal": "IF123",
-        "n_article": null,
-        "tel": "123456789",
-        "email": "test@test.com",
-        "commentaire": null
-      },
-      {
-        "nclient": "001",
-        "raison_sociale": "client001",
-        "adresse": "Adresse client001",
-        "contact_person": "Client001",
-        "c_affaire_fact": "0.00",
-        "c_affaire_bl": "0.00",
-        "nrc": "lzdkazfk564654",
-        "date_rc": null,
-        "lieu_rc": null,
-        "i_fiscal": "ml65464653",
-        "n_article": null,
-        "tel": "213216545163",
-        "email": "member2@gmail.com",
-        "commentaire": null
-      },
-      {
-        "nclient": "C001",
-        "raison_sociale": "SECTEUR SANITAIRE AINT TEDELES",
-        "adresse": "AINT TEDELES MOSTAGANEM",
-        "contact_person": "SECTEUR SANITAIRE AINT TEDELES",
-        "c_affaire_fact": "50000.00",
-        "c_affaire_bl": "30000.00",
-        "nrc": "RC001",
-        "date_rc": null,
-        "lieu_rc": null,
-        "i_fiscal": "IF001",
-        "n_article": null,
-        "tel": "045-21-51-19",
-        "email": "secteur@sanitaire.dz",
-        "commentaire": null
-      },
-      {
-        "nclient": "C002",
-        "raison_sociale": "A P C MOSTAGANEM",
-        "adresse": "MOSTAGANEM",
-        "contact_person": "A P C MOSTAGANEM",
-        "c_affaire_fact": "1189071.00",
-        "c_affaire_bl": "682222.00",
-        "nrc": "RC002",
-        "date_rc": null,
-        "lieu_rc": null,
-        "i_fiscal": "IF002",
-        "n_article": null,
-        "tel": "045-21-51-19",
-        "email": "apc@mostaganem.dz",
-        "commentaire": null
-      },
-      {
-        "nclient": "C003",
-        "raison_sociale": "ALGERIE TELECOM",
-        "adresse": "MOSTAGANEM",
-        "contact_person": "ALGERIE TELECOM",
-        "c_affaire_fact": "1395986.00",
-        "c_affaire_bl": "3946391.00",
-        "nrc": "RC003",
-        "date_rc": null,
-        "lieu_rc": null,
-        "i_fiscal": "IF003",
-        "n_article": null,
-        "tel": "045-21-33-05",
-        "email": "contact@at.dz",
-        "commentaire": null
-      }
-    ];
+    // 1. Obtenir le prochain numéro de BL
+    const { data: nextNBl, error: numberError } = await supabaseAdmin.rpc('get_next_bl_number_simple', {
+      p_tenant: tenant
+    });
 
-    const realArticleData = [
-      {"narticle": "ART001","famille": "Droguerie","designation": "Produit Nettoyage A","nfournisseur": "F001","prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "ART002","famille": "Droguerie","designation": "Produit Nettoyage B","nfournisseur": "F001","prix_unitaire": "150.00","marge": "25.00","tva": "19.00","prix_vente": "223.13","seuil": 15,"stock_f": 30,"stock_bl": 0},
-      {"narticle": "ART003","famille": "Peinture","designation": "Peinture Blanche 1L","nfournisseur": "F002","prix_unitaire": "200.00","marge": "30.00","tva": "19.00","prix_vente": "309.40","seuil": 20,"stock_f": 25,"stock_bl": 0},
-      {"narticle": "ART004","famille": "Peinture","designation": "Peinture Rouge 1L","nfournisseur": "F002","prix_unitaire": "220.00","marge": "30.00","tva": "19.00","prix_vente": "340.34","seuil": 20,"stock_f": 15,"stock_bl": 0},
-      {"narticle": "ART005","famille": "Outillage","designation": "Marteau 500g","nfournisseur": "F003","prix_unitaire": "80.00","marge": "40.00","tva": "19.00","prix_vente": "133.28","seuil": 5,"stock_f": 40,"stock_bl": 0},
-      {"narticle": "ART006","famille": "Outillage","designation": "Tournevis Set","nfournisseur": "F003","prix_unitaire": "120.00","marge": "35.00","tva": "19.00","prix_vente": "192.78","seuil": 8,"stock_f": 35,"stock_bl": 0},
-      {"narticle": "1000","famille": "Outillage","designation": "outillage 1 designation","nfournisseur": "F003","prix_unitaire": "1000.00","marge": "20.00","tva": "19.00","prix_vente": "1428.00","seuil": 10,"stock_f": 100,"stock_bl": 200},
-      {"narticle": "TEST999","famille": "Droguerie","designation": "Test Article","nfournisseur": "F001","prix_unitaire": "100.00","marge": "20.00","tva": "19.00","prix_vente": "142.80","seuil": 10,"stock_f": 50,"stock_bl": 0},
-      {"narticle": "1000 ","famille": "Outillage","designation": "outillage 1 designation","nfournisseur": "F003","prix_unitaire": "500.00","marge": "20.00","tva": "19.00","prix_vente": "714.00","seuil": 10,"stock_f": 10,"stock_bl": 100},
-      {"narticle": "121","famille": "Droguerie","designation": "drog1  ","nfournisseur": "F001","prix_unitaire": "200.00","marge": "20.00","tva": "19.00","prix_vente": "285.60","seuil": 30,"stock_f": 120,"stock_bl": 150},
-      {"narticle": "112","famille": "Électricité","designation": "lampe 12v","nfournisseur": "F001","prix_unitaire": "50.00","marge": "30.00","tva": "19.00","prix_vente": "77.35","seuil": 25,"stock_f": 100,"stock_bl": 120}
-    ];
-
-    // Obtenir le prochain numéro de BL séquentiel depuis le cache
-    const existingBLs = createdDocumentsCache.get(`${tenant}_bl`) || [];
-    const maxNumber = existingBLs.length > 0 ? Math.max(...existingBLs.map(bl => bl.nbl)) : 0;
-    const nextNBl = maxNumber + 1;
-
-    // Valider que le client existe
-    const clientExists = realClientData.find(client => client.nclient === Nclient);
-    if (!clientExists) {
-      console.log(`❌ Client ${Nclient} not found`);
-      return c.json({ success: false, error: 'Client not found' }, 400);
+    if (numberError) {
+      console.error('❌ Failed to get next BL number:', numberError);
+      return c.json({ success: false, error: 'Failed to generate BL number' }, 500);
     }
 
-    console.log(`✅ Client ${Nclient} found: ${clientExists.raison_sociale}`);
+    // 2. Valider le client
+    const { data: clients, error: clientError } = await supabaseAdmin.rpc('get_clients_by_tenant', {
+      p_tenant: tenant
+    });
 
-    // Calculate totals
+    if (clientError) {
+      console.error('❌ Failed to fetch clients:', clientError);
+      return c.json({ success: false, error: 'Failed to validate client' }, 500);
+    }
+
+    const clientExists = clients?.find(client => client.nclient === Nclient);
+    if (!clientExists) {
+      return c.json({ success: false, error: `Client ${Nclient} not found` }, 400);
+    }
+
+    // 3. Valider les articles
+    const { data: articles, error: articleError } = await supabaseAdmin.rpc('get_articles_by_tenant', {
+      p_tenant: tenant
+    });
+
+    if (articleError) {
+      console.error('❌ Failed to fetch articles:', articleError);
+      return c.json({ success: false, error: 'Failed to validate articles' }, 500);
+    }
+
+    // 4. Calculer les totaux et valider le stock
     let montant_ht = 0;
     let TVA = 0;
     const processedDetails = [];
 
     for (const detail of detail_bl) {
-      // Valider que l'article existe
-      const articleExists = realArticleData.find(article => article.narticle === detail.Narticle);
+      const articleExists = articles?.find(article => article.narticle.trim() === detail.Narticle.trim());
       if (!articleExists) {
-        console.log(`❌ Article ${detail.Narticle} not found`);
         return c.json({ success: false, error: `Article ${detail.Narticle} not found` }, 400);
       }
 
-      console.log(`✅ Article ${detail.Narticle} found: ${articleExists.designation}`);
+      // Vérifier le stock
+      const { data: stockInfo, error: stockError } = await supabaseAdmin.rpc('get_article_stock_simple', {
+        p_tenant: tenant,
+        p_narticle: detail.Narticle
+      });
 
-      const total_ligne = detail.Qte * detail.prix;
-      const tva_amount = total_ligne * (detail.tva / 100);
+      if (stockError) {
+        console.error(`❌ Failed to get stock for ${detail.Narticle}:`, stockError);
+        return c.json({ success: false, error: `Failed to check stock for ${detail.Narticle}` }, 500);
+      }
+
+      const currentStockBL = parseFloat(stockInfo?.stock_bl || '0');
+      const requestedQty = parseFloat(detail.Qte);
+      
+      if (currentStockBL < requestedQty) {
+        return c.json({ 
+          success: false, 
+          error: `Stock insuffisant pour ${detail.Narticle}. Disponible: ${currentStockBL}, demandé: ${requestedQty}`
+        }, 400);
+      }
+
+      const total_ligne = requestedQty * parseFloat(detail.prix);
+      const tva_amount = total_ligne * (parseFloat(detail.tva) / 100);
 
       montant_ht += total_ligne;
       TVA += tva_amount;
@@ -2767,224 +2707,95 @@ sales.post('/delivery-notes', async (c) => {
       processedDetails.push({
         nfact: nextNBl,
         narticle: detail.Narticle,
-        qte: detail.Qte,
-        tva: detail.tva,
-        prix: detail.prix,
-        total_ligne: total_ligne,
-        facturer: detail.facturer || false
+        qte: requestedQty,
+        tva: parseFloat(detail.tva),
+        prix: parseFloat(detail.prix),
+        total_ligne: total_ligne
       });
     }
 
-    // Create BL header
+    // 5. Créer le BL
     const blDate = date_fact || new Date().toISOString().split('T')[0];
     
-    // VRAIE SAUVEGARDE EN BASE DE DONNÉES AVEC API SUPABASE DIRECTE
-    try {
-      console.log(`💾 Saving BL ${nextNBl} to database for client ${Nclient} in schema ${tenant}`);
-      
-      // Créer l'en-tête du bon de livraison avec API Supabase directe (schéma tenant)
-      const blHeaderData = {
-        NFact: nextNBl,
-        Nclient: Nclient,
-        date_fact: blDate,
-        montant_ht: montant_ht,
-        timbre: 0,
-        TVA: TVA,
-        autre_taxe: 0,
-        facturer: false,
-        nbc: '',
-        date_bc: null,
-        nom_preneur: '',
-        banq: '',
-        ncheque: ''
-      };
+    const { data: blHeader, error: blError } = await supabaseAdmin.rpc('insert_bl_simple', {
+      p_tenant: tenant,
+      p_nfact: nextNBl,
+      p_nclient: Nclient,
+      p_date_fact: blDate,
+      p_montant_ht: montant_ht,
+      p_tva: TVA
+    });
 
-      // Utiliser RPC pour insérer dans le schéma tenant
-      const { data: blHeader, error: blError } = await supabaseAdmin.rpc('insert_bl', {
-        p_tenant: tenant,
-        p_nfact: nextNBl,
-        p_nclient: Nclient,
-        p_date_fact: blDate,
-        p_montant_ht: montant_ht,
-        p_tva: TVA,
-        p_timbre: 0,
-        p_autre_taxe: 0
-      });
-
-      if (blError) {
-        console.warn('Database BL header insert failed:', blError);
-        throw blError;
-      } else {
-        console.log(`✅ BL header ${nextNBl} saved to database successfully`);
-      }
-
-      // Sauvegarder les détails du bon de livraison
-      const detailsToInsert = processedDetails.map(detail => ({
-        NFact: nextNBl,
-        Narticle: detail.narticle,
-        Qte: detail.qte,
-        prix: detail.prix,
-        tva: detail.tva,
-        total_ligne: detail.total_ligne,
-        facturer: detail.facturer || false
-      }));
-
-      // Insérer les détails via RPC
-      let detailsData = [];
-      let detailsError = null;
-      
-      for (const detail of detailsToInsert) {
-        const { data: detailResult, error: detailErr } = await supabaseAdmin.rpc('insert_detail_bl', {
-          p_tenant: tenant,
-          p_nfact: detail.NFact,
-          p_narticle: detail.Narticle,
-          p_qte: detail.Qte,
-          p_prix: detail.prix,
-          p_tva: detail.tva,
-          p_total_ligne: detail.total_ligne
-        });
-        
-        if (detailErr) {
-          detailsError = detailErr;
-          break;
-        } else {
-          detailsData.push(detailResult);
-        }
-      }
-
-      if (detailsError) {
-        console.warn('Database BL details insert failed:', detailsError);
-        throw detailsError;
-      } else {
-        console.log(`✅ ${detailsToInsert.length} BL details saved to database successfully`);
-      }
-
-      // Déduire le stock BL pour chaque article via RPC
-      for (const detail of processedDetails) {
-        try {
-          // Vérifier si les fonctions RPC existent
-          const { data: currentStockRaw, error: fetchError } = await supabaseAdmin.rpc('get_article_stock', {
-            p_tenant: tenant,
-            p_narticle: detail.narticle
-          });
-
-          if (fetchError) {
-            if (fetchError.code === 'PGRST106' || fetchError.message?.includes('schema must be one of')) {
-              console.log(`⚠️ RPC functions not yet created - skipping stock update for article ${detail.narticle}`);
-              console.log(`📋 Please execute SUPABASE_RPC_FUNCTIONS_FIXED.sql in your Supabase SQL Editor`);
-              continue;
-            }
-            console.warn(`Failed to fetch current stock for article ${detail.narticle}:`, fetchError);
-            continue;
-          }
-
-          const currentStock = currentStockRaw?.stock_bl || 0;
-
-          // Mettre à jour le stock via RPC
-          const { data: updateResult, error: stockError } = await supabaseAdmin.rpc('update_stock_bl', {
-            p_tenant: tenant,
-            p_narticle: detail.narticle,
-            p_quantity: detail.qte
-          });
-
-          if (stockError) {
-            console.warn(`Stock BL update failed for article ${detail.narticle}:`, stockError);
-          } else {
-            console.log(`📦 Stock BL updated for article ${detail.narticle}: ${currentStock} -> ${updateResult?.stock_bl || (currentStock - detail.qte)} (-${detail.qte} units)`);
-          }
-        } catch (stockUpdateError) {
-          console.warn(`Stock BL update error for article ${detail.narticle}:`, stockUpdateError);
-        }
-      }
-
-      console.log(`✅ BL ${nextNBl} created successfully for client ${Nclient}`);
-      console.log(`📊 Total HT: ${montant_ht}, TVA: ${TVA}, Details: ${processedDetails.length} items`);
-
-      // Sauvegarder dans le cache pour la liste
-      const blData = {
-        nbl: nextNBl,
-        nclient: Nclient,
-        date_fact: blDate,
-        montant_ht: montant_ht,
-        tva: TVA,
-        total_ttc: montant_ht + TVA,
-        created_at: new Date().toISOString(),
-        client_name: clientExists.raison_sociale,
-        details: processedDetails.map(detail => ({
-          narticle: detail.narticle,
-          designation: realArticleData.find(art => art.narticle === detail.narticle)?.designation || detail.narticle,
-          qte: detail.qte,
-          prix: detail.prix,
-          tva: detail.tva,
-          total_ligne: detail.total_ligne
-        }))
-      };
-
-      const existingBLs = createdDocumentsCache.get(`${tenant}_bl`) || [];
-      existingBLs.unshift(blData); // Ajouter au début (plus récent en premier)
-      createdDocumentsCache.set(`${tenant}_bl`, existingBLs);
-
-      return c.json({
-        success: true,
-        data: {
-          nbl: nextNBl,
-          nclient: Nclient,
-          date_fact: blDate,
-          montant_ht: montant_ht,
-          tva: TVA,
-          total_ttc: montant_ht + TVA,
-          details: processedDetails,
-          message: `Bon de livraison N° ${nextNBl} créé avec succès`
-        }
-      });
-
-    } catch (saveError) {
-      console.error('Error saving BL to database:', saveError);
-      
-      // Fallback: sauvegarder dans le cache même si la base échoue
-      const blData = {
-        nbl: nextNBl,
-        nclient: Nclient,
-        date_fact: blDate,
-        montant_ht: montant_ht,
-        tva: TVA,
-        total_ttc: montant_ht + TVA,
-        created_at: new Date().toISOString(),
-        client_name: clientExists.raison_sociale,
-        details: processedDetails.map(detail => ({
-          narticle: detail.narticle,
-          designation: realArticleData.find(art => art.narticle === detail.narticle)?.designation || detail.narticle,
-          qte: detail.qte,
-          prix: detail.prix,
-          tva: detail.tva,
-          total_ligne: detail.total_ligne
-        }))
-      };
-
-      const existingBLs = createdDocumentsCache.get(`${tenant}_bl`) || [];
-      existingBLs.unshift(blData);
-      createdDocumentsCache.set(`${tenant}_bl`, existingBLs);
-
-      return c.json({
-        success: true,
-        data: {
-          nbl: nextNBl,
-          nclient: Nclient,
-          date_fact: blDate,
-          montant_ht: montant_ht,
-          tva: TVA,
-          total_ttc: montant_ht + TVA,
-          details: processedDetails,
-          message: `Bon de livraison N° ${nextNBl} créé (sauvegarde en cache)`
-        }
-      });
+    if (blError) {
+      console.error('❌ Failed to create BL:', blError);
+      return c.json({ success: false, error: `Failed to create BL: ${blError.message}` }, 500);
     }
 
+    // 6. Ajouter les détails
+    for (const detail of processedDetails) {
+      const { error: detailErr } = await supabaseAdmin.rpc('insert_detail_bl_simple', {
+        p_tenant: tenant,
+        p_nfact: detail.nfact,
+        p_narticle: detail.narticle,
+        p_qte: detail.qte,
+        p_prix: detail.prix,
+        p_tva: detail.tva,
+        p_total_ligne: detail.total_ligne
+      });
+      
+      if (detailErr) {
+        console.error(`❌ Failed to insert detail for ${detail.narticle}:`, detailErr);
+        return c.json({ success: false, error: `Failed to save BL details: ${detailErr.message}` }, 500);
+      }
+    }
+
+    // 7. Mettre à jour les stocks
+    for (const detail of processedDetails) {
+      const { error: stockError } = await supabaseAdmin.rpc('update_stock_bl_simple', {
+        p_tenant: tenant,
+        p_narticle: detail.narticle,
+        p_quantity: detail.qte
+      });
+
+      if (stockError) {
+        console.warn(`⚠️ Stock update failed for ${detail.narticle}:`, stockError);
+      }
+    }
+
+    console.log(`✅ BL ${nextNBl} created successfully for client ${Nclient}`);
+
+    return c.json({
+      success: true,
+      message: `Bon de livraison ${nextNBl} créé avec succès !`,
+      data: {
+        nbl: nextNBl,
+        nclient: Nclient,
+        client_name: clientExists.raison_sociale,
+        date_fact: blDate,
+        montant_ht: montant_ht,
+        tva: TVA,
+        montant_ttc: montant_ht + TVA,
+        details: processedDetails.map(detail => ({
+          narticle: detail.narticle,
+          designation: articles?.find(a => a.narticle.trim() === detail.narticle.trim())?.designation || '',
+          qte: detail.qte,
+          prix: detail.prix,
+          tva: detail.tva,
+          total_ligne: detail.total_ligne
+        })),
+        source: 'database'
+      }
+    });
+
   } catch (error) {
-    console.error('Error creating delivery note:', error);
-    return c.json({ success: false, error: 'Failed to create delivery note' }, 500);
+    console.error('❌ Error creating delivery note:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Erreur lors de la création du bon de livraison'
+    }, 500);
   }
 });
+
 
 // ===== PROFORMA INVOICES =====
 
