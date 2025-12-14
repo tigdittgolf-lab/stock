@@ -1,0 +1,9 @@
+# Utiliser la nouvelle base (szgodrjglbpzkrksnroi) partout
+# Remplacez le contenu de backend/.env par:
+
+SUPABASE_URL=https://szgodrjglbpzkrksnroi.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=VOTRE_SERVICE_ROLE_KEY_POUR_szgodrjglbpzkrksnroi
+
+# Note: Vous devez récupérer la SERVICE_ROLE_KEY depuis votre dashboard Supabase
+# Dashboard: https://supabase.com/dashboard/project/szgodrjglbpzkrksnroi
+# Allez dans Settings > API > service_role key

@@ -680,6 +680,12 @@ export default function Dashboard() {
           >
             📈 Stock
           </button>
+          <button
+            className={activeTab === 'settings' ? styles.active : ''}
+            onClick={() => router.push('/settings')}
+          >
+            ⚙️ Réglages
+          </button>
         </nav>
       </header>
 

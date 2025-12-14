@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vider le Cache Navigateur</title>
+</head>
+<body>
+    <h1>🧹 Vidage du Cache Navigateur</h1>
+    <button onclick="clearAll()">Vider Tout le Cache</button>
+    <div id="result"></div>
+    
+    <script>
+        function clearAll() {
+            // Vider localStorage
+            localStorage.clear();
+            
+            // Vider sessionStorage
+            sessionStorage.clear();
+            
+            // Afficher le résultat
+            document.getElementById('result').innerHTML = `
+                <h2>✅ Cache vidé !</h2>
+                <p>✅ localStorage vidé</p>
+                <p>✅ sessionStorage vidé</p>
+                <p>🔄 Rechargez maintenant l'application : <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></p>
+            `;
+        }
+        
+        // Afficher le contenu actuel du cache
+        window.onload = function() {
+            const localStorageItems = Object.keys(localStorage).length;
+            const sessionStorageItems = Object.keys(sessionStorage).length;
+            
+            document.getElementById('result').innerHTML = `
+                <h3>📊 État actuel du cache :</h3>
+                <p>localStorage : ${localStorageItems} éléments</p>
+                <p>sessionStorage : ${sessionStorageItems} éléments</p>
+            `;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Utiliser l'ancienne base (rslmihwmfdepvsuvqzna) partout
+# Remplacez les lignes actives dans frontend/.env.local par:
+
+NEXT_PUBLIC_SUPABASE_URL=https://rslmihwmfdepvsuvqzna.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=VOTRE_ANON_KEY_POUR_rslmihwmfdepvsuvqzna
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=VOTRE_PUBLISHABLE_KEY_POUR_rslmihwmfdepvsuvqzna
+
+# Note: Vous devez récupérer les clés depuis votre dashboard Supabase
+# Dashboard: https://supabase.com/dashboard/project/rslmihwmfdepvsuvqzna
+# Allez dans Settings > API

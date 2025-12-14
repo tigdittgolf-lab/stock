@@ -1,46 +1,93 @@
+// Vérifier les données dans les schémas tenants
 import { supabaseAdmin } from './src/supabaseClient.js';
 
 async function checkTenantData() {
-  console.log('🔍 Checking data in tenant schemas...');
+  console.log('🔍 VÉRIFICATION DES DONNÉES TENANT');
+  console.log('=================================\n');
   
-  // Check BU01 data
-  console.log('\n📊 BU01 (2025_bu01) data:');
-  const { data: bu01BL, error: bu01Error } = await supabaseAdmin.rpc('exec_sql', {
-    sql: 'SELECT nfact, date_fact, nclient FROM "2025_bu01".bl ORDER BY nfact LIMIT 5;'
-  });
-  
-  if (bu01Error) {
-    console.log('❌ BU01 error:', bu01Error.message);
-  } else {
-    console.log('   Delivery notes:', bu01BL?.length || 0);
-    bu01BL?.forEach(bl => console.log(`   - BL ${bl.nfact}: ${bl.date_fact} (Client: ${bl.nclient})`));
+  try {
+    // Test direct avec une requête SQL brute
+    console.log('📊 Test requête SQL directe...');
+    
+    const testQueries = [
+      'SELECT COUNT(*) as count FROM "2025_bu01".article',
+      'SELECT narticle, designation FROM "2025_bu01".article LIMIT 5',
+      'SELECT COUNT(*) as count FROM "2025_bu01".client',
+      'SELECT COUNT(*) as count FROM "2025_bu01".fournisseur'
+    ];
+    
+    for (const query of testQueries) {
+      try {
+        console.log(`\n🔍 Requête: ${query}`);
+        
+        const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
+          method: 'POST',
+          headers: {
+            'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ sql: query })
+        });
+        
+        const data = await response.json();
+        console.log(`   Status: ${response.status}`);
+        console.log(`   Résultat:`, JSON.stringify(data, null, 2));
+        
+      } catch (e) {
+        console.log(`   ❌ Erreur: ${e.message}`);
+      }
+    }
+    
+    // Test avec les RPC functions si elles existent
+    console.log('\n🔧 Test des fonctions RPC...');
+    
+    try {
+      const { data, error } = await supabaseAdmin.rpc('get_articles_by_tenant', {
+        p_tenant: '2025_bu01'
+      });
+      
+      if (error) {
+        console.log('❌ RPC get_articles_by_tenant:', error.message);
+      } else {
+        console.log(`✅ Articles via RPC: ${data?.length || 0} trouvés`);
+        if (data && data.length > 0) {
+          console.log('   Premiers articles:');
+          data.slice(0, 3).forEach((article: any) => {
+            console.log(`   - ${article.narticle}: ${article.designation}`);
+          });
+        }
+      }
+    } catch (e) {
+      console.log('⚠️  RPC non disponible:', e.message);
+    }
+    
+    // Vérifier les schémas existants via une autre méthode
+    console.log('\n📋 Vérification des schémas...');
+    
+    try {
+      const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
+        method: 'POST',
+        headers: {
+          'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          sql: "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE '%bu%' OR schema_name LIKE '%202%'" 
+        })
+      });
+      
+      const data = await response.json();
+      console.log('   Schémas tenant trouvés:', data);
+      
+    } catch (e) {
+      console.log('⚠️  Impossible de lister les schémas:', e.message);
+    }
+    
+  } catch (error) {
+    console.error('❌ Erreur générale:', error);
   }
-  
-  // Check BU02 data
-  console.log('\n📊 BU02 (2025_bu02) data:');
-  const { data: bu02BL, error: bu02Error } = await supabaseAdmin.rpc('exec_sql', {
-    sql: 'SELECT nfact, date_fact, nclient FROM "2025_bu02".bl ORDER BY nfact LIMIT 5;'
-  });
-  
-  if (bu02Error) {
-    console.log('❌ BU02 error:', bu02Error.message);
-  } else {
-    console.log('   Delivery notes:', bu02BL?.length || 0);
-    bu02BL?.forEach(bl => console.log(`   - BL ${bl.nfact}: ${bl.date_fact} (Client: ${bl.nclient})`));
-  }
-
-  // Check company info for both tenants
-  console.log('\n🏢 Company info test:');
-  
-  const { data: bu01Company } = await supabaseAdmin.rpc('get_company_info', {
-    p_tenant: '2025_bu01'
-  });
-  console.log('   BU01 Company:', bu01Company?.[0]?.raison_sociale || 'Not found');
-  
-  const { data: bu02Company } = await supabaseAdmin.rpc('get_company_info', {
-    p_tenant: '2025_bu02'
-  });
-  console.log('   BU02 Company:', bu02Company?.[0]?.raison_sociale || 'Not found');
 }
 
-checkTenantData().catch(console.error);
+checkTenantData();

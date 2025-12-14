@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Frontend Requests</title>
+</head>
+<body>
+    <h1>🔍 Debug des Requêtes Frontend</h1>
+    <p>Ouvrez cette page, puis allez sur votre application. Les requêtes seront loggées ici.</p>
+    <div id="logs"></div>
+    
+    <script>
+        // Intercepter toutes les requêtes fetch
+        const originalFetch = window.fetch;
+        const logs = document.getElementById('logs');
+        
+        window.fetch = async function(...args) {
+            const [url, options] = args;
+            
+            console.log('🔍 FETCH REQUEST:', url, options);
+            
+            try {
+                const response = await originalFetch(...args);
+                const clonedResponse = response.clone();
+                
+                // Lire la réponse
+                const text = await clonedResponse.text();
+                
+                const logEntry = document.createElement('div');
+                logEntry.style.border = '1px solid #ccc';
+                logEntry.style.margin = '10px';
+                logEntry.style.padding = '10px';
+                
+                logEntry.innerHTML = \`
+                    <h3>📡 \${url}</h3>
+                    <p><strong>Status:</strong> \${response.status}</p>
+                    <p><strong>Content-Type:</strong> \${response.headers.get('content-type')}</p>
+                    <p><strong>Response Length:</strong> \${text.length}</p>
+                    <p><strong>First 100 chars:</strong> <code>\${text.substring(0, 100)}</code></p>
+                    <details>
+                        <summary>Full Response</summary>
+                        <pre>\${text}</pre>
+                    </details>
+                \`;
+                
+                // Vérifier si c'est du JSON valide
+                try {
+                    JSON.parse(text);
+                    logEntry.style.backgroundColor = '#d4edda'; // Vert
+                    logEntry.innerHTML += '<p>✅ JSON valide</p>';
+                } catch (jsonError) {
+                    logEntry.style.backgroundColor = '#f8d7da'; // Rouge
+                    logEntry.innerHTML += \`<p>❌ JSON invalide: \${jsonError.message}</p>\`;
+                }
+                
+                logs.appendChild(logEntry);
+                
+                return response;
+                
+            } catch (error) {
+                console.error('❌ Fetch error:', error);
+                
+                const logEntry = document.createElement('div');
+                logEntry.style.border = '1px solid red';
+                logEntry.style.margin = '10px';
+                logEntry.style.padding = '10px';
+                logEntry.style.backgroundColor = '#f8d7da';
+                logEntry.innerHTML = \`
+                    <h3>❌ \${url}</h3>
+                    <p><strong>Error:</strong> \${error.message}</p>
+                \`;
+                logs.appendChild(logEntry);
+                
+                throw error;
+            }
+        };
+        
+        // Instructions
+        const instructions = document.createElement('div');
+        instructions.style.backgroundColor = '#d1ecf1';
+        instructions.style.padding = '15px';
+        instructions.style.margin = '10px';
+        instructions.innerHTML = \`
+            <h3>📋 Instructions:</h3>
+            <ol>
+                <li>Gardez cette page ouverte</li>
+                <li>Allez sur <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></li>
+                <li>Connectez-vous et naviguez dans l'application</li>
+                <li>Revenez ici pour voir les requêtes loggées</li>
+                <li>Cherchez les entrées en rouge (JSON invalide)</li>
+            </ol>
+        \`;
+        logs.appendChild(instructions);
+    </script>
+</body>
+</html>

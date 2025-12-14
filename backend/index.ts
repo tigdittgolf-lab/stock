@@ -2,16 +2,19 @@ import 'dotenv/config';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { setupDatabase } from './src/setupDatabase.js';
-import articles from './src/routes/articles.js';
-import clients from './src/routes/clients.js';
-import suppliers from './src/routes/suppliers.js';
+import articles from './src/routes/articles-clean.js';
+import clients from './src/routes/clients-clean.js';
+import suppliers from './src/routes/suppliers-clean.js';
 import families from './src/routes/families.js';
 import activite from './src/routes/activite.js';
-import sales from './src/routes/sales.js';
+import sales from './src/routes/sales-clean.js';
 import stock from './src/routes/stock.js';
 import reports from './src/routes/reports.js';
 import auth from './src/routes/auth.js';
 import pdf from './src/routes/pdf.js';
+import cache from './src/routes/cache.js';
+import settings from './src/routes/settings.js';
+import missingEndpoints from './src/routes/missing-endpoints.js';
 
 const app = new Hono();
 
@@ -32,6 +35,9 @@ app.route('/api/stock', stock);
 app.route('/api/reports', reports);
 app.route('/api/auth', auth);
 app.route('/api/pdf', pdf);
+app.route('/api/cache', cache);
+app.route('/api/settings', settings);
+app.route('/api', missingEndpoints);
 
 try {
   app.route('/api/sales', sales);
@@ -58,6 +64,8 @@ app.get('/', (c) => c.json({
     reports: '/api/reports',
     auth: '/api/auth',
     pdf: '/api/pdf',
+    cache: '/api/cache',
+    settings: '/api/settings',
     health: '/health'
   }
 }));
@@ -66,13 +74,9 @@ async function main() {
   try {
     console.log("Starting Stock Management Application Backend...");
 
-    // Setup database (optional - can be run separately)
-    try {
-      await setupDatabase();
-      console.log("Database setup completed!");
-    } catch (dbError) {
-      console.warn("Database setup failed (this is expected if tables already exist):", dbError instanceof Error ? dbError.message : String(dbError));
-    }
+    // Setup database (DISABLED - using multi-tenant architecture)
+    // Les tables sont créées dans les schémas tenants (2025_bu01, etc.) via deploy-complete-system.ts
+    console.log("Database setup skipped - using multi-tenant architecture");
 
     const port = process.env.PORT || 3005;
     console.log(`Server starting on port ${port}...`);

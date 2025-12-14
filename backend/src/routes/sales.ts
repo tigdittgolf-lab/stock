@@ -1777,53 +1777,56 @@ sales.get('/articles', async (c) => {
     }
 
     console.log(`🔍 Fetching articles from schema: ${tenant}`);
-    console.log(`✅ Using real article data directly`);
+    console.log(`✅ Using real database via RPC function`);
     
-    // DONNÉES RÉELLES DE LA BASE DE DONNÉES (même logique que articles.ts)
-    const realArticleData = [
-      {"narticle": "112", "designation": "lampe 12v", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "120.00", "marge": "15", "tva": "19.00", "prix_vente": "164.28", "seuil": "10", "stock_f": "120", "stock_bl": "133"},
-      {"narticle": "121", "designation": "drog1", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "120.00", "marge": "15", "tva": "19.00", "prix_vente": "164.28", "seuil": "10", "stock_f": "120", "stock_bl": "133"},
-      {"narticle": "122", "designation": "drog2", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "150.00", "marge": "30", "tva": "19.00", "prix_vente": "232.05", "seuil": "15", "stock_f": "80", "stock_bl": "95"},
-      {"narticle": "123", "designation": "drog3", "famille": "Droguerie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "200.00", "marge": "25", "tva": "19.00", "prix_vente": "297.50", "seuil": "20", "stock_f": "60", "stock_bl": "75"},
-      {"narticle": "131", "designation": "peinture blanche", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "180.00", "marge": "20", "tva": "19.00", "prix_vente": "257.04", "seuil": "12", "stock_f": "45", "stock_bl": "50"},
-      {"narticle": "132", "designation": "peinture rouge", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "185.00", "marge": "22", "tva": "19.00", "prix_vente": "268.73", "seuil": "12", "stock_f": "40", "stock_bl": "48"},
-      {"narticle": "133", "designation": "peinture bleue", "famille": "Peinture", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "185.00", "marge": "22", "tva": "19.00", "prix_vente": "268.73", "seuil": "12", "stock_f": "35", "stock_bl": "42"},
-      {"narticle": "141", "designation": "marteau 500g", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "80.00", "marge": "40", "tva": "19.00", "prix_vente": "133.28", "seuil": "8", "stock_f": "25", "stock_bl": "30"},
-      {"narticle": "142", "designation": "tournevis cruciforme", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "45.00", "marge": "35", "tva": "19.00", "prix_vente": "72.36", "seuil": "15", "stock_f": "50", "stock_bl": "60"},
-      {"narticle": "143", "designation": "clé anglaise 12mm", "famille": "Outillage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "65.00", "marge": "30", "tva": "19.00", "prix_vente": "100.49", "seuil": "10", "stock_f": "30", "stock_bl": "35"},
-      {"narticle": "151", "designation": "câble électrique 2.5mm", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "25.00", "marge": "50", "tva": "19.00", "prix_vente": "44.63", "seuil": "100", "stock_f": "200", "stock_bl": "250"},
-      {"narticle": "152", "designation": "interrupteur simple", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "15.00", "marge": "60", "tva": "19.00", "prix_vente": "28.56", "seuil": "50", "stock_f": "80", "stock_bl": "100"},
-      {"narticle": "153", "designation": "prise électrique", "famille": "Electricité", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "20.00", "marge": "55", "tva": "19.00", "prix_vente": "36.89", "seuil": "40", "stock_f": "70", "stock_bl": "85"},
-      {"narticle": "161", "designation": "robinet cuisine", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "350.00", "marge": "25", "tva": "19.00", "prix_vente": "520.63", "seuil": "5", "stock_f": "15", "stock_bl": "18"},
-      {"narticle": "162", "designation": "tuyau PVC 32mm", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "12.00", "marge": "45", "tva": "19.00", "prix_vente": "20.71", "seuil": "50", "stock_f": "120", "stock_bl": "140"},
-      {"narticle": "163", "designation": "coude PVC 32mm", "famille": "Plomberie", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "8.00", "marge": "50", "tva": "19.00", "prix_vente": "14.28", "seuil": "30", "stock_f": "60", "stock_bl": "75"},
-      {"narticle": "171", "designation": "carrelage 30x30", "famille": "Carrelage", "nfournisseur": "FOURNISSEUR 1", "prix_unitaire": "45.00", "marge": "35", "tva": "19.00", "prix_vente": "72.36", "seuil": "20", "stock_f": "100", "stock_bl": "120"}
-    ];
-
-    // Appliquer les modifications du cache aux données réelles (même logique que articles.ts)
-    const cachedArticles = createdArticlesCache.get(tenant) || [];
-    const modifications = createdArticlesCache.get(`${tenant}_modifications`) || new Map();
-    const deletedArticles = createdArticlesCache.get(`${tenant}_deleted`) || new Set();
-    
-    // Appliquer les modifications aux données de base et filtrer les supprimés
-    let modifiedData = realArticleData
-      .filter(article => !deletedArticles.has(article.narticle))
-      .map(article => {
-        const modification = modifications.get(article.narticle);
-        return modification || article;
+    // Utiliser la vraie base de données via RPC (comme dans articles.ts)
+    try {
+      const { data: articlesData, error } = await supabaseAdmin.rpc('get_articles_by_tenant', {
+        p_tenant: tenant
       });
-    
-    // Ajouter les nouveaux articles du cache (non supprimés)
-    const filteredCachedArticles = cachedArticles.filter(article => !deletedArticles.has(article.narticle));
-    const allArticles = [...modifiedData, ...filteredCachedArticles];
-    
-    console.log(`✅ Returning article data: ${realArticleData.length} base - ${deletedArticles.size} deleted + ${modifications.size} modifications + ${filteredCachedArticles.length} cached = ${allArticles.length} total`);
-    return c.json({ 
-      success: true, 
-      data: allArticles,
-      tenant: tenant,
-      source: 'real_database_data_with_cache'
-    });
+      
+      if (error) {
+        console.error('❌ RPC Error in sales/articles:', error);
+        return c.json({ success: true, data: [], message: 'No RPC function available' });
+      }
+      
+      console.log(`✅ Found ${articlesData?.length || 0} articles in database via RPC`);
+      
+      // Appliquer les modifications du cache si nécessaire
+      const cachedArticles = createdArticlesCache.get(tenant) || [];
+      const modifications = createdArticlesCache.get(`${tenant}_modifications`) || new Map();
+      const deletedArticles = createdArticlesCache.get(`${tenant}_deleted`) || new Set();
+      
+      // Combiner les données de la base avec les articles créés en cache
+      let allArticles = [...(articlesData || []), ...cachedArticles];
+      
+      // Appliquer les modifications et filtrer les supprimés
+      let modifiedData = allArticles
+        .filter(article => !deletedArticles.has(article.narticle))
+        .map(article => {
+          const modification = modifications.get(article.narticle);
+          return modification || article;
+        });
+      
+      console.log(`✅ Returning sales article data: ${articlesData?.length || 0} from database + ${cachedArticles.length} cached = ${modifiedData.length} total`);
+      
+      return c.json({ 
+        success: true, 
+        data: modifiedData,
+        tenant: tenant,
+        source: 'real_database_via_rpc'
+      });
+      
+    } catch (rpcError) {
+      console.error('❌ RPC function not available in sales/articles:', rpcError);
+      return c.json({ 
+        success: true, 
+        data: [],
+        tenant: tenant,
+        source: 'empty_fallback',
+        message: 'RPC functions not available'
+      });
+    }
   } catch (error) {
     console.error('Error fetching articles:', error);
     return c.json({ success: false, error: 'Failed to fetch articles' }, 500);

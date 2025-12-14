@@ -4,6 +4,13 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../../page.module.css';
 
+interface CompanyInfo {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+}
+
 interface DeliveryNote {
   nbl: number;
   nclient: string;
@@ -28,6 +35,7 @@ interface DeliveryNoteDetail {
 export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [deliveryNote, setDeliveryNote] = useState<DeliveryNote | null>(null);
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
@@ -36,6 +44,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
 
   useEffect(() => {
     fetchDeliveryNote();
+    fetchCompanyInfo();
   }, []);
 
   const fetchDeliveryNote = async () => {
@@ -49,9 +58,10 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
         return;
       }
       
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const response = await fetch(`http://localhost:3005/api/sales/delivery-notes/${resolvedParams.id}`, {
         headers: {
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenant
         }
       });
       
@@ -71,6 +81,38 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
       setError('Erreur de connexion');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCompanyInfo = async () => {
+    try {
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
+      const response = await fetch('http://localhost:3005/api/cache/status', {
+        headers: {
+          'X-Tenant': tenant
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCompanyInfo(data.companyInfo);
+      } else {
+        console.warn('Could not fetch company info, using defaults');
+        setCompanyInfo({
+          name: 'VOTRE ENTREPRISE',
+          address: 'Adresse de votre entreprise',
+          phone: '+213 XX XX XX XX',
+          email: 'contact@entreprise.dz'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching company info:', error);
+      setCompanyInfo({
+        name: 'VOTRE ENTREPRISE',
+        address: 'Adresse de votre entreprise',
+        phone: '+213 XX XX XX XX',
+        email: 'contact@entreprise.dz'
+      });
     }
   };
 
@@ -219,10 +261,10 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           <div className={styles.formSection}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <h2>VOTRE ENTREPRISE</h2>
-                <p>Adresse de votre entreprise</p>
-                <p>Téléphone : +213 XX XX XX XX</p>
-                <p>Email : contact@entreprise.dz</p>
+                <h2>{companyInfo?.name || 'VOTRE ENTREPRISE'}</h2>
+                <p>{companyInfo?.address || 'Adresse de votre entreprise'}</p>
+                <p>Téléphone : {companyInfo?.phone || '+213 XX XX XX XX'}</p>
+                <p>Email : {companyInfo?.email || 'contact@entreprise.dz'}</p>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <h2 style={{ color: '#007bff', fontSize: '1.8rem' }}>BON DE LIVRAISON</h2>
