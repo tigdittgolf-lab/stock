@@ -127,8 +127,8 @@ articles.post('/', async (c) => {
     // Calculate prix_vente
     const prix_vente = prix_unitaire * (1 + marge / 100) * (1 + tva / 100);
 
-    // Use RPC function to insert into real database (safe version with auto famille creation)
-    const { data, error } = await supabaseAdmin.rpc('insert_article_to_tenant_safe', {
+    // Use RPC function to insert into real database
+    const { data, error } = await supabaseAdmin.rpc('insert_article_to_tenant', {
       p_tenant: tenant.schema,
       p_narticle: narticle,
       p_famille: famille,

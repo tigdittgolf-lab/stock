@@ -82,17 +82,39 @@ export default function AddArticle() {
   };
 
   const fetchFamilies = async (headers: any) => {
-    // Utiliser directement les données de test pour éviter les problèmes d'API
-    const testFamilies = [
-      { nfamille: 'Droguerie', designation: 'Droguerie' },
-      { nfamille: 'Peinture', designation: 'Peinture' },
-      { nfamille: 'Outillage', designation: 'Outillage' },
-      { nfamille: 'Électricité', designation: 'Électricité' },
-      { nfamille: 'Plomberie', designation: 'Plomberie' },
-      { nfamille: 'Quincaillerie', designation: 'Quincaillerie' }
-    ];
-    setFamilies(testFamilies);
-    console.log('Families loaded:', testFamilies);
+    try {
+      console.log('🔍 Fetching families from settings API...');
+      const response = await fetch('http://localhost:3005/api/settings/families', { headers });
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        // Convertir le format de l'API settings vers le format attendu par le formulaire
+        const formattedFamilies = result.data.map((family: any) => ({
+          nfamille: family.famille,
+          designation: family.famille
+        }));
+        setFamilies(formattedFamilies);
+        console.log('✅ Families loaded from settings:', formattedFamilies);
+      } else {
+        console.warn('⚠️ No families found, using fallback');
+        // Fallback en cas d'erreur
+        const fallbackFamilies = [
+          { nfamille: 'Électricité', designation: 'Électricité' },
+          { nfamille: 'Plomberie', designation: 'Plomberie' },
+          { nfamille: 'Outillage', designation: 'Outillage' }
+        ];
+        setFamilies(fallbackFamilies);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching families:', error);
+      // Fallback en cas d'erreur
+      const fallbackFamilies = [
+        { nfamille: 'Électricité', designation: 'Électricité' },
+        { nfamille: 'Plomberie', designation: 'Plomberie' },
+        { nfamille: 'Outillage', designation: 'Outillage' }
+      ];
+      setFamilies(fallbackFamilies);
+    }
   };
 
   const fetchSuppliers = async (headers: any) => {
