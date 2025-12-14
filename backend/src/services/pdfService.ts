@@ -527,13 +527,30 @@ export class PDFService {
       yPos += 5;
     });
 
-    // Total - Plus simple
+    // Totaux complets - Format réduit
+    yPos += 10;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    
     if (deliveryData.montant_ht !== undefined) {
-      yPos += 10;
+      doc.text('Sous-total HT:', 120, yPos);
+      doc.text(formatAmount(deliveryData.montant_ht || 0), 190, yPos, { align: 'right' });
+      yPos += 5;
+    }
+    
+    if (deliveryData.tva !== undefined && deliveryData.tva > 0) {
+      doc.text('TVA:', 120, yPos);
+      doc.text(formatAmount(deliveryData.tva || 0), 190, yPos, { align: 'right' });
+      yPos += 5;
+    }
+    
+    // Total TTC en gras
+    const totalTTC = (deliveryData.montant_ht || 0) + (deliveryData.tva || 0);
+    if (totalTTC > 0) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10);
-      doc.text('Net à payer:', 120, yPos);
-      doc.text(formatAmount(deliveryData.montant_ht || 0), 190, yPos, { align: 'right' });
+      doc.text('TOTAL TTC:', 120, yPos);
+      doc.text(formatAmount(totalTTC), 190, yPos, { align: 'right' });
     }
 
     return doc;
@@ -582,13 +599,13 @@ export class PDFService {
     doc.line(5, yPos, 75, yPos);
     yPos += 5;
 
-    // En-têtes colonnes - Format ticket
+    // En-têtes colonnes - Format ticket avec meilleur espacement
     doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
     doc.text('Désignation', 5, yPos);
-    doc.text('Qté', 50, yPos, { align: 'center' });
-    doc.text('P.U.', 60, yPos, { align: 'center' });
-    doc.text('Total', 70, yPos, { align: 'right' });
+    doc.text('Qté', 45, yPos, { align: 'center' });
+    doc.text('P.U.', 55, yPos, { align: 'center' });
+    doc.text('Total', 72, yPos, { align: 'right' });
     yPos += 3;
 
     // Ligne sous en-têtes
@@ -601,19 +618,19 @@ export class PDFService {
 
     deliveryData.detail_bl.forEach((item) => {
       // Désignation sur une ligne
-      const designation = item.article.designation.substring(0, 25);
+      const designation = item.article.designation.substring(0, 20); // Raccourci pour laisser plus de place
       doc.text(designation, 5, yPos);
       yPos += 3;
 
-      // Quantité, prix, total sur la ligne suivante
-      doc.text(formatQuantity(item.qte), 50, yPos, { align: 'center' });
+      // Quantité, prix, total sur la ligne suivante avec meilleur espacement
+      doc.text(formatQuantity(item.qte), 45, yPos, { align: 'center' });
       
       if (item.prix) {
-        doc.text(formatNumber(item.prix, 2), 60, yPos, { align: 'center' });
+        doc.text(formatNumber(item.prix, 2), 55, yPos, { align: 'center' });
       }
       
       if (item.total_ligne) {
-        doc.text(formatNumber(item.total_ligne, 2), 70, yPos, { align: 'right' });
+        doc.text(formatNumber(item.total_ligne, 2), 72, yPos, { align: 'right' });
       }
 
       yPos += 4;
@@ -624,12 +641,29 @@ export class PDFService {
     doc.line(5, yPos, 75, yPos);
     yPos += 4;
 
-    // Total
+    // Totaux complets
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    
     if (deliveryData.montant_ht !== undefined) {
+      doc.text('Sous-total HT:', 20, yPos);
+      doc.text(formatAmount(deliveryData.montant_ht || 0), 72, yPos, { align: 'right' });
+      yPos += 4;
+    }
+    
+    if (deliveryData.tva !== undefined && deliveryData.tva > 0) {
+      doc.text('TVA:', 20, yPos);
+      doc.text(formatAmount(deliveryData.tva || 0), 72, yPos, { align: 'right' });
+      yPos += 4;
+    }
+    
+    // Total TTC en gras
+    const totalTTC = (deliveryData.montant_ht || 0) + (deliveryData.tva || 0);
+    if (totalTTC > 0) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
-      doc.text('Net à payer:', 25, yPos);
-      doc.text(formatAmount(deliveryData.montant_ht || 0), 70, yPos, { align: 'right' });
+      doc.text('TOTAL TTC:', 20, yPos);
+      doc.text(formatAmount(totalTTC), 72, yPos, { align: 'right' });
       yPos += 8;
     }
 

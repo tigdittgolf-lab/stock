@@ -17,7 +17,7 @@ interface DeliveryNote {
   date_fact: string;
   montant_ht: number;
   tva: number;
-  total_ttc: number;
+  montant_ttc: number;
   created_at: string;
   client_name: string;
   details?: DeliveryNoteDetail[];
@@ -333,7 +333,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
               </div>
               <div className={styles.totalRow}>
                 <strong>Total TTC :</strong>
-                <strong>{deliveryNote.total_ttc?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</strong>
+                <strong>{deliveryNote.montant_ttc?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</strong>
               </div>
             </div>
           </div>
