@@ -25,9 +25,10 @@ export default function ProformaList() {
 
   const fetchProformas = async () => {
     try {
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const response = await fetch('http://localhost:3005/api/sales/proforma', {
         headers: {
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenant
         }
       });
       const data = await response.json();

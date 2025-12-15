@@ -50,9 +50,10 @@ export default function CreateProforma() {
 
   const fetchNextProformaNumber = async () => {
     try {
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const response = await fetch('http://localhost:3005/api/sales/proforma/next-number', {
         headers: {
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenant
         }
       });
       const data = await response.json();
@@ -67,9 +68,10 @@ export default function CreateProforma() {
 
   const fetchClients = async () => {
     try {
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const response = await fetch('http://localhost:3005/api/sales/clients', {
         headers: {
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenant
         }
       });
       const data = await response.json();
@@ -85,9 +87,10 @@ export default function CreateProforma() {
 
   const fetchArticles = async () => {
     try {
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const response = await fetch('http://localhost:3005/api/articles', {
         headers: {
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenant
         }
       });
       const data = await response.json();
@@ -198,16 +201,19 @@ export default function CreateProforma() {
     }
 
     try {
+      console.log('🚀 Sending proforma request...');
+      
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const response = await fetch('http://localhost:3005/api/sales/proforma', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenant
         },
         body: JSON.stringify({
           Nclient: selectedClient,
           date_fact: dateProforma,
-          detail_fprof: lines.map(line => ({
+          detail_proforma: lines.map(line => ({
             Narticle: line.Narticle,
             Qte: line.Qte,
             prix: line.prix,
@@ -217,7 +223,24 @@ export default function CreateProforma() {
         }),
       });
 
-      const data = await response.json();
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', response.headers);
+      
+      // Lire la réponse comme texte d'abord pour voir ce qu'on reçoit
+      const responseText = await response.text();
+      console.log('📡 Raw response text:', responseText);
+      
+      // Essayer de parser le JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('✅ JSON parsed successfully:', data);
+      } catch (parseError) {
+        console.error('❌ JSON parse error:', parseError);
+        console.error('❌ Response text that failed to parse:', responseText);
+        alert(`Erreur de parsing JSON: ${parseError.message}\nRéponse reçue: ${responseText.substring(0, 100)}...`);
+        return;
+      }
 
       if (data.success) {
         const proformaNumber = data.data.nfprof;

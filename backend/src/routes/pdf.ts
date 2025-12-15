@@ -385,43 +385,58 @@ pdf.get('/proforma/:id', async (c) => {
 
     console.log(`📄 Generating proforma PDF for ID: ${id}, Tenant: ${tenant}`);
 
-    // Fetch proforma data using RPC function
-    const { data: profData, error } = await supabaseAdmin.rpc('get_fprof_by_id', {
+    // Fetch proforma data using the correct RPC function
+    const { data: proformaResult, error } = await supabaseAdmin.rpc('get_proforma_by_id', {
       p_tenant: tenant,
       p_nfact: parseInt(id)
     });
 
-    if (error || !profData) {
+    if (error || !proformaResult || !proformaResult.success) {
       console.error('Error fetching proforma:', error);
       return c.json({ success: false, error: 'Proforma not found' }, 404);
     }
 
     console.log(`✅ Proforma data fetched successfully for ID: ${id}`);
 
+    // Get client and article data for enrichment
+    const { data: clientsData } = await supabaseAdmin.rpc('get_clients_by_tenant', {
+      p_tenant: tenant
+    });
+
+    const { data: articlesData } = await supabaseAdmin.rpc('get_articles_by_tenant', {
+      p_tenant: tenant
+    });
+
+    const proforma = proformaResult.data;
+    const client = clientsData?.find(c => c.nclient === proforma.nclient);
+
     // Adapter les données RPC au format attendu par le service PDF
     const adaptedData = {
-      nfact: profData.nfact || profData.NFact,
-      date_fact: profData.date_fact,
+      nfact: proforma.nfact,
+      date_fact: proforma.date_fact,
       client: {
-        raison_sociale: profData.raison_sociale || 'Client non spécifié',
-        adresse: profData.adresse || '',
-        nif: profData.nif || '',
-        rc: profData.rc || ''
+        raison_sociale: client?.raison_sociale || 'Client non spécifié',
+        adresse: client?.adresse || '',
+        nif: client?.nif || client?.i_fiscal || '',
+        rc: client?.nrc || ''
       },
-      detail_fact: (profData.details || []).map(detail => ({
-        article: {
-          narticle: detail.narticle,
-          designation: detail.designation
-        },
-        qte: detail.qte,
-        prix: detail.prix,
-        tva: detail.tva,
-        total_ligne: detail.total_ligne
-      })),
-      montant_ht: profData.montant_ht || 0,
-      tva: profData.tva || 0,
-      timbre: profData.timbre || 0,
-      autre_taxe: profData.autre_taxe || 0
+      detail_fact: (proforma.details || []).map(detail => {
+        const article = articlesData?.find(a => a.narticle.trim() === detail.narticle.trim());
+        return {
+          article: {
+            narticle: detail.narticle,
+            designation: article?.designation || `Article ${detail.narticle}`
+          },
+          qte: detail.qte,
+          prix: detail.prix,
+          tva: detail.tva,
+          total_ligne: detail.total_ligne
+        };
+      }),
+      montant_ht: proforma.montant_ht || 0,
+      tva: proforma.tva || 0,
+      timbre: 0,
+      autre_taxe: 0
     };
 
     // Generate PDF with PROFORMA watermark and tenant info

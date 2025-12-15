@@ -1118,7 +1118,7 @@ sales.post('/proforma', async (c) => {
     console.log(`🆕 Creating proforma for tenant: ${tenant}, Client: ${Nclient}`);
 
     // 1. Obtenir le prochain numéro de proforma
-    const { data: nextNumber, error: numberError } = await supabaseAdmin.rpc('get_next_proforma_number', {
+    const { data: nextNumber, error: numberError } = await supabaseAdmin.rpc('get_next_proforma_number_simple', {
       p_tenant: tenant
     });
 
@@ -1182,7 +1182,7 @@ sales.post('/proforma', async (c) => {
     // 5. Créer la proforma
     const proformaDate = date_fact || new Date().toISOString().split('T')[0];
     
-    const { data: proformaHeader, error: proformaError } = await supabaseAdmin.rpc('insert_proforma', {
+    const { data: proformaHeader, error: proformaError } = await supabaseAdmin.rpc('insert_proforma_simple', {
       p_tenant: tenant,
       p_nfact: nextNumber,
       p_nclient: Nclient,
@@ -1198,7 +1198,7 @@ sales.post('/proforma', async (c) => {
 
     // 6. Ajouter les détails
     for (const detail of processedDetails) {
-      const { error: detailErr } = await supabaseAdmin.rpc('insert_detail_proforma', {
+      const { error: detailErr } = await supabaseAdmin.rpc('insert_detail_proforma_simple', {
         p_tenant: tenant,
         p_nfact: detail.nfact,
         p_narticle: detail.narticle,
@@ -1216,17 +1216,19 @@ sales.post('/proforma', async (c) => {
 
     console.log(`✅ Proforma ${nextNumber} created successfully for client ${Nclient}`);
 
+    console.log(`✅ Proforma ${nextNumber} created successfully for client ${Nclient}`);
+
     return c.json({
       success: true,
       message: `Proforma ${nextNumber} créée avec succès !`,
       data: {
-        nproforma: nextNumber,
+        nfprof: nextNumber,
         nclient: Nclient,
         client_name: clientExists.raison_sociale,
         date_fact: proformaDate,
         montant_ht: montant_ht,
         tva: TVA,
-        montant_ttc: montant_ht + TVA,
+        total_ttc: montant_ht + TVA,
         details: processedDetails.map(detail => ({
           narticle: detail.narticle,
           designation: articles?.find(a => a.narticle.trim() === detail.narticle.trim())?.designation || '',
@@ -1244,6 +1246,201 @@ sales.post('/proforma', async (c) => {
     return c.json({ 
       success: false, 
       error: 'Erreur lors de la création de la proforma'
+    }, 500);
+  }
+});
+
+// GET /api/sales/proforma/next-number - Obtenir le prochain numéro de proforma
+sales.get('/proforma/next-number', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    console.log(`🔢 Getting next proforma number for tenant: ${tenant}`);
+
+    // Utiliser la fonction RPC pour obtenir le prochain numéro
+    const { data: nextNumber, error: numberError } = await supabaseAdmin.rpc('get_next_proforma_number_simple', {
+      p_tenant: tenant
+    });
+
+    if (numberError) {
+      console.error('❌ Failed to get next proforma number:', numberError);
+      // Fallback: retourner 1 comme premier numéro
+      console.log('📋 Using fallback: returning proforma number 1');
+      return c.json({ 
+        success: true, 
+        data: { next_number: 1 },
+        source: 'fallback'
+      });
+    }
+
+    console.log(`✅ Next proforma number: ${nextNumber}`);
+
+    return c.json({
+      success: true,
+      data: { next_number: nextNumber || 1 },
+      source: 'database'
+    });
+
+  } catch (error) {
+    console.error('❌ Error getting next proforma number:', error);
+    return c.json({ 
+      success: true, 
+      data: { next_number: 1 },
+      source: 'fallback_error'
+    });
+  }
+});
+
+// GET /api/sales/proforma - Récupérer la liste des proformas
+sales.get('/proforma', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    console.log(`📋 Fetching proformas for tenant: ${tenant}`);
+
+    // Utiliser la fonction RPC pour récupérer les vraies proformas
+    const { data: proformasData, error: proformasError } = await supabaseAdmin.rpc('get_proformas_by_tenant', {
+      p_tenant: tenant
+    });
+
+    if (proformasError) {
+      console.error('❌ Failed to fetch proformas:', proformasError);
+      return c.json({
+        success: true,
+        data: [],
+        message: 'No proformas found or RPC function not available',
+        source: 'fallback'
+      });
+    }
+
+    // Enrichir les données avec les informations clients
+    const { data: clientsData } = await supabaseAdmin.rpc('get_clients_by_tenant', {
+      p_tenant: tenant
+    });
+
+    const enrichedProformas = (proformasData || []).map(proforma => {
+      const client = clientsData?.find(c => c.nclient === proforma.nclient);
+      return {
+        id: proforma.nfact,
+        nfprof: proforma.nfact,
+        nclient: proforma.nclient,
+        client_name: client?.raison_sociale || proforma.nclient,
+        date_fact: proforma.date_fact,
+        montant_ht: parseFloat(proforma.montant_ht || '0'),
+        tva: parseFloat(proforma.tva || '0'),
+        montant_ttc: parseFloat(proforma.montant_ttc || '0'),
+        created_at: proforma.created_at,
+        type: 'proforma'
+      };
+    });
+
+    console.log(`✅ Found ${enrichedProformas.length} proformas for tenant ${tenant}`);
+    
+    return c.json({
+      success: true,
+      data: enrichedProformas,
+      tenant: tenant,
+      source: 'database'
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching proformas:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Erreur lors de la récupération des proformas'
+    }, 500);
+  }
+});
+
+// GET /api/sales/proforma/:id - Récupérer une proforma spécifique
+sales.get('/proforma/:id', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    const id = c.req.param('id');
+    
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    const proformaId = parseInt(id);
+    if (isNaN(proformaId)) {
+      return c.json({ success: false, error: 'Invalid proforma ID' }, 400);
+    }
+
+    console.log(`📋 Fetching proforma ${proformaId} for tenant: ${tenant}`);
+
+    // Utiliser la fonction RPC pour récupérer la proforma avec détails
+    const { data: proformaResult, error: proformaError } = await supabaseAdmin.rpc('get_proforma_by_id', {
+      p_tenant: tenant,
+      p_nfact: proformaId
+    });
+
+    if (proformaError) {
+      console.error('❌ Failed to fetch proforma:', proformaError);
+      return c.json({ success: false, error: 'Proforma not found' }, 404);
+    }
+
+    if (!proformaResult || !proformaResult.success) {
+      return c.json({ success: false, error: 'Proforma not found' }, 404);
+    }
+
+    // Enrichir avec les informations client et articles
+    const { data: clientsData } = await supabaseAdmin.rpc('get_clients_by_tenant', {
+      p_tenant: tenant
+    });
+
+    const { data: articlesData } = await supabaseAdmin.rpc('get_articles_by_tenant', {
+      p_tenant: tenant
+    });
+
+    const proforma = proformaResult.data;
+    const client = clientsData?.find(c => c.nclient === proforma.nclient);
+
+    // Enrichir les détails avec les désignations d'articles
+    const enrichedDetails = (proforma.details || []).map(detail => {
+      const article = articlesData?.find(a => a.narticle.trim() === detail.narticle.trim());
+      return {
+        narticle: detail.narticle,
+        designation: article?.designation || `Article ${detail.narticle}`,
+        qte: parseFloat(detail.qte || '0'),
+        prix: parseFloat(detail.prix || '0'),
+        tva: parseFloat(detail.tva || '0'),
+        total_ligne: parseFloat(detail.total_ligne || '0')
+      };
+    });
+
+    const result = {
+      nfprof: proforma.nfact,
+      nclient: proforma.nclient,
+      client_name: client?.raison_sociale || proforma.nclient,
+      client_address: client?.adresse || '',
+      date_fact: proforma.date_fact,
+      montant_ht: parseFloat(proforma.montant_ht || '0'),
+      tva: parseFloat(proforma.tva || '0'),
+      montant_ttc: parseFloat(proforma.montant_ttc || '0'),
+      details: enrichedDetails,
+      created_at: proforma.created_at
+    };
+
+    console.log(`✅ Found proforma ${proformaId} with ${enrichedDetails.length} items`);
+
+    return c.json({
+      success: true,
+      data: result,
+      source: 'database'
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching proforma:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Erreur lors de la récupération de la proforma'
     }, 500);
   }
 });

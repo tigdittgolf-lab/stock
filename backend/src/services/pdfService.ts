@@ -679,23 +679,228 @@ export class PDFService {
    * Generate proforma invoice PDF
    */
   async generateProforma(invoiceData: InvoiceData, tenant?: string): Promise<jsPDF> {
-    const doc = await this.generateInvoice(invoiceData, tenant);
+    // Generate a custom proforma PDF instead of modifying invoice PDF
+    const doc = new jsPDF();
+    let yPos = 20;
 
-    // Add "PROFORMA" watermark
-    doc.setFontSize(60);
-    doc.setTextColor(255, 0, 0);
+    // Get company info from database for the specific tenant
+    const companyInfo = await this.getCompanyInfo(tenant);
+
+    // Header - Title (PROFORMA instead of FACTURE)
+    doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
+    doc.setTextColor(220, 20, 60); // Rouge foncé pour PROFORMA
+    doc.text('FACTURE PROFORMA', 105, yPos, { align: 'center' });
+    doc.setTextColor(0, 0, 0); // Retour au noir
+    yPos += 10;
+
+    // Line under title
+    doc.setLineWidth(0.5);
+    doc.line(20, yPos, 190, yPos);
+    yPos += 15;
+
+    // Proforma info (right side) 
+    let rightSideY = yPos;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Proforma N: ${invoiceData.nfact}`, 140, rightSideY);
+    rightSideY += 5;
+    doc.text(`Date: ${new Date(invoiceData.date_fact).toLocaleDateString('fr-FR')}`, 140, rightSideY);
+    rightSideY += 10; // Espacement avant les infos client
     
-    // Rotate and add watermark
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
+    // Client info (côté droit, en dessous de la date)
+    doc.setFont('helvetica', 'bold');
+    doc.text('Client:', 140, rightSideY);
+    rightSideY += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.text(invoiceData.client.raison_sociale, 140, rightSideY);
+    rightSideY += 5;
+
+    if (invoiceData.client.adresse) {
+      doc.text(invoiceData.client.adresse, 140, rightSideY);
+      rightSideY += 5;
+    }
+
+    if (invoiceData.client.nif) {
+      doc.text(`NIF: ${invoiceData.client.nif}`, 140, rightSideY);
+      rightSideY += 5;
+    }
     
-    doc.saveGraphicsState();
-    doc.text('PROFORMA', pageWidth / 2, pageHeight / 2, {
-      align: 'center',
-      angle: 45
+    // Revenir au début pour les infos entreprise (côté gauche)
+    yPos = 45; // Position fixe pour les infos entreprise
+    
+    // Company info (left side) - Limiter la largeur pour éviter chevauchement avec droite
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    // Limiter le texte à 100 caractères pour éviter débordement sur la droite
+    const companyName = companyInfo.name.length > 35 ? companyInfo.name.substring(0, 35) + '...' : companyInfo.name;
+    doc.text(companyName, 20, yPos);
+    yPos += 5;
+    
+    // Add domain of activity if available
+    if (companyInfo.domaine_activite) {
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      const domaine = companyInfo.domaine_activite.length > 40 ? companyInfo.domaine_activite.substring(0, 40) + '...' : companyInfo.domaine_activite;
+      doc.text(domaine, 20, yPos);
+      yPos += 4;
+      if (companyInfo.sous_domaine) {
+        const sousDomaine = companyInfo.sous_domaine.length > 40 ? companyInfo.sous_domaine.substring(0, 40) + '...' : companyInfo.sous_domaine;
+        doc.text(sousDomaine, 20, yPos);
+        yPos += 4;
+      }
+    }
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    // Limiter l'adresse pour éviter débordement
+    const address = companyInfo.address.length > 45 ? companyInfo.address.substring(0, 45) + '...' : companyInfo.address;
+    doc.text(address, 20, yPos);
+    yPos += 5;
+    doc.text(`Tél: ${companyInfo.phone}`, 20, yPos);
+    yPos += 5;
+
+    if (companyInfo.tel_port) {
+      doc.text(`Mobile: ${companyInfo.tel_port}`, 20, yPos);
+      yPos += 5;
+    }
+
+    if (companyInfo.email) {
+      const email = companyInfo.email.length > 35 ? companyInfo.email.substring(0, 35) + '...' : companyInfo.email;
+      doc.text(`Email: ${email}`, 20, yPos);
+      yPos += 5;
+    }
+
+    if (companyInfo.nif || companyInfo.ident_fiscal) {
+      const nif = (companyInfo.nif || companyInfo.ident_fiscal);
+      doc.text(`NIF: ${nif}`, 20, yPos);
+      yPos += 5;
+    }
+
+    if (companyInfo.rc) {
+      doc.text(`RC: ${companyInfo.rc}`, 20, yPos);
+      yPos += 5;
+    }
+
+    if (companyInfo.art) {
+      doc.text(`Art: ${companyInfo.art}`, 20, yPos);
+      yPos += 5;
+    }
+
+    // Sauvegarder la position finale des infos entreprise
+    let companyEndY = yPos;
+
+    // Table header - Position après les infos entreprise ET client (côté droit)
+    // Prendre la position la plus basse entre infos entreprise et infos client
+    yPos = Math.max(companyEndY + 15, rightSideY + 10);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Code', 20, yPos);
+    doc.text('Designation', 45, yPos);
+    doc.text('Qte', 105, yPos, { align: 'center' });
+    doc.text('P.U.', 130, yPos, { align: 'center' });
+    doc.text('TVA', 155, yPos, { align: 'center' });
+    doc.text('Total', 180, yPos, { align: 'center' });
+
+    // Line under header
+    yPos += 2;
+    doc.line(20, yPos, 190, yPos);
+    yPos += 5;
+
+    // Table rows
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+
+    invoiceData.detail_fact.forEach((item) => {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.text(item.article.narticle.substring(0, 8), 20, yPos);
+      doc.text(item.article.designation.substring(0, 25), 45, yPos);
+      doc.text(formatQuantity(item.qte), 110, yPos, { align: 'right' });
+      doc.text(formatNumber(item.prix), 140, yPos, { align: 'right' });
+      doc.text(formatPercentage(item.tva), 165, yPos, { align: 'right' });
+      doc.text(formatNumber(item.total_ligne), 190, yPos, { align: 'right' });
+
+      yPos += 6;
     });
-    doc.restoreGraphicsState();
+
+    // Totals section
+    yPos += 10;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+
+    const totalTTC = invoiceData.montant_ht + invoiceData.tva + invoiceData.timbre + invoiceData.autre_taxe;
+
+    doc.text('Sous-total HT:', 120, yPos);
+    doc.text(formatAmount(invoiceData.montant_ht), 190, yPos, { align: 'right' });
+    yPos += 6;
+
+    doc.text('TVA:', 120, yPos);
+    doc.text(formatAmount(invoiceData.tva), 190, yPos, { align: 'right' });
+    yPos += 6;
+
+    if (invoiceData.timbre > 0) {
+      doc.text('Timbre:', 120, yPos);
+      doc.text(formatAmount(invoiceData.timbre), 190, yPos, { align: 'right' });
+      yPos += 6;
+    }
+
+    if (invoiceData.autre_taxe > 0) {
+      doc.text('Autres taxes:', 120, yPos);
+      doc.text(formatAmount(invoiceData.autre_taxe), 190, yPos, { align: 'right' });
+      yPos += 6;
+    }
+
+    // Total TTC
+    yPos += 2;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('TOTAL TTC:', 120, yPos);
+    doc.text(formatAmount(totalTTC), 190, yPos, { align: 'right' });
+
+    // Amount in words - CONFORME À LA RÉGLEMENTATION
+    yPos += 15;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    
+    // Ligne de séparation avant le montant en lettres
+    doc.line(20, yPos - 5, 190, yPos - 5);
+    
+    doc.text('Arrêté la présente proforma à la somme de :', 20, yPos);
+    yPos += 12;
+
+    const amountWords = numberToWords(totalTTC);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    
+    // Encadrer le montant en lettres avec plus d'espace
+    const textWidth = doc.getTextWidth(amountWords);
+    const boxWidth = Math.min(textWidth + 16, 170);
+    const boxHeight = 16;
+    
+    doc.rect(20, yPos - 10, boxWidth, boxHeight);
+    doc.text(amountWords, 28, yPos - 2, {
+      maxWidth: 160
+    });
+    
+    yPos += 18;
+
+    // Note spéciale pour proforma
+    yPos += 10;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(220, 20, 60); // Rouge foncé
+    doc.text('Note: Cette proforma n\'a aucune valeur comptable.', 20, yPos);
+    doc.text('Elle constitue uniquement une proposition commerciale.', 20, yPos + 4);
+    doc.setTextColor(0, 0, 0); // Retour au noir
+
+    // Signature
+    yPos += 20;
+    doc.setFont('helvetica', 'normal');
+    doc.text('Signature et Cachet', 140, yPos);
 
     return doc;
   }

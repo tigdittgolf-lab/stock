@@ -11,9 +11,17 @@ interface Proforma {
   montant_ht: number;
   tva: number;
   total_ttc: number;
+  montant_ttc: number;
   created_at: string;
   client_name: string;
   details?: ProformaDetail[];
+}
+
+interface CompanyInfo {
+  nom_activite: string;
+  adresse: string;
+  telephone: string;
+  email: string;
 }
 
 interface ProformaDetail {
@@ -28,6 +36,7 @@ interface ProformaDetail {
 export default function ProformaDetail({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [proforma, setProforma] = useState<Proforma | null>(null);
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
@@ -36,7 +45,103 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
 
   useEffect(() => {
     fetchProforma();
+    fetchCompanyInfo();
   }, []);
+
+  const fetchCompanyInfo = async () => {
+    try {
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
+      const response = await fetch('http://localhost:3005/api/company/info', {
+        headers: {
+          'X-Tenant': tenant
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setCompanyInfo(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching company info:', error);
+      // Fallback company info if API fails
+      setCompanyInfo({
+        nom_activite: 'ETS BENAMAR BOUZID MENOUAR',
+        adresse: '10, Rue Belhandouz A.E.K, Mostaganem, Mostaganem',
+        telephone: '(213)045.42.35.20',
+        email: 'outillagesaada@gmail.com'
+      });
+    }
+  };
+
+  // Fonction pour convertir un nombre en lettres (français)
+  const numberToWords = (num: number): string => {
+    if (num === 0) return 'zéro';
+    
+    const ones = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
+    const teens = ['dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
+    const tens = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante-dix', 'quatre-vingt', 'quatre-vingt-dix'];
+    const thousands = ['', 'mille', 'million', 'milliard'];
+    
+    const convertHundreds = (n: number): string => {
+      let result = '';
+      
+      if (n >= 100) {
+        const hundreds = Math.floor(n / 100);
+        if (hundreds === 1) {
+          result += 'cent';
+        } else {
+          result += ones[hundreds] + ' cent';
+        }
+        if (n % 100 !== 0) result += ' ';
+        n %= 100;
+      }
+      
+      if (n >= 20) {
+        const tensDigit = Math.floor(n / 10);
+        result += tens[tensDigit];
+        if (n % 10 !== 0) {
+          result += '-' + ones[n % 10];
+        }
+      } else if (n >= 10) {
+        result += teens[n - 10];
+      } else if (n > 0) {
+        result += ones[n];
+      }
+      
+      return result;
+    };
+    
+    const integerPart = Math.floor(num);
+    const decimalPart = Math.round((num - integerPart) * 100);
+    
+    let result = '';
+    let thousandIndex = 0;
+    let tempNum = integerPart;
+    
+    if (tempNum === 0) {
+      result = 'zéro';
+    } else {
+      while (tempNum > 0) {
+        const chunk = tempNum % 1000;
+        if (chunk !== 0) {
+          let chunkText = convertHundreds(chunk);
+          if (thousandIndex > 0) {
+            chunkText += ' ' + thousands[thousandIndex];
+          }
+          result = chunkText + (result ? ' ' + result : '');
+        }
+        tempNum = Math.floor(tempNum / 1000);
+        thousandIndex++;
+      }
+    }
+    
+    result += ' dinars';
+    
+    if (decimalPart > 0) {
+      result += ' et ' + convertHundreds(decimalPart) + ' centimes';
+    }
+    
+    return result.charAt(0).toUpperCase() + result.slice(1);
+  };
 
   const fetchProforma = async () => {
     try {
@@ -49,9 +154,10 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
         return;
       }
       
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const response = await fetch(`http://localhost:3005/api/sales/proforma/${resolvedParams.id}`, {
         headers: {
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenant
         }
       });
       
@@ -129,11 +235,31 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
             Retour à la liste
           </button>
           <button 
-            onClick={() => window.print()} 
+            onClick={async () => {
+              try {
+                const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
+                const response = await fetch(`http://localhost:3005/api/pdf/proforma/${resolvedParams.id}`, {
+                  headers: {
+                    'X-Tenant': tenant
+                  }
+                });
+                
+                if (response.ok) {
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  window.open(url, '_blank');
+                } else {
+                  alert('Erreur lors de la génération du PDF');
+                }
+              } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Erreur lors de la génération du PDF');
+              }
+            }} 
             className={styles.primaryButton}
             style={{ marginLeft: '10px' }}
           >
-            🖨️ Imprimer
+            🖨️ Imprimer PDF
           </button>
         </div>
       </header>
@@ -144,10 +270,10 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
           <div className={styles.formSection}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <h2>VOTRE ENTREPRISE</h2>
-                <p>Adresse de votre entreprise</p>
-                <p>Téléphone : +213 XX XX XX XX</p>
-                <p>Email : contact@entreprise.dz</p>
+                <h2>{companyInfo?.nom_activite || 'VOTRE ENTREPRISE'}</h2>
+                <p>{companyInfo?.adresse || 'Adresse de votre entreprise'}</p>
+                <p>Téléphone : {companyInfo?.telephone || '+213 XX XX XX XX'}</p>
+                <p>Email : {companyInfo?.email || 'contact@entreprise.dz'}</p>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <h2 style={{ color: '#17a2b8', fontSize: '1.8rem' }}>FACTURE PROFORMA</h2>
@@ -216,9 +342,17 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
               </div>
               <div className={styles.totalRow}>
                 <strong>Total TTC :</strong>
-                <strong>{proforma.total_ttc?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</strong>
+                <strong>{(proforma.montant_ttc || proforma.total_ttc || (proforma.montant_ht + proforma.tva))?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</strong>
               </div>
             </div>
+          </div>
+
+          {/* Montant en lettres */}
+          <div className={styles.formSection} style={{ background: '#f8f9fa', border: '2px solid #17a2b8', borderRadius: '8px' }}>
+            <h3 style={{ color: '#17a2b8', marginBottom: '10px' }}>Montant en lettres :</h3>
+            <p style={{ fontSize: '1.1rem', fontWeight: 'bold', fontStyle: 'italic', color: '#333' }}>
+              {numberToWords(proforma.montant_ttc || proforma.total_ttc || (proforma.montant_ht + proforma.tva))}
+            </p>
           </div>
 
           {/* Conditions */}
