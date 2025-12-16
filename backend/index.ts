@@ -8,6 +8,7 @@ import suppliers from './src/routes/suppliers-clean.js';
 import families from './src/routes/families.js';
 import activite from './src/routes/activite.js';
 import sales from './src/routes/sales-clean.js';
+import purchases from './src/routes/purchases.js';
 import stock from './src/routes/stock.js';
 import reports from './src/routes/reports.js';
 import auth from './src/routes/auth.js';
@@ -44,6 +45,13 @@ try {
   console.log('✅ Sales routes registered successfully');
 } catch (error) {
   console.error('❌ Failed to register sales routes:', error);
+}
+
+try {
+  app.route('/api/purchases', purchases);
+  console.log('✅ Purchases routes registered successfully');
+} catch (error) {
+  console.error('❌ Failed to register purchases routes:', error);
 }
 
 // Health check

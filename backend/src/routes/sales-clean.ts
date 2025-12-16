@@ -1911,8 +1911,8 @@ sales.post('/purchase-invoices', async (c) => {
 
     console.log(`🆕 Creating purchase invoice for tenant: ${tenant}, Supplier: ${Nfournisseur}`);
 
-    // 1. Obtenir le prochain numéro de facture d'achat
-    const { data: nextNumber, error: numberError } = await supabaseAdmin.rpc('get_next_purchase_invoice_number', {
+    // 1. Obtenir le prochain ID interne de facture d'achat
+    const { data: nextNumber, error: numberError } = await supabaseAdmin.rpc('get_next_purchase_invoice_id', {
       p_tenant: tenant
     });
 
@@ -1976,10 +1976,11 @@ sales.post('/purchase-invoices', async (c) => {
     // 5. Créer la facture d'achat
     const factDate = date_fact || new Date().toISOString().split('T')[0];
     
-    const { data: factHeader, error: factError } = await supabaseAdmin.rpc('insert_purchase_invoice', {
+    const { data: factHeader, error: factError } = await supabaseAdmin.rpc('insert_purchase_invoice_with_supplier_number', {
       p_tenant: tenant,
       p_nfact_achat: nextNumber,
       p_nfournisseur: Nfournisseur,
+      p_numero_facture_fournisseur: `AUTO-${nextNumber}`, // Auto-generated for this old endpoint
       p_date_fact: factDate,
       p_montant_ht: montant_ht,
       p_tva: TVA

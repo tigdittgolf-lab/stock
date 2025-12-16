@@ -1632,9 +1632,66 @@ export default function Dashboard() {
                 <div className={styles.sectionHeader}>
                   <h2>🛒 Gestion des Achats</h2>
                 </div>
-                <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
-                  <h3>Module Achats</h3>
-                  <p>Commandes fournisseurs, réceptions</p>
+                
+                <div className={styles.moduleGrid}>
+                  <div className={styles.moduleCard}>
+                    <div className={styles.moduleIcon}>📄</div>
+                    <h3>Factures d'Achat</h3>
+                    <p>Créer et gérer les factures fournisseurs</p>
+                    <div className={styles.moduleActions}>
+                      <button 
+                        onClick={() => router.push('/purchases')}
+                        className={styles.primaryButton}
+                      >
+                        Nouvelle Facture
+                      </button>
+                      <button 
+                        onClick={() => router.push('/purchases/invoices/list')}
+                        className={styles.secondaryButton}
+                      >
+                        Liste des Factures
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={styles.moduleCard}>
+                    <div className={styles.moduleIcon}>📦</div>
+                    <h3>Bons de Livraison</h3>
+                    <p>Réceptions fournisseurs (à venir)</p>
+                    <div className={styles.moduleActions}>
+                      <button 
+                        className={styles.disabledButton}
+                        disabled
+                      >
+                        Bientôt disponible
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={styles.moduleCard}>
+                    <div className={styles.moduleIcon}>📊</div>
+                    <h3>Statistiques Achats</h3>
+                    <p>Analyse des achats et fournisseurs</p>
+                    <div className={styles.moduleActions}>
+                      <button 
+                        className={styles.disabledButton}
+                        disabled
+                      >
+                        Bientôt disponible
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.infoBox}>
+                  <h4>💡 Fonctionnalités Achats</h4>
+                  <ul>
+                    <li>✅ <strong>Factures d'achat</strong> - Entrée de stock automatique</li>
+                    <li>✅ <strong>Gestion fournisseurs</strong> - 2 fournisseurs disponibles</li>
+                    <li>✅ <strong>Calculs automatiques</strong> - HT, TVA, TTC</li>
+                    <li>⏳ <strong>Bons de livraison</strong> - En développement</li>
+                    <li>⏳ <strong>Rapports d'achats</strong> - En développement</li>
+                  </ul>
                 </div>
               </div>
             )}
