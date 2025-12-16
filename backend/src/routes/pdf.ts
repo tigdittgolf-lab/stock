@@ -139,22 +139,25 @@ pdf.get('/invoice/:id', async (c) => {
 
     console.log(`📄 Generating invoice PDF for ID: ${id}, Tenant: ${tenant}`);
 
-    // Fetch invoice data using RPC function
-    const { data: invoiceData, error } = await supabaseAdmin.rpc('get_fact_by_id', {
+    // Fetch invoice data using our new RPC function with all details
+    const { data: invoiceData, error } = await supabaseAdmin.rpc('get_fact_for_pdf', {
       p_tenant: tenant,
       p_nfact: parseInt(id)
     });
 
     if (error || !invoiceData) {
-      console.error('Error fetching invoice:', error);
+      console.error('Error fetching invoice for PDF:', error);
       return c.json({ success: false, error: 'Invoice not found' }, 404);
     }
 
-    console.log(`✅ Invoice data fetched successfully for ID: ${id}`);
+    console.log(`✅ Invoice data with details fetched for PDF ID: ${id}`, {
+      details_count: invoiceData.details?.length || 0,
+      client: invoiceData.raison_sociale
+    });
 
     // Adapter les données RPC au format attendu par le service PDF
     const adaptedData = {
-      nfact: invoiceData.nfact || invoiceData.NFact,
+      nfact: invoiceData.nfact,
       date_fact: invoiceData.date_fact,
       client: {
         raison_sociale: invoiceData.raison_sociale || 'Client non spécifié',

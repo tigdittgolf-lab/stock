@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import styles from '../page.module.css';
 
 interface Client {
-  Nclient: string;
-  Raison_sociale: string;
+  nclient: string;
+  raison_sociale: string;
 }
 
 interface Article {
-  Narticle: string;
+  narticle: string;
   designation: string;
   prix_vente: number;
   tva: number;
@@ -50,9 +50,10 @@ export default function CreateInvoice() {
 
   const fetchNextInvoiceNumber = async () => {
     try {
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const response = await fetch('http://localhost:3005/api/sales/invoices/next-number', {
         headers: {
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenant
         }
       });
       const data = await response.json();
@@ -67,9 +68,10 @@ export default function CreateInvoice() {
 
   const fetchClients = async () => {
     try {
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const response = await fetch('http://localhost:3005/api/sales/clients', {
         headers: {
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenant
         }
       });
       const data = await response.json();
@@ -83,9 +85,10 @@ export default function CreateInvoice() {
 
   const fetchArticles = async () => {
     try {
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const response = await fetch('http://localhost:3005/api/articles', {
         headers: {
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenant
         }
       });
       const data = await response.json();
@@ -204,11 +207,12 @@ export default function CreateInvoice() {
     }
 
     try {
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const response = await fetch('http://localhost:3005/api/sales/invoices', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenant
         },
         body: JSON.stringify({
           Nclient: selectedClient,
@@ -279,8 +283,8 @@ export default function CreateInvoice() {
                 >
                   <option value="">Sélectionner un client</option>
                   {clients.map(client => (
-                    <option key={client.Nclient} value={client.Nclient}>
-                      {client.Nclient} - {client.Raison_sociale}
+                    <option key={client.nclient} value={client.nclient}>
+                      {client.nclient} - {client.raison_sociale}
                     </option>
                   ))}
                 </select>

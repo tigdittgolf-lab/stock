@@ -123,9 +123,9 @@ export default function DeliveryNotesList() {
                   <th>N° BL</th>
                   <th>Client</th>
                   <th>Date</th>
-                  <th>Montant HT</th>
-                  <th>TVA</th>
-                  <th>Total TTC</th>
+                  <th style={{ textAlign: 'right' }}>Montant HT</th>
+                  <th style={{ textAlign: 'right' }}>TVA</th>
+                  <th style={{ textAlign: 'right' }}>Total TTC</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -135,9 +135,9 @@ export default function DeliveryNotesList() {
                     <td><strong>{bl.nbl}</strong></td>
                     <td>{bl.nclient}</td>
                     <td>{new Date(bl.date_fact).toLocaleDateString('fr-FR')}</td>
-                    <td>{bl.montant_ht?.toFixed(2)} DA</td>
-                    <td>{bl.tva?.toFixed(2)} DA</td>
-                    <td><strong>{bl.montant_ttc?.toFixed(2)} DA</strong></td>
+                    <td style={{ textAlign: 'right' }}>{bl.montant_ht?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
+                    <td style={{ textAlign: 'right' }}>{bl.tva?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
+                    <td style={{ textAlign: 'right' }}><strong>{bl.montant_ttc?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</strong></td>
                     <td>
                       <div style={{ display: 'flex', gap: '5px' }}>
                         <button 

@@ -13,7 +13,19 @@ interface Invoice {
   total_ttc: number;
   created_at: string;
   client_name: string;
+  client_address?: string;
   details?: InvoiceDetail[];
+}
+
+interface CompanyInfo {
+  name: string;
+  address: string;
+  phone: string;
+  email?: string;
+  nif?: string;
+  rc?: string;
+  art?: string;
+  domaine_activite?: string;
 }
 
 interface InvoiceDetail {
@@ -28,6 +40,7 @@ interface InvoiceDetail {
 export default function InvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
@@ -36,6 +49,7 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
 
   useEffect(() => {
     fetchInvoice();
+    fetchCompanyInfo();
   }, []);
 
   const fetchInvoice = async () => {
@@ -49,9 +63,10 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
         return;
       }
       
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const response = await fetch(`http://localhost:3005/api/sales/invoices/${resolvedParams.id}`, {
         headers: {
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenant
         }
       });
       
@@ -61,6 +76,7 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
       }
 
       const data = await response.json();
+      
       if (data.success) {
         setInvoice(data.data);
       } else {
@@ -71,6 +87,35 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
       setError('Erreur de connexion');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCompanyInfo = async () => {
+    try {
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
+      const response = await fetch('http://localhost:3005/api/sales/company-info', {
+        headers: {
+          'X-Tenant': tenant
+        }
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setCompanyInfo(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching company info:', error);
+      // Fallback company info
+      setCompanyInfo({
+        name: 'ETS BENAMAR BOUZID MENOUAR',
+        address: '10, Rue Belhandouz A.E.K, Mostaganem, Mostaganem',
+        phone: '(213)045.42.35.20',
+        email: 'outillagesaada@gmail.com',
+        nif: '10227010185816600000',
+        rc: '21A3965999-27/00',
+        art: '100227010185845',
+        domaine_activite: 'Commerce Outillage et Équipements'
+      });
     }
   };
 
@@ -129,7 +174,30 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
             Retour à la liste
           </button>
           <button 
-            onClick={() => window.print()} 
+            onClick={async () => {
+              const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
+              try {
+                const response = await fetch(`http://localhost:3005/api/pdf/invoice/${invoice.nfact}`, {
+                  headers: {
+                    'X-Tenant': tenant
+                  }
+                });
+                
+                if (response.ok) {
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  window.open(url, '_blank');
+                  window.URL.revokeObjectURL(url);
+                } else {
+                  const errorData = await response.json();
+                  console.error('PDF generation failed:', errorData);
+                  alert('Erreur lors de la génération du PDF: ' + (errorData.error || 'Erreur inconnue'));
+                }
+              } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Erreur lors de la génération du PDF');
+              }
+            }} 
             className={styles.primaryButton}
             style={{ marginLeft: '10px' }}
           >
@@ -144,10 +212,16 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
           <div className={styles.formSection}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <h2>VOTRE ENTREPRISE</h2>
-                <p>Adresse de votre entreprise</p>
-                <p>Téléphone : +213 XX XX XX XX</p>
-                <p>Email : contact@entreprise.dz</p>
+                <h2 style={{ color: '#2c3e50', marginBottom: '10px' }}>{companyInfo?.name || 'VOTRE ENTREPRISE'}</h2>
+                {companyInfo?.domaine_activite && (
+                  <p style={{ fontStyle: 'italic', color: '#7f8c8d', marginBottom: '8px' }}>{companyInfo.domaine_activite}</p>
+                )}
+                <p style={{ marginBottom: '5px' }}>{companyInfo?.address || 'Adresse de votre entreprise'}</p>
+                <p style={{ marginBottom: '5px' }}>Tél: {companyInfo?.phone || '+213 XX XX XX XX'}</p>
+                <p style={{ marginBottom: '5px' }}>Email: {companyInfo?.email || 'contact@entreprise.dz'}</p>
+                {companyInfo?.nif && <p style={{ fontSize: '0.9em', color: '#7f8c8d' }}>NIF: {companyInfo.nif}</p>}
+                {companyInfo?.rc && <p style={{ fontSize: '0.9em', color: '#7f8c8d' }}>RC: {companyInfo.rc}</p>}
+                {companyInfo?.art && <p style={{ fontSize: '0.9em', color: '#7f8c8d' }}>Art: {companyInfo.art}</p>}
               </div>
               <div style={{ textAlign: 'right' }}>
                 <h2 style={{ color: '#007bff', fontSize: '1.8rem' }}>FACTURE</h2>
@@ -159,9 +233,12 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
 
           {/* Informations client */}
           <div className={styles.formSection}>
-            <h2>Facturé à :</h2>
-            <p><strong>Code :</strong> {invoice.nclient}</p>
-            <p><strong>Raison sociale :</strong> {invoice.client_name || invoice.nclient}</p>
+            <h2 style={{ color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '5px' }}>Facturé à :</h2>
+            <div style={{ backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '5px', marginTop: '10px' }}>
+              <p style={{ marginBottom: '8px' }}><strong>Code client :</strong> {invoice.nclient}</p>
+              <p style={{ marginBottom: '8px' }}><strong>Raison sociale :</strong> {invoice.client_name || invoice.nclient}</p>
+              {invoice.client_address && <p style={{ marginBottom: '8px' }}><strong>Adresse :</strong> {invoice.client_address}</p>}
+            </div>
           </div>
 
           {/* Détails des articles */}
@@ -185,10 +262,10 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
                       <tr key={index}>
                         <td>{detail.narticle}</td>
                         <td>{detail.designation}</td>
-                        <td style={{ textAlign: 'right' }}>{Math.round(detail.qte).toLocaleString('fr-FR')}</td>
-                        <td style={{ textAlign: 'right' }}>{parseFloat(detail.prix.toString()).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</td>
+                        <td style={{ textAlign: 'right' }}>{Math.round(detail.qte)}</td>
+                        <td style={{ textAlign: 'right' }}>{parseFloat(detail.prix.toString()).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
                         <td style={{ textAlign: 'right' }}>{parseFloat(detail.tva.toString()).toFixed(0)}%</td>
-                        <td style={{ textAlign: 'right' }}>{parseFloat(detail.total_ligne.toString()).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</td>
+                        <td style={{ textAlign: 'right' }}>{parseFloat(detail.total_ligne.toString()).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
                       </tr>
                     ))
                   ) : (
@@ -208,15 +285,15 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
             <div className={styles.totalsGrid}>
               <div className={styles.totalRow}>
                 <span>Montant HT :</span>
-                <span>{invoice.montant_ht?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</span>
+                <span>{invoice.montant_ht?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</span>
               </div>
               <div className={styles.totalRow}>
                 <span>TVA :</span>
-                <span>{invoice.tva?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</span>
+                <span>{invoice.tva?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</span>
               </div>
               <div className={styles.totalRow}>
                 <strong>Total TTC :</strong>
-                <strong>{invoice.total_ttc?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</strong>
+                <strong>{(invoice.total_ttc || (invoice.montant_ht + invoice.tva))?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</strong>
               </div>
             </div>
           </div>

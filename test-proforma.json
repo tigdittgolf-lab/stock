@@ -1,0 +1,12 @@
+{
+  "Nclient": "CL01",
+  "date_fact": "2025-12-15",
+  "detail_proforma": [
+    {
+      "Narticle": "1000",
+      "Qte": 2,
+      "prix": 1856.4,
+      "tva": 19
+    }
+  ]
+}

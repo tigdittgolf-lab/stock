@@ -91,27 +91,61 @@ export class PDFService {
     doc.line(20, yPos, 190, yPos);
     yPos += 15;
 
-    // Company info (left side)
+    // Invoice info et Client info (côté droit) 
+    let rightSideY = yPos;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Facture N: ${invoiceData.nfact}`, 140, rightSideY);
+    rightSideY += 5;
+    doc.text(`Date: ${new Date(invoiceData.date_fact).toLocaleDateString('fr-FR')}`, 140, rightSideY);
+    rightSideY += 10; // Espacement avant les infos client
+    
+    // Client info (côté droit, en dessous de la date)
+    doc.setFont('helvetica', 'bold');
+    doc.text('Client:', 140, rightSideY);
+    rightSideY += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.text(invoiceData.client.raison_sociale, 140, rightSideY);
+    rightSideY += 5;
+
+    if (invoiceData.client.adresse) {
+      doc.text(invoiceData.client.adresse, 140, rightSideY);
+      rightSideY += 5;
+    }
+
+    if (invoiceData.client.nif) {
+      doc.text(`NIF: ${invoiceData.client.nif}`, 140, rightSideY);
+      rightSideY += 5;
+    }
+    
+    // Company info (côté gauche) - Limiter la largeur pour éviter chevauchement avec droite
+    yPos = 45; // Position fixe pour les infos entreprise
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(companyInfo.name, 20, yPos);
+    // Limiter le texte pour éviter débordement sur la droite
+    const companyName = companyInfo.name.length > 35 ? companyInfo.name.substring(0, 35) + '...' : companyInfo.name;
+    doc.text(companyName, 20, yPos);
     yPos += 5;
     
     // Add domain of activity if available
     if (companyInfo.domaine_activite) {
       doc.setFontSize(8);
       doc.setFont('helvetica', 'italic');
-      doc.text(companyInfo.domaine_activite, 20, yPos);
+      const domaine = companyInfo.domaine_activite.length > 40 ? companyInfo.domaine_activite.substring(0, 40) + '...' : companyInfo.domaine_activite;
+      doc.text(domaine, 20, yPos);
       yPos += 4;
       if (companyInfo.sous_domaine) {
-        doc.text(companyInfo.sous_domaine, 20, yPos);
+        const sousDomaine = companyInfo.sous_domaine.length > 40 ? companyInfo.sous_domaine.substring(0, 40) + '...' : companyInfo.sous_domaine;
+        doc.text(sousDomaine, 20, yPos);
         yPos += 4;
       }
     }
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.text(companyInfo.address, 20, yPos);
+    // Limiter l'adresse pour éviter débordement
+    const address = companyInfo.address.length > 45 ? companyInfo.address.substring(0, 45) + '...' : companyInfo.address;
+    doc.text(address, 20, yPos);
     yPos += 5;
     doc.text(`Tél: ${companyInfo.phone}`, 20, yPos);
     yPos += 5;
@@ -122,12 +156,14 @@ export class PDFService {
     }
 
     if (companyInfo.email) {
-      doc.text(`Email: ${companyInfo.email}`, 20, yPos);
+      const email = companyInfo.email.length > 35 ? companyInfo.email.substring(0, 35) + '...' : companyInfo.email;
+      doc.text(`Email: ${email}`, 20, yPos);
       yPos += 5;
     }
 
     if (companyInfo.nif || companyInfo.ident_fiscal) {
-      doc.text(`NIF: ${companyInfo.nif || companyInfo.ident_fiscal}`, 20, yPos);
+      const nif = (companyInfo.nif || companyInfo.ident_fiscal);
+      doc.text(`NIF: ${nif}`, 20, yPos);
       yPos += 5;
     }
 
@@ -138,36 +174,15 @@ export class PDFService {
 
     if (companyInfo.art) {
       doc.text(`Art: ${companyInfo.art}`, 20, yPos);
-    }
-
-    // Invoice info (right side)
-    yPos = 45;
-    doc.setFontSize(10);
-    doc.text(`Facture N: ${invoiceData.nfact}`, 140, yPos);
-    yPos += 5;
-    doc.text(`Date: ${new Date(invoiceData.date_fact).toLocaleDateString('fr-FR')}`, 140, yPos);
-
-    // Client info
-    yPos = 80;
-    doc.setFont('helvetica', 'bold');
-    doc.text('Client:', 20, yPos);
-    yPos += 5;
-    doc.setFont('helvetica', 'normal');
-    doc.text(invoiceData.client.raison_sociale, 20, yPos);
-    yPos += 5;
-
-    if (invoiceData.client.adresse) {
-      doc.text(invoiceData.client.adresse, 20, yPos);
       yPos += 5;
     }
 
-    if (invoiceData.client.nif) {
-      doc.text(`NIF: ${invoiceData.client.nif}`, 20, yPos);
-      yPos += 5;
-    }
+    // Sauvegarder la position finale des infos entreprise
+    let companyEndY = yPos;
 
-    // Table header
-    yPos = 110;
+    // Table header - Position après les infos entreprise ET client (côté droit)
+    // Prendre la position la plus basse entre infos entreprise et infos client
+    yPos = Math.max(companyEndY + 15, rightSideY + 10);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.text('Code', 20, yPos);
@@ -292,52 +307,93 @@ export class PDFService {
     doc.line(20, yPos, 190, yPos);
     yPos += 15;
 
-    // Company info (left side)
+    // BL info et Client info (côté droit) 
+    let rightSideY = yPos;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`BL N: ${deliveryData.nfact}`, 140, rightSideY);
+    rightSideY += 5;
+    doc.text(`Date: ${new Date(deliveryData.date_fact).toLocaleDateString('fr-FR')}`, 140, rightSideY);
+    rightSideY += 10; // Espacement avant les infos client
+    
+    // Client info (côté droit, en dessous de la date)
+    doc.setFont('helvetica', 'bold');
+    doc.text('Client:', 140, rightSideY);
+    rightSideY += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.text(deliveryData.client.raison_sociale, 140, rightSideY);
+    rightSideY += 5;
+
+    if (deliveryData.client.adresse) {
+      doc.text(deliveryData.client.adresse, 140, rightSideY);
+      rightSideY += 5;
+    }
+    
+    // Company info (côté gauche) - Limiter la largeur pour éviter chevauchement avec droite
+    yPos = 45; // Position fixe pour les infos entreprise
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(companyInfo.name, 20, yPos);
+    // Limiter le texte pour éviter débordement sur la droite
+    const companyName = companyInfo.name.length > 35 ? companyInfo.name.substring(0, 35) + '...' : companyInfo.name;
+    doc.text(companyName, 20, yPos);
     yPos += 5;
     
     // Add domain of activity if available
     if (companyInfo.domaine_activite) {
       doc.setFontSize(8);
       doc.setFont('helvetica', 'italic');
-      doc.text(companyInfo.domaine_activite, 20, yPos);
+      const domaine = companyInfo.domaine_activite.length > 40 ? companyInfo.domaine_activite.substring(0, 40) + '...' : companyInfo.domaine_activite;
+      doc.text(domaine, 20, yPos);
       yPos += 4;
       if (companyInfo.sous_domaine) {
-        doc.text(companyInfo.sous_domaine, 20, yPos);
+        const sousDomaine = companyInfo.sous_domaine.length > 40 ? companyInfo.sous_domaine.substring(0, 40) + '...' : companyInfo.sous_domaine;
+        doc.text(sousDomaine, 20, yPos);
         yPos += 4;
       }
     }
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.text(companyInfo.address, 20, yPos);
+    // Limiter l'adresse pour éviter débordement
+    const address = companyInfo.address.length > 45 ? companyInfo.address.substring(0, 45) + '...' : companyInfo.address;
+    doc.text(address, 20, yPos);
     yPos += 5;
     doc.text(`Tél: ${companyInfo.phone}`, 20, yPos);
-
-    // BL info (right side)
-    yPos = 45;
-    doc.setFontSize(10);
-    doc.text(`BL N: ${deliveryData.nfact}`, 140, yPos);
-    yPos += 5;
-    doc.text(`Date: ${new Date(deliveryData.date_fact).toLocaleDateString('fr-FR')}`, 140, yPos);
-
-    // Client info
-    yPos = 70;
-    doc.setFont('helvetica', 'bold');
-    doc.text('Client:', 20, yPos);
-    yPos += 5;
-    doc.setFont('helvetica', 'normal');
-    doc.text(deliveryData.client.raison_sociale, 20, yPos);
     yPos += 5;
 
-    if (deliveryData.client.adresse) {
-      doc.text(deliveryData.client.adresse, 20, yPos);
+    if (companyInfo.tel_port) {
+      doc.text(`Mobile: ${companyInfo.tel_port}`, 20, yPos);
+      yPos += 5;
     }
 
-    // Table header
-    yPos = 100;
+    if (companyInfo.email) {
+      const email = companyInfo.email.length > 35 ? companyInfo.email.substring(0, 35) + '...' : companyInfo.email;
+      doc.text(`Email: ${email}`, 20, yPos);
+      yPos += 5;
+    }
+
+    if (companyInfo.nif || companyInfo.ident_fiscal) {
+      const nif = (companyInfo.nif || companyInfo.ident_fiscal);
+      doc.text(`NIF: ${nif}`, 20, yPos);
+      yPos += 5;
+    }
+
+    if (companyInfo.rc) {
+      doc.text(`RC: ${companyInfo.rc}`, 20, yPos);
+      yPos += 5;
+    }
+
+    if (companyInfo.art) {
+      doc.text(`Art: ${companyInfo.art}`, 20, yPos);
+      yPos += 5;
+    }
+
+    // Sauvegarder la position finale des infos entreprise
+    let companyEndY = yPos;
+
+    // Table header - Position après les infos entreprise ET client (côté droit)
+    // Prendre la position la plus basse entre infos entreprise et infos client
+    yPos = Math.max(companyEndY + 15, rightSideY + 10);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.text('Code', 20, yPos);

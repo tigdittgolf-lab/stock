@@ -78,9 +78,9 @@ export default function ProformaList() {
                   <th>N° Proforma</th>
                   <th>Client</th>
                   <th>Date</th>
-                  <th>Montant HT</th>
-                  <th>TVA</th>
-                  <th>Total TTC</th>
+                  <th style={{ textAlign: 'right' }}>Montant HT</th>
+                  <th style={{ textAlign: 'right' }}>TVA</th>
+                  <th style={{ textAlign: 'right' }}>Total TTC</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -90,9 +90,9 @@ export default function ProformaList() {
                     <td><strong>{proforma.nfprof}</strong></td>
                     <td>{proforma.nclient}</td>
                     <td>{new Date(proforma.date_fact).toLocaleDateString('fr-FR')}</td>
-                    <td>{proforma.montant_ht?.toFixed(2)} DA</td>
-                    <td>{proforma.tva?.toFixed(2)} DA</td>
-                    <td><strong>{proforma.total_ttc?.toFixed(2)} DA</strong></td>
+                    <td style={{ textAlign: 'right' }}>{proforma.montant_ht?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
+                    <td style={{ textAlign: 'right' }}>{proforma.tva?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
+                    <td style={{ textAlign: 'right' }}><strong>{proforma.total_ttc?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</strong></td>
                     <td>
                       <button 
                         onClick={() => router.push(`/proforma/${proforma.nfprof}`)}

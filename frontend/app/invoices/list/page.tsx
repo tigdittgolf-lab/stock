@@ -25,9 +25,10 @@ export default function InvoicesList() {
 
   const fetchInvoices = async () => {
     try {
+      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const response = await fetch('http://localhost:3005/api/sales/invoices', {
         headers: {
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenant
         }
       });
       const data = await response.json();
@@ -77,9 +78,9 @@ export default function InvoicesList() {
                   <th>N° Facture</th>
                   <th>Client</th>
                   <th>Date</th>
-                  <th>Montant HT</th>
-                  <th>TVA</th>
-                  <th>Total TTC</th>
+                  <th style={{ textAlign: 'right' }}>Montant HT</th>
+                  <th style={{ textAlign: 'right' }}>TVA</th>
+                  <th style={{ textAlign: 'right' }}>Total TTC</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -89,9 +90,9 @@ export default function InvoicesList() {
                     <td><strong>{invoice.nfact}</strong></td>
                     <td>{invoice.nclient}</td>
                     <td>{new Date(invoice.date_fact).toLocaleDateString('fr-FR')}</td>
-                    <td>{invoice.montant_ht?.toFixed(2)} DA</td>
-                    <td>{invoice.tva?.toFixed(2)} DA</td>
-                    <td><strong>{invoice.total_ttc?.toFixed(2)} DA</strong></td>
+                    <td style={{ textAlign: 'right' }}>{invoice.montant_ht?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
+                    <td style={{ textAlign: 'right' }}>{invoice.tva?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
+                    <td style={{ textAlign: 'right' }}><strong>{invoice.total_ttc?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</strong></td>
                     <td>
                       <button 
                         onClick={() => router.push(`/invoices/${invoice.nfact}`)}
