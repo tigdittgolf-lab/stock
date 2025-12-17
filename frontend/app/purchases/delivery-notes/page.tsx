@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import styles from '../page.module.css';
+import styles from '../../page.module.css';
 
 interface Supplier {
   nfournisseur: string;
@@ -14,34 +14,35 @@ interface Article {
   narticle: string;
   designation: string;
   prix_unitaire: number;
-  stock_f: number;
+  stock_bl: number;
+  nfournisseur: string;
 }
 
-interface PurchaseDetail {
+interface PurchaseBLDetail {
   Narticle: string;
   Qte: number;
   prix: number;
   tva: number;
 }
 
-export default function CreatePurchaseInvoice() {
+export default function CreatePurchaseBL() {
   const router = useRouter();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedSupplier, setSelectedSupplier] = useState('');
-  const [invoiceNumber, setInvoiceNumber] = useState('');
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
-  const [details, setDetails] = useState<PurchaseDetail[]>([
+  const [blNumber, setBlNumber] = useState('');
+  const [blDate, setBlDate] = useState(new Date().toISOString().split('T')[0]);
+  const [details, setDetails] = useState<PurchaseBLDetail[]>([
     { Narticle: '', Qte: 1, prix: 0, tva: 19 }
   ]);
-  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
   // Articles filtrés par fournisseur sélectionné
   const filteredArticles = selectedSupplier 
     ? articles.filter(article => article.nfournisseur === selectedSupplier)
     : [];
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     fetchSuppliers();
@@ -94,7 +95,7 @@ export default function CreatePurchaseInvoice() {
     }
   };
 
-  const updateDetail = (index: number, field: keyof PurchaseDetail, value: string | number) => {
+  const updateDetail = (index: number, field: keyof PurchaseBLDetail, value: string | number) => {
     const newDetails = [...details];
     newDetails[index] = { ...newDetails[index], [field]: value };
     
@@ -145,8 +146,8 @@ export default function CreatePurchaseInvoice() {
       return;
     }
 
-    if (!invoiceNumber.trim()) {
-      setError('Veuillez saisir le numéro de facture du fournisseur');
+    if (!blNumber.trim()) {
+      setError('Veuillez saisir le numéro de BL du fournisseur');
       return;
     }
 
@@ -161,7 +162,7 @@ export default function CreatePurchaseInvoice() {
 
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('http://localhost:3005/api/purchases/invoices', {
+      const response = await fetch('http://localhost:3005/api/purchases/delivery-notes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -169,26 +170,26 @@ export default function CreatePurchaseInvoice() {
         },
         body: JSON.stringify({
           Nfournisseur: selectedSupplier,
-          numero_facture_fournisseur: invoiceNumber,
-          date_fact: invoiceDate,
-          detail_fact_achat: details
+          numero_bl_fournisseur: blNumber,
+          date_bl: blDate,
+          detail_bl_achat: details
         })
       });
 
       const data = await response.json();
       
       if (data.success) {
-        setSuccess(`Facture d'achat ${data.data.nfact_achat} créée avec succès !`);
+        setSuccess(`BL d'achat ${data.data.numero_bl_fournisseur} créé avec succès !`);
         // Reset form
         setSelectedSupplier('');
-        setInvoiceNumber('');
+        setBlNumber('');
         setDetails([{ Narticle: '', Qte: 1, prix: 0, tva: 19 }]);
-        setInvoiceDate(new Date().toISOString().split('T')[0]);
+        setBlDate(new Date().toISOString().split('T')[0]);
       } else {
         setError(data.error || 'Erreur lors de la création');
       }
     } catch (error) {
-      console.error('Error creating purchase invoice:', error);
+      console.error('Error creating purchase BL:', error);
       setError('Erreur de connexion');
     } finally {
       setLoading(false);
@@ -198,13 +199,13 @@ export default function CreatePurchaseInvoice() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1>Nouvelle Facture d'Achat</h1>
+        <h1>Nouveau BL d'Achat</h1>
         <div>
-          <button onClick={() => router.push('/purchases/delivery-notes')} className={styles.primaryButton}>
-            BL d'Achat
+          <button onClick={() => router.push('/purchases/delivery-notes/list')} className={styles.secondaryButton}>
+            Liste des BL
           </button>
-          <button onClick={() => router.push('/purchases/invoices/list')} className={styles.secondaryButton}>
-            Liste des Factures
+          <button onClick={() => router.push('/purchases')} className={styles.secondaryButton}>
+            Factures d'Achat
           </button>
           <button onClick={() => router.push('/')} className={styles.secondaryButton}>
             Retour
@@ -234,21 +235,21 @@ export default function CreatePurchaseInvoice() {
                 </select>
               </div>
               <div className={styles.formGroup}>
-                <label>N° Facture Fournisseur *</label>
+                <label>N° BL Fournisseur *</label>
                 <input
                   type="text"
-                  placeholder="Ex: FAC-2025-001"
-                  value={invoiceNumber}
-                  onChange={(e) => setInvoiceNumber(e.target.value)}
+                  placeholder="Ex: BL-2025-001"
+                  value={blNumber}
+                  onChange={(e) => setBlNumber(e.target.value)}
                   required
                 />
               </div>
               <div className={styles.formGroup}>
-                <label>Date de Facture</label>
+                <label>Date de BL</label>
                 <input
                   type="date"
-                  value={invoiceDate}
-                  onChange={(e) => setInvoiceDate(e.target.value)}
+                  value={blDate}
+                  onChange={(e) => setBlDate(e.target.value)}
                 />
               </div>
             </div>
@@ -256,10 +257,10 @@ export default function CreatePurchaseInvoice() {
 
           {/* Détails des articles */}
           <div className={styles.formSection}>
-            <h2>Articles Achetés</h2>
+            <h2>Articles Livrés</h2>
             {selectedSupplier && (
-              <div style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>
-                <p style={{ margin: 0, fontSize: '0.9rem', color: '#1976d2' }}>
+              <div style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#e8f5e8', borderRadius: '4px' }}>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: '#2e7d32' }}>
                   📦 <strong>{filteredArticles.length}</strong> article{filteredArticles.length > 1 ? 's' : ''} disponible{filteredArticles.length > 1 ? 's' : ''} pour le fournisseur <strong>{suppliers.find(s => s.nfournisseur === selectedSupplier)?.nom_fournisseur || selectedSupplier}</strong>
                 </p>
               </div>
@@ -296,7 +297,7 @@ export default function CreatePurchaseInvoice() {
                           </option>
                           {filteredArticles.map(article => (
                             <option key={article.narticle} value={article.narticle}>
-                              {article.designation} ({article.narticle}) - Stock: {article.stock_f}
+                              {article.designation} ({article.narticle}) - Stock BL: {article.stock_bl}
                             </option>
                           ))}
                         </select>
@@ -389,10 +390,19 @@ export default function CreatePurchaseInvoice() {
           {/* Actions */}
           <div className={styles.formActions}>
             <button type="submit" disabled={loading} className={styles.primaryButton}>
-              {loading ? 'Création...' : 'Créer la Facture d\'Achat'}
+              {loading ? 'Création...' : 'Créer le BL d\'Achat'}
             </button>
           </div>
         </form>
+
+        {/* Informations sur les stocks */}
+        <div className={styles.formSection}>
+          <div className={styles.stockInfo}>
+            <h3>📦 Impact sur les Stocks</h3>
+            <p>Ce BL d'achat génèrera une <strong>entrée de stock BL</strong> pour tous les articles listés.</p>
+            <p>Les quantités seront ajoutées au stock BL (stock_bl) de chaque article.</p>
+          </div>
+        </div>
       </main>
     </div>
   );

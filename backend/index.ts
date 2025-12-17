@@ -12,9 +12,11 @@ import purchases from './src/routes/purchases.js';
 import stock from './src/routes/stock.js';
 import reports from './src/routes/reports.js';
 import auth from './src/routes/auth.js';
+import authReal from './src/routes/auth-real.js';
 import pdf from './src/routes/pdf.js';
 import cache from './src/routes/cache.js';
 import settings from './src/routes/settings.js';
+import admin from './src/routes/admin.js';
 import missingEndpoints from './src/routes/missing-endpoints.js';
 
 const app = new Hono();
@@ -35,9 +37,11 @@ app.route('/api/activite', activite);
 app.route('/api/stock', stock);
 app.route('/api/reports', reports);
 app.route('/api/auth', auth);
+app.route('/api/auth-real', authReal);
 app.route('/api/pdf', pdf);
 app.route('/api/cache', cache);
 app.route('/api/settings', settings);
+app.route('/api/admin', admin);
 app.route('/api', missingEndpoints);
 
 try {
@@ -71,9 +75,11 @@ app.get('/', (c) => c.json({
     stock: '/api/stock',
     reports: '/api/reports',
     auth: '/api/auth',
+    authReal: '/api/auth-real',
     pdf: '/api/pdf',
     cache: '/api/cache',
     settings: '/api/settings',
+    admin: '/api/admin',
     health: '/health'
   }
 }));

@@ -24,24 +24,53 @@ export default function TenantSelection() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadBusinessUnits();
+    loadUserBusinessUnits();
     loadExercises();
   }, []);
 
-  const loadBusinessUnits = async () => {
+  const loadUserBusinessUnits = async () => {
     try {
-      const response = await fetch('http://localhost:3005/api/auth/business-units');
-      const data = await response.json();
-      if (data.success) {
-        setBusinessUnits(data.data);
+      // Récupérer les infos utilisateur depuis localStorage
+      const userInfoStr = localStorage.getItem('user_info');
+      if (!userInfoStr) {
+        console.error('No user info found, redirecting to login');
+        router.push('/login');
+        return;
       }
+
+      const userInfo = JSON.parse(userInfoStr);
+      console.log('👤 User info:', userInfo);
+
+      // Récupérer les BU de l'utilisateur
+      const userBusinessUnits = userInfo.business_units || [];
+      
+      if (userBusinessUnits.length === 0) {
+        console.warn('User has no business units assigned');
+        setBusinessUnits([]);
+        return;
+      }
+
+      // Transformer les schémas en objets BusinessUnit
+      const buList = userBusinessUnits.map((schema: string) => {
+        // Format: "2025_bu01" -> { id: "bu01", name: "Business Unit 01", year: 2025 }
+        const parts = schema.split('_');
+        const year = parts[0];
+        const buCode = parts[1];
+        
+        return {
+          id: schema, // Utiliser le schéma complet comme ID
+          name: `Business Unit ${buCode.replace('bu', '')} (${year})`,
+          description: `Schéma: ${schema}`
+        };
+      });
+
+      console.log('🏢 Available BUs:', buList);
+      setBusinessUnits(buList);
     } catch (error) {
       console.error('Error loading business units:', error);
       // Fallback data
       setBusinessUnits([
-        { id: 'bu01', name: 'Business Unit 01', description: 'Unité principale' },
-        { id: 'bu02', name: 'Business Unit 02', description: 'Unité secondaire' },
-        { id: 'bu03', name: 'Business Unit 03', description: 'Unité tertiaire' }
+        { id: '2025_bu01', name: 'Business Unit 01 (2025)', description: 'Schéma: 2025_bu01' }
       ]);
     }
   };
@@ -66,44 +95,37 @@ export default function TenantSelection() {
   };
 
   const handleConnect = async () => {
-    if (!selectedBU || !selectedYear) {
-      alert('Veuillez sélectionner une unité d\'affaires et un exercice');
+    if (!selectedBU) {
+      alert('Veuillez sélectionner une unité d\'affaires');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3005/api/auth/set-tenant', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          business_unit: selectedBU,
-          year: parseInt(selectedYear)
-        }),
-      });
+      // Le selectedBU contient déjà le schéma complet (ex: "2025_bu01")
+      const schema = selectedBU;
+      const parts = schema.split('_');
+      const year = parseInt(parts[0]);
+      const buCode = parts[1];
 
-      const data = await response.json();
-      if (data.success) {
-        // Store tenant info in localStorage
-        localStorage.setItem('tenant_info', JSON.stringify({
-          business_unit: selectedBU,
-          year: parseInt(selectedYear),
-          schema: `${selectedYear}_${selectedBU}`
-        }));
+      // Stocker les informations du tenant
+      const tenantInfo = {
+        business_unit: buCode,
+        year: year,
+        schema: schema
+      };
 
-        // Store tenant info in localStorage for dashboard
-        localStorage.setItem('currentTenant', data.data.schema);
+      localStorage.setItem('selectedTenant', schema);
+      localStorage.setItem('tenant_info', JSON.stringify(tenantInfo));
 
-        // Redirect to dashboard
-        router.push('/dashboard');
-      } else {
-        alert('Erreur: ' + data.error);
-      }
+      console.log('✅ Tenant sélectionné:', tenantInfo);
+
+      // Rediriger vers le dashboard
+      router.push('/dashboard');
+      router.refresh();
     } catch (error) {
       console.error('Error setting tenant:', error);
-      alert('Erreur de connexion');
+      alert('Erreur lors de la connexion au tenant');
     } finally {
       setLoading(false);
     }
@@ -128,7 +150,33 @@ export default function TenantSelection() {
         }}>
           <div style={{ textAlign: 'center', marginBottom: '30px' }}>
             <h1 style={{ color: '#333', marginBottom: '10px' }}>Système de Gestion de Stock</h1>
-            <p style={{ color: '#666', fontSize: '14px' }}>Sélectionnez votre unité d'affaires et exercice</p>
+            <p style={{ color: '#666', fontSize: '14px' }}>Sélectionnez votre unité d'affaires</p>
+            {(() => {
+              try {
+                const userInfo = typeof window !== 'undefined' ? localStorage.getItem('user_info') : null;
+                const user = userInfo ? JSON.parse(userInfo) : null;
+                if (user) {
+                  const roleIcon = user.role === 'admin' ? '👨‍💼' : user.role === 'manager' ? '👔' : '👤';
+                  const roleLabel = user.role === 'admin' ? 'Administrateur' : user.role === 'manager' ? 'Manager' : 'Utilisateur';
+                  return (
+                    <div style={{ 
+                      marginTop: '10px',
+                      padding: '8px 16px',
+                      background: user.role === 'admin' ? '#e7f3ff' : user.role === 'manager' ? '#fff3cd' : '#f8f9fa',
+                      borderRadius: '20px',
+                      display: 'inline-block',
+                      fontSize: '13px',
+                      color: '#495057'
+                    }}>
+                      {roleIcon} Connecté en tant que <strong>{roleLabel}</strong> ({user.username})
+                    </div>
+                  );
+                }
+                return null;
+              } catch {
+                return null;
+              }
+            })()}
           </div>
 
           <div style={{ marginBottom: '20px' }}>
@@ -155,43 +203,19 @@ export default function TenantSelection() {
             </select>
           </div>
 
-          <div style={{ marginBottom: '30px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
-              Exercice (Année):
-            </label>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '2px solid #ddd',
-                borderRadius: '5px',
-                fontSize: '14px'
-              }}
-            >
-              <option value="">Sélectionner un exercice</option>
-              {exercises.map(ex => (
-                <option key={ex.year} value={ex.year}>
-                  {ex.year} ({ex.status === 'active' ? 'Actif' : ex.status === 'closed' ? 'Clôturé' : 'Archivé'})
-                </option>
-              ))}
-            </select>
-          </div>
-
           <button
             onClick={handleConnect}
-            disabled={loading || !selectedBU || !selectedYear}
+            disabled={loading || !selectedBU}
             style={{
               width: '100%',
               padding: '15px',
-              backgroundColor: (!selectedBU || !selectedYear) ? '#ccc' : '#667eea',
+              backgroundColor: !selectedBU ? '#ccc' : '#667eea',
               color: 'white',
               border: 'none',
               borderRadius: '5px',
               fontSize: '16px',
               fontWeight: 'bold',
-              cursor: (!selectedBU || !selectedYear) ? 'not-allowed' : 'pointer',
+              cursor: !selectedBU ? 'not-allowed' : 'pointer',
               transition: 'background-color 0.3s'
             }}
           >
@@ -212,22 +236,33 @@ export default function TenantSelection() {
               ← Retour à la connexion
             </button>
             
-            <button
-              onClick={() => router.push('/new-exercise')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#28a745',
-                textDecoration: 'underline',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
-            >
-              ➕ Créer un nouvel exercice
-            </button>
+            {/* Bouton Créer exercice - Visible uniquement pour les admins */}
+            {(() => {
+              try {
+                const userInfo = typeof window !== 'undefined' ? localStorage.getItem('user_info') : null;
+                const user = userInfo ? JSON.parse(userInfo) : null;
+                return user?.role === 'admin' ? (
+                  <button
+                    onClick={() => router.push('/new-exercise')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#28a745',
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    ➕ Créer un nouvel exercice
+                  </button>
+                ) : null;
+              } catch {
+                return null;
+              }
+            })()}
           </div>
 
-          {selectedBU && selectedYear && (
+          {selectedBU && (
             <div style={{
               marginTop: '20px',
               padding: '15px',
@@ -236,7 +271,7 @@ export default function TenantSelection() {
               border: '1px solid #e9ecef'
             }}>
               <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>
-                <strong>Schéma sélectionné:</strong> {selectedYear}_{selectedBU}
+                <strong>Schéma sélectionné:</strong> {selectedBU}
               </p>
             </div>
           )}

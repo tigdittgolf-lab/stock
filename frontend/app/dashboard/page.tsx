@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from "../page.module.css";
+import dashboardStyles from "./dashboard.module.css";
 
 interface TenantInfo {
   business_unit: string;
@@ -687,6 +688,28 @@ export default function Dashboard() {
           >
             ⚙️ Réglages
           </button>
+          {/* Bouton Administration - Visible uniquement pour les admins */}
+          {(() => {
+            try {
+              const userInfo = typeof window !== 'undefined' ? localStorage.getItem('user_info') : null;
+              const user = userInfo ? JSON.parse(userInfo) : null;
+              return user?.role === 'admin' ? (
+                <button
+                  className={activeTab === 'admin' ? styles.active : ''}
+                  onClick={() => router.push('/admin')}
+                  style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    border: 'none'
+                  }}
+                >
+                  👨‍💼 Administration
+                </button>
+              ) : null;
+            } catch {
+              return null;
+            }
+          })()}
         </nav>
       </header>
 
@@ -1657,13 +1680,19 @@ export default function Dashboard() {
                   <div className={styles.moduleCard}>
                     <div className={styles.moduleIcon}>📦</div>
                     <h3>Bons de Livraison</h3>
-                    <p>Réceptions fournisseurs (à venir)</p>
+                    <p>Réceptions fournisseurs avec entrée stock BL</p>
                     <div className={styles.moduleActions}>
                       <button 
-                        className={styles.disabledButton}
-                        disabled
+                        onClick={() => router.push('/purchases/delivery-notes')}
+                        className={styles.primaryButton}
                       >
-                        Bientôt disponible
+                        Nouveau BL
+                      </button>
+                      <button 
+                        onClick={() => router.push('/purchases/delivery-notes/list')}
+                        className={styles.secondaryButton}
+                      >
+                        Liste des BL
                       </button>
                     </div>
                   </div>
@@ -1671,26 +1700,49 @@ export default function Dashboard() {
                   <div className={styles.moduleCard}>
                     <div className={styles.moduleIcon}>📊</div>
                     <h3>Statistiques Achats</h3>
-                    <p>Analyse des achats et fournisseurs</p>
+                    <p>Analyse complète des achats, fournisseurs et tendances</p>
                     <div className={styles.moduleActions}>
                       <button 
-                        className={styles.disabledButton}
-                        disabled
+                        onClick={() => router.push('/purchases/stats')}
+                        className={styles.primaryButton}
                       >
-                        Bientôt disponible
+                        Voir Statistiques
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={styles.moduleCard}>
+                    <div className={styles.moduleIcon}>📈</div>
+                    <h3>Gestion du Stock</h3>
+                    <p>Vue d'ensemble, alertes, valorisation et ajustements de stock</p>
+                    <div className={styles.moduleActions}>
+                      <button 
+                        onClick={() => router.push('/stock')}
+                        className={styles.primaryButton}
+                      >
+                        Ouvrir Stock
+                      </button>
+                      <button 
+                        onClick={() => router.push('/stock?tab=alerts')}
+                        className={styles.secondaryButton}
+                      >
+                        Alertes Stock
                       </button>
                     </div>
                   </div>
                 </div>
 
                 <div className={styles.infoBox}>
-                  <h4>💡 Fonctionnalités Achats</h4>
+                  <h4>💡 Fonctionnalités Achats & Stock</h4>
                   <ul>
                     <li>✅ <strong>Factures d'achat</strong> - Entrée de stock automatique</li>
-                    <li>✅ <strong>Gestion fournisseurs</strong> - 2 fournisseurs disponibles</li>
+                    <li>✅ <strong>Gestion fournisseurs</strong> - {suppliers.length} fournisseurs disponibles</li>
                     <li>✅ <strong>Calculs automatiques</strong> - HT, TVA, TTC</li>
-                    <li>⏳ <strong>Bons de livraison</strong> - En développement</li>
-                    <li>⏳ <strong>Rapports d'achats</strong> - En développement</li>
+                    <li>✅ <strong>Bons de livraison</strong> - Entrée de stock BL automatique</li>
+                    <li>✅ <strong>Statistiques complètes</strong> - Analyses et tendances détaillées</li>
+                    <li>🆕 <strong>Gestion du stock</strong> - Vue d'ensemble, alertes et valorisation</li>
+                    <li>🆕 <strong>Alertes automatiques</strong> - Ruptures et stock faible</li>
+                    <li>🆕 <strong>Ajustements de stock</strong> - Corrections manuelles avec historique</li>
                   </ul>
                 </div>
               </div>
@@ -1700,11 +1752,116 @@ export default function Dashboard() {
               <div className={styles.stock}>
                 <div className={styles.sectionHeader}>
                   <h2>📈 Gestion du Stock</h2>
+                  <button 
+                    onClick={() => router.push('/stock')}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '5px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    🚀 Ouvrir Gestion Stock Complète
+                  </button>
+                </div>
+
+                {/* Statistiques rapides */}
+                <div className={styles.stats}>
+                  <div className={styles.statCard}>
+                    <h3>📦 Total Articles</h3>
+                    <p className={styles.statNumber}>{articles.length}</p>
+                  </div>
+                  <div className={styles.statCard}>
+                    <h3>⚠️ Stock Faible</h3>
+                    <p className={styles.statNumber}>{getLowStockArticles().length}</p>
+                  </div>
+                  <div className={styles.statCard}>
+                    <h3>❌ Ruptures</h3>
+                    <p className={styles.statNumber}>
+                      {articles.filter(a => ((a.stock_f || 0) + (a.stock_bl || 0)) === 0).length}
+                    </p>
+                  </div>
+                  <div className={styles.statCard}>
+                    <h3>💰 Valeur Stock</h3>
+                    <p className={styles.statNumber}>{getTotalValue().toLocaleString('fr-FR')} DA</p>
+                  </div>
+                </div>
+
+                {/* Actions rapides */}
+                <div style={{ 
+                  background: '#f8f9fa', 
+                  padding: '20px', 
+                  borderRadius: '8px', 
+                  margin: '20px 0',
+                  border: '1px solid #dee2e6'
+                }}>
+                  <h3 style={{ marginBottom: '15px', color: '#495057' }}>🚀 Actions Rapides</h3>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <button 
+                      onClick={() => router.push('/stock')}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      📊 Vue d'ensemble Stock
+                    </button>
+                    <button 
+                      onClick={() => router.push('/stock?tab=alerts')}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#ffc107',
+                        color: '#212529',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      ⚠️ Alertes Stock
+                    </button>
+                    <button 
+                      onClick={() => router.push('/stock?tab=valuation')}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      💰 Valorisation
+                    </button>
+                    <button 
+                      onClick={() => router.push('/stock?tab=adjustments')}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      ⚙️ Ajustements
+                    </button>
+                  </div>
                 </div>
                 
                 {getLowStockArticles().length > 0 && (
                   <div>
-                    <h3>⚠️ Articles sous seuil</h3>
+                    <h3 style={{ color: '#dc3545' }}>⚠️ Articles sous seuil ({getLowStockArticles().length})</h3>
                     <div className={styles.tableContainer}>
                       <table className={styles.table}>
                         <thead>
@@ -1716,28 +1873,49 @@ export default function Dashboard() {
                             <th>Stock BL</th>
                             <th>Seuil</th>
                             <th>Différence</th>
+                            <th>Statut</th>
                           </tr>
                         </thead>
                         <tbody>
                           {getLowStockArticles().map((article) => {
                             const stockTotal = (article.stock_f || 0) + (article.stock_bl || 0);
                             const difference = stockTotal - article.seuil;
+                            const isZeroStock = stockTotal === 0;
                             
                             return (
-                              <tr key={article.narticle}>
-                                <td>{article.narticle}</td>
-                                <td>{article.designation}</td>
-                                <td style={{ fontWeight: 'bold', color: stockTotal === 0 ? '#dc3545' : '#495057' }}>
+                              <tr key={article.narticle} style={{ 
+                                backgroundColor: isZeroStock ? '#f8d7da' : '#fff3cd' 
+                              }}>
+                                <td style={{ fontWeight: 'bold' }}>{article.narticle}</td>
+                                <td style={{ fontWeight: 'bold', color: '#007bff' }}>{article.designation}</td>
+                                <td style={{ 
+                                  fontWeight: 'bold', 
+                                  color: isZeroStock ? '#dc3545' : '#ffc107',
+                                  textAlign: 'center'
+                                }}>
                                   {stockTotal}
                                 </td>
-                                <td>{article.stock_f}</td>
-                                <td>{article.stock_bl}</td>
-                                <td>{article.seuil}</td>
+                                <td style={{ textAlign: 'center' }}>{article.stock_f}</td>
+                                <td style={{ textAlign: 'center' }}>{article.stock_bl}</td>
+                                <td style={{ textAlign: 'center' }}>{article.seuil}</td>
                                 <td style={{ 
                                   color: difference < 0 ? '#dc3545' : '#28a745', 
-                                  fontWeight: 'bold' 
+                                  fontWeight: 'bold',
+                                  textAlign: 'center'
                                 }}>
                                   {difference > 0 ? '+' : ''}{difference}
+                                </td>
+                                <td>
+                                  <span style={{
+                                    padding: '4px 8px',
+                                    borderRadius: '12px',
+                                    fontSize: '12px',
+                                    fontWeight: 'bold',
+                                    backgroundColor: isZeroStock ? '#dc3545' : '#ffc107',
+                                    color: isZeroStock ? 'white' : '#212529'
+                                  }}>
+                                    {isZeroStock ? '❌ Rupture' : '⚠️ Faible'}
+                                  </span>
                                 </td>
                               </tr>
                             );
@@ -1745,6 +1923,58 @@ export default function Dashboard() {
                         </tbody>
                       </table>
                     </div>
+                    
+                    <div style={{ 
+                      marginTop: '15px', 
+                      textAlign: 'center',
+                      padding: '15px',
+                      background: '#e9ecef',
+                      borderRadius: '5px'
+                    }}>
+                      <button 
+                        onClick={() => router.push('/stock?tab=alerts')}
+                        style={{
+                          padding: '10px 20px',
+                          backgroundColor: '#dc3545',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        🚨 Voir Toutes les Alertes Stock
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {getLowStockArticles().length === 0 && (
+                  <div style={{
+                    background: '#d4edda',
+                    color: '#155724',
+                    padding: '20px',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    border: '1px solid #c3e6cb'
+                  }}>
+                    <h3>✅ Stock en Bonne Santé</h3>
+                    <p>Tous les articles sont au-dessus de leur seuil minimum.</p>
+                    <button 
+                      onClick={() => router.push('/stock')}
+                      style={{
+                        marginTop: '10px',
+                        padding: '10px 20px',
+                        backgroundColor: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      📊 Voir Détails du Stock
+                    </button>
                   </div>
                 )}
               </div>
