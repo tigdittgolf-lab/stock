@@ -20,7 +20,7 @@ export default function LoginPage() {
 
     try {
       // Utiliser le nouveau système d'authentification
-      const response = await fetch('http://localhost:3005/api/auth-real/login', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005/api'}/auth-real/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
