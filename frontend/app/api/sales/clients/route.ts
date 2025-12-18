@@ -30,16 +30,41 @@ export async function GET(request: NextRequest) {
 
     // Requête directe sur le schéma tenant
     try {
+      console.log(`🔍 Tentative de requête sur ${tenant}.client`);
+      
       const { data: clientData, error: clientError } = await supabase
         .from(`${tenant}.client`)
         .select('*')
         .order('nclient');
 
+      console.log(`📊 Résultat requête clients:`, { 
+        error: clientError, 
+        dataLength: clientData?.length || 0,
+        tenant: tenant 
+      });
+
       if (!clientError && clientData) {
         console.log(`✅ Clients récupérés via requête directe:`, clientData.length);
         return NextResponse.json({
           success: true,
-          data: clientData
+          data: clientData,
+          debug: {
+            tenant: tenant,
+            method: 'direct_query',
+            table: `${tenant}.client`
+          }
+        });
+      } else if (clientError) {
+        console.log(`❌ Erreur de requête clients:`, clientError);
+        return NextResponse.json({
+          success: true,
+          data: [],
+          debug: {
+            tenant: tenant,
+            error: clientError.message,
+            table: `${tenant}.client`,
+            suggestion: 'Vérifiez que le schéma et la table existent'
+          }
         });
       }
     } catch (directError) {
