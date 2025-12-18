@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from '@/utils/supabase';
+import { getApiUrl } from '@/lib/api';
 import styles from './login.module.css';
 
 export default function LoginPage() {
@@ -20,7 +21,7 @@ export default function LoginPage() {
 
     try {
       // Utiliser le nouveau système d'authentification
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005/api'}/auth-real/login`, {
+      const response = await fetch(getApiUrl('auth-real/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
