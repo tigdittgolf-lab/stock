@@ -40,6 +40,11 @@ export async function POST(request: NextRequest) {
             timestamp: Date.now()
           })).toString('base64');
 
+          // S'assurer que l'utilisateur a des business units
+          if (!authResult.user.business_units || authResult.user.business_units.length === 0) {
+            authResult.user.business_units = ['2025_bu01', '2024_bu01'];
+          }
+
           return NextResponse.json({
             success: true,
             message: 'Authentification réussie',
@@ -81,6 +86,9 @@ export async function POST(request: NextRequest) {
       timestamp: Date.now()
     })).toString('base64');
 
+    // Ajouter les business units disponibles pour les utilisateurs de test
+    const defaultBusinessUnits = ['2025_bu01', '2024_bu01'];
+
     return NextResponse.json({
       success: true,
       message: 'Authentification réussie',
@@ -89,7 +97,8 @@ export async function POST(request: NextRequest) {
         id: user.id,
         username: user.username,
         role: user.role,
-        nom: user.nom
+        nom: user.nom,
+        business_units: defaultBusinessUnits
       }
     });
 
