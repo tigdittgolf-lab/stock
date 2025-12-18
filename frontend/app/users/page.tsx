@@ -5,16 +5,16 @@ import { useRouter } from 'next/navigation';
 import { supabase, signOut } from '@/utils/supabase';
 import styles from '../page.module.css';
 
-interface User {
+interface AppUser {
   id: string;
-  email: string;
+  email?: string;
   created_at: string;
   user_metadata?: any;
 }
 
 export default function UsersPage() {
   const router = useRouter();
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<AppUser[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);

@@ -30,13 +30,13 @@ export default function TestJSON() {
         const json = JSON.parse(text);
         setResults(prev => [...prev, `✅ ${endpoint}: Valid JSON (${analysis.length} chars)`]);
       } catch (parseError) {
-        setResults(prev => [...prev, `❌ ${endpoint}: ${parseError.message}`]);
+        setResults(prev => [...prev, `❌ ${endpoint}: ${parseError instanceof Error ? parseError.message : 'Erreur inconnue'}`]);
         setResults(prev => [...prev, `   Raw: "${analysis.first50}"`]);
         setResults(prev => [...prev, `   Codes: [${analysis.charCodes.join(', ')}]`]);
       }
 
     } catch (error) {
-      setResults(prev => [...prev, `💥 ${endpoint}: ${error.message}`]);
+      setResults(prev => [...prev, `💥 ${endpoint}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`]);
     }
   };
 

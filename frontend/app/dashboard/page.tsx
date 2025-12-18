@@ -213,7 +213,7 @@ export default function Dashboard() {
       const fallbackResponse = await fetch('http://localhost:3005/api/sales/articles', { headers });
       const fallbackData = await fallbackResponse.json();
       
-      let allArticles = [];
+      let allArticles: any[] = [];
       if (fallbackData.success) {
         allArticles = [...(fallbackData.data || [])];
       }
@@ -444,7 +444,7 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error('Error deleting supplier:', error);
-      alert(`❌ Erreur lors de la suppression : ${error.message}`);
+      alert(`❌ Erreur lors de la suppression : ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     } finally {
       setLoading(false);
     }
@@ -509,7 +509,7 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error('Error deleting client:', error);
-      alert(`❌ Erreur lors de la suppression : ${error.message}`);
+      alert(`❌ Erreur lors de la suppression : ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     } finally {
       setLoading(false);
     }
@@ -567,7 +567,7 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error('Error deleting article:', error);
-      alert(`❌ Erreur lors de la suppression : ${error.message}`);
+      alert(`❌ Erreur lors de la suppression : ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     } finally {
       setLoading(false);
     }

@@ -14,6 +14,9 @@ interface Article {
   designation: string;
   prix_unitaire: number;
   tva: number;
+  stock_f: number;
+  stock_bl: number;
+  nfournisseur: string;
 }
 
 interface DeliveryLine {

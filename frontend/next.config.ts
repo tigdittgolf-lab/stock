@@ -21,7 +21,14 @@ const nextConfig: NextConfig = {
   
   // Configuration des images (si nécessaire)
   images: {
-    domains: ['localhost'],
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3005',
+        pathname: '/**',
+      },
+    ],
     unoptimized: true, // Pour Vercel
   },
   

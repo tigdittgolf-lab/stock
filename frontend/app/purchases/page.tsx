@@ -15,6 +15,8 @@ interface Article {
   designation: string;
   prix_unitaire: number;
   stock_f: number;
+  stock_bl: number;
+  nfournisseur: string;
 }
 
 interface PurchaseDetail {

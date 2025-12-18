@@ -15,6 +15,7 @@ interface Article {
   prix_vente: number;
   tva: number;
   stock_f: number;
+  stock_bl: number;
 }
 
 interface ProformaLine {
@@ -238,7 +239,7 @@ export default function CreateProforma() {
       } catch (parseError) {
         console.error('❌ JSON parse error:', parseError);
         console.error('❌ Response text that failed to parse:', responseText);
-        alert(`Erreur de parsing JSON: ${parseError.message}\nRéponse reçue: ${responseText.substring(0, 100)}...`);
+        alert(`Erreur de parsing JSON: ${parseError instanceof Error ? parseError.message : 'Erreur inconnue'}\nRéponse reçue: ${responseText.substring(0, 100)}...`);
         return;
       }
 

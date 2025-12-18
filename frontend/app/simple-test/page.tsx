@@ -48,12 +48,12 @@ export default function SimpleTest() {
         setResult(`✅ SUCCESS: ${JSON.stringify(json, null, 2)}`);
       } catch (parseError) {
         console.error('❌ JSON Parse Error:', parseError);
-        setError(`JSON Parse Error: ${parseError.message}\n\nRaw response: ${JSON.stringify(text)}\n\nChar codes: ${charAnalysis.map(c => `[${c.pos}]${c.char}(${c.code})`).join(' ')}`);
+        setError(`JSON Parse Error: ${parseError instanceof Error ? parseError.message : 'Erreur inconnue'}\n\nRaw response: ${JSON.stringify(text)}\n\nChar codes: ${charAnalysis.map(c => `[${c.pos}]${c.char}(${c.code})`).join(' ')}`);
       }
       
     } catch (fetchError) {
       console.error('💥 Fetch Error:', fetchError);
-      setError(`Fetch Error: ${fetchError.message}`);
+      setError(`Fetch Error: ${fetchError instanceof Error ? fetchError.message : 'Erreur inconnue'}`);
     }
   };
 

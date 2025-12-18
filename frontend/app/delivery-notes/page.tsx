@@ -15,6 +15,7 @@ interface Article {
   prix_vente: number;
   tva: number;
   stock_f: number;
+  stock_bl: number;
 }
 
 interface DeliveryLine {

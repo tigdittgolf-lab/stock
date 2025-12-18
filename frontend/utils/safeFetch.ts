@@ -27,7 +27,7 @@ export async function safeFetch(url: string, options?: RequestInit) {
     } catch (parseError) {
       console.error('❌ JSON parse failed even after cleaning:', parseError);
       console.error('Raw text:', JSON.stringify(text.substring(0, 100)));
-      throw new Error(`JSON Parse Error: ${parseError.message}`);
+      throw new Error(`JSON Parse Error: ${parseError instanceof Error ? parseError.message : 'Erreur inconnue'}`);
     }
     
   } catch (error) {
