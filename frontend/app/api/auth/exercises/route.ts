@@ -30,7 +30,6 @@ export async function GET(request: NextRequest) {
       const { data: buData, error: buError } = await supabase
         .from('business_units')
         .select('*')
-        .eq('active', true)
         .order('year', { ascending: false });
 
       if (!buError && buData && buData.length > 0) {
@@ -39,9 +38,27 @@ export async function GET(request: NextRequest) {
           success: true,
           data: buData
         });
+      } else {
+        console.log('⚠️ Erreur ou pas de données dans business_units:', buError);
       }
     } catch (directError) {
-      console.log('⚠️ Direct query failed, using fallback');
+      console.log('⚠️ Direct query failed:', directError);
+    }
+
+    // Essayer de lister les schémas directement
+    try {
+      const { data: schemaData, error: schemaError } = await supabase
+        .rpc('get_tenant_schemas');
+
+      if (!schemaError && schemaData) {
+        console.log('✅ Schémas récupérés:', schemaData);
+        return NextResponse.json({
+          success: true,
+          data: schemaData
+        });
+      }
+    } catch (schemaError) {
+      console.log('⚠️ Schema query failed');
     }
 
     // Fallback : données de test (seulement si tout échoue)
