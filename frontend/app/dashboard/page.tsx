@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getApiUrl } from '@/lib/api';
 import styles from "../page.module.css";
 import dashboardStyles from "./dashboard.module.css";
 
@@ -185,7 +186,7 @@ export default function Dashboard() {
       console.log('🔄 Fetching articles...');
       
       // Essayer d'abord l'endpoint de refresh pour forcer les vraies données
-      let response = await fetch('http://localhost:3005/api/articles/force-refresh', { headers });
+      let response = await fetch(getApiUrl('articles/force-refresh'), { headers });
       let data = await response.json();
       
       console.log('📊 Refresh response:', { success: data.success, dataLength: data.data?.length || 0 });
@@ -197,7 +198,7 @@ export default function Dashboard() {
       }
       
       // Si refresh échoue, essayer l'API normale
-      response = await fetch('http://localhost:3005/api/articles', { headers });
+      response = await fetch(getApiUrl('articles'), { headers });
       data = await response.json();
       
       if (data.success && data.data && data.data.length > 0) {
@@ -210,7 +211,7 @@ export default function Dashboard() {
       console.log('⚠️ No articles from API, using combined fallback');
       
       const localArticles = JSON.parse(localStorage.getItem('created_articles') || '[]');
-      const fallbackResponse = await fetch('http://localhost:3005/api/sales/articles', { headers });
+      const fallbackResponse = await fetch(getApiUrl('sales/articles'), { headers });
       const fallbackData = await fallbackResponse.json();
       
       let allArticles: any[] = [];
@@ -235,7 +236,7 @@ export default function Dashboard() {
 
   const fetchClients = async (headers: any) => {
     try {
-      const response = await fetch('http://localhost:3005/api/sales/clients', { headers });
+      const response = await fetch(getApiUrl('sales/clients'), { headers });
       const data = await response.json();
       
       if (data.success) {
@@ -250,7 +251,7 @@ export default function Dashboard() {
 
   const fetchSuppliers = async (headers: any) => {
     try {
-      const response = await fetch('http://localhost:3005/api/sales/suppliers', { headers });
+      const response = await fetch(getApiUrl('sales/suppliers'), { headers });
       const data = await response.json();
       
       if (data.success) {
@@ -426,7 +427,7 @@ export default function Dashboard() {
     try {
       setLoading(true);
       
-      const response = await fetch(`http://localhost:3005/api/sales/suppliers/${supplier.nfournisseur}`, {
+      const response = await fetch(getApiUrl(`sales/suppliers/${supplier.nfournisseur}`), {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -491,7 +492,7 @@ export default function Dashboard() {
     try {
       setLoading(true);
       
-      const response = await fetch(`http://localhost:3005/api/sales/clients/${client.nclient}`, {
+      const response = await fetch(getApiUrl(`sales/clients/${client.nclient}`), {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -546,7 +547,7 @@ export default function Dashboard() {
     try {
       setLoading(true);
       
-      const response = await fetch(`http://localhost:3005/api/articles/${article.narticle}`, {
+      const response = await fetch(getApiUrl(`articles/${article.narticle}`), {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
