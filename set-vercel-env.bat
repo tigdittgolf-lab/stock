@@ -1,0 +1,24 @@
+@echo off
+echo Configuration des variables d'environnement Vercel...
+
+cd frontend
+
+echo NEXT_PUBLIC_SUPABASE_URL
+echo https://szgodrjglbpzkrksnroi.supabase.co | vercel env add NEXT_PUBLIC_SUPABASE_URL production
+
+echo NEXT_PUBLIC_SUPABASE_ANON_KEY  
+echo eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2NDgwNDMsImV4cCI6MjA4MTIyNDA0M30.5LS_VF6mkFIodLIe3oHEYdlrZD0-rXJioEm2HVFcsBg | vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
+
+echo SUPABASE_SERVICE_ROLE_KEY
+echo eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTY0ODA0MywiZXhwIjoyMDgxMjI0MDQzfQ.QXWudNf09Ly0BwZHac2vweYkr-ea_iufIVzcP98zZFU | vercel env add SUPABASE_SERVICE_ROLE_KEY production
+
+echo JWT_SECRET
+echo St_Article_2025_Super_Secret_JWT_Key_256_Bits_Production_Ready_Token_Security | vercel env add JWT_SECRET production
+
+echo NEXT_PUBLIC_API_URL
+echo https://frontend-7ke69kz0m-tigdittgolf-9191s-projects.vercel.app/api | vercel env add NEXT_PUBLIC_API_URL production
+
+echo NODE_ENV
+echo production | vercel env add NODE_ENV production
+
+echo Configuration terminée!

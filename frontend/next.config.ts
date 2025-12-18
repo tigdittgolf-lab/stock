@@ -19,6 +19,9 @@ const nextConfig: NextConfig = {
     optimizeCss: true,
   },
   
+  // Exclure certaines pages du pré-rendu pour éviter les erreurs de build
+  generateStaticParams: false,
+  
   // Configuration des images (si nécessaire)
   images: {
     remotePatterns: [

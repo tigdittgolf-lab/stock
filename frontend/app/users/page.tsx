@@ -2,8 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase, signOut } from '@/utils/supabase';
 import styles from '../page.module.css';
+
+// Import dynamique pour éviter les erreurs de build
+let supabase: any = null;
+let signOut: any = null;
+
+if (typeof window !== 'undefined') {
+  import('@/utils/supabase').then(module => {
+    supabase = module.supabase;
+    signOut = module.signOut;
+  });
+}
 
 interface AppUser {
   id: string;
