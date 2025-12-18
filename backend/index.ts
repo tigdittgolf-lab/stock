@@ -23,7 +23,13 @@ const app = new Hono();
 
 // Enable CORS
 app.use('/*', cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'], // Frontend URLs
+  origin: [
+    'http://localhost:3000', 
+    'http://localhost:3001',
+    'https://frontend-pn8z8dd7o-tigdittgolf-9191s-projects.vercel.app',
+    // Permettre toutes les URLs Vercel pour ce projet
+    /^https:\/\/frontend-.*-tigdittgolf-9191s-projects\.vercel\.app$/
+  ],
   allowHeaders: ['Content-Type', 'Authorization', 'X-Tenant'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 }));
