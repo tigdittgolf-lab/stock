@@ -86,8 +86,28 @@ export async function POST(request: NextRequest) {
       timestamp: Date.now()
     })).toString('base64');
 
-    // Ajouter les business units disponibles pour les utilisateurs de test
-    const defaultBusinessUnits = ['2025_bu01', '2024_bu01'];
+    // Récupérer les business units réelles depuis Supabase
+    let userBusinessUnits: string[] = [];
+    
+    try {
+      // Essayer de récupérer les BU depuis la table business_units
+      const { data: buData, error: buError } = await supabase
+        .from('business_units')
+        .select('schema_name')
+        .eq('active', true);
+
+      if (!buError && buData && buData.length > 0) {
+        userBusinessUnits = buData.map(bu => bu.schema_name);
+        console.log('✅ BU récupérées depuis Supabase:', userBusinessUnits);
+      } else {
+        // Fallback si la requête échoue
+        userBusinessUnits = ['2025_bu01', '2024_bu01'];
+        console.log('⚠️ Utilisation des BU par défaut');
+      }
+    } catch (error) {
+      userBusinessUnits = ['2025_bu01', '2024_bu01'];
+      console.log('⚠️ Erreur lors de la récupération des BU, utilisation des valeurs par défaut');
+    }
 
     return NextResponse.json({
       success: true,
@@ -98,7 +118,7 @@ export async function POST(request: NextRequest) {
         username: user.username,
         role: user.role,
         nom: user.nom,
-        business_units: defaultBusinessUnits
+        business_units: userBusinessUnits
       }
     });
 

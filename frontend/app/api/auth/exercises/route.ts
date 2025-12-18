@@ -22,10 +22,29 @@ export async function GET(request: NextRequest) {
         });
       }
     } catch (rpcError) {
-      console.log('⚠️ RPC function not available, using fallback data');
+      console.log('⚠️ RPC function not available, trying direct query');
     }
 
-    // Fallback : données de test
+    // Essayer une requête directe sur la table business_units
+    try {
+      const { data: buData, error: buError } = await supabase
+        .from('business_units')
+        .select('*')
+        .eq('active', true)
+        .order('year', { ascending: false });
+
+      if (!buError && buData && buData.length > 0) {
+        console.log('✅ BU récupérées via requête directe:', buData);
+        return NextResponse.json({
+          success: true,
+          data: buData
+        });
+      }
+    } catch (directError) {
+      console.log('⚠️ Direct query failed, using fallback');
+    }
+
+    // Fallback : données de test (seulement si tout échoue)
     const fallbackExercises = [
       {
         schema_name: '2025_bu01',
