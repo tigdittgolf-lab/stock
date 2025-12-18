@@ -185,45 +185,23 @@ export default function Dashboard() {
     try {
       console.log('🔄 Fetching articles...');
       
-      // Essayer d'abord l'endpoint de refresh pour forcer les vraies données
-      let response = await fetch(getApiUrl('articles/force-refresh'), { headers });
-      let data = await response.json();
+      // Utiliser directement la route qui fonctionne
+      const response = await fetch(getApiUrl('sales/articles'), { headers });
+      const data = await response.json();
       
-      console.log('📊 Refresh response:', { success: data.success, dataLength: data.data?.length || 0 });
-      
-      if (data.success && data.data && data.data.length > 0) {
-        setArticles(data.data);
-        console.log('✅ Articles loaded from database refresh:', data.data.length);
-        return;
-      }
-      
-      // Si refresh échoue, essayer l'API normale
-      response = await fetch(getApiUrl('articles'), { headers });
-      data = await response.json();
+      console.log('📊 Articles response:', { success: data.success, dataLength: data.data?.length || 0 });
       
       if (data.success && data.data && data.data.length > 0) {
         setArticles(data.data);
-        console.log('✅ Articles loaded from normal API:', data.data.length);
+        console.log('✅ Articles loaded from database:', data.data.length);
         return;
       }
       
-      // Si toujours pas de données, combiner fallback + localStorage
-      console.log('⚠️ No articles from API, using combined fallback');
-      
+      // Si pas de données, utiliser localStorage comme fallback
+      console.log('⚠️ No articles from API, using localStorage fallback');
       const localArticles = JSON.parse(localStorage.getItem('created_articles') || '[]');
-      const fallbackResponse = await fetch(getApiUrl('sales/articles'), { headers });
-      const fallbackData = await fallbackResponse.json();
-      
-      let allArticles: any[] = [];
-      if (fallbackData.success) {
-        allArticles = [...(fallbackData.data || [])];
-      }
-      
-      // Ajouter les articles créés localement
-      allArticles = [...allArticles, ...localArticles];
-      
-      setArticles(allArticles);
-      console.log('📦 Using combined data:', allArticles.length, 'articles');
+      setArticles(localArticles);
+      console.log('📦 Using localStorage data:', localArticles.length, 'articles');
       
     } catch (err) {
       console.error('Error fetching articles:', err);
