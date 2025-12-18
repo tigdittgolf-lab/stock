@@ -90,31 +90,37 @@ app.get('/', (c) => c.json({
   }
 }));
 
-async function main() {
-  try {
-    console.log("Starting Stock Management Application Backend...");
+// Export the app for Vercel/Next.js integration
+export default app;
 
-    // Setup database (DISABLED - using multi-tenant architecture)
-    // Les tables sont créées dans les schémas tenants (2025_bu01, etc.) via deploy-complete-system.ts
-    console.log("Database setup skipped - using multi-tenant architecture");
+// Only start server if running directly (not imported)
+if (import.meta.main) {
+  async function main() {
+    try {
+      console.log("Starting Stock Management Application Backend...");
 
-    const port = process.env.PORT || 3005;
-    console.log(`Server starting on port ${port}...`);
+      // Setup database (DISABLED - using multi-tenant architecture)
+      // Les tables sont créées dans les schémas tenants (2025_bu01, etc.) via deploy-complete-system.ts
+      console.log("Database setup skipped - using multi-tenant architecture");
 
-    // Start server
-    Bun.serve({
-      port,
-      fetch: app.fetch,
-    });
+      const port = process.env.PORT || 3005;
+      console.log(`Server starting on port ${port}...`);
 
-    console.log(`🚀 Stock Management API is running on http://localhost:${port}`);
-    console.log(`📊 Health check: http://localhost:${port}/health`);
-    console.log(`📋 API documentation: http://localhost:${port}/`);
+      // Start server
+      Bun.serve({
+        port,
+        fetch: app.fetch,
+      });
 
-  } catch (error) {
-    console.error("Failed to start backend:", error);
-    process.exit(1);
+      console.log(`🚀 Stock Management API is running on http://localhost:${port}`);
+      console.log(`📊 Health check: http://localhost:${port}/health`);
+      console.log(`📋 API documentation: http://localhost:${port}/`);
+
+    } catch (error) {
+      console.error("Failed to start backend:", error);
+      process.exit(1);
+    }
   }
-}
 
-main();
+  main();
+}

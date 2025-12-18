@@ -4,17 +4,9 @@
     {
       "src": "frontend/package.json",
       "use": "@vercel/next"
-    },
-    {
-      "src": "backend/package.json",
-      "use": "@vercel/bun"
     }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/backend/index.ts"
-    },
     {
       "src": "/(.*)",
       "dest": "/frontend/$1"
@@ -22,10 +14,5 @@
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "backend/index.ts": {
-      "runtime": "@vercel/bun"
-    }
   }
 }
