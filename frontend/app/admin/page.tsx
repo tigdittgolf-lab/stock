@@ -189,6 +189,47 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+            {/* Configuration Base de Données */}
+            <div 
+              onClick={() => router.push('/admin/database-config')}
+              style={{
+                padding: '25px',
+                border: '2px solid #6f42c1',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                background: '#f8f6ff'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-5px)';
+                e.currentTarget.style.boxShadow = '0 8px 16px rgba(111, 66, 193, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <div style={{ fontSize: '48px', marginBottom: '15px' }}>🗄️</div>
+              <h3 style={{ margin: '0 0 10px 0', color: '#6f42c1', fontSize: '20px' }}>
+                Base de Données
+              </h3>
+              <p style={{ margin: '0', color: '#6c757d', fontSize: '14px', lineHeight: '1.6' }}>
+                Configurer les connexions, switcher entre cloud et local, tester les configurations de base de données
+              </p>
+              <div style={{ 
+                marginTop: '15px', 
+                padding: '8px 16px', 
+                background: '#6f42c1', 
+                color: 'white', 
+                borderRadius: '4px',
+                textAlign: 'center',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                Configurer DB →
+              </div>
+            </div>
+
             {/* Gestion des Utilisateurs */}
             <div 
               onClick={() => router.push('/admin/users')}
@@ -227,6 +268,47 @@ export default function AdminDashboard() {
                 fontWeight: '500'
               }}>
                 Gérer les Utilisateurs →
+              </div>
+            </div>
+
+            {/* Test Base de Données */}
+            <div 
+              onClick={() => router.push('/admin/database-test')}
+              style={{
+                padding: '25px',
+                border: '2px solid #17a2b8',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                background: '#f0fcff'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-5px)';
+                e.currentTarget.style.boxShadow = '0 8px 16px rgba(23, 162, 184, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <div style={{ fontSize: '48px', marginBottom: '15px' }}>🧪</div>
+              <h3 style={{ margin: '0 0 10px 0', color: '#17a2b8', fontSize: '20px' }}>
+                Test Base de Données
+              </h3>
+              <p style={{ margin: '0', color: '#6c757d', fontSize: '14px', lineHeight: '1.6' }}>
+                Tester la connectivité et les fonctions de la base de données active, vérifier le système hybride
+              </p>
+              <div style={{ 
+                marginTop: '15px', 
+                padding: '8px 16px', 
+                background: '#17a2b8', 
+                color: 'white', 
+                borderRadius: '4px',
+                textAlign: 'center',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                Tester DB →
               </div>
             </div>
 
