@@ -13,7 +13,7 @@ export default function SimpleTest() {
     try {
       console.log('🔍 Starting fetch...');
       
-      const response = await fetch('http://localhost:3005/api/sales/clients', {
+      const response = await fetch('${window.location.origin}/api/sales/clients', {
         headers: {
           'Content-Type': 'application/json',
           'X-Tenant': '2025_bu01'

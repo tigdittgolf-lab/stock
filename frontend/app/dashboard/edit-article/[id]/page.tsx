@@ -102,7 +102,7 @@ export default function EditArticle() {
     try {
       setArticleLoading(true);
       
-      const response = await fetch(`http://localhost:3005/api/articles/${id}`, {
+      const response = await fetch(`${window.location.origin}/api/articles/${id}`, {
         headers: {
           'Content-Type': 'application/json',
           'X-Tenant': tenant.schema
@@ -139,7 +139,7 @@ export default function EditArticle() {
   const fetchFamilies = async (headers: any) => {
     try {
       console.log('🔍 Fetching families from settings API...');
-      const response = await fetch('http://localhost:3005/api/settings/families', { headers });
+      const response = await fetch('${window.location.origin}/api/settings/families', { headers });
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -180,7 +180,7 @@ export default function EditArticle() {
 
   const fetchSuppliers = async (headers: any) => {
     try {
-      const response = await fetch('http://localhost:3005/api/sales/suppliers', { headers });
+      const response = await fetch('${window.location.origin}/api/sales/suppliers', { headers });
       const data = await response.json();
       
       if (data.success) {
@@ -258,7 +258,7 @@ export default function EditArticle() {
         stock_bl: stockBl
       };
 
-      const response = await fetch(`http://localhost:3005/api/articles/${articleId}`, {
+      const response = await fetch(`${window.location.origin}/api/articles/${articleId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

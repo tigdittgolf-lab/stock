@@ -132,7 +132,7 @@ export default function StockManagement() {
   const fetchStockOverview = async (headers: any) => {
     try {
       console.log('🔄 Fetching stock overview...');
-      const response = await fetch('http://localhost:3005/api/purchases/stock/overview', { headers });
+      const response = await fetch('${window.location.origin}/api/purchases/stock/overview', { headers });
       const data = await response.json();
       
       console.log('📊 Stock overview response:', data);
@@ -217,7 +217,7 @@ export default function StockManagement() {
   const fetchStockAlerts = async (headers: any) => {
     try {
       console.log('🔄 Fetching stock alerts...');
-      const response = await fetch('http://localhost:3005/api/purchases/stock/alerts', { headers });
+      const response = await fetch('${window.location.origin}/api/purchases/stock/alerts', { headers });
       const data = await response.json();
       
       console.log('⚠️ Stock alerts response:', data);

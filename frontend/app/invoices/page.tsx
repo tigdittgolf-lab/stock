@@ -52,7 +52,7 @@ export default function CreateInvoice() {
   const fetchNextInvoiceNumber = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('http://localhost:3005/api/sales/invoices/next-number', {
+      const response = await fetch('${window.location.origin}/api/sales/invoices/next-number', {
         headers: {
           'X-Tenant': tenant
         }
@@ -70,7 +70,7 @@ export default function CreateInvoice() {
   const fetchClients = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('http://localhost:3005/api/sales/clients', {
+      const response = await fetch('${window.location.origin}/api/sales/clients', {
         headers: {
           'X-Tenant': tenant
         }
@@ -87,7 +87,7 @@ export default function CreateInvoice() {
   const fetchArticles = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('http://localhost:3005/api/articles', {
+      const response = await fetch('${window.location.origin}/api/articles', {
         headers: {
           'X-Tenant': tenant
         }
@@ -209,7 +209,7 @@ export default function CreateInvoice() {
 
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('http://localhost:3005/api/sales/invoices', {
+      const response = await fetch('${window.location.origin}/api/sales/invoices', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

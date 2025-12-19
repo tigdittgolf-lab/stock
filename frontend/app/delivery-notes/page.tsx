@@ -51,7 +51,7 @@ export default function CreateDeliveryNote() {
 
   const fetchNextBLNumber = async () => {
     try {
-      const response = await fetch('http://localhost:3005/api/sales/delivery-notes/next-number', {
+      const response = await fetch('${window.location.origin}/api/sales/delivery-notes/next-number', {
         headers: {
           'X-Tenant': '2025_bu01'
         }
@@ -68,7 +68,7 @@ export default function CreateDeliveryNote() {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('http://localhost:3005/api/sales/clients', {
+      const response = await fetch('${window.location.origin}/api/sales/clients', {
         headers: {
           'X-Tenant': '2025_bu01'
         }
@@ -86,7 +86,7 @@ export default function CreateDeliveryNote() {
 
   const fetchArticles = async () => {
     try {
-      const response = await fetch('http://localhost:3005/api/articles', {
+      const response = await fetch('${window.location.origin}/api/articles', {
         headers: {
           'X-Tenant': '2025_bu01'
         }
@@ -225,7 +225,7 @@ export default function CreateDeliveryNote() {
     }
 
     try {
-      const response = await fetch('http://localhost:3005/api/sales/delivery-notes', {
+      const response = await fetch('${window.location.origin}/api/sales/delivery-notes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

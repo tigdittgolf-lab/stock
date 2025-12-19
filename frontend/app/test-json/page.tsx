@@ -7,7 +7,7 @@ export default function TestJSON() {
 
   const testAPI = async (endpoint: string) => {
     try {
-      const response = await fetch(`http://localhost:3005${endpoint}`, {
+      const response = await fetch(`${window.location.origin}${endpoint}`, {
         headers: {
           'Content-Type': 'application/json',
           'X-Tenant': '2025_bu01'

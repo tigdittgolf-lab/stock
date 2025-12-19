@@ -31,7 +31,31 @@ export default function TenantSelection() {
 
   const loadUserBusinessUnits = async () => {
     try {
-      // Récupérer les infos utilisateur depuis localStorage
+      console.log('🔍 Chargement des BU via API...');
+      
+      // APPELER L'API EXERCISES POUR RÉCUPÉRER LES VRAIS BU
+      const response = await fetch(getApiUrl('auth/exercises'));
+      const data = await response.json();
+      
+      console.log('📊 Réponse API exercises:', data);
+      
+      if (data.success && data.data && data.data.length > 0) {
+        // Transformer les données de l'API en objets BusinessUnit
+        const buList = data.data.map((exercise: any) => {
+          return {
+            id: exercise.schema_name,
+            name: `Business Unit ${exercise.bu_code} (${exercise.year})`,
+            description: `${exercise.nom_entreprise} - ${exercise.schema_name}`
+          };
+        });
+
+        console.log('🏢 Available BUs:', buList);
+        setBusinessUnits(buList);
+        return;
+      }
+
+      // Fallback: essayer localStorage si l'API échoue
+      console.log('⚠️ API échouée, essai localStorage...');
       const userInfoStr = localStorage.getItem('user_info');
       if (!userInfoStr) {
         console.error('No user info found, redirecting to login');
@@ -40,9 +64,8 @@ export default function TenantSelection() {
       }
 
       const userInfo = JSON.parse(userInfoStr);
-      console.log('👤 User info:', userInfo);
+      console.log('👤 User info (fallback):', userInfo);
 
-      // Récupérer les BU de l'utilisateur
       const userBusinessUnits = userInfo.business_units || [];
       
       if (userBusinessUnits.length === 0) {
@@ -53,23 +76,22 @@ export default function TenantSelection() {
 
       // Transformer les schémas en objets BusinessUnit
       const buList = userBusinessUnits.map((schema: string) => {
-        // Format: "2025_bu01" -> { id: "bu01", name: "Business Unit 01", year: 2025 }
         const parts = schema.split('_');
         const year = parts[0];
         const buCode = parts[1];
         
         return {
-          id: schema, // Utiliser le schéma complet comme ID
+          id: schema,
           name: `Business Unit ${buCode.replace('bu', '')} (${year})`,
           description: `Schéma: ${schema}`
         };
       });
 
-      console.log('🏢 Available BUs:', buList);
+      console.log('🏢 Available BUs (fallback):', buList);
       setBusinessUnits(buList);
     } catch (error) {
       console.error('Error loading business units:', error);
-      // Fallback data
+      // Fallback final
       setBusinessUnits([
         { id: '2025_bu01', name: 'Business Unit 01 (2025)', description: 'Schéma: 2025_bu01' }
       ]);

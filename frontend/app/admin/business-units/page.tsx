@@ -10,10 +10,17 @@ interface BusinessUnit {
   year: number;
   nom_entreprise: string;
   adresse: string;
+  commune: string;
+  wilaya: string;
   telephone: string;
+  tel_port: string;
   email: string;
   nif: string;
+  ident_fiscal: string;
   rc: string;
+  nrc: string;
+  nart: string;
+  banq: string;
   activite: string;
   slogan: string;
   active: boolean;
@@ -34,10 +41,17 @@ export default function BusinessUnitsPage() {
     year: new Date().getFullYear(),
     nom_entreprise: '',
     adresse: '',
+    commune: '',
+    wilaya: '',
     telephone: '',
+    tel_port: '',
     email: '',
     nif: '',
+    ident_fiscal: '',
     rc: '',
+    nrc: '',
+    nart: '',
+    banq: '',
     activite: '',
     slogan: ''
   });
@@ -71,7 +85,7 @@ export default function BusinessUnitsPage() {
         return;
       }
       
-      const response = await fetch('http://localhost:3005/api/admin/business-units', {
+      const response = await fetch(`${window.location.origin}/api/admin/business-units`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -100,7 +114,7 @@ export default function BusinessUnitsPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('http://localhost:3005/api/admin/business-units', {
+      const response = await fetch(`${window.location.origin}/api/admin/business-units`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -119,10 +133,17 @@ export default function BusinessUnitsPage() {
           year: new Date().getFullYear(),
           nom_entreprise: '',
           adresse: '',
+          commune: '',
+          wilaya: '',
           telephone: '',
+          tel_port: '',
           email: '',
           nif: '',
+          ident_fiscal: '',
           rc: '',
+          nrc: '',
+          nart: '',
+          banq: '',
           activite: '',
           slogan: ''
         });
@@ -143,8 +164,10 @@ export default function BusinessUnitsPage() {
 
     try {
       setLoading(true);
+      console.log('🔍 Mise à jour BU frontend:', editingBU);
+      
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`http://localhost:3005/api/admin/business-units/${editingBU.schema_name}`, {
+      const response = await fetch(`${window.location.origin}/api/admin/business-units`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -154,16 +177,18 @@ export default function BusinessUnitsPage() {
       });
       
       const result = await response.json();
+      console.log('📊 Résultat mise à jour BU:', result);
       
       if (result.success) {
         showMessage('Business Unit mise à jour avec succès !');
         setEditingBU(null);
         fetchBusinessUnits();
       } else {
+        console.error('❌ Erreur API mise à jour:', result);
         showMessage(result.error || 'Erreur lors de la mise à jour', true);
       }
     } catch (error) {
-      console.error('Error updating business unit:', error);
+      console.error('❌ Exception mise à jour BU:', error);
       showMessage('Erreur lors de la mise à jour', true);
     } finally {
       setLoading(false);
@@ -178,7 +203,7 @@ export default function BusinessUnitsPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`http://localhost:3005/api/admin/business-units/${schema}`, {
+      const response = await fetch(`${window.location.origin}/api/admin/business-units/${schema}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -571,8 +596,110 @@ export default function BusinessUnitsPage() {
                           </label>
                           <input
                             type="email"
-                            value={editingBU.email}
+                            value={editingBU.email || ''}
                             onChange={(e) => setEditingBU({...editingBU, email: e.target.value})}
+                            style={{
+                              width: '100%',
+                              padding: '8px',
+                              border: '1px solid #dee2e6',
+                              borderRadius: '4px',
+                              fontSize: '14px'
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500', fontSize: '14px' }}>
+                            Commune
+                          </label>
+                          <input
+                            type="text"
+                            value={editingBU.commune || ''}
+                            onChange={(e) => setEditingBU({...editingBU, commune: e.target.value})}
+                            style={{
+                              width: '100%',
+                              padding: '8px',
+                              border: '1px solid #dee2e6',
+                              borderRadius: '4px',
+                              fontSize: '14px'
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500', fontSize: '14px' }}>
+                            Wilaya
+                          </label>
+                          <input
+                            type="text"
+                            value={editingBU.wilaya || ''}
+                            onChange={(e) => setEditingBU({...editingBU, wilaya: e.target.value})}
+                            style={{
+                              width: '100%',
+                              padding: '8px',
+                              border: '1px solid #dee2e6',
+                              borderRadius: '4px',
+                              fontSize: '14px'
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500', fontSize: '14px' }}>
+                            Téléphone portable
+                          </label>
+                          <input
+                            type="text"
+                            value={editingBU.tel_port || ''}
+                            onChange={(e) => setEditingBU({...editingBU, tel_port: e.target.value})}
+                            style={{
+                              width: '100%',
+                              padding: '8px',
+                              border: '1px solid #dee2e6',
+                              borderRadius: '4px',
+                              fontSize: '14px'
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500', fontSize: '14px' }}>
+                            Identifiant fiscal
+                          </label>
+                          <input
+                            type="text"
+                            value={editingBU.ident_fiscal || ''}
+                            onChange={(e) => setEditingBU({...editingBU, ident_fiscal: e.target.value})}
+                            style={{
+                              width: '100%',
+                              padding: '8px',
+                              border: '1px solid #dee2e6',
+                              borderRadius: '4px',
+                              fontSize: '14px'
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500', fontSize: '14px' }}>
+                            N° Article (NART)
+                          </label>
+                          <input
+                            type="text"
+                            value={editingBU.nart || ''}
+                            onChange={(e) => setEditingBU({...editingBU, nart: e.target.value})}
+                            style={{
+                              width: '100%',
+                              padding: '8px',
+                              border: '1px solid #dee2e6',
+                              borderRadius: '4px',
+                              fontSize: '14px'
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500', fontSize: '14px' }}>
+                            Banque
+                          </label>
+                          <input
+                            type="text"
+                            value={editingBU.banq || ''}
+                            onChange={(e) => setEditingBU({...editingBU, banq: e.target.value})}
                             style={{
                               width: '100%',
                               padding: '8px',
@@ -765,16 +892,48 @@ export default function BusinessUnitsPage() {
                             {bu.email}
                           </div>
                         )}
-                        {bu.nif && (
+                        <div>
+                          <strong>🆔 NIF:</strong><br />
+                          {bu.nif || <span style={{ color: '#999', fontStyle: 'italic' }}>Non renseigné</span>}
+                        </div>
+                        <div>
+                          <strong>📋 RC:</strong><br />
+                          {bu.rc || <span style={{ color: '#999', fontStyle: 'italic' }}>Non renseigné</span>}
+                        </div>
+                        {bu.commune && (
                           <div>
-                            <strong>🆔 NIF:</strong><br />
-                            {bu.nif}
+                            <strong>🏘️ Commune:</strong><br />
+                            {bu.commune}
                           </div>
                         )}
-                        {bu.rc && (
+                        {bu.wilaya && (
                           <div>
-                            <strong>📋 RC:</strong><br />
-                            {bu.rc}
+                            <strong>🗺️ Wilaya:</strong><br />
+                            {bu.wilaya}
+                          </div>
+                        )}
+                        {bu.tel_port && (
+                          <div>
+                            <strong>📱 Tél. portable:</strong><br />
+                            {bu.tel_port}
+                          </div>
+                        )}
+                        {bu.ident_fiscal && (
+                          <div>
+                            <strong>🆔 Ident. fiscal:</strong><br />
+                            {bu.ident_fiscal}
+                          </div>
+                        )}
+                        {bu.nart && (
+                          <div>
+                            <strong>📄 N° Article:</strong><br />
+                            {bu.nart}
+                          </div>
+                        )}
+                        {bu.banq && (
+                          <div>
+                            <strong>🏦 Banque:</strong><br />
+                            {bu.banq}
                           </div>
                         )}
                         {bu.activite && (

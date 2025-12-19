@@ -11,65 +11,71 @@ export async function GET(request: NextRequest) {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     console.log(`🔍 Récupération des clients pour le tenant: ${tenant}`);
 
-    // Essayer avec la fonction RPC
+    // Utiliser UNIQUEMENT les fonctions RPC (pas de requête directe sur les schémas)
     try {
       const { data, error } = await supabase.rpc('get_clients', {
         p_tenant: tenant
       });
 
-      if (!error && data) {
-        console.log(`✅ Clients récupérés via RPC:`, data.length);
-        return NextResponse.json({
-          success: true,
-          data: data || []
-        });
-      }
-    } catch (rpcError) {
-      console.log('⚠️ RPC function not available, trying direct query');
-    }
-
-    // Requête directe sur le schéma tenant
-    try {
-      console.log(`🔍 Tentative de requête sur ${tenant}.client`);
-      
-      const { data: clientData, error: clientError } = await supabase
-        .from(`${tenant}.client`)
-        .select('*')
-        .order('nclient');
-
-      console.log(`📊 Résultat requête clients:`, { 
-        error: clientError, 
-        dataLength: clientData?.length || 0,
+      console.log(`📊 Résultat RPC get_clients:`, { 
+        error: error, 
+        dataType: typeof data,
+        dataContent: data,
         tenant: tenant 
       });
 
-      if (!clientError && clientData) {
-        console.log(`✅ Clients récupérés via requête directe:`, clientData.length);
+      if (!error && data) {
+        // Parse JSON if it's a string
+        let clients = data;
+        if (typeof data === 'string') {
+          try {
+            clients = JSON.parse(data);
+          } catch (parseError) {
+            console.log('⚠️ Failed to parse JSON:', parseError);
+            clients = [];
+          }
+        }
+        
+        console.log(`✅ Clients récupérés via RPC:`, clients?.length || 0);
         return NextResponse.json({
           success: true,
-          data: clientData,
+          data: clients || [],
           debug: {
             tenant: tenant,
-            method: 'direct_query',
-            table: `${tenant}.client`
+            method: 'rpc_function',
+            function: 'get_clients',
+            dataType: typeof data,
+            originalData: data
           }
         });
-      } else if (clientError) {
-        console.log(`❌ Erreur de requête clients:`, clientError);
+      } else if (error) {
+        console.log(`❌ Erreur RPC:`, error);
         return NextResponse.json({
           success: true,
           data: [],
           debug: {
             tenant: tenant,
-            error: clientError.message,
-            table: `${tenant}.client`,
-            suggestion: 'Vérifiez que le schéma et la table existent'
+            error: error.message,
+            function: 'get_clients',
+            suggestion: 'Vérifiez que la fonction RPC get_clients existe dans Supabase'
           }
         });
       }
-    } catch (directError) {
-      console.log('⚠️ Direct query failed:', directError);
+    } catch (rpcError) {
+      console.log('⚠️ RPC function failed:', rpcError);
+      return NextResponse.json({
+        success: true,
+        data: [],
+        debug: {
+          tenant: tenant,
+          error: rpcError instanceof Error ? rpcError.message : 'RPC Error',
+          function: 'get_clients',
+          suggestion: 'La fonction RPC get_clients n\'existe pas ou a échoué'
+        }
+      });
     }
+
+
 
     // Fallback : données vides
     console.log('⚠️ Aucune donnée trouvée, retour de tableau vide');

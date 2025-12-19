@@ -40,9 +40,41 @@ export async function POST(request: NextRequest) {
             timestamp: Date.now()
           })).toString('base64');
 
-          // S'assurer que l'utilisateur a des business units
+          // S'assurer que l'utilisateur a des business units - accès direct à la table
           if (!authResult.user.business_units || authResult.user.business_units.length === 0) {
-            authResult.user.business_units = ['2025_bu01', '2024_bu01'];
+            try {
+              console.log('🔍 Récupération des BU via accès direct à la table...');
+              
+              // Méthode 1: Essayer la RPC
+              const { data: rpcData, error: rpcError } = await supabase.rpc('get_available_exercises');
+              
+              if (!rpcError && rpcData && rpcData.length > 0) {
+                authResult.user.business_units = rpcData.map((ex: any) => ex.schema_name);
+                console.log(`✅ BU récupérés via RPC: ${authResult.user.business_units.length}`);
+              } else {
+                console.log('⚠️ RPC échoué, essai accès direct à la table...');
+                
+                // Méthode 2: Accès direct à la table business_units
+                const { data: tableData, error: tableError } = await supabase
+                  .from('business_units')
+                  .select('schema_name, bu_code, year, nom_entreprise, adresse, telephone, email, active')
+                  .eq('active', true)
+                  .order('year', { ascending: false })
+                  .order('bu_code', { ascending: true });
+
+                if (!tableError && tableData && tableData.length > 0) {
+                  authResult.user.business_units = tableData.map((bu: any) => bu.schema_name);
+                  console.log(`✅ BU récupérés via table directe: ${authResult.user.business_units.length}`);
+                  console.log('📊 BU trouvés:', authResult.user.business_units);
+                } else {
+                  console.log('❌ Erreur accès table:', tableError);
+                  authResult.user.business_units = [];
+                }
+              }
+            } catch (error) {
+              console.log('❌ Erreur totale lors de la récupération des BU:', error);
+              authResult.user.business_units = [];
+            }
           }
 
           return NextResponse.json({
@@ -100,13 +132,32 @@ export async function POST(request: NextRequest) {
         userBusinessUnits = buData.map(bu => bu.schema_name);
         console.log('✅ BU récupérées depuis Supabase:', userBusinessUnits);
       } else {
-        // Fallback si la requête échoue
-        userBusinessUnits = ['2025_bu01', '2024_bu01'];
-        console.log('⚠️ Utilisation des BU par défaut');
+        // Fallback si la requête échoue - accès direct à la table
+        try {
+          console.log('🔍 Fallback: accès direct à la table business_units...');
+          
+          const { data: tableData, error: tableError } = await supabase
+            .from('business_units')
+            .select('schema_name')
+            .eq('active', true)
+            .order('year', { ascending: false })
+            .order('bu_code', { ascending: true });
+
+          if (!tableError && tableData && tableData.length > 0) {
+            userBusinessUnits = tableData.map((bu: any) => bu.schema_name);
+            console.log(`✅ BU récupérés via table (fallback): ${userBusinessUnits.length}`);
+          } else {
+            console.log('❌ Erreur accès table (fallback):', tableError);
+            userBusinessUnits = [];
+          }
+        } catch (fallbackError) {
+          console.log('❌ Erreur totale (fallback):', fallbackError);
+          userBusinessUnits = [];
+        }
       }
     } catch (error) {
-      userBusinessUnits = ['2025_bu01', '2024_bu01'];
-      console.log('⚠️ Erreur lors de la récupération des BU, utilisation des valeurs par défaut');
+      console.log('❌ Erreur globale:', error);
+      userBusinessUnits = [];
     }
 
     return NextResponse.json({

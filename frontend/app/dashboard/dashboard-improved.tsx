@@ -53,13 +53,13 @@ export default function ImprovedDashboard() {
     try {
       // Charger les données du dashboard
       const [articlesRes, clientsRes, suppliersRes] = await Promise.all([
-        fetch('http://localhost:3005/api/sales/articles', {
+        fetch('${window.location.origin}/api/sales/articles', {
           headers: { 'X-Tenant': tenant.tenant }
         }),
-        fetch('http://localhost:3005/api/sales/clients', {
+        fetch('${window.location.origin}/api/sales/clients', {
           headers: { 'X-Tenant': tenant.tenant }
         }),
-        fetch('http://localhost:3005/api/sales/suppliers', {
+        fetch('${window.location.origin}/api/sales/suppliers', {
           headers: { 'X-Tenant': tenant.tenant }
         })
       ]);

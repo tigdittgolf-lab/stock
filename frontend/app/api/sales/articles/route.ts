@@ -11,71 +11,80 @@ export async function GET(request: NextRequest) {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     console.log(`🔍 Récupération des articles pour le tenant: ${tenant}`);
 
-    // Essayer avec la fonction RPC
+    // Utiliser UNIQUEMENT les fonctions RPC (pas de requête directe sur les schémas)
     try {
       const { data, error } = await supabase.rpc('get_articles', {
         p_tenant: tenant
       });
 
-      if (!error && data) {
-        console.log(`✅ Articles récupérés via RPC:`, data.length);
-        return NextResponse.json({
-          success: true,
-          data: data || []
-        });
-      }
-    } catch (rpcError) {
-      console.log('⚠️ RPC function not available, trying direct query');
-    }
-
-    // Requête directe sur le schéma tenant
-    try {
-      console.log(`🔍 Tentative de requête sur ${tenant}.article`);
-      
-      const { data: articleData, error: articleError } = await supabase
-        .from(`${tenant}.article`)
-        .select('*')
-        .order('narticle');
-
-      console.log(`📊 Résultat requête:`, { 
-        error: articleError, 
-        dataLength: articleData?.length || 0,
+      console.log(`📊 Résultat RPC get_articles:`, { 
+        error: error, 
+        dataType: typeof data,
+        dataContent: data,
         tenant: tenant 
       });
 
-      if (!articleError && articleData) {
-        console.log(`✅ Articles récupérés via requête directe:`, articleData.length);
+      if (!error && data) {
+        // Parse JSON if it's a string
+        let articles = data;
+        if (typeof data === 'string') {
+          try {
+            articles = JSON.parse(data);
+          } catch (parseError) {
+            console.log('⚠️ Failed to parse JSON:', parseError);
+            articles = [];
+          }
+        }
+        
+        console.log(`✅ Articles récupérés via RPC:`, articles?.length || 0);
         return NextResponse.json({
           success: true,
-          data: articleData,
+          data: articles || [],
           debug: {
             tenant: tenant,
-            method: 'direct_query',
-            table: `${tenant}.article`
+            method: 'rpc_function',
+            function: 'get_articles',
+            dataType: typeof data,
+            originalData: data
           }
         });
-      } else if (articleError) {
-        console.log(`❌ Erreur de requête:`, articleError);
+      } else if (error) {
+        console.log(`❌ Erreur RPC:`, error);
         return NextResponse.json({
           success: true,
           data: [],
           debug: {
             tenant: tenant,
-            error: articleError.message,
-            table: `${tenant}.article`,
-            suggestion: 'Vérifiez que le schéma et la table existent'
+            error: error.message,
+            function: 'get_articles',
+            suggestion: 'Vérifiez que la fonction RPC get_articles existe dans Supabase'
           }
         });
       }
-    } catch (directError) {
-      console.log('⚠️ Direct query failed:', directError);
+    } catch (rpcError) {
+      console.log('⚠️ RPC function failed:', rpcError);
+      return NextResponse.json({
+        success: true,
+        data: [],
+        debug: {
+          tenant: tenant,
+          error: rpcError instanceof Error ? rpcError.message : 'RPC Error',
+          function: 'get_articles',
+          suggestion: 'La fonction RPC get_articles n\'existe pas ou a échoué'
+        }
+      });
     }
 
     // Fallback : données vides
     console.log('⚠️ Aucune donnée trouvée, retour de tableau vide');
     return NextResponse.json({
       success: true,
-      data: []
+      data: [],
+      debug: {
+        tenant: tenant,
+        method: 'fallback',
+        message: 'Aucune méthode n\'a fonctionné'
+      }
     });
 
   } catch (error) {

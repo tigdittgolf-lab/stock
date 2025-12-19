@@ -25,7 +25,7 @@ export default function NewExercise() {
 
   const loadBusinessUnits = async () => {
     try {
-      const response = await fetch('http://localhost:3005/api/auth/business-units');
+      const response = await fetch('${window.location.origin}/api/auth/business-units');
       const data = await response.json();
       if (data.success) {
         setBusinessUnits(data.data.map((bu: any) => bu.id));
@@ -38,7 +38,7 @@ export default function NewExercise() {
 
   const loadExercises = async () => {
     try {
-      const response = await fetch('http://localhost:3005/api/auth/exercises');
+      const response = await fetch('${window.location.origin}/api/auth/exercises');
       const data = await response.json();
       if (data.success) {
         setExercises(data.data);
@@ -66,7 +66,7 @@ export default function NewExercise() {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3005/api/auth/create-new-exercise', {
+      const response = await fetch('${window.location.origin}/api/auth/create-new-exercise', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

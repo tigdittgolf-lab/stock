@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Settings API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; }
+        .error { background-color: #f8d7da; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test des API Settings</h1>
+    
+    <div id="results"></div>
+
+    <script>
+        async function testSettingsAPI() {
+            const results = document.getElementById('results');
+            const baseUrl = window.location.origin;
+            
+            // Test 1: Familles
+            results.innerHTML += '<div class="test"><h3>📋 Test 1: API Familles</h3>';
+            try {
+                const response = await fetch(`${baseUrl}/api/settings/families`, {
+                    headers: {
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+                const data = await response.json();
+                
+                results.innerHTML += `<div class="success">
+                    <strong>✅ Réponse API Familles:</strong>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>`;
+            } catch (error) {
+                results.innerHTML += `<div class="error">
+                    <strong>❌ Erreur API Familles:</strong>
+                    <pre>${error.message}</pre>
+                </div>`;
+            }
+            results.innerHTML += '</div>';
+
+            // Test 2: Activité
+            results.innerHTML += '<div class="test"><h3>🏢 Test 2: API Activité</h3>';
+            try {
+                const response = await fetch(`${baseUrl}/api/settings/activities`, {
+                    headers: {
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+                const data = await response.json();
+                
+                results.innerHTML += `<div class="success">
+                    <strong>✅ Réponse API Activité:</strong>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>`;
+            } catch (error) {
+                results.innerHTML += `<div class="error">
+                    <strong>❌ Erreur API Activité:</strong>
+                    <pre>${error.message}</pre>
+                </div>`;
+            }
+            results.innerHTML += '</div>';
+
+            // Test 3: Articles (pour vérifier les familles)
+            results.innerHTML += '<div class="test"><h3>📦 Test 3: API Articles (pour familles)</h3>';
+            try {
+                const response = await fetch(`${baseUrl}/api/articles`, {
+                    headers: {
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    const families = [...new Set(data.data.map(art => art.famille).filter(f => f))];
+                    results.innerHTML += `<div class="success">
+                        <strong>✅ Articles trouvés:</strong> ${data.data.length}<br>
+                        <strong>📋 Familles dans les articles:</strong> ${families.join(', ')}<br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>`;
+                } else {
+                    results.innerHTML += `<div class="error">
+                        <strong>❌ Pas d'articles trouvés:</strong>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>`;
+                }
+            } catch (error) {
+                results.innerHTML += `<div class="error">
+                    <strong>❌ Erreur API Articles:</strong>
+                    <pre>${error.message}</pre>
+                </div>`;
+            }
+            results.innerHTML += '</div>';
+        }
+
+        // Lancer les tests au chargement
+        window.onload = testSettingsAPI;
+    </script>
+</body>
+</html>

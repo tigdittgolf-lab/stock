@@ -52,7 +52,7 @@ export default function CreatePurchaseBL() {
   const fetchSuppliers = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('http://localhost:3005/api/sales/suppliers', {
+      const response = await fetch('${window.location.origin}/api/sales/suppliers', {
         headers: {
           'X-Tenant': tenant
         }
@@ -70,7 +70,7 @@ export default function CreatePurchaseBL() {
   const fetchArticles = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('http://localhost:3005/api/sales/articles', {
+      const response = await fetch('${window.location.origin}/api/sales/articles', {
         headers: {
           'X-Tenant': tenant
         }
@@ -162,7 +162,7 @@ export default function CreatePurchaseBL() {
 
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('http://localhost:3005/api/purchases/delivery-notes', {
+      const response = await fetch('${window.location.origin}/api/purchases/delivery-notes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

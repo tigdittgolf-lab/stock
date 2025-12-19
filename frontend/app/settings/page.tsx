@@ -9,16 +9,33 @@ interface Family {
 }
 
 interface Activity {
-  id: number;
-  nom_entreprise: string;
-  adresse: string;
-  telephone: string;
-  email: string;
-  nif: string;
-  rc: string;
-  activite: string;
-  slogan: string;
-  created_at: string;
+  id?: number;
+  code_activite?: string;
+  domaine_activite?: string;
+  sous_domaine?: string;
+  raison_sociale?: string;
+  adresse?: string;
+  commune?: string;
+  wilaya?: string;
+  tel_fixe?: string;
+  tel_port?: string;
+  nrc?: string;
+  nis?: string;
+  nart?: string;
+  ident_fiscal?: string;
+  banq?: string;
+  entete_bon?: string;
+  e_mail?: string;
+  nom_entreprise?: string;
+  telephone?: string;
+  email?: string;
+  nif?: string;
+  rc?: string;
+  logo_url?: string;
+  slogan?: string;
+  activite?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export default function SettingsPage() {
@@ -65,20 +82,36 @@ export default function SettingsPage() {
   const fetchFamilies = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3005/api/settings/families', {
+      console.log('🔍 Chargement des familles...');
+      
+      const response = await fetch(`${window.location.origin}/api/settings/families`, {
         headers: {
           'X-Tenant': getTenant()
         }
       });
       const result = await response.json();
       
-      if (result.success) {
-        setFamilies(result.data || []);
+      console.log('📊 Réponse API families:', result);
+      
+      if (result.success && result.data) {
+        console.log('🔍 Données familles reçues:', result.data);
+        
+        // L'API retourne un tableau de strings, on doit le convertir en objets
+        const familiesArray = Array.isArray(result.data) 
+          ? result.data.map((famille: string) => ({ famille: String(famille) }))
+          : [];
+        
+        setFamilies(familiesArray);
+        console.log('✅ Familles chargées:', familiesArray.length, familiesArray);
       } else {
-        showMessage('Erreur lors du chargement des familles', true);
+        console.log('⚠️ Pas de familles trouvées');
+        setFamilies([]);
+        if (result.debug) {
+          console.log('🔍 Debug info:', result.debug);
+        }
       }
     } catch (error) {
-      console.error('Error fetching families:', error);
+      console.error('❌ Error fetching families:', error);
       showMessage('Erreur de connexion', true);
     } finally {
       setLoading(false);
@@ -94,7 +127,7 @@ export default function SettingsPage() {
 
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3005/api/settings/families', {
+      const response = await fetch(`${window.location.origin}/api/settings/families`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -128,7 +161,7 @@ export default function SettingsPage() {
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:3005/api/settings/families/${encodeURIComponent(famille)}`, {
+      const response = await fetch(`${window.location.origin}/api/settings/families/${encodeURIComponent(famille)}`, {
         method: 'DELETE',
         headers: {
           'X-Tenant': getTenant()
@@ -155,33 +188,56 @@ export default function SettingsPage() {
   const fetchCompanyInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3005/api/settings/activities', {
+      console.log('🔍 Chargement des informations entreprise...');
+      
+      const response = await fetch(`${window.location.origin}/api/settings/activities`, {
         headers: {
           'X-Tenant': getTenant()
         }
       });
       const result = await response.json();
       
-      if (result.success && result.data && result.data.length > 0) {
-        // Prendre la première activité comme info entreprise
-        setCompanyInfo(result.data[0]);
+      console.log('📊 Réponse API activities:', result);
+      
+      if (result.success && result.data) {
+        // L'API retourne un objet JSON directement, pas un tableau
+        const data = result.data;
+        
+        // Créer un objet propre sans propriétés supplémentaires
+        const cleanCompanyInfo: Activity = {
+          id: typeof data.id === 'number' ? data.id : 1,
+          nom_entreprise: String(data.nom_entreprise || data.raison_sociale || 'Mon Entreprise'),
+          adresse: String(data.adresse || ''),
+          telephone: String(data.telephone || data.tel_fixe || data.tel_port || ''),
+          email: String(data.email || data.e_mail || ''),
+          nif: String(data.nif || data.ident_fiscal || ''),
+          rc: String(data.rc || data.nrc || ''),
+          activite: String(data.activite || data.sous_domaine || ''),
+          slogan: String(data.slogan || ''),
+          created_at: String(data.created_at || new Date().toISOString())
+        };
+        
+        setCompanyInfo(cleanCompanyInfo);
+        console.log('✅ Informations entreprise chargées:', cleanCompanyInfo);
+        console.log('🔍 Données brutes sous_domaine:', data.sous_domaine, 'activite:', data.activite);
       } else {
+        console.log('⚠️ Pas de données, utilisation des valeurs par défaut');
         // Créer une activité par défaut si aucune n'existe
         setCompanyInfo({
           id: 0,
-          nom_entreprise: 'Mon Entreprise',
-          adresse: '',
-          telephone: '',
-          email: '',
+          nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR',
+          adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
+          telephone: '(213)045.42.35.20',
+          email: 'outillagesaada@gmail.com',
           nif: '',
           rc: '',
-          activite: '',
-          slogan: '',
+          activite: 'Commerce et Distribution',
+          slogan: 'Votre partenaire de confiance',
           created_at: new Date().toISOString()
         });
       }
     } catch (error) {
-      console.error('Error fetching company info:', error);
+      console.error('❌ Error fetching company info:', error);
       showMessage('Erreur de connexion', true);
     } finally {
       setLoading(false);
@@ -198,7 +254,7 @@ export default function SettingsPage() {
       let response;
       if (companyInfo.id === 0) {
         // Créer si n'existe pas
-        response = await fetch('http://localhost:3005/api/settings/activities', {
+        response = await fetch(`${window.location.origin}/api/settings/activities`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -207,9 +263,9 @@ export default function SettingsPage() {
           body: JSON.stringify(companyInfo)
         });
       } else {
-        // Mettre à jour si existe
-        response = await fetch(`http://localhost:3005/api/settings/activities/${companyInfo.id}`, {
-          method: 'PUT',
+        // Mettre à jour si existe - utiliser POST au lieu de PUT
+        response = await fetch(`${window.location.origin}/api/settings/activities`, {
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'X-Tenant': getTenant()
@@ -527,7 +583,7 @@ export default function SettingsPage() {
                         </label>
                         <input
                           type="text"
-                          value={companyInfo.nom_entreprise}
+                          value={companyInfo.nom_entreprise || ''}
                           onChange={(e) => setCompanyInfo({...companyInfo, nom_entreprise: e.target.value})}
                           placeholder="Nom de l'entreprise"
                           style={{
@@ -552,7 +608,7 @@ export default function SettingsPage() {
                         </label>
                         <input
                           type="text"
-                          value={companyInfo.adresse}
+                          value={companyInfo.adresse || ''}
                           onChange={(e) => setCompanyInfo({...companyInfo, adresse: e.target.value})}
                           placeholder="Adresse de l'entreprise"
                           style={{
@@ -572,7 +628,7 @@ export default function SettingsPage() {
                         </label>
                         <input
                           type="text"
-                          value={companyInfo.telephone}
+                          value={companyInfo.telephone || ''}
                           onChange={(e) => setCompanyInfo({...companyInfo, telephone: e.target.value})}
                           placeholder="Numéro de téléphone"
                           style={{
@@ -592,7 +648,7 @@ export default function SettingsPage() {
                         </label>
                         <input
                           type="email"
-                          value={companyInfo.email}
+                          value={companyInfo.email || ''}
                           onChange={(e) => setCompanyInfo({...companyInfo, email: e.target.value})}
                           placeholder="Adresse email"
                           style={{
@@ -612,7 +668,7 @@ export default function SettingsPage() {
                         </label>
                         <input
                           type="text"
-                          value={companyInfo.nif}
+                          value={companyInfo.nif || ''}
                           onChange={(e) => setCompanyInfo({...companyInfo, nif: e.target.value})}
                           placeholder="Numéro d'identification fiscale"
                           style={{
@@ -637,7 +693,7 @@ export default function SettingsPage() {
                         </label>
                         <input
                           type="text"
-                          value={companyInfo.rc}
+                          value={companyInfo.rc || ''}
                           onChange={(e) => setCompanyInfo({...companyInfo, rc: e.target.value})}
                           placeholder="Registre de commerce"
                           style={{
@@ -661,7 +717,7 @@ export default function SettingsPage() {
                           Activité
                         </label>
                         <textarea
-                          value={companyInfo.activite}
+                          value={companyInfo.activite || ''}
                           onChange={(e) => setCompanyInfo({...companyInfo, activite: e.target.value})}
                           placeholder="Description de l'activité principale"
                           rows={3}
@@ -683,7 +739,7 @@ export default function SettingsPage() {
                         </label>
                         <input
                           type="text"
-                          value={companyInfo.slogan}
+                          value={companyInfo.slogan || ''}
                           onChange={(e) => setCompanyInfo({...companyInfo, slogan: e.target.value})}
                           placeholder="Slogan de l'entreprise"
                           style={{
@@ -721,7 +777,7 @@ export default function SettingsPage() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
                       <div style={{ padding: '15px', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6' }}>
                         <h4 style={{ margin: '0 0 10px 0', color: '#495057', fontSize: '16px' }}>
-                          🏢 {companyInfo.nom_entreprise}
+                          🏢 {companyInfo.nom_entreprise || 'Mon Entreprise'}
                         </h4>
                         {companyInfo.slogan && (
                           <p style={{ margin: '0', fontSize: '14px', color: '#6c757d', fontStyle: 'italic' }}>

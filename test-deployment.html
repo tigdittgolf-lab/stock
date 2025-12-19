@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Deployment</title>
+</head>
+<body>
+    <h1>Test de déploiement Vercel</h1>
+    <button onclick="testLogin()">Test Login</button>
+    <button onclick="testBU()">Test Business Units</button>
+    <div id="result"></div>
+
+    <script>
+        const API_BASE = 'https://frontend-lsezgk6u3-tigdittgolf-9191s-projects.vercel.app';
+        
+        async function testLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth-real/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                document.getElementById('result').innerHTML = `
+                    <h3>Login Test:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <h3>Login Error:</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+        
+        async function testBU() {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/exercises`);
+                const data = await response.json();
+                document.getElementById('result').innerHTML = `
+                    <h3>Business Units Test:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <h3>BU Error:</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

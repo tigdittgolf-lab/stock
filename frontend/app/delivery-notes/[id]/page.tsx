@@ -59,7 +59,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
       }
       
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`http://localhost:3005/api/sales/delivery-notes/${resolvedParams.id}`, {
+      const response = await fetch(`${window.location.origin}/api/sales/delivery-notes/${resolvedParams.id}`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -87,7 +87,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
   const fetchCompanyInfo = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('http://localhost:3005/api/cache/status', {
+      const response = await fetch('${window.location.origin}/api/cache/status', {
         headers: {
           'X-Tenant': tenant
         }
@@ -173,7 +173,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           <button 
             onClick={() => {
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-              const url = `http://localhost:3005/api/pdf/delivery-note/${deliveryNote.nbl}`;
+              const url = `${window.location.origin}/api/pdf/delivery-note/${deliveryNote.nbl}`;
               
               fetch(url, {
                 headers: {
@@ -198,7 +198,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           <button 
             onClick={() => {
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-              const url = `http://localhost:3005/api/pdf/delivery-note-small/${deliveryNote.nbl}`;
+              const url = `${window.location.origin}/api/pdf/delivery-note-small/${deliveryNote.nbl}`;
               
               fetch(url, {
                 headers: {
@@ -223,7 +223,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           <button 
             onClick={() => {
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-              const url = `http://localhost:3005/api/pdf/delivery-note-ticket/${deliveryNote.nbl}`;
+              const url = `${window.location.origin}/api/pdf/delivery-note-ticket/${deliveryNote.nbl}`;
               
               fetch(url, {
                 headers: {

@@ -68,7 +68,7 @@ export default function AddSupplier() {
     console.log(`🔍 Checking if supplier exists: ${supplierCode}`);
     setCheckingSupplier(true);
     try {
-      const response = await fetch(`http://localhost:3005/api/sales/suppliers/${supplierCode}`, {
+      const response = await fetch(`${window.location.origin}/api/sales/suppliers/${supplierCode}`, {
         headers: {
           'Content-Type': 'application/json',
           'X-Tenant': tenantInfo.schema
@@ -127,7 +127,7 @@ export default function AddSupplier() {
         cabl: parseFloat(formData.cabl) || 0
       };
 
-      const response = await fetch('http://localhost:3005/api/sales/suppliers', {
+      const response = await fetch('${window.location.origin}/api/sales/suppliers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

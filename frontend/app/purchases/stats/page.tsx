@@ -102,19 +102,19 @@ export default function PurchaseStats() {
       
       // Fetch all stats in parallel
       const [overviewRes, suppliersRes, articlesRes, trendsRes, recentRes] = await Promise.all([
-        fetch(`http://localhost:3005/api/purchases/stats/overview?start_date=${startDate}&end_date=${endDate}`, {
+        fetch(`${window.location.origin}/api/purchases/stats/overview?start_date=${startDate}&end_date=${endDate}`, {
           headers: { 'X-Tenant': tenant }
         }),
-        fetch(`http://localhost:3005/api/purchases/stats/suppliers?start_date=${startDate}&end_date=${endDate}`, {
+        fetch(`${window.location.origin}/api/purchases/stats/suppliers?start_date=${startDate}&end_date=${endDate}`, {
           headers: { 'X-Tenant': tenant }
         }),
-        fetch(`http://localhost:3005/api/purchases/stats/articles?start_date=${startDate}&end_date=${endDate}`, {
+        fetch(`${window.location.origin}/api/purchases/stats/articles?start_date=${startDate}&end_date=${endDate}`, {
           headers: { 'X-Tenant': tenant }
         }),
-        fetch(`http://localhost:3005/api/purchases/stats/trends?year=${selectedYear}`, {
+        fetch(`${window.location.origin}/api/purchases/stats/trends?year=${selectedYear}`, {
           headers: { 'X-Tenant': tenant }
         }),
-        fetch(`http://localhost:3005/api/purchases/stats/recent?limit=10`, {
+        fetch(`${window.location.origin}/api/purchases/stats/recent?limit=10`, {
           headers: { 'X-Tenant': tenant }
         })
       ]);

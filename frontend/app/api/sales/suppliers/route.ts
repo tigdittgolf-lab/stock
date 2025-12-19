@@ -11,39 +11,68 @@ export async function GET(request: NextRequest) {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     console.log(`🔍 Récupération des fournisseurs pour le tenant: ${tenant}`);
 
-    // Essayer avec la fonction RPC
+    // Utiliser UNIQUEMENT les fonctions RPC (pas de requête directe sur les schémas)
     try {
       const { data, error } = await supabase.rpc('get_suppliers', {
         p_tenant: tenant
       });
 
+      console.log(`📊 Résultat RPC get_suppliers:`, { 
+        error: error, 
+        dataType: typeof data,
+        dataContent: data,
+        tenant: tenant 
+      });
+
       if (!error && data) {
-        console.log(`✅ Fournisseurs récupérés via RPC:`, data.length);
+        // Parse JSON if it's a string
+        let suppliers = data;
+        if (typeof data === 'string') {
+          try {
+            suppliers = JSON.parse(data);
+          } catch (parseError) {
+            console.log('⚠️ Failed to parse JSON:', parseError);
+            suppliers = [];
+          }
+        }
+        
+        console.log(`✅ Fournisseurs récupérés via RPC:`, suppliers?.length || 0);
         return NextResponse.json({
           success: true,
-          data: data || []
+          data: suppliers || [],
+          debug: {
+            tenant: tenant,
+            method: 'rpc_function',
+            function: 'get_suppliers',
+            dataType: typeof data,
+            originalData: data
+          }
+        });
+      } else if (error) {
+        console.log(`❌ Erreur RPC:`, error);
+        return NextResponse.json({
+          success: true,
+          data: [],
+          debug: {
+            tenant: tenant,
+            error: error.message,
+            function: 'get_suppliers',
+            suggestion: 'Vérifiez que la fonction RPC get_suppliers existe dans Supabase'
+          }
         });
       }
     } catch (rpcError) {
-      console.log('⚠️ RPC function not available, trying direct query');
-    }
-
-    // Requête directe sur le schéma tenant
-    try {
-      const { data: supplierData, error: supplierError } = await supabase
-        .from(`${tenant}.fournisseur`)
-        .select('*')
-        .order('nfournisseur');
-
-      if (!supplierError && supplierData) {
-        console.log(`✅ Fournisseurs récupérés via requête directe:`, supplierData.length);
-        return NextResponse.json({
-          success: true,
-          data: supplierData
-        });
-      }
-    } catch (directError) {
-      console.log('⚠️ Direct query failed:', directError);
+      console.log('⚠️ RPC function failed:', rpcError);
+      return NextResponse.json({
+        success: true,
+        data: [],
+        debug: {
+          tenant: tenant,
+          error: rpcError instanceof Error ? rpcError.message : 'RPC Error',
+          function: 'get_suppliers',
+          suggestion: 'La fonction RPC get_suppliers n\'existe pas ou a échoué'
+        }
+      });
     }
 
     // Fallback : données vides

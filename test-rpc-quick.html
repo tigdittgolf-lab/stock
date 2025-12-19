@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test RPC Functions</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 15px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; font-size: 12px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test des Fonctions RPC</h1>
+    <button onclick="testAllRPC()">🚀 Tester toutes les fonctions</button>
+    <button onclick="clearResults()">🧹 Effacer</button>
+    
+    <div id="results"></div>
+
+    <script>
+        async function testAllRPC() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="test">🔄 Tests en cours...</div>';
+            
+            const baseUrl = window.location.origin;
+            const tenant = '2025_bu01';
+            
+            // Test 1: API Familles
+            await testAPI('📋 Test Familles', `${baseUrl}/api/settings/families`, { 'X-Tenant': tenant });
+            
+            // Test 2: API Activité
+            await testAPI('🏢 Test Activité', `${baseUrl}/api/settings/activities`, { 'X-Tenant': tenant });
+            
+            // Test 3: API Articles (pour vérifier les familles)
+            await testAPI('📦 Test Articles', `${baseUrl}/api/articles`, { 'X-Tenant': tenant });
+            
+            // Test 4: API BL (pour vérifier la colonne marge)
+            await testAPI('📄 Test BL', `${baseUrl}/api/sales/delivery-notes`, { 'X-Tenant': tenant });
+        }
+        
+        async function testAPI(title, url, headers) {
+            const results = document.getElementById('results');
+            
+            try {
+                console.log(`🔍 Testing: ${title} - ${url}`);
+                
+                const response = await fetch(url, { headers });
+                const data = await response.json();
+                
+                const isSuccess = response.ok && data.success !== false;
+                
+                results.innerHTML += `
+                    <div class="test ${isSuccess ? 'success' : 'error'}">
+                        <h3>${title} ${isSuccess ? '✅' : '❌'}</h3>
+                        <p><strong>URL:</strong> ${url}</p>
+                        <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                        <p><strong>Success:</strong> ${data.success}</p>
+                        ${data.data ? `<p><strong>Data Count:</strong> ${Array.isArray(data.data) ? data.data.length : (data.data ? 'Object' : 'None')}</p>` : ''}
+                        ${data.error ? `<p><strong>Error:</strong> ${data.error}</p>` : ''}
+                        ${data.debug ? `<p><strong>Debug:</strong> ${JSON.stringify(data.debug)}</p>` : ''}
+                        <details>
+                            <summary>Voir la réponse complète</summary>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </details>
+                    </div>
+                `;
+            } catch (error) {
+                results.innerHTML += `
+                    <div class="test error">
+                        <h3>${title} ❌</h3>
+                        <p><strong>URL:</strong> ${url}</p>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <pre>${error.stack}</pre>
+                    </div>
+                `;
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        // Test automatique au chargement
+        window.onload = () => {
+            setTimeout(testAllRPC, 1000);
+        };
+    </script>
+</body>
+</html>

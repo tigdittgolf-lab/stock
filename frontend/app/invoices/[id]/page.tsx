@@ -64,7 +64,7 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
       }
       
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`http://localhost:3005/api/sales/invoices/${resolvedParams.id}`, {
+      const response = await fetch(`${window.location.origin}/api/sales/invoices/${resolvedParams.id}`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -93,7 +93,7 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
   const fetchCompanyInfo = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('http://localhost:3005/api/sales/company-info', {
+      const response = await fetch('${window.location.origin}/api/sales/company-info', {
         headers: {
           'X-Tenant': tenant
         }
@@ -177,7 +177,7 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
             onClick={async () => {
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
               try {
-                const response = await fetch(`http://localhost:3005/api/pdf/invoice/${invoice.nfact}`, {
+                const response = await fetch(`${window.location.origin}/api/pdf/invoice/${invoice.nfact}`, {
                   headers: {
                     'X-Tenant': tenant
                   }

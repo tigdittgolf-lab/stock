@@ -31,7 +31,7 @@ function ResetPasswordForm() {
 
   const validateToken = async (tokenToValidate: string) => {
     try {
-      const response = await fetch(`http://localhost:3005/api/auth-real/validate-reset-token/${tokenToValidate}`);
+      const response = await fetch(`${window.location.origin}/api/auth-real/validate-reset-token/${tokenToValidate}`);
       const result = await response.json();
 
       if (result.success) {
@@ -68,7 +68,7 @@ function ResetPasswordForm() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3005/api/auth-real/reset-password', {
+      const response = await fetch('${window.location.origin}/api/auth-real/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

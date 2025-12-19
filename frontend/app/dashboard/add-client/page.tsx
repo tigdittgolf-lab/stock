@@ -70,7 +70,7 @@ export default function AddClient() {
     console.log(`🔍 Checking if client exists: ${clientCode}`);
     setCheckingClient(true);
     try {
-      const response = await fetch(`http://localhost:3005/api/sales/clients/${clientCode}`, {
+      const response = await fetch(`${window.location.origin}/api/sales/clients/${clientCode}`, {
         headers: {
           'Content-Type': 'application/json',
           'X-Tenant': tenantInfo.schema
@@ -131,7 +131,7 @@ export default function AddClient() {
         c_affaire_bl: parseFloat(formData.c_affaire_bl) || 0
       };
 
-      const response = await fetch('http://localhost:3005/api/sales/clients', {
+      const response = await fetch('${window.location.origin}/api/sales/clients', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

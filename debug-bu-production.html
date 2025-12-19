@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug BU Production</title>
+</head>
+<body>
+    <h1>Debug Business Units - Production</h1>
+    <button onclick="testExercises()">Test /api/auth/exercises</button>
+    <button onclick="testBUTable()">Test /api/test/business-units</button>
+    <div id="result"></div>
+
+    <script>
+        const API_BASE = 'https://frontend-5xhzqcg69-tigdittgolf-9191s-projects.vercel.app';
+        
+        async function testExercises() {
+            try {
+                console.log('🔍 Testing exercises API...');
+                const response = await fetch(`${API_BASE}/api/auth/exercises`);
+                const data = await response.json();
+                
+                console.log('📊 Exercises result:', data);
+                
+                document.getElementById('result').innerHTML = `
+                    <h3>Exercises API Result:</h3>
+                    <p><strong>Count:</strong> ${data.data ? data.data.length : 'N/A'}</p>
+                    <p><strong>Method:</strong> ${data.debug ? data.debug.method : 'N/A'}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('❌ Error:', error);
+                document.getElementById('result').innerHTML = `
+                    <h3>Error:</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+        
+        async function testBUTable() {
+            try {
+                console.log('🔍 Testing BU table API...');
+                const response = await fetch(`${API_BASE}/api/test/business-units`);
+                const data = await response.json();
+                
+                console.log('📊 BU Table result:', data);
+                
+                document.getElementById('result').innerHTML = `
+                    <h3>BU Table Test Result:</h3>
+                    <p><strong>Table Access:</strong> ${data.tests ? data.tests.table_access.success : 'N/A'}</p>
+                    <p><strong>Count:</strong> ${data.tests ? data.tests.table_access.count : 'N/A'}</p>
+                    <p><strong>Supabase URL:</strong> ${data.environment ? data.environment.supabaseUrl : 'N/A'}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('❌ Error:', error);
+                document.getElementById('result').innerHTML = `
+                    <h3>Error:</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

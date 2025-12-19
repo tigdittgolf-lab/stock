@@ -67,7 +67,7 @@ export default function UsersPage() {
     e.preventDefault();
 
     try {
-      const response = await fetch('http://localhost:3005/api/auth/create-user', {
+      const response = await fetch('${window.location.origin}/api/auth/create-user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

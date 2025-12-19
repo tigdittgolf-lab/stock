@@ -83,7 +83,7 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
   const fetchInvoice = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`http://localhost:3005/api/purchases/invoices/${invoiceId}`, {
+      const response = await fetch(`${window.location.origin}/api/purchases/invoices/${invoiceId}`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -119,7 +119,7 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
   const fetchSuppliers = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('http://localhost:3005/api/sales/suppliers', {
+      const response = await fetch('${window.location.origin}/api/sales/suppliers', {
         headers: {
           'X-Tenant': tenant
         }
@@ -137,7 +137,7 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
   const fetchArticles = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('http://localhost:3005/api/sales/articles', {
+      const response = await fetch('${window.location.origin}/api/sales/articles', {
         headers: {
           'X-Tenant': tenant
         }
@@ -235,7 +235,7 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
       // TODO: Implement PUT /api/purchases/invoices/:id endpoint
       /*
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`http://localhost:3005/api/purchases/invoices/${invoiceId}`, {
+      const response = await fetch(`${window.location.origin}/api/purchases/invoices/${invoiceId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

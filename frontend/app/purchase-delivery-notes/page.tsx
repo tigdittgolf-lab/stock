@@ -49,7 +49,7 @@ export default function CreatePurchaseDeliveryNote() {
 
   const fetchSuppliers = async () => {
     try {
-      const response = await fetch('http://localhost:3005/api/suppliers');
+      const response = await fetch('${window.location.origin}/api/suppliers');
       const data = await response.json();
       if (data.success) {
         setSuppliers(data.data);
@@ -61,7 +61,7 @@ export default function CreatePurchaseDeliveryNote() {
 
   const fetchArticles = async () => {
     try {
-      const response = await fetch('http://localhost:3005/api/articles');
+      const response = await fetch('${window.location.origin}/api/articles');
       const data = await response.json();
       if (data.success) {
         setArticles(data.data);
@@ -136,7 +136,7 @@ export default function CreatePurchaseDeliveryNote() {
     }
 
     try {
-      const response = await fetch('http://localhost:3005/api/sales/purchases/delivery-notes', {
+      const response = await fetch('${window.location.origin}/api/sales/purchases/delivery-notes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
