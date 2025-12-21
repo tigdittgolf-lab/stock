@@ -71,6 +71,10 @@ export default function DatabaseMigrationPage() {
   };
 
   const startMigration = async () => {
+    // Désactiver la migration automatique - pas nécessaire pour cette application
+    alert('⚠️ Migration désactivée\n\nVotre application fonctionne déjà parfaitement avec Supabase.\nAucune migration n\'est nécessaire.\n\nSi vous souhaitez vraiment effectuer une migration, contactez l\'administrateur système.');
+    return;
+
     setIsRunning(true);
     setMigrationProgress([]);
     setCurrentStep('Initialisation...');
