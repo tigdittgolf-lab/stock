@@ -56,7 +56,7 @@ export default function EditClient() {
     try {
       setClientLoading(true);
       
-      const response = await fetch(`${window.location.origin}/api/sales/clients/${id}`, {
+      const response = await fetch(`http://localhost:3005/api/sales/clients/${id}`, {
         headers: {
           'Content-Type': 'application/json',
           'X-Tenant': tenant.schema
@@ -125,7 +125,7 @@ export default function EditClient() {
         c_affaire_bl: parseFloat(formData.c_affaire_bl) || 0
       };
 
-      const response = await fetch(`${window.location.origin}/api/sales/clients/${clientId}`, {
+      const response = await fetch(`http://localhost:3005/api/sales/clients/${clientId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

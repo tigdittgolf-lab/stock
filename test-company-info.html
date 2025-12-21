@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Informations Entreprise</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .loading { background-color: #fff3cd; color: #856404; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Test des Informations Entreprise</h1>
+    
+    <div class="test-section">
+        <h3>Test 1: API Settings Activities</h3>
+        <button onclick="testActivities()">Tester GET /api/settings/activities</button>
+        <div id="activities-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 2: Affichage Bon de Livraison</h3>
+        <button onclick="testDeliveryNote()">Tester GET /api/sales/delivery-notes/3</button>
+        <div id="delivery-note-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 3: PDF Bon de Livraison</h3>
+        <button onclick="testPDF()">Tester PDF /api/pdf/delivery-note/3</button>
+        <div id="pdf-result"></div>
+    </div>
+
+    <script>
+        // Simuler les informations de tenant
+        const mockTenant = {
+            schema: '2025_bu01',
+            business_unit: 'bu01',
+            year: 2025
+        };
+
+        function showResult(elementId, status, message, data = null) {
+            const element = document.getElementById(elementId);
+            element.className = `test-section ${status}`;
+            element.innerHTML = `
+                <p><strong>${status.toUpperCase()}:</strong> ${message}</p>
+                ${data ? `<pre>${JSON.stringify(data, null, 2)}</pre>` : ''}
+            `;
+        }
+
+        function showLoading(elementId) {
+            showResult(elementId, 'loading', 'Test en cours...');
+        }
+
+        async function testActivities() {
+            showLoading('activities-result');
+            try {
+                const response = await fetch('http://localhost:3005/api/settings/activities', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': mockTenant.schema
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showResult('activities-result', 'success', 
+                        `${result.data.length} activités trouvées`, result);
+                } else {
+                    showResult('activities-result', 'error', 
+                        result.error || 'Erreur inconnue', result);
+                }
+            } catch (error) {
+                showResult('activities-result', 'error', 
+                    `Erreur de connexion: ${error.message}`);
+            }
+        }
+
+        async function testDeliveryNote() {
+            showLoading('delivery-note-result');
+            try {
+                const response = await fetch('http://localhost:3005/api/sales/delivery-notes/3', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': mockTenant.schema
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showResult('delivery-note-result', 'success', 
+                        `Bon de livraison trouvé: ${result.data.nbl}`, result);
+                } else {
+                    showResult('delivery-note-result', 'error', 
+                        result.error || 'Bon de livraison non trouvé', result);
+                }
+            } catch (error) {
+                showResult('delivery-note-result', 'error', 
+                    `Erreur de connexion: ${error.message}`);
+            }
+        }
+
+        async function testPDF() {
+            showLoading('pdf-result');
+            try {
+                const response = await fetch('http://localhost:3005/api/pdf/delivery-note/3', {
+                    headers: {
+                        'X-Tenant': mockTenant.schema
+                    }
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    showResult('pdf-result', 'success', 
+                        `PDF généré avec succès (${blob.size} bytes)`);
+                    
+                    // Ouvrir le PDF dans un nouvel onglet
+                    window.open(url, '_blank');
+                } else {
+                    const result = await response.json();
+                    showResult('pdf-result', 'error', 
+                        result.error || 'Erreur génération PDF', result);
+                }
+            } catch (error) {
+                showResult('pdf-result', 'error', 
+                    `Erreur de connexion: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

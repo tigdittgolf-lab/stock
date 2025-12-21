@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  reactCompiler: true,
+  // reactCompiler: true, // Désactivé temporairement pour éviter les erreurs Babel
   
   // Configuration pour Vercel
   output: 'standalone',

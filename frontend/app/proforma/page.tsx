@@ -52,7 +52,7 @@ export default function CreateProforma() {
   const fetchNextProformaNumber = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('${window.location.origin}/api/sales/proformas/next-number', {
+      const response = await fetch(`http://localhost:3005/api/sales/proforma/next-number`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -70,7 +70,7 @@ export default function CreateProforma() {
   const fetchClients = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('${window.location.origin}/api/sales/clients', {
+      const response = await fetch(`http://localhost:3005/api/sales/clients`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -89,7 +89,7 @@ export default function CreateProforma() {
   const fetchArticles = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('${window.location.origin}/api/articles', {
+      const response = await fetch(`http://localhost:3005/api/articles`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -205,7 +205,7 @@ export default function CreateProforma() {
       console.log('🚀 Sending proforma request...');
       
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('${window.location.origin}/api/sales/proformas', {
+      const response = await fetch(`http://localhost:3005/api/sales/proforma`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Fixes</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .loading { background-color: #fff3cd; color: #856404; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Test des Corrections API</h1>
+    
+    <div class="test-section">
+        <h3>Test 1: Récupération des Fournisseurs</h3>
+        <button onclick="testSuppliers()">Tester GET /api/sales/suppliers</button>
+        <div id="suppliers-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 2: Récupération des Articles</h3>
+        <button onclick="testArticles()">Tester GET /api/articles</button>
+        <div id="articles-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 3: Récupération des Familles</h3>
+        <button onclick="testFamilies()">Tester GET /api/settings/families</button>
+        <div id="families-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 4: Récupération d'un Fournisseur Spécifique</h3>
+        <input type="text" id="supplier-id" placeholder="ID du fournisseur (ex: F001)" />
+        <button onclick="testSupplierById()">Tester GET /api/sales/suppliers/:id</button>
+        <div id="supplier-by-id-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 5: Récupération d'un Article Spécifique</h3>
+        <input type="text" id="article-id" placeholder="ID de l'article (ex: A001)" />
+        <button onclick="testArticleById()">Tester GET /api/articles/:id</button>
+        <div id="article-by-id-result"></div>
+    </div>
+
+    <script>
+        // Simuler les informations de tenant (normalement stockées dans localStorage)
+        const mockTenant = {
+            schema: '2025_bu01',
+            business_unit: 'bu01',
+            year: 2025
+        };
+
+        function showResult(elementId, status, message, data = null) {
+            const element = document.getElementById(elementId);
+            element.className = `test-section ${status}`;
+            element.innerHTML = `
+                <p><strong>${status.toUpperCase()}:</strong> ${message}</p>
+                ${data ? `<pre>${JSON.stringify(data, null, 2)}</pre>` : ''}
+            `;
+        }
+
+        function showLoading(elementId) {
+            showResult(elementId, 'loading', 'Test en cours...');
+        }
+
+        async function testSuppliers() {
+            showLoading('suppliers-result');
+            try {
+                const response = await fetch('http://localhost:3005/api/sales/suppliers', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': mockTenant.schema
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showResult('suppliers-result', 'success', 
+                        `${result.data.length} fournisseurs trouvés`, result);
+                } else {
+                    showResult('suppliers-result', 'error', 
+                        result.error || 'Erreur inconnue', result);
+                }
+            } catch (error) {
+                showResult('suppliers-result', 'error', 
+                    `Erreur de connexion: ${error.message}`);
+            }
+        }
+
+        async function testArticles() {
+            showLoading('articles-result');
+            try {
+                const response = await fetch('http://localhost:3005/api/articles', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': mockTenant.schema
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showResult('articles-result', 'success', 
+                        `${result.data.length} articles trouvés`, result);
+                } else {
+                    showResult('articles-result', 'error', 
+                        result.error || 'Erreur inconnue', result);
+                }
+            } catch (error) {
+                showResult('articles-result', 'error', 
+                    `Erreur de connexion: ${error.message}`);
+            }
+        }
+
+        async function testFamilies() {
+            showLoading('families-result');
+            try {
+                const response = await fetch('http://localhost:3005/api/settings/families', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': mockTenant.schema
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showResult('families-result', 'success', 
+                        `${result.data.length} familles trouvées`, result);
+                } else {
+                    showResult('families-result', 'error', 
+                        result.error || 'Erreur inconnue', result);
+                }
+            } catch (error) {
+                showResult('families-result', 'error', 
+                    `Erreur de connexion: ${error.message}`);
+            }
+        }
+
+        async function testSupplierById() {
+            const supplierId = document.getElementById('supplier-id').value;
+            if (!supplierId) {
+                showResult('supplier-by-id-result', 'error', 'Veuillez saisir un ID de fournisseur');
+                return;
+            }
+
+            showLoading('supplier-by-id-result');
+            try {
+                const response = await fetch(`http://localhost:3005/api/sales/suppliers/${supplierId}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': mockTenant.schema
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showResult('supplier-by-id-result', 'success', 
+                        `Fournisseur ${supplierId} trouvé`, result);
+                } else {
+                    showResult('supplier-by-id-result', 'error', 
+                        result.error || 'Fournisseur non trouvé', result);
+                }
+            } catch (error) {
+                showResult('supplier-by-id-result', 'error', 
+                    `Erreur de connexion: ${error.message}`);
+            }
+        }
+
+        async function testArticleById() {
+            const articleId = document.getElementById('article-id').value;
+            if (!articleId) {
+                showResult('article-by-id-result', 'error', 'Veuillez saisir un ID d\'article');
+                return;
+            }
+
+            showLoading('article-by-id-result');
+            try {
+                const response = await fetch(`http://localhost:3005/api/articles/${articleId}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': mockTenant.schema
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showResult('article-by-id-result', 'success', 
+                        `Article ${articleId} trouvé`, result);
+                } else {
+                    showResult('article-by-id-result', 'error', 
+                        result.error || 'Article non trouvé', result);
+                }
+            } catch (error) {
+                showResult('article-by-id-result', 'error', 
+                    `Erreur de connexion: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

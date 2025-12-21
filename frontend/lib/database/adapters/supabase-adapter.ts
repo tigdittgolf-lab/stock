@@ -77,11 +77,14 @@ export class SupabaseAdapter implements DatabaseAdapter {
 
   async getSchemas(): Promise<string[]> {
     if (!this.client) {
-      return [];
+      const connected = await this.connect();
+      if (!connected) {
+        return [];
+      }
     }
 
     try {
-      const { data, error } = await this.client.from('business_units').select('schema_name');
+      const { data, error } = await this.client!.from('business_units').select('schema_name');
       
       if (error) {
         console.error('Erreur récupération schémas:', error);
@@ -103,11 +106,15 @@ export class SupabaseAdapter implements DatabaseAdapter {
 
   async executeRPC(functionName: string, params: Record<string, any>): Promise<QueryResult> {
     if (!this.client) {
-      return { success: false, error: 'Pas de connexion Supabase' };
+      // Tenter de se connecter automatiquement
+      const connected = await this.connect();
+      if (!connected) {
+        return { success: false, error: 'Impossible de se connecter à Supabase' };
+      }
     }
 
     try {
-      const { data, error } = await this.client.rpc(functionName, params);
+      const { data, error } = await this.client!.rpc(functionName, params);
 
       if (error) {
         return {

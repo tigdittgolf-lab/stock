@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import styles from '../../page.module.css';
 
 interface Proforma {
-  nproforma: number;
+  nfprof: number;
   nclient: string;
-  date_proforma: string;
+  date_fact: string;
   montant_ht: number;
   tva: number;
   montant_ttc: number;
@@ -26,7 +26,7 @@ export default function ProformaList() {
   const fetchProformas = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`${window.location.origin}/api/sales/proformas`, {
+      const response = await fetch(`http://localhost:3005/api/sales/proforma`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -86,16 +86,16 @@ export default function ProformaList() {
               </thead>
               <tbody>
                 {proformas.map((proforma) => (
-                  <tr key={proforma.nproforma}>
-                    <td><strong>{proforma.nproforma}</strong></td>
+                  <tr key={proforma.nfprof}>
+                    <td><strong>{proforma.nfprof}</strong></td>
                     <td>{proforma.nclient}</td>
-                    <td>{new Date(proforma.date_proforma).toLocaleDateString('fr-FR')}</td>
+                    <td>{new Date(proforma.date_fact).toLocaleDateString('fr-FR')}</td>
                     <td style={{ textAlign: 'right' }}>{proforma.montant_ht?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
                     <td style={{ textAlign: 'right' }}>{proforma.tva?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
                     <td style={{ textAlign: 'right' }}><strong>{proforma.montant_ttc?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</strong></td>
                     <td>
                       <button 
-                        onClick={() => router.push(`/proforma/${proforma.nproforma}`)}
+                        onClick={() => router.push(`/proforma/${proforma.nfprof}`)}
                         className={styles.viewButton}
                       >
                         Voir

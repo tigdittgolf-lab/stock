@@ -26,7 +26,7 @@ export default function InvoicesList() {
   const fetchInvoices = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`${window.location.origin}/api/sales/invoices`, {
+      const response = await fetch(`http://localhost:3005/api/sales/invoices`, {
         headers: {
           'X-Tenant': tenant
         }

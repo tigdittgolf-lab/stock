@@ -51,21 +51,50 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
   const fetchCompanyInfo = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('${window.location.origin}/api/company/info', {
+      console.log('🏢 Fetching company info for tenant:', tenant);
+      
+      const response = await fetch(`http://localhost:3005/api/settings/activities`, {
         headers: {
           'X-Tenant': tenant
         }
       });
-      const data = await response.json();
-      if (data.success) {
-        setCompanyInfo(data.data);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Company info response:', data);
+        
+        if (data.success && data.data && data.data.length > 0) {
+          const activity = data.data[0];
+          setCompanyInfo({
+            nom_activite: activity.nom_entreprise || 'ETS BENAMAR BOUZID MENOUAR',
+            adresse: activity.adresse || '10, Rue Belhandouz A.E.K, Mostaganem',
+            telephone: activity.telephone || '(213)045.42.35.20',
+            email: activity.email || 'outillagesaada@gmail.com'
+          });
+          console.log('✅ Company info set from database');
+        } else {
+          console.warn('⚠️ No company data found, using defaults');
+          setCompanyInfo({
+            nom_activite: 'ETS BENAMAR BOUZID MENOUAR',
+            adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
+            telephone: '(213)045.42.35.20',
+            email: 'outillagesaada@gmail.com'
+          });
+        }
+      } else {
+        console.warn('⚠️ Could not fetch company info, using defaults');
+        setCompanyInfo({
+          nom_activite: 'ETS BENAMAR BOUZID MENOUAR',
+          adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
+          telephone: '(213)045.42.35.20',
+          email: 'outillagesaada@gmail.com'
+        });
       }
     } catch (error) {
-      console.error('Error fetching company info:', error);
-      // Fallback company info if API fails
+      console.error('❌ Error fetching company info:', error);
       setCompanyInfo({
         nom_activite: 'ETS BENAMAR BOUZID MENOUAR',
-        adresse: '10, Rue Belhandouz A.E.K, Mostaganem, Mostaganem',
+        adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
         telephone: '(213)045.42.35.20',
         email: 'outillagesaada@gmail.com'
       });
@@ -155,7 +184,7 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
       }
       
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`${window.location.origin}/api/sales/proformas/${resolvedParams.id}`, {
+      const response = await fetch(`http://localhost:3005/api/sales/proforma/${resolvedParams.id}`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -238,7 +267,7 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
             onClick={async () => {
               try {
                 const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-                const response = await fetch(`${window.location.origin}/api/pdf/proforma/${resolvedParams.id}`, {
+                const response = await fetch(`http://localhost:3005/api/pdf/proforma/${resolvedParams.id}`, {
                   headers: {
                     'X-Tenant': tenant
                   }

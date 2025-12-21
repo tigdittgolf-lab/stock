@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Correction Proformas</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .loading { background-color: #fff3cd; color: #856404; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; max-height: 300px; }
+        h1 { color: #007bff; }
+        .fix-info { background: #e7f3ff; padding: 15px; border-left: 4px solid #007bff; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Test Correction Endpoints Proformas</h1>
+    
+    <div class="fix-info">
+        <h3>🚨 Problème Corrigé</h3>
+        <p><strong>Avant:</strong> Frontend appelait <code>/api/sales/proformas</code> (pluriel)</p>
+        <p><strong>Après:</strong> Frontend appelle maintenant <code>/api/sales/proforma</code> (singulier)</p>
+        <p><strong>Backend:</strong> Utilise <code>/api/sales/proforma</code> (singulier)</p>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 1: Liste des Proformas (CORRIGÉ)</h3>
+        <button onclick="testProformasList()">Tester GET /api/sales/proforma</button>
+        <div id="proformas-list-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 2: Numéro Suivant Proforma (CORRIGÉ)</h3>
+        <button onclick="testProformaNextNumber()">Tester GET /api/sales/proforma/next-number</button>
+        <div id="proforma-next-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 3: Détail Proforma Spécifique (CORRIGÉ)</h3>
+        <input type="number" id="proforma-id" placeholder="ID proforma (ex: 1)" value="1" />
+        <button onclick="testProformaDetail()">Tester GET /api/sales/proforma/:id</button>
+        <div id="proforma-detail-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 4: Comparaison - Factures (Déjà OK)</h3>
+        <button onclick="testInvoicesList()">Tester GET /api/sales/invoices (pour comparaison)</button>
+        <div id="invoices-result"></div>
+    </div>
+
+    <script>
+        // Simuler les informations de tenant
+        const mockTenant = {
+            schema: '2025_bu01',
+            business_unit: 'bu01',
+            year: 2025
+        };
+
+        function showResult(elementId, status, message, data = null) {
+            const element = document.getElementById(elementId);
+            element.className = `test-section ${status}`;
+            element.innerHTML = `
+                <p><strong>${status.toUpperCase()}:</strong> ${message}</p>
+                ${data ? `<pre>${JSON.stringify(data, null, 2)}</pre>` : ''}
+            `;
+        }
+
+        function showLoading(elementId) {
+            showResult(elementId, 'loading', 'Test en cours...');
+        }
+
+        async function testProformasList() {
+            showLoading('proformas-list-result');
+            try {
+                console.log('🧪 Testing corrected endpoint: /api/sales/proforma');
+                const response = await fetch('http://localhost:3005/api/sales/proforma', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': mockTenant.schema
+                    }
+                });
+                
+                console.log('📡 Response status:', response.status);
+                const result = await response.json();
+                console.log('📊 Response data:', result);
+                
+                if (response.ok && result.success) {
+                    showResult('proformas-list-result', 'success', 
+                        `✅ CORRECTION RÉUSSIE! ${result.data.length} proformas trouvées`, result);
+                } else {
+                    showResult('proformas-list-result', 'error', 
+                        result.error || 'Erreur inconnue', result);
+                }
+            } catch (error) {
+                console.error('❌ Test error:', error);
+                showResult('proformas-list-result', 'error', 
+                    `Erreur de connexion: ${error.message}`);
+            }
+        }
+
+        async function testProformaNextNumber() {
+            showLoading('proforma-next-result');
+            try {
+                console.log('🧪 Testing corrected endpoint: /api/sales/proforma/next-number');
+                const response = await fetch('http://localhost:3005/api/sales/proforma/next-number', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': mockTenant.schema
+                    }
+                });
+                
+                console.log('📡 Response status:', response.status);
+                const result = await response.json();
+                console.log('📊 Response data:', result);
+                
+                if (response.ok && result.success) {
+                    showResult('proforma-next-result', 'success', 
+                        `✅ CORRECTION RÉUSSIE! Prochain numéro: ${result.data.next_number}`, result);
+                } else {
+                    showResult('proforma-next-result', 'error', 
+                        result.error || 'Erreur inconnue', result);
+                }
+            } catch (error) {
+                console.error('❌ Test error:', error);
+                showResult('proforma-next-result', 'error', 
+                    `Erreur de connexion: ${error.message}`);
+            }
+        }
+
+        async function testProformaDetail() {
+            const proformaId = document.getElementById('proforma-id').value;
+            if (!proformaId) {
+                showResult('proforma-detail-result', 'error', 'Veuillez saisir un ID de proforma');
+                return;
+            }
+
+            showLoading('proforma-detail-result');
+            try {
+                console.log(`🧪 Testing corrected endpoint: /api/sales/proforma/${proformaId}`);
+                const response = await fetch(`http://localhost:3005/api/sales/proforma/${proformaId}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': mockTenant.schema
+                    }
+                });
+                
+                console.log('📡 Response status:', response.status);
+                const result = await response.json();
+                console.log('📊 Response data:', result);
+                
+                if (response.ok && result.success) {
+                    showResult('proforma-detail-result', 'success', 
+                        `✅ CORRECTION RÉUSSIE! Proforma ${proformaId} trouvée`, result);
+                } else {
+                    showResult('proforma-detail-result', 'error', 
+                        result.error || 'Proforma non trouvée', result);
+                }
+            } catch (error) {
+                console.error('❌ Test error:', error);
+                showResult('proforma-detail-result', 'error', 
+                    `Erreur de connexion: ${error.message}`);
+            }
+        }
+
+        async function testInvoicesList() {
+            showLoading('invoices-result');
+            try {
+                console.log('🧪 Testing invoices endpoint (for comparison): /api/sales/invoices');
+                const response = await fetch('http://localhost:3005/api/sales/invoices', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': mockTenant.schema
+                    }
+                });
+                
+                console.log('📡 Response status:', response.status);
+                const result = await response.json();
+                console.log('📊 Response data:', result);
+                
+                if (response.ok && result.success) {
+                    showResult('invoices-result', 'success', 
+                        `✅ Factures OK (pour comparaison): ${result.data.length} factures trouvées`, result);
+                } else {
+                    showResult('invoices-result', 'error', 
+                        result.error || 'Erreur inconnue', result);
+                }
+            } catch (error) {
+                console.error('❌ Test error:', error);
+                showResult('invoices-result', 'error', 
+                    `Erreur de connexion: ${error.message}`);
+            }
+        }
+
+        // Auto-test au chargement de la page
+        window.onload = function() {
+            console.log('🚀 Starting automatic tests...');
+            setTimeout(() => {
+                testProformasList();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

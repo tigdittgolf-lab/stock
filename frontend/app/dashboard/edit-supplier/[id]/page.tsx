@@ -54,7 +54,7 @@ export default function EditSupplier() {
     try {
       setSupplierLoading(true);
       
-      const response = await fetch(`${window.location.origin}/api/sales/suppliers/${id}`, {
+      const response = await fetch(`http://localhost:3005/api/sales/suppliers/${id}`, {
         headers: {
           'Content-Type': 'application/json',
           'X-Tenant': tenant.schema
@@ -119,7 +119,7 @@ export default function EditSupplier() {
         cabl: parseFloat(formData.cabl) || 0
       };
 
-      const response = await fetch(`${window.location.origin}/api/sales/suppliers/${supplierId}`, {
+      const response = await fetch(`http://localhost:3005/api/sales/suppliers/${supplierId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

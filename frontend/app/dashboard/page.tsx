@@ -1624,6 +1624,27 @@ export default function Dashboard() {
                         📋 Liste Proforma
                       </button>
                     </div>
+                    <div style={{ marginTop: '20px', borderTop: '1px solid #dee2e6', paddingTop: '20px' }}>
+                      <button 
+                        onClick={() => router.push('/sales-report')}
+                        style={{
+                          margin: '5px',
+                          padding: '15px 30px',
+                          backgroundColor: '#ffc107',
+                          color: '#212529',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer',
+                          fontWeight: 'bold',
+                          fontSize: '16px'
+                        }}
+                      >
+                        📊 Rapport des Ventes
+                      </button>
+                      <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '5px' }}>
+                        BL + Factures avec filtres et calcul de marge
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

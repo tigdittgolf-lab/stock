@@ -27,7 +27,7 @@ export default function DeliveryNotesList() {
   const fetchDeliveryNotes = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`${window.location.origin}/api/sales/delivery-notes`, {
+      const response = await fetch(`http://localhost:3005/api/sales/delivery-notes`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -60,7 +60,7 @@ export default function DeliveryNotesList() {
 
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`${window.location.origin}/api/sales/delivery-notes/${blId}`, {
+      const response = await fetch(`http://localhost:3005/api/sales/delivery-notes/${blId}`, {
         method: 'DELETE',
         headers: {
           'X-Tenant': tenant

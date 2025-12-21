@@ -84,7 +84,7 @@ export default function AddArticle() {
   const fetchFamilies = async (headers: any) => {
     try {
       console.log('🔍 Fetching families from settings API...');
-      const response = await fetch('${window.location.origin}/api/settings/families', { headers });
+      const response = await fetch(`http://localhost:3005/api/settings/families`, { headers });
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -119,7 +119,7 @@ export default function AddArticle() {
 
   const fetchSuppliers = async (headers: any) => {
     try {
-      const response = await fetch('${window.location.origin}/api/sales/suppliers', { headers });
+      const response = await fetch(`http://localhost:3005/api/sales/suppliers`, { headers });
       const data = await response.json();
       
       if (data.success) {
@@ -159,7 +159,7 @@ export default function AddArticle() {
     console.log(`🔍 Checking if article exists: ${articleCode}`);
     setCheckingArticle(true);
     try {
-      const response = await fetch(`${window.location.origin}/api/articles/${articleCode}`, {
+      const response = await fetch(`http://localhost:3005/api/articles/${articleCode}`, {
         headers: {
           'Content-Type': 'application/json',
           'X-Tenant': tenantInfo.schema
@@ -250,7 +250,7 @@ export default function AddArticle() {
         stock_bl: stockBl
       };
 
-      const response = await fetch('${window.location.origin}/api/articles', {
+      const response = await fetch(`http://localhost:3005/api/articles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

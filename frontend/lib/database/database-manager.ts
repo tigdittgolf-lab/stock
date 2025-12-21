@@ -18,7 +18,7 @@ class DatabaseManagerImpl implements DatabaseManager {
       const defaultConfig: DatabaseConfig = {
         type: 'supabase',
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co',
-        supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+        supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2NDgwNDMsImV4cCI6MjA4MTIyNDA0M30.5LS_VF6mkFIodLIe3oHEYdlrZD0-rXJioEm2HVFcsBg',
         name: 'Supabase Production',
         isActive: true
       };

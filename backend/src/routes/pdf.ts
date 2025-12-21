@@ -12,110 +12,30 @@ const pdfService = new PDFService();
 async function fetchBLData(tenant: string, id: string) {
   const requestedId = parseInt(id);
   
-  // Vérifier que l'ID est valide
-  const { data: nextNumber, error: nextError } = await supabaseAdmin.rpc('get_next_bl_number_simple', {
-    p_tenant: tenant
-  });
-  
-  if (nextError || !nextNumber || requestedId >= nextNumber || requestedId < 1) {
-    throw new Error(`Invalid BL ID or BL not found: ${requestedId}`);
+  if (isNaN(requestedId)) {
+    throw new Error(`Invalid BL ID: ${id}`);
   }
 
-  // Récupérer les informations client
-  const { data: clientsData } = await supabaseAdmin.rpc('get_clients_by_tenant', {
-    p_tenant: tenant
+  console.log(`📋 PDF: Fetching REAL BL data ${requestedId} for tenant: ${tenant}`);
+
+  // Utiliser la fonction RPC pour récupérer le BL avec détails
+  const { data: blResult, error: blError } = await supabaseAdmin.rpc('get_bl_with_details', {
+    p_tenant: tenant,
+    p_nfact: requestedId
   });
 
-  // Récupérer les informations articles
-  const { data: articlesData } = await supabaseAdmin.rpc('get_articles_by_tenant', {
-    p_tenant: tenant
-  });
-
-  // Utiliser les VRAIES données de la base selon l'ID (même logique que l'endpoint GET)
-  let blData;
-  
-  if (requestedId === 1) {
-    // BL 1 : vraies données
-    const client1 = clientsData?.find(c => c.nclient === 'CL01') || clientsData?.[0];
-    blData = {
-      nfact: 1,
-      nclient: 'CL01',
-      client_name: client1?.raison_sociale || 'cl1 nom1',
-      client_address: client1?.adresse || '',
-      date_fact: '2025-01-01',
-      montant_ht: 100.00,
-      tva: 19.00,
-      montant_ttc: 119.00,
-      details: [
-        {
-          narticle: '1000',
-          designation: 'Gillet jaune',
-          qte: 1,
-          prix: 100.00,
-          tva: 19,
-          total_ligne: 100.00
-        }
-      ]
-    };
-    
-  } else if (requestedId === 2) {
-    // BL 2 : vraies données
-    const client2 = clientsData?.find(c => c.nclient === 'CL01') || clientsData?.[0];
-    blData = {
-      nfact: 2,
-      nclient: 'CL01',
-      client_name: client2?.raison_sociale || 'cl1 nom1',
-      client_address: client2?.adresse || '',
-      date_fact: '2025-12-14',
-      montant_ht: 12000.00,
-      tva: 2280.00,
-      montant_ttc: 14280.00,
-      details: [
-        {
-          narticle: '1000',
-          designation: 'Gillet jaune',
-          qte: 2,
-          prix: 1000.00,
-          tva: 19,
-          total_ligne: 2000.00
-        },
-        {
-          narticle: '1112',
-          designation: 'peinture lavable',
-          qte: 5,
-          prix: 2000.00,
-          tva: 19,
-          total_ligne: 10000.00
-        }
-      ]
-    };
-    
-  } else {
-    // Pour les autres BL (si ils existent), créer des données génériques
-    const sampleClient = clientsData && clientsData.length > 0 ? clientsData[0] : null;
-    blData = {
-      nfact: requestedId,
-      nclient: sampleClient?.nclient || 'CL01',
-      client_name: sampleClient?.raison_sociale || 'Client Test',
-      client_address: sampleClient?.adresse || '',
-      date_fact: new Date().toISOString().split('T')[0],
-      montant_ht: 1000 + (requestedId * 100),
-      tva: (1000 + (requestedId * 100)) * 0.19,
-      montant_ttc: (1000 + (requestedId * 100)) * 1.19,
-      details: [
-        {
-          narticle: 'ART001',
-          designation: 'Article Test',
-          qte: 2,
-          prix: 500 + (requestedId * 50),
-          tva: 19,
-          total_ligne: 2 * (500 + (requestedId * 50))
-        }
-      ]
-    };
+  if (blError) {
+    console.error('❌ PDF: Failed to fetch REAL BL data:', blError);
+    throw new Error(`Failed to fetch BL data: ${blError.message}`);
   }
 
-  return blData;
+  if (!blResult || blResult.error) {
+    throw new Error(`BL ${requestedId} not found`);
+  }
+
+  console.log(`✅ PDF: Found REAL BL data ${requestedId} with ${blResult.details?.length || 0} items`);
+
+  return blResult;
 }
 
 // Middleware to extract tenant from header
@@ -219,7 +139,7 @@ pdf.get('/delivery-note/:id', async (c) => {
 
     // Adapter les données RPC au format attendu par le service PDF
     const adaptedData = {
-      nfact: blData.nfact || blData.nfact,
+      nfact: blData.nbl || blData.nfact,
       date_fact: blData.date_fact,
       client: {
         raison_sociale: blData.client_name || 'Client non spécifié',
@@ -280,7 +200,7 @@ pdf.get('/delivery-note-small/:id', async (c) => {
 
     // Adapter les données RPC au format attendu par le service PDF
     const adaptedData = {
-      nfact: blData.nfact || blData.nfact,
+      nfact: blData.nbl || blData.nfact,
       date_fact: blData.date_fact,
       client: {
         raison_sociale: blData.client_name || 'Client non spécifié',
@@ -339,7 +259,7 @@ pdf.get('/delivery-note-ticket/:id', async (c) => {
 
     // Adapter les données RPC au format attendu par le service PDF
     const adaptedData = {
-      nfact: blData.nfact || blData.nfact,
+      nfact: blData.nbl || blData.nfact,
       date_fact: blData.date_fact,
       client: {
         raison_sociale: blData.client_name || 'Client non spécifié',

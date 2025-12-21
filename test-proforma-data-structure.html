@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Structure Données Proformas</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .loading { background-color: #fff3cd; color: #856404; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; max-height: 400px; }
+        h1 { color: #007bff; }
+        .fix-info { background: #e7f3ff; padding: 15px; border-left: 4px solid #007bff; margin-bottom: 20px; }
+        .data-structure { background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Test Structure Données Proformas</h1>
+    
+    <div class="fix-info">
+        <h3>🚨 Problèmes Corrigés</h3>
+        <p><strong>1. Propriété ID:</strong> <code>nproforma</code> → <code>nfprof</code></p>
+        <p><strong>2. Propriété Date:</strong> <code>date_proforma</code> → <code>date_fact</code></p>
+        <p><strong>3. Key React:</strong> Utilise maintenant <code>nfprof</code> comme clé unique</p>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 1: Structure des Données Proformas</h3>
+        <button onclick="testProformaDataStructure()">Analyser Structure Données</button>
+        <div id="data-structure-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 2: Vérification des Propriétés</h3>
+        <button onclick="testProformaProperties()">Vérifier Propriétés</button>
+        <div id="properties-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 3: Test Navigation vers Détail</h3>
+        <input type="number" id="proforma-id" placeholder="ID proforma (ex: 1)" value="1" />
+        <button onclick="testProformaNavigation()">Tester Navigation</button>
+        <div id="navigation-result"></div>
+    </div>
+
+    <script>
+        // Simuler les informations de tenant
+        const mockTenant = {
+            schema: '2025_bu01',
+            business_unit: 'bu01',
+            year: 2025
+        };
+
+        function showResult(elementId, status, message, data = null) {
+            const element = document.getElementById(elementId);
+            element.className = `test-section ${status}`;
+            element.innerHTML = `
+                <p><strong>${status.toUpperCase()}:</strong> ${message}</p>
+                ${data ? `<pre>${JSON.stringify(data, null, 2)}</pre>` : ''}
+            `;
+        }
+
+        function showLoading(elementId) {
+            showResult(elementId, 'loading', 'Test en cours...');
+        }
+
+        async function testProformaDataStructure() {
+            showLoading('data-structure-result');
+            try {
+                console.log('🧪 Testing proforma data structure...');
+                const response = await fetch('http://localhost:3005/api/sales/proforma', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': mockTenant.schema
+                    }
+                });
+                
+                console.log('📡 Response status:', response.status);
+                const result = await response.json();
+                console.log('📊 Response data:', result);
+                
+                if (response.ok && result.success) {
+                    const proformas = result.data;
+                    if (proformas.length > 0) {
+                        const firstProforma = proformas[0];
+                        const properties = Object.keys(firstProforma);
+                        
+                        let analysisMessage = `✅ ${proformas.length} proformas trouvées\n\n`;
+                        analysisMessage += `📋 Propriétés détectées: ${properties.join(', ')}\n\n`;
+                        
+                        // Vérifier les propriétés critiques
+                        const hasNfprof = properties.includes('nfprof');
+                        const hasDateFact = properties.includes('date_fact');
+                        const hasNproforma = properties.includes('nproforma');
+                        const hasDateProforma = properties.includes('date_proforma');
+                        
+                        analysisMessage += `🔍 Vérifications:\n`;
+                        analysisMessage += `- nfprof (ID): ${hasNfprof ? '✅ Présent' : '❌ Manquant'}\n`;
+                        analysisMessage += `- date_fact: ${hasDateFact ? '✅ Présent' : '❌ Manquant'}\n`;
+                        analysisMessage += `- nproforma (ancien): ${hasNproforma ? '⚠️ Présent (à supprimer)' : '✅ Absent'}\n`;
+                        analysisMessage += `- date_proforma (ancien): ${hasDateProforma ? '⚠️ Présent (à supprimer)' : '✅ Absent'}\n`;
+                        
+                        showResult('data-structure-result', 'success', analysisMessage, {
+                            count: proformas.length,
+                            properties: properties,
+                            sample: firstProforma,
+                            checks: {
+                                hasNfprof,
+                                hasDateFact,
+                                hasNproforma,
+                                hasDateProforma
+                            }
+                        });
+                    } else {
+                        showResult('data-structure-result', 'success', 
+                            '✅ API fonctionne mais aucune proforma trouvée', result);
+                    }
+                } else {
+                    showResult('data-structure-result', 'error', 
+                        result.error || 'Erreur inconnue', result);
+                }
+            } catch (error) {
+                console.error('❌ Test error:', error);
+                showResult('data-structure-result', 'error', 
+                    `Erreur de connexion: ${error.message}`);
+            }
+        }
+
+        async function testProformaProperties() {
+            showLoading('properties-result');
+            try {
+                const response = await fetch('http://localhost:3005/api/sales/proforma', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': mockTenant.schema
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success && result.data.length > 0) {
+                    const proforma = result.data[0];
+                    
+                    // Test des propriétés essentielles
+                    const tests = [
+                        { name: 'ID (nfprof)', value: proforma.nfprof, expected: 'number' },
+                        { name: 'Client (nclient)', value: proforma.nclient, expected: 'string' },
+                        { name: 'Date (date_fact)', value: proforma.date_fact, expected: 'string' },
+                        { name: 'Montant HT', value: proforma.montant_ht, expected: 'number' },
+                        { name: 'TVA', value: proforma.tva, expected: 'number' },
+                        { name: 'Total TTC', value: proforma.montant_ttc, expected: 'number' }
+                    ];
+                    
+                    let testResults = '🧪 Tests des propriétés:\n\n';
+                    let allPassed = true;
+                    
+                    tests.forEach(test => {
+                        const actualType = typeof test.value;
+                        const exists = test.value !== undefined && test.value !== null;
+                        const typeMatch = actualType === test.expected;
+                        const passed = exists && typeMatch;
+                        
+                        testResults += `${passed ? '✅' : '❌'} ${test.name}: `;
+                        testResults += `${exists ? `${test.value} (${actualType})` : 'MANQUANT'}`;
+                        testResults += `${typeMatch ? '' : ` - Attendu: ${test.expected}`}\n`;
+                        
+                        if (!passed) allPassed = false;
+                    });
+                    
+                    showResult('properties-result', allPassed ? 'success' : 'error', 
+                        testResults, { proforma, tests });
+                } else {
+                    showResult('properties-result', 'error', 
+                        'Aucune proforma pour tester les propriétés', result);
+                }
+            } catch (error) {
+                showResult('properties-result', 'error', 
+                    `Erreur: ${error.message}`);
+            }
+        }
+
+        async function testProformaNavigation() {
+            const proformaId = document.getElementById('proforma-id').value;
+            if (!proformaId) {
+                showResult('navigation-result', 'error', 'Veuillez saisir un ID de proforma');
+                return;
+            }
+
+            showLoading('navigation-result');
+            try {
+                // Simuler la navigation en testant l'endpoint de détail
+                const response = await fetch(`http://localhost:3005/api/sales/proforma/${proformaId}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': mockTenant.schema
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    const navigationUrl = `/proforma/${proformaId}`;
+                    showResult('navigation-result', 'success', 
+                        `✅ Navigation OK vers: ${navigationUrl}`, {
+                            url: navigationUrl,
+                            proforma: result.data
+                        });
+                } else {
+                    showResult('navigation-result', 'error', 
+                        `❌ Navigation échouerait - Proforma ${proformaId} non trouvée`, result);
+                }
+            } catch (error) {
+                showResult('navigation-result', 'error', 
+                    `Erreur navigation: ${error.message}`);
+            }
+        }
+
+        // Auto-test au chargement
+        window.onload = function() {
+            console.log('🚀 Starting proforma data structure tests...');
+            setTimeout(() => {
+                testProformaDataStructure();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

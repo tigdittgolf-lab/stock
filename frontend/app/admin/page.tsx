@@ -230,6 +230,47 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+            {/* Migration de Données */}
+            <div 
+              onClick={() => router.push('/admin/database-migration')}
+              style={{
+                padding: '25px',
+                border: '2px solid #fd7e14',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                background: '#fff8f0'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-5px)';
+                e.currentTarget.style.boxShadow = '0 8px 16px rgba(253, 126, 20, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <div style={{ fontSize: '48px', marginBottom: '15px' }}>🔄</div>
+              <h3 style={{ margin: '0 0 10px 0', color: '#fd7e14', fontSize: '20px' }}>
+                Migration de Données
+              </h3>
+              <p style={{ margin: '0', color: '#6c757d', fontSize: '14px', lineHeight: '1.6' }}>
+                Migrer automatiquement les données entre Supabase, PostgreSQL et MySQL avec vérification d'intégrité
+              </p>
+              <div style={{ 
+                marginTop: '15px', 
+                padding: '8px 16px', 
+                background: '#fd7e14', 
+                color: 'white', 
+                borderRadius: '4px',
+                textAlign: 'center',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                Migrer les Données →
+              </div>
+            </div>
+
             {/* Gestion des Utilisateurs */}
             <div 
               onClick={() => router.push('/admin/users')}

@@ -64,7 +64,7 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
       }
       
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`${window.location.origin}/api/sales/invoices/${resolvedParams.id}`, {
+      const response = await fetch(`http://localhost:3005/api/sales/invoices/${resolvedParams.id}`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -93,22 +93,62 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
   const fetchCompanyInfo = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('${window.location.origin}/api/sales/company-info', {
+      console.log('🏢 Fetching company info for tenant:', tenant);
+      
+      const response = await fetch(`http://localhost:3005/api/settings/activities`, {
         headers: {
           'X-Tenant': tenant
         }
       });
       
-      const data = await response.json();
-      if (data.success) {
-        setCompanyInfo(data.data);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Company info response:', data);
+        
+        if (data.success && data.data && data.data.length > 0) {
+          const activity = data.data[0];
+          setCompanyInfo({
+            name: activity.nom_entreprise || 'ETS BENAMAR BOUZID MENOUAR',
+            address: activity.adresse || '10, Rue Belhandouz A.E.K, Mostaganem',
+            phone: activity.telephone || '(213)045.42.35.20',
+            email: activity.email || 'outillagesaada@gmail.com',
+            nif: activity.nif || '10227010185816600000',
+            rc: activity.rc || '21A3965999-27/00',
+            art: activity.art || '100227010185845',
+            domaine_activite: activity.activite || 'Commerce Outillage et Équipements'
+          });
+          console.log('✅ Company info set from database');
+        } else {
+          console.warn('⚠️ No company data found, using defaults');
+          setCompanyInfo({
+            name: 'ETS BENAMAR BOUZID MENOUAR',
+            address: '10, Rue Belhandouz A.E.K, Mostaganem',
+            phone: '(213)045.42.35.20',
+            email: 'outillagesaada@gmail.com',
+            nif: '10227010185816600000',
+            rc: '21A3965999-27/00',
+            art: '100227010185845',
+            domaine_activite: 'Commerce Outillage et Équipements'
+          });
+        }
+      } else {
+        console.warn('⚠️ Could not fetch company info, using defaults');
+        setCompanyInfo({
+          name: 'ETS BENAMAR BOUZID MENOUAR',
+          address: '10, Rue Belhandouz A.E.K, Mostaganem',
+          phone: '(213)045.42.35.20',
+          email: 'outillagesaada@gmail.com',
+          nif: '10227010185816600000',
+          rc: '21A3965999-27/00',
+          art: '100227010185845',
+          domaine_activite: 'Commerce Outillage et Équipements'
+        });
       }
     } catch (error) {
-      console.error('Error fetching company info:', error);
-      // Fallback company info
+      console.error('❌ Error fetching company info:', error);
       setCompanyInfo({
         name: 'ETS BENAMAR BOUZID MENOUAR',
-        address: '10, Rue Belhandouz A.E.K, Mostaganem, Mostaganem',
+        address: '10, Rue Belhandouz A.E.K, Mostaganem',
         phone: '(213)045.42.35.20',
         email: 'outillagesaada@gmail.com',
         nif: '10227010185816600000',
@@ -177,7 +217,7 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
             onClick={async () => {
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
               try {
-                const response = await fetch(`${window.location.origin}/api/pdf/invoice/${invoice.nfact}`, {
+                const response = await fetch(`http://localhost:3005/api/pdf/invoice/${invoice.nfact}`, {
                   headers: {
                     'X-Tenant': tenant
                   }
