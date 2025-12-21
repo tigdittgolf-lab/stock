@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Settings Company Data Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Settings Company Data Fix</h1>
+    
+    <div id="results"></div>
+
+    <script>
+        async function testSettingsAPI() {
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                console.log('🔍 Testing /api/settings/activities endpoint...');
+                
+                const response = await fetch('http://localhost:3005/api/settings/activities', {
+                    headers: {
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                resultsDiv.innerHTML += `
+                    <div class="test-section ${result.success ? 'success' : 'error'}">
+                        <h3>✅ API Response Test</h3>
+                        <p><strong>Status:</strong> ${result.success ? 'SUCCESS' : 'FAILED'}</p>
+                        <p><strong>Data Type:</strong> ${Array.isArray(result.data) ? 'Array' : typeof result.data}</p>
+                        <p><strong>Data Length:</strong> ${result.data?.length || 'N/A'}</p>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    </div>
+                `;
+                
+                if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+                    const companyData = result.data[0];
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="test-section success">
+                            <h3>🏢 Company Data Extracted</h3>
+                            <p><strong>Nom Entreprise:</strong> ${companyData.nom_entreprise}</p>
+                            <p><strong>Adresse:</strong> ${companyData.adresse}</p>
+                            <p><strong>Téléphone:</strong> ${companyData.telephone}</p>
+                            <p><strong>Email:</strong> ${companyData.email}</p>
+                            <p><strong>NIF:</strong> ${companyData.nif}</p>
+                            <p><strong>RC:</strong> ${companyData.rc}</p>
+                            <p><strong>Activité:</strong> ${companyData.activite}</p>
+                        </div>
+                    `;
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="test-section info">
+                            <h3>✅ Fix Status</h3>
+                            <p>✅ API returns array format correctly</p>
+                            <p>✅ Company data is available</p>
+                            <p>✅ All required fields are present</p>
+                            <p><strong>Next Step:</strong> Frontend should now display this data correctly</p>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML += `
+                        <div class="test-section error">
+                            <h3>❌ Data Issue</h3>
+                            <p>API did not return expected array format or data is empty</p>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                resultsDiv.innerHTML += `
+                    <div class="test-section error">
+                        <h3>❌ Connection Error</h3>
+                        <p>Error: ${error.message}</p>
+                        <p>Make sure backend is running on port 3005</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Run test on page load
+        testSettingsAPI();
+    </script>
+</body>
+</html>

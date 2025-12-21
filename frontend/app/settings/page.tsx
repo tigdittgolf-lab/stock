@@ -199,9 +199,9 @@ export default function SettingsPage() {
       
       console.log('📊 Réponse API activities:', result);
       
-      if (result.success && result.data) {
-        // L'API retourne un objet JSON directement, pas un tableau
-        const data = result.data;
+      if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
+        // L'API retourne un tableau, prendre le premier élément
+        const data = result.data[0];
         
         // Créer un objet propre sans propriétés supplémentaires
         const cleanCompanyInfo: Activity = {
