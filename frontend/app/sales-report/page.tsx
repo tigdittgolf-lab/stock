@@ -46,13 +46,14 @@ export default function SalesReport() {
   });
 
   useEffect(() => {
-    // Initialiser les dates par défaut
+    // Initialiser avec une plage plus large par défaut
     const today = new Date().toISOString().split('T')[0];
+    const startOfYear = '2025-01-01';
     setFilters(prev => ({
       ...prev,
-      dateFrom: today,
+      dateFrom: startOfYear,
       dateTo: today,
-      todayOnly: true
+      todayOnly: false // Désactiver le filtre "aujourd'hui seulement" par défaut
     }));
   }, []);
 
@@ -128,8 +129,11 @@ export default function SalesReport() {
     });
   };
 
-  const formatAmount = (amount: number) => {
-    return amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  const formatAmount = (amount: number | undefined | null) => {
+    if (amount === undefined || amount === null || isNaN(amount)) {
+      return '0.00';
+    }
+    return Number(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   };
 
   const getTypeColor = (type: string) => {

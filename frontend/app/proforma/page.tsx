@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import PrintOptions from '../../components/PrintOptions';
 import styles from '../page.module.css';
 
 interface Client {
@@ -42,6 +43,12 @@ export default function CreateProforma() {
   });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [nextProformaNumber, setNextProformaNumber] = useState<number | null>(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [createdProforma, setCreatedProforma] = useState<{
+    id: number;
+    number: number;
+    clientName: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchClients();
@@ -253,16 +260,23 @@ export default function CreateProforma() {
                        `💰 Total TTC: ${data.data.total_ttc?.toFixed(2)} DA\n` +
                        `📦 Articles: ${lines.length} ligne(s)`;
         
-        alert(message);
+        // Préparer les données pour le modal d'impression
+        const clientName = clients.find(c => c.nclient === selectedClient)?.raison_sociale || selectedClient;
         
+        setCreatedProforma({
+          id: proformaNumber,
+          number: proformaNumber,
+          clientName: clientName
+        });
+        
+        // Réinitialiser le formulaire
         setSelectedClient('');
         setDateProforma(new Date().toISOString().split('T')[0]);
         setLines([]);
         resetCurrentLine();
         
-        setTimeout(() => {
-          router.push('/proforma/list');
-        }, 2000);
+        // Afficher le modal d'impression
+        setShowPrintModal(true);
       } else {
         alert('❌ Erreur: ' + data.error);
       }
@@ -444,6 +458,22 @@ export default function CreateProforma() {
           </div>
         </form>
       </main>
+      
+      {/* Modal d'impression après création */}
+      {showPrintModal && createdProforma && (
+        <PrintOptions
+          documentType="proforma"
+          documentId={createdProforma.id}
+          documentNumber={createdProforma.number}
+          clientName={createdProforma.clientName}
+          isModal={true}
+          onClose={() => {
+            setShowPrintModal(false);
+            setCreatedProforma(null);
+            router.push('/proforma/list');
+          }}
+        />
+      )}
     </div>
   );
 }

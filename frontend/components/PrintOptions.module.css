@@ -1,0 +1,143 @@
+/* Modal styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modalHeader {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.modalHeader h3 {
+  color: #28a745;
+  margin: 0 0 8px 0;
+  font-size: 18px;
+}
+
+.modalHeader p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.modalBody {
+  margin-bottom: 20px;
+}
+
+.modalBody h4 {
+  margin: 0 0 16px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.printOptionsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.modalFooter {
+  text-align: center;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+/* Print button styles */
+.printButton {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+}
+
+.printButton:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.printButton:active {
+  transform: translateY(0);
+}
+
+.closeButton {
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 24px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.closeButton:hover {
+  background: #545b62;
+}
+
+/* Inline styles for lists */
+.inlinePrintOptions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.inlinePrintOptions .printButton {
+  font-size: 11px;
+  padding: 4px 8px;
+  min-height: 28px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modalContent {
+    margin: 20px;
+    padding: 20px;
+  }
+  
+  .printOptionsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .inlinePrintOptions {
+    flex-direction: column;
+    gap: 2px;
+  }
+  
+  .inlinePrintOptions .printButton {
+    font-size: 10px;
+    padding: 3px 6px;
+    min-height: 24px;
+  }
+}

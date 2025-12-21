@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Print Options</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .print-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.2s ease;
+        }
+        .print-button:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+        .modal-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #eee;
+        }
+        .modal-header h3 {
+            color: #28a745;
+            margin: 0 0 8px 0;
+            font-size: 18px;
+        }
+        .print-options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .close-button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 24px;
+            font-size: 14px;
+            cursor: pointer;
+            display: block;
+            margin: 0 auto;
+        }
+        .close-button:hover {
+            background: #545b62;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test des Options d'Impression</h1>
+    
+    <div class="test-container">
+        <h2>📋 Test BL - Boutons Inline (pour listes)</h2>
+        <p><strong>BL N° 5</strong> - Client: Kaddour</p>
+        <div>
+            <button class="print-button" onclick="testPrint('bl', 5, 'complet')">📄 BL Complet</button>
+            <button class="print-button" onclick="testPrint('bl', 5, 'reduit')">📄 BL Réduit</button>
+            <button class="print-button" onclick="testPrint('bl', 5, 'ticket')">🎫 Ticket</button>
+        </div>
+    </div>
+    
+    <div class="test-container">
+        <h2>📄 Test Facture - Bouton Inline</h2>
+        <p><strong>Facture N° 1</strong> - Client: cl1 nom1</p>
+        <div>
+            <button class="print-button" onclick="testPrint('invoice', 1, 'invoice')">📄 Imprimer Facture</button>
+        </div>
+    </div>
+    
+    <div class="test-container">
+        <h2>📋 Test Proforma - Bouton Inline</h2>
+        <p><strong>Proforma N° 1</strong> - Client: cl1 nom1</p>
+        <div>
+            <button class="print-button" onclick="testPrint('proforma', 1, 'proforma')">📄 Imprimer Proforma</button>
+        </div>
+    </div>
+    
+    <div class="test-container">
+        <h2>🎉 Test Modal après Création</h2>
+        <button class="print-button" onclick="showModal('bl', 5, 'Kaddour')" style="background: #28a745;">
+            ✅ Simuler Création BL Réussie
+        </button>
+        <button class="print-button" onclick="showModal('invoice', 1, 'cl1 nom1')" style="background: #28a745;">
+            ✅ Simuler Création Facture Réussie
+        </button>
+        <button class="print-button" onclick="showModal('proforma', 1, 'cl1 nom1')" style="background: #28a745;">
+            ✅ Simuler Création Proforma Réussie
+        </button>
+    </div>
+
+    <!-- Modal Template -->
+    <div id="printModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">✅ Document créé avec succès !</h3>
+                <p id="modalClient">👤 Client: </p>
+            </div>
+            
+            <div class="modal-body">
+                <h4>🖨️ Options d'impression :</h4>
+                <div id="modalPrintOptions" class="print-options-grid">
+                    <!-- Options will be inserted here -->
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="close-button" onclick="closeModal()">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function testPrint(type, id, format) {
+            const baseUrl = 'http://localhost:3005/api/pdf';
+            let url = '';
+            
+            switch (type) {
+                case 'bl':
+                    switch (format) {
+                        case 'complet':
+                            url = `${baseUrl}/delivery-note/${id}`;
+                            break;
+                        case 'reduit':
+                            url = `${baseUrl}/delivery-note-small/${id}`;
+                            break;
+                        case 'ticket':
+                            url = `${baseUrl}/delivery-note-ticket/${id}`;
+                            break;
+                    }
+                    break;
+                case 'invoice':
+                    url = `${baseUrl}/invoice/${id}`;
+                    break;
+                case 'proforma':
+                    url = `${baseUrl}/proforma/${id}`;
+                    break;
+            }
+
+            if (url) {
+                console.log('🖨️ Fetching PDF with headers:', url);
+                
+                // Utiliser fetch avec headers comme le composant React
+                fetch(url, {
+                    headers: {
+                        'X-Tenant': '2025_bu01'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.blob();
+                    } else {
+                        return response.json().then(errorData => {
+                            throw new Error(errorData.error || 'Erreur inconnue');
+                        });
+                    }
+                })
+                .then(blob => {
+                    const pdfUrl = URL.createObjectURL(blob);
+                    const printWindow = window.open(pdfUrl, '_blank');
+                    if (printWindow) {
+                        printWindow.focus();
+                        // Nettoyer l'URL après un délai
+                        setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
+                        console.log('✅ PDF ouvert avec succès');
+                    } else {
+                        alert('❌ Popup bloqué ! Veuillez autoriser les popups pour ce site.');
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Erreur:', error);
+                    alert(`❌ Erreur lors de l'impression: ${error.message}`);
+                });
+            }
+        }
+
+        function showModal(type, id, clientName) {
+            const modal = document.getElementById('printModal');
+            const title = document.getElementById('modalTitle');
+            const client = document.getElementById('modalClient');
+            const options = document.getElementById('modalPrintOptions');
+            
+            // Set title and client
+            const docLabel = type === 'bl' ? 'Bon de Livraison' : 
+                           type === 'invoice' ? 'Facture' : 'Proforma';
+            title.textContent = `✅ ${docLabel} N° ${id} créé avec succès !`;
+            client.textContent = `👤 Client: ${clientName}`;
+            
+            // Set print options
+            let optionsHTML = '';
+            if (type === 'bl') {
+                optionsHTML = `
+                    <button class="print-button" onclick="testPrint('bl', ${id}, 'complet')">📄 BL Complet</button>
+                    <button class="print-button" onclick="testPrint('bl', ${id}, 'reduit')">📄 BL Réduit</button>
+                    <button class="print-button" onclick="testPrint('bl', ${id}, 'ticket')">🎫 Ticket</button>
+                `;
+            } else if (type === 'invoice') {
+                optionsHTML = `<button class="print-button" onclick="testPrint('invoice', ${id}, 'invoice')">📄 Imprimer Facture</button>`;
+            } else if (type === 'proforma') {
+                optionsHTML = `<button class="print-button" onclick="testPrint('proforma', ${id}, 'proforma')">📄 Imprimer Proforma</button>`;
+            }
+            
+            options.innerHTML = optionsHTML;
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('printModal');
+            modal.classList.add('hidden');
+            console.log('✅ Modal fermé - Redirection vers la liste (simulée)');
+        }
+
+        // Test au chargement
+        console.log('🧪 Page de test des options d\'impression chargée');
+        console.log('📋 Backend API: http://localhost:3005');
+        console.log('🎯 Testez les boutons pour vérifier l\'impression');
+    </script>
+</body>
+</html>

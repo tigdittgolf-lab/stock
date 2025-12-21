@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import PrintOptions from '../../components/PrintOptions';
 import styles from '../page.module.css';
 
 interface Client {
@@ -42,6 +43,12 @@ export default function CreateDeliveryNote() {
   });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [nextBLNumber, setNextBLNumber] = useState<number | null>(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [createdBL, setCreatedBL] = useState<{
+    id: number;
+    number: number;
+    clientName: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchClients();
@@ -256,7 +263,14 @@ export default function CreateDeliveryNote() {
                        `💰 Total TTC: ${data.data.total_ttc?.toFixed(2)} DA\n` +
                        `📦 Articles: ${lines.length} ligne(s)`;
         
-        alert(message);
+        // Préparer les données pour le modal d'impression
+        const clientName = clients.find(c => c.nclient === selectedClient)?.raison_sociale || selectedClient;
+        
+        setCreatedBL({
+          id: blNumber,
+          number: blNumber,
+          clientName: clientName
+        });
         
         // Réinitialiser le formulaire
         setSelectedClient('');
@@ -264,10 +278,8 @@ export default function CreateDeliveryNote() {
         setLines([]);
         resetCurrentLine();
         
-        // Rediriger vers la liste des BL après 2 secondes
-        setTimeout(() => {
-          router.push('/delivery-notes/list');
-        }, 2000);
+        // Afficher le modal d'impression
+        setShowPrintModal(true);
       } else {
         alert('❌ Erreur: ' + data.error);
       }
@@ -449,6 +461,22 @@ export default function CreateDeliveryNote() {
           </div>
         </form>
       </main>
+      
+      {/* Modal d'impression après création */}
+      {showPrintModal && createdBL && (
+        <PrintOptions
+          documentType="bl"
+          documentId={createdBL.id}
+          documentNumber={createdBL.number}
+          clientName={createdBL.clientName}
+          isModal={true}
+          onClose={() => {
+            setShowPrintModal(false);
+            setCreatedBL(null);
+            router.push('/delivery-notes/list');
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import PrintOptions from '../../../components/PrintOptions';
 import styles from '../../page.module.css';
 
 interface DeliveryNote {
@@ -127,6 +128,7 @@ export default function DeliveryNotesList() {
                   <th style={{ textAlign: 'right' }}>TVA</th>
                   <th style={{ textAlign: 'right' }}>Total TTC</th>
                   <th>Actions</th>
+                  <th>Impression</th>
                 </tr>
               </thead>
               <tbody>
@@ -164,6 +166,15 @@ export default function DeliveryNotesList() {
                           {deleting === bl.nbl ? '⏳' : '🗑️'} Supprimer
                         </button>
                       </div>
+                    </td>
+                    <td>
+                      <PrintOptions
+                        documentType="bl"
+                        documentId={bl.nbl}
+                        documentNumber={bl.nbl}
+                        clientName={bl.client_name}
+                        isModal={false}
+                      />
                     </td>
                   </tr>
                 ))}

@@ -1914,4 +1914,194 @@ sales.get('/company-info', async (c) => {
     });
   }
 });
+
+// GET /api/sales/report - Rapport des ventes avec marges RÉELLES
+sales.get('/report', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    const dateFrom = c.req.query('dateFrom');
+    const dateTo = c.req.query('dateTo');
+    const type = (c.req.query('type') || 'all').toLowerCase(); // Normaliser en minuscules
+    const clientCode = c.req.query('clientCode');
+
+    console.log(`📊 Generating sales report for tenant: ${tenant}`, {
+      dateFrom, dateTo, type, clientCode
+    });
+
+    let allSales = [];
+
+    // Récupérer les articles pour les calculs de marge
+    const { data: articlesData, error: articlesError } = await supabaseAdmin.rpc('get_articles_by_tenant', {
+      p_tenant: tenant
+    });
+
+    if (articlesError) {
+      console.warn('⚠️ Could not fetch articles for margin calculation:', articlesError);
+    }
+
+    // Fonction pour calculer la marge réelle d'un document
+    const calculateRealMargin = async (documentId, documentType) => {
+      try {
+        let detailsData = [];
+        
+        if (documentType === 'bl') {
+          const { data: blDetails } = await supabaseAdmin.rpc('get_bl_with_details', {
+            p_tenant: tenant,
+            p_nfact: documentId
+          });
+          detailsData = blDetails?.details || [];
+        } else if (documentType === 'facture') {
+          const { data: factDetails } = await supabaseAdmin.rpc('get_fact_with_details', {
+            p_tenant: tenant,
+            p_nfact: documentId
+          });
+          detailsData = factDetails?.details || [];
+        }
+
+        let totalMarge = 0;
+        let totalHT = 0;
+
+        detailsData.forEach(detail => {
+          const article = articlesData?.find(a => a.narticle.trim() === detail.narticle.trim());
+          if (article) {
+            const prixVente = parseFloat(detail.prix || article.prix_vente || 0);
+            const prixAchat = parseFloat(article.prix_unitaire || 0);
+            const quantite = parseFloat(detail.qte || 0);
+            
+            const margeUnitaire = prixVente - prixAchat;
+            const margeLigne = margeUnitaire * quantite;
+            const htLigne = prixVente * quantite;
+            
+            totalMarge += margeLigne;
+            totalHT += htLigne;
+          }
+        });
+
+        const margePercent = totalHT > 0 ? (totalMarge / totalHT) * 100 : 0;
+        return { marge: totalMarge, margePercent: margePercent };
+      } catch (error) {
+        console.warn(`⚠️ Could not calculate margin for ${documentType} ${documentId}:`, error);
+        return { marge: 0, margePercent: 0 };
+      }
+    };
+
+    // Récupérer les BL si demandé
+    if (type === 'all' || type === 'bl') {
+      try {
+        const { data: blData, error: blError } = await supabaseAdmin.rpc('get_bl_list_by_tenant', {
+          p_tenant: tenant
+        });
+
+        if (!blError && blData) {
+          const filteredBL = blData.filter(bl => {
+            if (dateFrom && bl.date_fact < dateFrom) return false;
+            if (dateTo && bl.date_fact > dateTo) return false;
+            if (clientCode && bl.nclient !== clientCode) return false;
+            return true;
+          });
+
+          // Calculer les marges réelles pour chaque BL
+          for (const bl of filteredBL) {
+            const { marge, margePercent } = await calculateRealMargin(bl.nfact, 'bl');
+            
+            allSales.push({
+              type: 'BL',
+              numero: bl.nfact,
+              date: bl.date_fact,
+              client_code: bl.nclient,
+              client_name: bl.client_name || bl.nclient,
+              montant_ht: parseFloat(bl.montant_ht || '0'),
+              tva: parseFloat(bl.tva || '0'),
+              montant_ttc: parseFloat(bl.montant_ht || '0') + parseFloat(bl.tva || '0'),
+              marge: marge, // MARGE RÉELLE calculée
+              marge_percentage: margePercent, // POURCENTAGE RÉEL calculé
+              created_at: bl.created_at || bl.date_fact
+            });
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not fetch BL data:', error);
+      }
+    }
+
+    // Récupérer les factures si demandé
+    if (type === 'all' || type === 'facture') {
+      try {
+        const { data: factData, error: factError } = await supabaseAdmin.rpc('get_fact_list_enriched', {
+          p_tenant: tenant
+        });
+
+        if (!factError && factData) {
+          const filteredFactures = factData.filter(fact => {
+            if (dateFrom && fact.date_fact < dateFrom) return false;
+            if (dateTo && fact.date_fact > dateTo) return false;
+            if (clientCode && fact.nclient !== clientCode) return false;
+            return true;
+          });
+
+          // Calculer les marges réelles pour chaque facture
+          for (const fact of filteredFactures) {
+            const { marge, margePercent } = await calculateRealMargin(fact.nfact, 'facture');
+            
+            allSales.push({
+              type: 'FACTURE',
+              numero: fact.nfact,
+              date: fact.date_fact,
+              client_code: fact.nclient,
+              client_name: fact.client_name || fact.nclient,
+              montant_ht: parseFloat(fact.montant_ht || '0'),
+              tva: parseFloat(fact.tva || '0'),
+              montant_ttc: parseFloat(fact.montant_ht || '0') + parseFloat(fact.tva || '0'),
+              marge: marge, // MARGE RÉELLE calculée
+              marge_percentage: margePercent, // POURCENTAGE RÉEL calculé
+              created_at: fact.created_at || fact.date_fact
+            });
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not fetch invoice data:', error);
+      }
+    }
+
+    // Trier par date décroissante
+    allSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    // Calculer les totaux avec les marges réelles
+    const totals = {
+      count_bl: allSales.filter(s => s.type === 'BL').length,
+      count_factures: allSales.filter(s => s.type === 'FACTURE').length,
+      total_count: allSales.length,
+      total_ht: allSales.reduce((sum, s) => sum + s.montant_ht, 0),
+      total_tva: allSales.reduce((sum, s) => sum + s.tva, 0),
+      total_ttc: allSales.reduce((sum, s) => sum + s.montant_ttc, 0),
+      total_marge: allSales.reduce((sum, s) => sum + s.marge, 0), // MARGE RÉELLE TOTALE
+      marge_percentage_avg: allSales.length > 0 ? 
+        allSales.reduce((sum, s) => sum + s.marge_percentage, 0) / allSales.length : 0 // MOYENNE RÉELLE
+    };
+
+    console.log(`✅ Sales report generated with REAL margins: ${allSales.length} documents, CA: ${totals.total_ttc.toFixed(2)} DA, Marge: ${totals.total_marge.toFixed(2)} DA`);
+
+    return c.json({
+      success: true,
+      data: {
+        sales: allSales,
+        totals: totals
+      },
+      tenant: tenant,
+      filters: { dateFrom, dateTo, type, clientCode }
+    });
+
+  } catch (error) {
+    console.error('❌ Error generating sales report:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Erreur lors de la génération du rapport des ventes'
+    }, 500);
+  }
+});
+
 export default sales;

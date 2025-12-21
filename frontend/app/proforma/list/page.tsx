@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import PrintOptions from '../../../components/PrintOptions';
 import styles from '../../page.module.css';
 
 interface Proforma {
@@ -82,6 +83,7 @@ export default function ProformaList() {
                   <th style={{ textAlign: 'right' }}>TVA</th>
                   <th style={{ textAlign: 'right' }}>Total TTC</th>
                   <th>Actions</th>
+                  <th>Impression</th>
                 </tr>
               </thead>
               <tbody>
@@ -100,6 +102,15 @@ export default function ProformaList() {
                       >
                         Voir
                       </button>
+                    </td>
+                    <td>
+                      <PrintOptions
+                        documentType="proforma"
+                        documentId={proforma.nfprof}
+                        documentNumber={proforma.nfprof}
+                        clientName={proforma.client_name}
+                        isModal={false}
+                      />
                     </td>
                   </tr>
                 ))}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import PrintOptions from '../../components/PrintOptions';
 import styles from '../page.module.css';
 
 interface Client {
@@ -42,6 +43,12 @@ export default function CreateInvoice() {
   });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [nextInvoiceNumber, setNextInvoiceNumber] = useState<number | null>(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [createdInvoice, setCreatedInvoice] = useState<{
+    id: number;
+    number: number;
+    clientName: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchClients();
@@ -240,7 +247,14 @@ export default function CreateInvoice() {
                        `💰 Total TTC: ${data.data.total_ttc?.toFixed(2)} DA\n` +
                        `📦 Articles: ${lines.length} ligne(s)`;
         
-        alert(message);
+        // Préparer les données pour le modal d'impression
+        const clientName = clients.find(c => c.nclient === selectedClient)?.raison_sociale || selectedClient;
+        
+        setCreatedInvoice({
+          id: invoiceNumber,
+          number: invoiceNumber,
+          clientName: clientName
+        });
         
         // Réinitialiser le formulaire
         setSelectedClient('');
@@ -248,10 +262,8 @@ export default function CreateInvoice() {
         setLines([]);
         resetCurrentLine();
         
-        // Rediriger vers la liste des factures après 2 secondes
-        setTimeout(() => {
-          router.push('/invoices/list');
-        }, 2000);
+        // Afficher le modal d'impression
+        setShowPrintModal(true);
       } else {
         alert('❌ Erreur: ' + data.error);
       }
@@ -433,6 +445,22 @@ export default function CreateInvoice() {
           </div>
         </form>
       </main>
+      
+      {/* Modal d'impression après création */}
+      {showPrintModal && createdInvoice && (
+        <PrintOptions
+          documentType="invoice"
+          documentId={createdInvoice.id}
+          documentNumber={createdInvoice.number}
+          clientName={createdInvoice.clientName}
+          isModal={true}
+          onClose={() => {
+            setShowPrintModal(false);
+            setCreatedInvoice(null);
+            router.push('/invoices/list');
+          }}
+        />
+      )}
     </div>
   );
 }
