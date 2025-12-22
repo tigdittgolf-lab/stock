@@ -35,12 +35,16 @@ export async function POST(request: NextRequest) {
     // Exécuter la requête
     const result = await client.query(sql, params || []);
     
-    console.log('✅ Requête PostgreSQL exécutée:', result.rows.length, 'résultats');
+    // Vérifier que result et result.rows existent
+    const rows = result?.rows || [];
+    const rowCount = result?.rowCount || rows.length;
+    
+    console.log('✅ Requête PostgreSQL exécutée:', rows.length, 'résultats');
 
     return NextResponse.json({
       success: true,
-      data: result.rows,
-      rowCount: result.rowCount || result.rows.length
+      data: rows,
+      rowCount: rowCount
     });
 
   } catch (error) {

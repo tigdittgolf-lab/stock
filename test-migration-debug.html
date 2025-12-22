@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Migration Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #ffe6e6; border-left: 4px solid #ff0000; }
+        .success { background: #e6ffe6; border-left: 4px solid #00ff00; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+        #logs { max-height: 600px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>Test Migration Debug - Diagnostic Complet</h1>
+    
+    <button onclick="testMigration()">🔄 Lancer Migration Complète</button>
+    <button onclick="clearLogs()">🗑️ Effacer Logs</button>
+    
+    <div id="status"></div>
+    <div id="logs"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log ${type}`;
+            logDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong> - ${message}`;
+            logsDiv.appendChild(logDiv);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        async function testMigration() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = '<h3>🔄 Migration en cours...</h3>';
+            
+            log('🚀 Démarrage du test de migration complète', 'info');
+            
+            try {
+                const migrationConfig = {
+                    sourceConfig: {
+                        type: 'supabase',
+                        url: 'https://ixjlxvzqzqzqzqzqzqzq.supabase.co',
+                        key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                        host: 'ixjlxvzqzqzqzqzqzqzq.supabase.co',
+                        database: 'postgres'
+                    },
+                    targetConfig: {
+                        type: 'mysql',
+                        host: 'localhost',
+                        port: 3306,
+                        username: 'root',
+                        password: '',
+                        database: 'mysql'
+                    },
+                    options: {
+                        includeSchema: true,
+                        includeData: true,
+                        overwriteExisting: true,
+                        batchSize: 100
+                    }
+                };
+
+                log('📋 Configuration migration:', 'info');
+                log(`Source: ${migrationConfig.sourceConfig.type}`, 'info');
+                log(`Cible: ${migrationConfig.targetConfig.type} (${migrationConfig.targetConfig.host})`, 'info');
+                
+                const response = await fetch('http://localhost:3000/api/admin/migration', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(migrationConfig)
+                });
+
+                log(`📡 Réponse HTTP: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    log('✅ Migration terminée avec succès!', 'success');
+                    statusDiv.innerHTML = '<h3 style="color: green;">✅ Migration Réussie</h3>';
+                } else {
+                    log(`❌ Migration échouée: ${result.error}`, 'error');
+                    if (result.details) {
+                        log(`💡 Détails: ${result.details}`, 'warning');
+                    }
+                    statusDiv.innerHTML = '<h3 style="color: red;">❌ Migration Échouée</h3>';
+                }
+
+                // Afficher tous les logs de migration
+                if (result.logs && result.logs.length > 0) {
+                    log('📋 Logs de migration détaillés:', 'info');
+                    result.logs.forEach((logEntry, index) => {
+                        const logType = logEntry.success ? 'success' : (logEntry.error ? 'error' : 'info');
+                        log(`[${index + 1}] ${logEntry.step}: ${logEntry.message}`, logType);
+                        if (logEntry.error) {
+                            log(`    ❌ Erreur: ${logEntry.error}`, 'error');
+                        }
+                    });
+                }
+
+                // Afficher le résumé
+                if (result.summary) {
+                    log('📊 Résumé de migration:', 'info');
+                    log(`Source: ${result.summary.source} → Cible: ${result.summary.target}`, 'info');
+                    log(`Schéma: ${result.summary.includeSchema}, Données: ${result.summary.includeData}`, 'info');
+                    log(`Étapes totales: ${result.summary.totalSteps}`, 'info');
+                }
+
+            } catch (error) {
+                log(`💥 Erreur critique: ${error.message}`, 'error');
+                log(`Stack: ${error.stack}`, 'error');
+                statusDiv.innerHTML = '<h3 style="color: red;">💥 Erreur Critique</h3>';
+            }
+        }
+
+        // Auto-démarrer le test
+        window.addEventListener('load', () => {
+            log('🎯 Page de test chargée - Prêt pour migration', 'info');
+        });
+    </script>
+</body>
+</html>

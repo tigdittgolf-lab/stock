@@ -5,32 +5,34 @@ import { useRouter } from 'next/navigation';
 import { MigrationService, MigrationProgress, MigrationOptions } from '../../../lib/database/migration-service';
 import { DatabaseConfig, DatabaseType } from '../../../lib/database/types';
 import { databaseManager } from '../../../lib/database/database-manager';
+import { updateDatabaseConfigType } from '../../../lib/database/database-defaults';
 import styles from "../../page.module.css";
 
 export default function DatabaseMigrationPage() {
   const router = useRouter();
   const [sourceConfig, setSourceConfig] = useState<DatabaseConfig>({
-    type: 'supabase',
-    name: 'Source',
+    type: 'supabase', // Par défaut Supabase comme demandé
+    name: 'Source Supabase',
     supabaseUrl: 'https://szgodrjglbpzkrksnroi.supabase.co',
     supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTY0ODA0MywiZXhwIjoyMDgxMjI0MDQzfQ.QXWudNf09Ly0BwZHac2vweYkr-ea_iufIVzcP98zZFU',
-    host: 'localhost',
-    port: 5432,
-    database: 'stock_db',
-    username: 'postgres',
-    password: ''
+    // Supprimer les champs non-Supabase pour éviter la confusion
+    host: undefined,
+    port: undefined,
+    database: undefined,
+    username: undefined,
+    password: undefined
   });
 
   const [targetConfig, setTargetConfig] = useState<DatabaseConfig>({
-    type: 'postgresql',
-    name: 'Target',
-    supabaseUrl: '',
-    supabaseKey: '',
+    type: 'mysql',
+    name: 'Target MySQL',
+    supabaseUrl: undefined,
+    supabaseKey: undefined,
     host: 'localhost',
-    port: 5432,
-    database: 'stock_local',
-    username: 'postgres',
-    password: ''
+    port: 3306,
+    database: undefined, // MySQL: pas de base par défaut
+    username: 'root',
+    password: undefined
   });
 
   const [migrationOptions, setMigrationOptions] = useState<MigrationOptions>({
@@ -45,29 +47,23 @@ export default function DatabaseMigrationPage() {
   const [currentStep, setCurrentStep] = useState<string>('');
 
   useEffect(() => {
-    // Charger la configuration actuelle comme source par défaut
-    const activeConfig = databaseManager.getActiveConfig();
-    if (activeConfig) {
-      setSourceConfig(activeConfig);
-    }
+    // NE PAS écraser la configuration Supabase par défaut
+    // L'utilisateur a demandé que Supabase soit TOUJOURS par défaut
+    console.log('🔍 Configuration source par défaut: Supabase (comme demandé par l\'utilisateur)');
+    
+    // Optionnel: charger la config active seulement si l'utilisateur n'a pas de préférence
+    // const activeConfig = databaseManager.getActiveConfig();
+    // if (activeConfig && activeConfig.type !== 'supabase') {
+    //   console.log('ℹ️ Configuration active disponible:', activeConfig.type, 'mais Supabase reste par défaut');
+    // }
   }, []);
 
   const handleSourceTypeChange = (type: DatabaseType) => {
-    setSourceConfig({
-      ...sourceConfig,
-      type,
-      name: `Source ${type}`,
-      port: type === 'mysql' ? 3306 : 5432
-    });
+    setSourceConfig(updateDatabaseConfigType(sourceConfig, type));
   };
 
   const handleTargetTypeChange = (type: DatabaseType) => {
-    setTargetConfig({
-      ...targetConfig,
-      type,
-      name: `Target ${type}`,
-      port: type === 'mysql' ? 3306 : 5432
-    });
+    setTargetConfig(updateDatabaseConfigType(targetConfig, type));
   };
 
   const startMigration = async () => {
@@ -140,6 +136,17 @@ export default function DatabaseMigrationPage() {
         }}>
           <h2 style={{ margin: '0 0 20px 0', color: '#212529' }}>
             📤 Base de Données Source
+            <span style={{ 
+              fontSize: '14px', 
+              color: '#28a745', 
+              marginLeft: '10px',
+              background: '#d4edda',
+              padding: '2px 8px',
+              borderRadius: '4px',
+              border: '1px solid #c3e6cb'
+            }}>
+              ✅ Supabase par défaut
+            </span>
           </h2>
 
           <div style={{ marginBottom: '15px' }}>
@@ -629,6 +636,21 @@ export default function DatabaseMigrationPage() {
             <li><strong>Vérification :</strong> Contrôle automatique de l'intégrité des données</li>
             <li><strong>Sécurité :</strong> La migration ne modifie jamais la base source</li>
           </ul>
+          
+          <div style={{ 
+            marginTop: '15px', 
+            padding: '10px', 
+            background: '#fff3cd', 
+            border: '1px solid #ffeaa7',
+            borderRadius: '4px'
+          }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#856404' }}>🔧 Configuration Bases de Données</h4>
+            <ul style={{ margin: '0', paddingLeft: '20px', color: '#856404', fontSize: '14px' }}>
+              <li><strong>MySQL :</strong> Crée des bases séparées (2025_bu01, 2024_bu01, etc.)</li>
+              <li><strong>PostgreSQL :</strong> Utilise la base "postgres" avec des schémas (2025_bu01, 2024_bu01, etc.)</li>
+              <li><strong>Supabase :</strong> Utilise des schémas dans la base principale</li>
+            </ul>
+          </div>
         </div>
       </main>
     </div>

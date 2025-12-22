@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getApiUrl } from '@/lib/api';
+import DatabaseTypeIndicator from '@/components/DatabaseTypeIndicator';
 import styles from "../page.module.css";
 import dashboardStyles from "./dashboard.module.css";
 
@@ -571,8 +572,11 @@ export default function Dashboard() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <div>
             <h1>Système de Gestion de Stock</h1>
-            <div style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
-              <strong>Contexte:</strong> {tenantInfo.business_unit.toUpperCase()} - Exercice {tenantInfo.year} ({tenantInfo.schema})
+            <div style={{ fontSize: '14px', color: '#666', marginTop: '5px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <span>
+                <strong>Contexte:</strong> {tenantInfo.business_unit.toUpperCase()} - Exercice {tenantInfo.year} ({tenantInfo.schema})
+              </span>
+              <DatabaseTypeIndicator />
             </div>
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>

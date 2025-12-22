@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
 import { tenantMiddleware, getTenantContext } from '../middleware/tenantMiddleware.js';
+import { backendDatabaseService } from '../services/databaseService.js';
 
 const articles = new Hono();
 
@@ -11,28 +12,30 @@ articles.use('*', tenantMiddleware);
 articles.get('/', async (c) => {
   try {
     const tenant = getTenantContext(c);
-    console.log(`🔍 Fetching articles from schema: ${tenant.schema}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Fetching articles from schema: ${tenant.schema} (DB: ${dbType})`);
 
-    const { data: articlesData, error } = await supabaseAdmin.rpc('get_articles_by_tenant', {
+    const result = await backendDatabaseService.executeRPC('get_articles_by_tenant', {
       p_tenant: tenant.schema
     });
     
-    if (error) {
-      console.error('❌ RPC Error:', error);
+    if (!result.success) {
+      console.error('❌ Database Error:', result.error);
       return c.json({ 
         success: true, 
         data: [], 
-        message: 'RPC function not available. Please run the SQL script first.' 
+        message: `Database function not available (${dbType}). Please check configuration.` 
       });
     }
     
-    console.log(`✅ Found ${articlesData?.length || 0} articles in database`);
+    console.log(`✅ Found ${result.data?.length || 0} articles in ${dbType} database`);
     
     return c.json({ 
       success: true, 
-      data: articlesData || [],
+      data: result.data || [],
       tenant: tenant.schema,
-      source: 'real_database_via_rpc'
+      source: `${dbType}_database`,
+      database_type: dbType
     });
     
   } catch (error) {
@@ -109,8 +112,9 @@ articles.post('/', async (c) => {
   try {
     const tenant = getTenantContext(c);
     const body = await c.req.json();
+    const dbType = backendDatabaseService.getActiveDatabaseType();
     
-    console.log(`🆕 Creating article in ${tenant.schema}:`, body.narticle);
+    console.log(`🆕 Creating article in ${tenant.schema} (DB: ${dbType}):`, body.narticle);
     
     const {
       narticle,
@@ -128,8 +132,8 @@ articles.post('/', async (c) => {
     // Calculate prix_vente
     const prix_vente = prix_unitaire * (1 + marge / 100) * (1 + tva / 100);
 
-    // Use RPC function to insert into real database
-    const { data, error } = await supabaseAdmin.rpc('insert_article_to_tenant', {
+    // Use database service to insert into active database
+    const result = await backendDatabaseService.executeRPC('insert_article_to_tenant', {
       p_tenant: tenant.schema,
       p_narticle: narticle,
       p_famille: famille,
@@ -144,17 +148,18 @@ articles.post('/', async (c) => {
       p_stock_bl: stock_bl
     });
     
-    if (error) {
-      console.error('❌ RPC Error creating article:', error);
-      return c.json({ success: false, error: `Failed to create article: ${error.message}` }, 500);
+    if (!result.success) {
+      console.error(`❌ ${dbType} Error creating article:`, result.error);
+      return c.json({ success: false, error: `Failed to create article: ${result.error}` }, 500);
     }
     
-    console.log(`✅ Article created: ${data}`);
+    console.log(`✅ Article created in ${dbType}:`, result.data);
     
     return c.json({ 
       success: true, 
-      message: `Article ${narticle} créé avec succès !`,
-      data: { narticle, prix_vente: prix_vente.toFixed(2) }
+      message: `Article ${narticle} créé avec succès dans ${dbType} !`,
+      data: { narticle, prix_vente: prix_vente.toFixed(2) },
+      database_type: dbType
     });
     
   } catch (error) {

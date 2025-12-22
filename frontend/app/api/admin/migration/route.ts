@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MigrationServerService as ServerMigrationService, MigrationOptions } from '../../../../lib/database/server-migration-service';
+import { TrueMigrationService, MigrationOptions } from '../../../../lib/database/true-migration-service';
 import { DatabaseConfig } from '../../../../lib/database/types';
 
 export async function POST(request: NextRequest) {
@@ -26,14 +26,14 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Créer le service de migration avec callback pour les logs
+    // Créer le service de migration VRAIE qui découvre TOUTES les tables
     const migrationLogs: any[] = [];
-    const migrationService = new ServerMigrationService((progress) => {
+    const migrationService = new TrueMigrationService((progress) => {
       migrationLogs.push({
         ...progress,
         timestamp: new Date().toISOString()
       });
-      console.log(`[Migration] ${progress.step}: ${progress.message}`);
+      console.log(`[Migration VRAIE] ${progress.step}: ${progress.message}`);
     });
 
     try {
@@ -92,11 +92,12 @@ export async function GET(request: NextRequest) {
       message: 'Service de migration disponible',
       supportedDatabases: ['supabase', 'postgresql', 'mysql'],
       features: [
-        'Migration automatique des schémas',
-        'Migration des données par batch',
-        'Vérification d\'intégrité',
-        'Logs détaillés',
-        'Support multi-tenant'
+        'Découverte COMPLÈTE via information_schema',
+        'Migration de TOUTES les tables réelles (pas seulement prédéfinies)',
+        'Analyse automatique de la structure complète',
+        'Reproduction EXACTE de TOUTES les tables',
+        'Migration COMPLÈTE de toutes les données',
+        'Vérification d\'intégrité finale'
       ]
     });
   } catch (error) {

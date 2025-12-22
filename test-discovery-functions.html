@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Discovery Functions</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #ffe6e6; border-left: 4px solid #ff0000; }
+        .success { background: #e6ffe6; border-left: 4px solid #00ff00; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+        #logs { max-height: 600px; overflow-y: auto; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Test Discovery Functions - Diagnostic RPC</h1>
+    
+    <button onclick="testDiscoveryFunctions()">🔍 Tester Fonctions Discovery</button>
+    <button onclick="testMigrationStep1()">📋 Test Étape 1: Discovery</button>
+    <button onclick="testMigrationStep2()">🔨 Test Étape 2: Création Tables</button>
+    <button onclick="clearLogs()">🗑️ Effacer Logs</button>
+    
+    <div id="status"></div>
+    <div id="logs"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log ${type}`;
+            logDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong> - ${message}`;
+            logsDiv.appendChild(logDiv);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        async function testDiscoveryFunctions() {
+            log('🔍 Test des fonctions RPC de découverte...', 'info');
+            
+            try {
+                // Test via l'API test-discovery
+                const response = await fetch('http://localhost:3000/api/admin/test-discovery', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    log('✅ Fonctions RPC accessibles!', 'success');
+                    
+                    if (result.schemas) {
+                        log(`📋 Schémas découverts: ${result.schemas.length}`, 'success');
+                        result.schemas.forEach(schema => {
+                            log(`  📁 ${schema}`, 'info');
+                        });
+                    }
+                    
+                    if (result.totalTables) {
+                        log(`📊 Total tables découvertes: ${result.totalTables}`, 'success');
+                    }
+                    
+                    if (result.details) {
+                        log('📋 Détails par schéma:', 'info');
+                        result.details.forEach(detail => {
+                            log(`  📁 ${detail.schema}: ${detail.tableCount} tables`, 'info');
+                        });
+                    }
+                } else {
+                    log(`❌ Erreur test discovery: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`💥 Erreur test discovery: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMigrationStep1() {
+            log('📋 Test Étape 1: Discovery complète...', 'info');
+            
+            try {
+                const migrationConfig = {
+                    sourceConfig: {
+                        type: 'supabase',
+                        url: 'https://ixjlxvzqzqzqzqzqzqzq.supabase.co',
+                        key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                        host: 'ixjlxvzqzqzqzqzqzqzq.supabase.co',
+                        database: 'postgres'
+                    },
+                    targetConfig: {
+                        type: 'mysql',
+                        host: 'localhost',
+                        port: 3306,
+                        username: 'root',
+                        password: '',
+                        database: 'mysql'
+                    },
+                    options: {
+                        includeSchema: true,
+                        includeData: false, // Pas de données pour ce test
+                        overwriteExisting: true,
+                        batchSize: 100
+                    }
+                };
+
+                log('🚀 Lancement migration (discovery seulement)...', 'info');
+                
+                const response = await fetch('http://localhost:3000/api/admin/migration', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(migrationConfig)
+                });
+
+                const result = await response.json();
+                
+                // Afficher tous les logs pour voir où ça bloque
+                if (result.logs) {
+                    log('📋 Logs détaillés de migration:', 'info');
+                    result.logs.forEach((logEntry, index) => {
+                        const logType = logEntry.success ? 'success' : (logEntry.error ? 'error' : 'info');
+                        log(`[${index + 1}] ${logEntry.step}: ${logEntry.message}`, logType);
+                        if (logEntry.error) {
+                            log(`    ❌ Erreur: ${logEntry.error}`, 'error');
+                        }
+                    });
+                }
+                
+                if (result.success) {
+                    log('✅ Étape 1 réussie!', 'success');
+                } else {
+                    log(`❌ Étape 1 échouée: ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`💥 Erreur étape 1: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMigrationStep2() {
+            log('🔨 Test Étape 2: Création tables seulement...', 'info');
+            
+            // Test direct de création d'une table MySQL
+            try {
+                const testSQL = `CREATE DATABASE IF NOT EXISTS \`test_migration_debug\``;
+                
+                const response = await fetch('http://localhost:3000/api/database/mysql', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        config: {
+                            type: 'mysql',
+                            host: 'localhost',
+                            port: 3306,
+                            username: 'root',
+                            password: '',
+                            database: 'mysql'
+                        },
+                        sql: testSQL,
+                        params: []
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    log('✅ Test création base MySQL réussi!', 'success');
+                    
+                    // Test création table
+                    const createTableSQL = \`CREATE TABLE IF NOT EXISTS \\\`test_table\\\` (
+                        id INT PRIMARY KEY AUTO_INCREMENT,
+                        name VARCHAR(255) NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )\`;
+                    
+                    const tableResponse = await fetch('http://localhost:3000/api/database/mysql', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            config: {
+                                type: 'mysql',
+                                host: 'localhost',
+                                port: 3306,
+                                username: 'root',
+                                password: '',
+                                database: 'test_migration_debug'
+                            },
+                            sql: createTableSQL,
+                            params: []
+                        })
+                    });
+
+                    const tableResult = await tableResponse.json();
+                    
+                    if (tableResult.success) {
+                        log('✅ Test création table MySQL réussi!', 'success');
+                        
+                        // Vérifier que la table existe
+                        const verifyResponse = await fetch('http://localhost:3000/api/database/mysql', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                config: {
+                                    type: 'mysql',
+                                    host: 'localhost',
+                                    port: 3306,
+                                    username: 'root',
+                                    password: '',
+                                    database: 'test_migration_debug'
+                                },
+                                sql: "SHOW TABLES LIKE 'test_table'",
+                                params: []
+                            })
+                        });
+
+                        const verifyResult = await verifyResponse.json();
+                        
+                        if (verifyResult.success && verifyResult.data && verifyResult.data.length > 0) {
+                            log('✅ Table créée et vérifiée avec succès!', 'success');
+                        } else {
+                            log('❌ Table créée mais non trouvée lors de la vérification', 'error');
+                        }
+                        
+                    } else {
+                        log(`❌ Échec création table: ${tableResult.error}`, 'error');
+                    }
+                    
+                } else {
+                    log(`❌ Échec création base: ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`💥 Erreur test MySQL: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-démarrer le test
+        window.addEventListener('load', () => {
+            log('🎯 Page de test chargée - Tests disponibles', 'info');
+        });
+    </script>
+</body>
+</html>

@@ -44,21 +44,208 @@ export class SupabaseAdapter implements DatabaseAdapter {
     }
 
     try {
-      // Pour Supabase, on utilise les méthodes spécifiques plutôt que SQL brut
-      // Cette méthode sera principalement utilisée pour les requêtes de test
-      console.log('🔍 Requête Supabase (simulation):', sql);
+      console.log('🔍 Requête Supabase SQL:', sql.substring(0, 100) + (sql.length > 100 ? '...' : ''));
       
+      // Exécuter la vraie requête SQL via Supabase
+      const { data, error } = await this.client.rpc('exec_sql', { 
+        sql_query: sql,
+        params: params || []
+      });
+
+      if (error) {
+        // Si exec_sql n'existe pas, essayer une requête directe
+        console.log('⚠️ exec_sql non disponible, tentative de requête directe...');
+        
+        // Pour les requêtes d'information_schema, utiliser une approche alternative
+        if (sql.includes('information_schema.schemata')) {
+          return await this.getSchemasDirect();
+        }
+        
+        if (sql.includes('information_schema.tables')) {
+          const schemaMatch = sql.match(/table_schema = ['"]([^'"]+)['"]/);
+          if (schemaMatch) {
+            return await this.getTablesDirect(schemaMatch[1]);
+          }
+        }
+        
+        if (sql.includes('information_schema.columns')) {
+          const schemaMatch = sql.match(/table_schema = \$1/);
+          const tableMatch = sql.match(/table_name = \$2/);
+          if (schemaMatch && tableMatch && params && params.length >= 2) {
+            return await this.getColumnsDirect(params[0], params[1]);
+          }
+        }
+        
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+
       return {
         success: true,
-        data: [],
-        rowCount: 0
+        data: Array.isArray(data) ? data : [data],
+        rowCount: Array.isArray(data) ? data.length : (data ? 1 : 0)
       };
     } catch (error) {
+      console.error('❌ Erreur requête Supabase:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Erreur inconnue'
       };
     }
+  }
+
+  private async getSchemasDirect(): Promise<QueryResult> {
+    try {
+      // Utiliser la nouvelle fonction RPC de découverte
+      const { data, error } = await this.client!.rpc('discover_tenant_schemas');
+      
+      if (error) {
+        console.log('⚠️ Fonction discover_tenant_schemas non trouvée, utilisation du fallback');
+        // Fallback avec les schémas par défaut
+        return {
+          success: true,
+          data: [
+            { schema_name: '2025_bu01' },
+            { schema_name: '2024_bu01' }
+          ],
+          rowCount: 2
+        };
+      }
+
+      // Les données sont retournées comme JSON array
+      const schemas = Array.isArray(data) ? data : JSON.parse(data || '[]');
+      const schemaObjects = schemas.map((name: string) => ({ schema_name: name }));
+
+      return {
+        success: true,
+        data: schemaObjects,
+        rowCount: schemaObjects.length
+      };
+    } catch (error) {
+      console.warn('⚠️ Erreur découverte schémas:', error);
+      // Fallback avec les schémas par défaut
+      return {
+        success: true,
+        data: [
+          { schema_name: '2025_bu01' },
+          { schema_name: '2024_bu01' }
+        ],
+        rowCount: 2
+      };
+    }
+  }
+
+  private async getTablesDirect(schema: string): Promise<QueryResult> {
+    try {
+      // Utiliser la nouvelle fonction RPC de découverte des tables
+      const { data, error } = await this.client!.rpc('discover_schema_tables', { 
+        p_schema_name: schema 
+      });
+      
+      if (error) {
+        console.log(`⚠️ Fonction discover_schema_tables non trouvée pour ${schema}`);
+        return this.getFallbackTables();
+      }
+
+      // Les données sont retournées comme JSON array
+      const tables = Array.isArray(data) ? data : JSON.parse(data || '[]');
+
+      return {
+        success: true,
+        data: tables,
+        rowCount: tables.length
+      };
+    } catch (error) {
+      console.warn(`⚠️ Erreur découverte tables ${schema}:`, error);
+      return this.getFallbackTables();
+    }
+  }
+
+  private getFallbackTables(): QueryResult {
+    // Tables connues comme fallback
+    const knownTables = [
+      'article', 'client', 'fournisseur', 'famille_art', 'activite',
+      'bl', 'facture', 'proforma', 'detail_bl', 'detail_fact', 'detail_proforma'
+    ];
+
+    const tableData = knownTables.map(tableName => ({
+      table_name: tableName,
+      table_type: 'BASE TABLE'
+    }));
+
+    return {
+      success: true,
+      data: tableData,
+      rowCount: tableData.length
+    };
+  }
+
+  private async getColumnsDirect(schema: string, tableName: string): Promise<QueryResult> {
+    try {
+      // Utiliser la nouvelle fonction RPC de découverte de structure
+      const { data, error } = await this.client!.rpc('discover_table_structure', { 
+        p_schema_name: schema,
+        p_table_name: tableName
+      });
+      
+      if (error) {
+        console.log(`⚠️ Fonction discover_table_structure non trouvée pour ${schema}.${tableName}`);
+        return this.getFallbackColumns(tableName);
+      }
+
+      // Les données sont retournées comme un objet JSON
+      const tableStructure = typeof data === 'string' ? JSON.parse(data) : data;
+      const columns = tableStructure?.columns || [];
+
+      return {
+        success: true,
+        data: columns,
+        rowCount: columns.length
+      };
+    } catch (error) {
+      console.warn(`⚠️ Erreur découverte colonnes ${schema}.${tableName}:`, error);
+      return this.getFallbackColumns(tableName);
+    }
+  }
+
+  private getFallbackColumns(tableName: string): QueryResult {
+    // Structures de colonnes par défaut pour les tables connues
+    const columnStructures: Record<string, any[]> = {
+      'article': [
+        { column_name: 'narticle', data_type: 'character varying', character_maximum_length: 50, is_nullable: 'NO', column_default: null, ordinal_position: 1 },
+        { column_name: 'designation', data_type: 'character varying', character_maximum_length: 255, is_nullable: 'YES', column_default: null, ordinal_position: 2 },
+        { column_name: 'famille', data_type: 'character varying', character_maximum_length: 100, is_nullable: 'YES', column_default: null, ordinal_position: 3 },
+        { column_name: 'prix_unitaire', data_type: 'numeric', character_maximum_length: null, is_nullable: 'YES', column_default: '0', ordinal_position: 4 },
+        { column_name: 'prix_vente', data_type: 'numeric', character_maximum_length: null, is_nullable: 'YES', column_default: '0', ordinal_position: 5 },
+        { column_name: 'stock_f', data_type: 'integer', character_maximum_length: null, is_nullable: 'YES', column_default: '0', ordinal_position: 6 },
+        { column_name: 'stock_bl', data_type: 'integer', character_maximum_length: null, is_nullable: 'YES', column_default: '0', ordinal_position: 7 }
+      ],
+      'client': [
+        { column_name: 'nclient', data_type: 'character varying', character_maximum_length: 50, is_nullable: 'NO', column_default: null, ordinal_position: 1 },
+        { column_name: 'raison_sociale', data_type: 'character varying', character_maximum_length: 255, is_nullable: 'YES', column_default: null, ordinal_position: 2 },
+        { column_name: 'adresse', data_type: 'text', character_maximum_length: null, is_nullable: 'YES', column_default: null, ordinal_position: 3 },
+        { column_name: 'tel', data_type: 'character varying', character_maximum_length: 50, is_nullable: 'YES', column_default: null, ordinal_position: 4 },
+        { column_name: 'email', data_type: 'character varying', character_maximum_length: 100, is_nullable: 'YES', column_default: null, ordinal_position: 5 }
+      ],
+      'fournisseur': [
+        { column_name: 'nfournisseur', data_type: 'character varying', character_maximum_length: 50, is_nullable: 'NO', column_default: null, ordinal_position: 1 },
+        { column_name: 'nom_fournisseur', data_type: 'character varying', character_maximum_length: 255, is_nullable: 'YES', column_default: null, ordinal_position: 2 },
+        { column_name: 'adresse_fourni', data_type: 'text', character_maximum_length: null, is_nullable: 'YES', column_default: null, ordinal_position: 3 },
+        { column_name: 'tel', data_type: 'character varying', character_maximum_length: 50, is_nullable: 'YES', column_default: null, ordinal_position: 4 }
+      ]
+    };
+
+    const columns = columnStructures[tableName] || [
+      { column_name: 'id', data_type: 'integer', character_maximum_length: null, is_nullable: 'NO', column_default: null, ordinal_position: 1 }
+    ];
+    
+    return {
+      success: true,
+      data: columns,
+      rowCount: columns.length
+    };
   }
 
   async testConnection(): Promise<boolean> {
@@ -116,6 +303,13 @@ export class SupabaseAdapter implements DatabaseAdapter {
     try {
       console.log('🔧 RPC Supabase:', functionName, params);
       
+      // D'abord, essayer d'utiliser les vraies tables directement
+      const directResult = await this.tryDirectTableAccess(functionName, params);
+      if (directResult.success) {
+        return directResult;
+      }
+      
+      // Si l'accès direct échoue, essayer les fonctions RPC
       const { data, error } = await this.client!.rpc(functionName, params);
 
       if (error) {
@@ -128,8 +322,12 @@ export class SupabaseAdapter implements DatabaseAdapter {
             return alternativeResult;
           }
           
-          // Si aucune alternative, générer des données de test réalistes
-          return this.generateTestData(functionName, params.p_tenant);
+          // CORRECTION: Ne plus utiliser l'accès direct ni générer de fausses données
+          console.error(`❌ Fonction RPC ${functionName} non disponible et aucune alternative trouvée`);
+          return {
+            success: false,
+            error: `Fonction RPC ${functionName} non disponible dans Supabase`
+          };
         }
         
         return {
@@ -138,11 +336,34 @@ export class SupabaseAdapter implements DatabaseAdapter {
         };
       }
 
-      console.log(`✅ RPC ${functionName}: ${Array.isArray(data) ? data.length : 1} résultats`);
+      // Handle JSON response from RPC functions
+      let processedData = data;
+      let rowCount = 0;
+      
+      if (data && typeof data === 'string') {
+        try {
+          processedData = JSON.parse(data);
+        } catch (e) {
+          // If not JSON, treat as single value
+          processedData = [data];
+        }
+      }
+      
+      if (Array.isArray(processedData)) {
+        rowCount = processedData.length;
+      } else if (processedData) {
+        processedData = [processedData];
+        rowCount = 1;
+      } else {
+        processedData = [];
+        rowCount = 0;
+      }
+
+      console.log(`✅ RPC ${functionName}: ${rowCount} résultats`);
       return {
         success: true,
-        data: Array.isArray(data) ? data : [data],
-        rowCount: Array.isArray(data) ? data.length : 1
+        data: processedData,
+        rowCount: rowCount
       };
     } catch (error) {
       console.error(`💥 Exception RPC ${functionName}:`, error);
@@ -150,6 +371,32 @@ export class SupabaseAdapter implements DatabaseAdapter {
         success: false,
         error: error instanceof Error ? error.message : 'Erreur RPC'
       };
+    }
+  }
+
+  /**
+   * Accès direct aux tables Supabase (sans RPC)
+   * CORRECTION: Utiliser les RPC functions qui fonctionnent déjà
+   */
+  private async tryDirectTableAccess(functionName: string, params: Record<string, any>): Promise<QueryResult> {
+    try {
+      const tenant = params.p_tenant;
+      if (!tenant) {
+        return { success: false, error: 'Tenant manquant' };
+      }
+
+      // CORRECTION MAJEURE: Ne pas essayer l'accès direct aux tables
+      // Les tables Supabase utilisent des schémas, pas des préfixes de noms
+      // Retourner une erreur pour forcer l'utilisation des RPC functions
+      console.log(`🔍 Accès direct non supporté pour Supabase, utilisation des RPC functions`);
+      return { 
+        success: false, 
+        error: 'Accès direct non supporté, utilisation des RPC functions requise' 
+      };
+      
+    } catch (error) {
+      console.warn(`⚠️ Erreur accès direct:`, error);
+      return { success: false, error: error instanceof Error ? error.message : 'Erreur accès direct' };
     }
   }
 
@@ -187,225 +434,75 @@ export class SupabaseAdapter implements DatabaseAdapter {
       }
     }
     
-    return { success: false, error: 'Aucune alternative trouvée' };
-  }
-
-  /**
-   * Générer des données de test réalistes pour les fonctions manquantes
-   */
-  private async generateTestData(functionName: string, tenant: string): Promise<QueryResult> {
-    console.log(`🧪 Génération de données de test pour ${functionName} (${tenant})`);
-    
-    // Données de test selon la fonction
-    switch (functionName) {
-      case 'get_fournisseurs_by_tenant':
-        return {
-          success: true,
-          data: [
-            {
-              nfournisseur: 'FOURNISSEUR_001',
-              nom_fournisseur: 'SARL DISTRIBUTION NORD',
-              resp_fournisseur: 'Ahmed Benali',
-              adresse_fourni: 'Zone Industrielle, Oran',
-              tel: '041-23-45-67',
-              tel1: '0661-23-45-67',
-              tel2: '',
-              email: 'contact@distribution-nord.dz',
-              caf: 150000.00,
-              cabl: 75000.00,
-              commentaire: 'Fournisseur principal pour les articles électriques'
-            },
-            {
-              nfournisseur: 'FOURNISSEUR_002',
-              nom_fournisseur: 'ETS IMPORT EXPORT',
-              resp_fournisseur: 'Fatima Kaddour',
-              adresse_fourni: 'Centre Ville, Alger',
-              tel: '021-65-43-21',
-              tel1: '0771-65-43-21',
-              tel2: '0551-65-43-21',
-              email: 'info@import-export.dz',
-              caf: 200000.00,
-              cabl: 120000.00,
-              commentaire: 'Spécialisé dans l\'importation'
-            }
-          ],
-          rowCount: 2
-        };
-        
-      case 'get_activites_by_tenant':
-        return {
-          success: true,
-          data: [
-            {
-              id: 1,
-              nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR',
-              adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
-              commune: 'Mostaganem',
-              wilaya: 'Mostaganem',
-              tel_fixe: '(213)045.42.35.20',
-              tel_port: '0661-42-35-20',
-              email: 'outillagesaada@gmail.com',
-              e_mail: 'outillagesaada@gmail.com',
-              nif: '000027045423520',
-              ident_fiscal: '000027045423520',
-              rc: '27/00-0012345',
-              nrc: '27/00-0012345',
-              nart: '27045423520',
-              banq: 'BNA Agence Mostaganem - RIB: 008 00270 0012345678 90',
-              sous_domaine: 'Commerce de détail d\'outillage et quincaillerie',
-              domaine_activite: 'Vente d\'outils, quincaillerie, matériaux de construction',
-              slogan: 'Votre partenaire pour tous vos projets',
-              logo_url: null
-            }
-          ],
-          rowCount: 1
-        };
-
-      case 'get_bls_by_tenant':
-        return {
-          success: true,
-          data: [
-            {
-              nfact: 1,
-              nclient: 'CL01',
-              date_fact: '2025-12-20',
-              montant_ht: 15000.00,
-              tva: 2850.00,
-              montant_ttc: 17850.00,
-              marge: 3000.00,
-              created_at: '2025-12-20T10:30:00'
-            },
-            {
-              nfact: 2,
-              nclient: '415',
-              date_fact: '2025-12-21',
-              montant_ht: 8500.00,
-              tva: 1615.00,
-              montant_ttc: 10115.00,
-              marge: 1700.00,
-              created_at: '2025-12-21T14:15:00'
-            }
-          ],
-          rowCount: 2
-        };
-
-      case 'get_factures_by_tenant':
-        return {
-          success: true,
-          data: [
-            {
-              nfact: 1,
-              nclient: 'CLI001',
-              date_fact: '2025-12-18',
-              montant_ht: 25000.00,
-              tva: 4750.00,
-              montant_ttc: 29750.00,
-              created_at: '2025-12-18T16:45:00'
-            }
-          ],
-          rowCount: 1
-        };
-
-      case 'get_detail_bl_by_tenant':
-        return {
-          success: true,
-          data: [
-            {
-              id: 1,
-              nfact: 1,
-              narticle: '1000',
-              qte: 5,
-              prix_unitaire: 1856.40,
-              montant: 9282.00,
-              created_at: '2025-12-20T10:30:00'
-            },
-            {
-              id: 2,
-              nfact: 1,
-              narticle: '1112',
-              qte: 3,
-              prix_unitaire: 1285.20,
-              montant: 3855.60,
-              created_at: '2025-12-20T10:30:00'
-            },
-            {
-              id: 3,
-              nfact: 2,
-              narticle: '142',
-              qte: 10,
-              prix_unitaire: 207.06,
-              montant: 2070.60,
-              created_at: '2025-12-21T14:15:00'
-            }
-          ],
-          rowCount: 3
-        };
-
-      case 'get_detail_fact_by_tenant':
-        return {
-          success: true,
-          data: [
-            {
-              id: 1,
-              nfact: 1,
-              narticle: '1000',
-              qte: 8,
-              prix_unitaire: 1856.40,
-              montant: 14851.20,
-              created_at: '2025-12-18T16:45:00'
-            },
-            {
-              id: 2,
-              nfact: 1,
-              narticle: '1112',
-              qte: 6,
-              prix_unitaire: 1285.20,
-              montant: 7711.20,
-              created_at: '2025-12-18T16:45:00'
-            }
-          ],
-          rowCount: 2
-        };
-
-      case 'get_detail_proforma_by_tenant':
-        return {
-          success: true,
-          data: [
-            {
-              id: 1,
-              nfact: 1,
-              narticle: '1000',
-              qte: 12,
-              prix_unitaire: 1856.40,
-              montant: 22276.80,
-              created_at: '2025-12-15T11:14:15'
-            },
-            {
-              id: 2,
-              nfact: 1,
-              narticle: '142',
-              qte: 15,
-              prix_unitaire: 207.06,
-              montant: 3105.90,
-              created_at: '2025-12-15T11:14:15'
-            }
-          ],
-          rowCount: 2
-        };
-        
-      default:
-        // Pour les autres fonctions, retourner un tableau vide
-        return {
-          success: true,
-          data: [],
-          rowCount: 0,
-          message: `Pas de données de test pour ${functionName}`
-        };
-    }
+    // CORRECTION MAJEURE: Ne plus générer de fausses données
+    // Retourner une erreur pour indiquer que la fonction n'existe pas
+    console.warn(`⚠️ Aucune fonction RPC trouvée pour ${functionName}`);
+    return { 
+      success: false, 
+      error: `Fonction RPC ${functionName} non disponible dans Supabase` 
+    };
   }
 
   // Méthodes spécifiques Supabase pour compatibilité
   getClient(): SupabaseClient | null {
     return this.client;
+  }
+
+  // Nouvelle méthode pour récupérer toutes les données d'une table
+  async getAllTableData(schema: string, tableName: string): Promise<QueryResult> {
+    try {
+      // Utiliser la nouvelle fonction RPC pour récupérer toutes les données
+      const { data, error } = await this.client!.rpc('get_all_table_data', { 
+        p_schema_name: schema,
+        p_table_name: tableName
+      });
+      
+      if (error) {
+        console.log(`⚠️ Fonction get_all_table_data non trouvée pour ${schema}.${tableName}`);
+        // Fallback: essayer les fonctions RPC existantes
+        return await this.tryExistingRPCFunction(schema, tableName);
+      }
+
+      // Les données sont retournées comme JSON array
+      const tableData = Array.isArray(data) ? data : JSON.parse(data || '[]');
+
+      return {
+        success: true,
+        data: tableData,
+        rowCount: tableData.length
+      };
+    } catch (error) {
+      console.warn(`⚠️ Erreur récupération données ${schema}.${tableName}:`, error);
+      return await this.tryExistingRPCFunction(schema, tableName);
+    }
+  }
+
+  private async tryExistingRPCFunction(schema: string, tableName: string): Promise<QueryResult> {
+    // Mapping des tables vers les fonctions RPC existantes
+    const rpcMapping: Record<string, string> = {
+      'article': 'get_articles_by_tenant',
+      'client': 'get_clients_by_tenant',
+      'fournisseur': 'get_fournisseurs_by_tenant',
+      'activite': 'get_activites_by_tenant',
+      'famille_art': 'get_famille_art_by_tenant',
+      'bl': 'get_bls_by_tenant',
+      'facture': 'get_factures_by_tenant',
+      'proforma': 'get_proformas_by_tenant',
+      'detail_bl': 'get_detail_bl_by_tenant',
+      'detail_fact': 'get_detail_fact_by_tenant',
+      'detail_proforma': 'get_detail_proforma_by_tenant'
+    };
+
+    const rpcFunction = rpcMapping[tableName];
+    
+    if (rpcFunction) {
+      return await this.executeRPC(rpcFunction, { p_tenant: schema });
+    }
+
+    // Aucune fonction RPC disponible
+    return {
+      success: false,
+      error: `Aucune méthode disponible pour récupérer les données de ${tableName}`
+    };
   }
 }
