@@ -172,7 +172,7 @@ export default function DeliveryNotesList() {
                         documentType="bl"
                         documentId={bl.nbl}
                         documentNumber={bl.nbl}
-                        clientName={bl.client_name}
+                        clientName={(bl as any).client_name || (bl as any).clientName || 'Client'}
                         isModal={false}
                       />
                     </td>

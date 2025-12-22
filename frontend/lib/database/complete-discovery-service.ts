@@ -156,10 +156,10 @@ export class CompleteDiscoveryService {
 
               const completeTable: CompleteTable = {
                 tableName: tableName,
-                columns: this.mapColumnsFromRPC(actualStructure.columns || []),
-                constraints: this.mapConstraintsFromRPC(actualStructure.constraints || []),
-                recordCount: actualStructure.record_count || 0,
-                sampleData: actualStructure.sample_data || []
+                columns: this.mapColumnsFromRPC((actualStructure as any).columns || []),
+                constraints: this.mapConstraintsFromRPC((actualStructure as any).constraints || []),
+                recordCount: (actualStructure as any).record_count || 0,
+                sampleData: (actualStructure as any).sample_data || []
               };
 
               // CORRECTION: Vérifier que les colonnes existent vraiment et ont des noms valides

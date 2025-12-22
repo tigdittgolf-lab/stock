@@ -30,9 +30,7 @@ export async function POST(request: NextRequest) {
         password: config.password || '',
         database: config.database,
         multipleStatements: true,
-        connectTimeout: 10000, // 10 secondes
-        acquireTimeout: 10000,
-        timeout: 30000
+        connectTimeout: 10000 // 10 secondes
       });
 
       console.log('✅ Connexion MySQL API établie pour base:', config.database);

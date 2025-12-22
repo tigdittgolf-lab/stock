@@ -25,7 +25,7 @@ export interface MigrationOptions {
 /**
  * Service de migration VRAIE qui découvre et migre TOUTES les tables réelles
  */
-export class TrueMigrationService {
+export class CompleteMigrationService {
   private sourceAdapter: DatabaseAdapter | null = null;
   private targetAdapter: DatabaseAdapter | null = null;
   private progressCallback?: (progress: MigrationProgress) => void;
@@ -681,4 +681,4 @@ export class TrueMigrationService {
   }
 }
 
-export { TrueMigrationService };
+export { CompleteMigrationService };

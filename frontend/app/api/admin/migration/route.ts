@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { TrueMigrationService, MigrationOptions } from '../../../../lib/database/true-migration-service';
+import { CompleteMigrationService as TrueMigrationService, MigrationOptions } from '../../../../lib/database/true-migration-service';
 import { DatabaseConfig } from '../../../../lib/database/types';
 
 export async function POST(request: NextRequest) {

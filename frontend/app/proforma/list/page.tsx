@@ -108,7 +108,7 @@ export default function ProformaList() {
                         documentType="proforma"
                         documentId={proforma.nfprof}
                         documentNumber={proforma.nfprof}
-                        clientName={proforma.client_name}
+                        clientName={(proforma as any).client_name || (proforma as any).clientName || 'Client'}
                         isModal={false}
                       />
                     </td>

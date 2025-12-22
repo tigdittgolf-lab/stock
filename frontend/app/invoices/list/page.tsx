@@ -108,7 +108,7 @@ export default function InvoicesList() {
                         documentType="invoice"
                         documentId={invoice.nfact}
                         documentNumber={invoice.nfact}
-                        clientName={invoice.client_name}
+                        clientName={(invoice as any).client_name || (invoice as any).clientName || 'Client'}
                         isModal={false}
                       />
                     </td>

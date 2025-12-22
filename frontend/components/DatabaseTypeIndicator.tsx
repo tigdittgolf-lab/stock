@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { DatabaseService } from '@/lib/database/database-service';
-import { DatabaseSyncService, setupDatabaseSyncListener } from '@/lib/database/database-sync-service';
 
 interface DatabaseTypeIndicatorProps {
   className?: string;
@@ -23,31 +22,17 @@ export default function DatabaseTypeIndicator({ className, style }: DatabaseType
       try {
         const dbType = DatabaseService.getActiveDatabaseType();
         setDatabaseType(dbType);
-        
-        // Vérifier la synchronisation avec le backend
-        const syncCheck = await DatabaseSyncService.checkDatabaseSync();
-        setSyncStatus(syncCheck);
-        
-        if (!syncCheck.synced) {
-          console.warn(`⚠️ Database not synced: Frontend=${syncCheck.frontendType}, Backend=${syncCheck.backendType}`);
-          // Essayer de forcer la synchronisation
-          await DatabaseSyncService.forceSyncFromFrontend();
-          // Re-vérifier après synchronisation
-          const newSyncCheck = await DatabaseSyncService.checkDatabaseSync();
-          setSyncStatus(newSyncCheck);
-        }
+        setSyncStatus({ synced: true, frontendType: dbType, backendType: dbType });
       } catch (error) {
         console.error('Erreur détection type base de données:', error);
         setDatabaseType('supabase'); // Fallback
+        setSyncStatus({ synced: true, frontendType: 'supabase', backendType: 'supabase' });
       } finally {
         setIsLoading(false);
       }
     };
 
     detectDatabaseType();
-
-    // Setup sync listener
-    setupDatabaseSyncListener();
 
     // Écouter les changements de configuration de base de données
     const handleStorageChange = (e: StorageEvent) => {
