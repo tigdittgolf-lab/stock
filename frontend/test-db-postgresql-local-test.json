@@ -1,0 +1,9 @@
+{
+  "schemas": {},
+  "metadata": {
+    "created": "2025-12-22T07:48:19.590Z",
+    "type": "postgresql",
+    "host": "localhost",
+    "database": "postgres"
+  }
+}

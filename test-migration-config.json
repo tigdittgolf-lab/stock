@@ -1,0 +1,32 @@
+{
+  "sourceConfig": {
+    "type": "supabase",
+    "name": "Source Supabase",
+    "supabaseUrl": "https://szgodrjglbpzkrksnroi.supabase.co",
+    "supabaseKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTY0ODA0MywiZXhwIjoyMDgxMjI0MDQzfQ.QXWudNf09Ly0BwZHac2vweYkr-ea_iufIVzcP98zZFU"
+  },
+  "targetConfigMySQL": {
+    "type": "mysql",
+    "name": "MySQL Local",
+    "host": "localhost",
+    "port": 3306,
+    "database": "test_migration",
+    "username": "root",
+    "password": ""
+  },
+  "targetConfigPostgreSQL": {
+    "type": "postgresql",
+    "name": "PostgreSQL Local",
+    "host": "localhost",
+    "port": 5432,
+    "database": "test_migration",
+    "username": "postgres",
+    "password": "postgres"
+  },
+  "migrationOptions": {
+    "includeSchema": true,
+    "includeData": true,
+    "overwriteExisting": false,
+    "batchSize": 50
+  }
+}

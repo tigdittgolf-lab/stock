@@ -1,8 +1,8 @@
-import { DatabaseAdapter, DatabaseConfig, QueryResult } from '../types';
+import { DatabaseConfig, QueryResult, DatabaseAdapter } from '../types';
 
 /**
- * Adaptateur PostgreSQL pour le côté client (simulation)
- * Pour les vraies connexions, utiliser PostgreSQLServerAdapter côté serveur
+ * Adaptateur PostgreSQL réel utilisant des requêtes HTTP vers une API
+ * Évite les dépendances lourdes côté client
  */
 export class PostgreSQLAdapter implements DatabaseAdapter {
   private config: DatabaseConfig;
@@ -14,26 +14,21 @@ export class PostgreSQLAdapter implements DatabaseAdapter {
 
   async connect(): Promise<boolean> {
     try {
-      console.log('🔌 Simulation connexion PostgreSQL client:', {
-        host: this.config.host,
-        port: this.config.port,
-        database: this.config.database,
-        user: this.config.username
-      });
-
-      // Validation de la configuration
-      if (!this.config.host || !this.config.database || !this.config.username) {
-        throw new Error('Configuration PostgreSQL incomplète');
+      console.log('🔌 Connexion PostgreSQL:', this.config.host);
+      
+      // Test de connexion via API
+      const testResult = await this.query('SELECT 1 as test');
+      this.connected = testResult.success;
+      
+      if (this.connected) {
+        console.log('✅ Connexion PostgreSQL établie');
+      } else {
+        console.error('❌ Échec connexion PostgreSQL');
       }
-
-      // Simulation d'une connexion
-      await new Promise(resolve => setTimeout(resolve, 500));
-      this.connected = true;
-
-      console.log('✅ Connexion PostgreSQL client simulée');
-      return true;
+      
+      return this.connected;
     } catch (error) {
-      console.error('❌ Erreur connexion PostgreSQL client:', error);
+      console.error('❌ Erreur connexion PostgreSQL:', error);
       this.connected = false;
       return false;
     }
@@ -41,65 +36,43 @@ export class PostgreSQLAdapter implements DatabaseAdapter {
 
   async disconnect(): Promise<void> {
     this.connected = false;
-    console.log('🔌 Déconnexion PostgreSQL client');
+    console.log('🔌 Déconnexion PostgreSQL');
   }
 
   async query(sql: string, params?: any[]): Promise<QueryResult> {
-    if (!this.connected) {
-      return { success: false, error: 'Pas de connexion PostgreSQL' };
-    }
-
     try {
-      console.log('🔍 Simulation requête PostgreSQL client:', sql, params);
+      console.log('🔍 Requête PostgreSQL:', sql.substring(0, 100) + (sql.length > 100 ? '...' : ''));
       
-      // Simulation de requête avec délai
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Appel vers l'API PostgreSQL via fetch
+      const response = await fetch('http://localhost:3000/api/database/postgresql', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          config: this.config,
+          sql,
+          params
+        })
+      });
 
-      // Données simulées selon le type de requête
-      let mockData: any[] = [];
-      if (sql.toLowerCase().includes('select')) {
-        if (sql.includes('article')) {
-          mockData = [
-            { narticle: 'ART001', designation: 'Article PostgreSQL Local', prix_vente: 100 }
-          ];
-        } else if (sql.includes('client')) {
-          mockData = [
-            { nclient: 'CLI001', nom_client: 'Client PostgreSQL Local' }
-          ];
-        } else if (sql.includes('schema_name')) {
-          mockData = [
-            { schema_name: '2025_bu01_local' },
-            { schema_name: '2024_bu01_local' }
-          ];
-        }
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`);
       }
 
-      return {
-        success: true,
-        data: mockData,
-        rowCount: mockData.length
-      };
+      const result = await response.json();
+      return result;
     } catch (error) {
-      console.error('❌ Erreur requête PostgreSQL client:', error);
+      console.error('❌ Erreur requête PostgreSQL:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Erreur requête PostgreSQL'
+        error: error instanceof Error ? error.message : 'Erreur PostgreSQL'
       };
     }
   }
 
   async testConnection(): Promise<boolean> {
-    try {
-      if (!this.connected) {
-        return await this.connect();
-      }
-
-      const result = await this.query('SELECT 1 as test');
-      return result.success;
-    } catch (error) {
-      console.error('❌ Test connexion PostgreSQL client échoué:', error);
-      return false;
-    }
+    return await this.connect();
   }
 
   async getSchemas(): Promise<string[]> {
@@ -107,88 +80,65 @@ export class PostgreSQLAdapter implements DatabaseAdapter {
       const result = await this.query(`
         SELECT schema_name 
         FROM information_schema.schemata 
-        WHERE schema_name LIKE '%_bu%'
+        WHERE schema_name ~ '^\\d{4}_bu\\d{2}$'
         ORDER BY schema_name
       `);
-
+      
       if (result.success && result.data) {
-        return result.data.map(row => row.schema_name);
+        const schemas = result.data.map((row: any) => row.schema_name);
+        console.log('📋 Schémas PostgreSQL trouvés:', schemas);
+        return schemas;
       }
-
       return [];
     } catch (error) {
-      console.error('Erreur récupération schémas PostgreSQL client:', error);
+      console.error('❌ Erreur récupération schémas PostgreSQL:', error);
       return [];
     }
   }
 
   async createSchema(schemaName: string): Promise<boolean> {
     try {
-      console.log('🏗️ Simulation création schéma PostgreSQL client:', schemaName);
-      await new Promise(resolve => setTimeout(resolve, 200));
-      return true;
+      console.log('🏗️ Création schéma PostgreSQL:', schemaName);
+      const result = await this.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
+      return result.success;
     } catch (error) {
-      console.error('Erreur création schéma PostgreSQL client:', error);
+      console.error('❌ Erreur création schéma PostgreSQL:', error);
       return false;
     }
   }
 
   async executeRPC(functionName: string, params: Record<string, any>): Promise<QueryResult> {
+    // PostgreSQL peut utiliser des fonctions stockées, simuler avec des requêtes SQL
+    console.log('🔧 Simulation RPC PostgreSQL:', functionName, params);
+    
     try {
-      console.log('🔧 Simulation fonction PostgreSQL client:', functionName, params);
-
-      // Simulation avec données de test
-      await new Promise(resolve => setTimeout(resolve, 150));
-
-      let mockData: any = null;
-
       switch (functionName) {
-        case 'get_articles':
-          mockData = [
-            { narticle: 'ART001', designation: 'Article PostgreSQL Local', prix_vente: 100 },
-            { narticle: 'ART002', designation: 'Article PostgreSQL Local 2', prix_vente: 200 }
-          ];
-          break;
-        case 'get_clients':
-          mockData = [
-            { nclient: 'CLI001', nom_client: 'Client PostgreSQL Local' }
-          ];
-          break;
-        case 'get_suppliers':
-          mockData = [
-            { nfournisseur: 'FOUR001', nom_fournisseur: 'Fournisseur PostgreSQL Local' }
-          ];
-          break;
-        case 'get_tenant_activite':
-          mockData = {
-            nom_entreprise: 'Entreprise PostgreSQL Local',
-            adresse: 'Adresse PostgreSQL Local',
-            telephone: '123456789',
-            email: 'test@postgresql.local',
-            activite: 'Commerce PostgreSQL'
-          };
-          break;
-        case 'update_tenant_activite':
-          return { success: true, data: [{ message: 'Mise à jour PostgreSQL simulée' }] };
+        case 'get_articles_by_tenant':
+          return await this.query(
+            `SELECT * FROM "${params.p_tenant}".article ORDER BY narticle`
+          );
+        
+        case 'get_clients_by_tenant':
+          return await this.query(
+            `SELECT * FROM "${params.p_tenant}".client ORDER BY nclient`
+          );
+        
+        case 'get_fournisseurs_by_tenant':
+          return await this.query(
+            `SELECT * FROM "${params.p_tenant}".fournisseur ORDER BY nfournisseur`
+          );
+        
         default:
-          return { success: false, error: `Fonction RPC non supportée côté client: ${functionName}` };
+          return {
+            success: false,
+            error: `Fonction RPC non supportée: ${functionName}`
+          };
       }
-
-      return {
-        success: true,
-        data: mockData,
-        rowCount: Array.isArray(mockData) ? mockData.length : 1
-      };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Erreur RPC PostgreSQL client'
+        error: error instanceof Error ? error.message : 'Erreur RPC PostgreSQL'
       };
     }
-  }
-
-  // Méthode utilitaire (simulation)
-  getPool(): any {
-    return { connected: this.connected };
   }
 }

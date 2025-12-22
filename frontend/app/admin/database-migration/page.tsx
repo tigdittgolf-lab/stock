@@ -13,7 +13,7 @@ export default function DatabaseMigrationPage() {
     type: 'supabase',
     name: 'Source',
     supabaseUrl: 'https://szgodrjglbpzkrksnroi.supabase.co',
-    supabaseKey: '',
+    supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTY0ODA0MywiZXhwIjoyMDgxMjI0MDQzfQ.QXWudNf09Ly0BwZHac2vweYkr-ea_iufIVzcP98zZFU',
     host: 'localhost',
     port: 5432,
     database: 'stock_db',
@@ -71,10 +71,6 @@ export default function DatabaseMigrationPage() {
   };
 
   const startMigration = async () => {
-    // Désactiver la migration automatique - pas nécessaire pour cette application
-    alert('⚠️ Migration désactivée\n\nVotre application fonctionne déjà parfaitement avec Supabase.\nAucune migration n\'est nécessaire.\n\nSi vous souhaitez vraiment effectuer une migration, contactez l\'administrateur système.');
-    return;
-
     setIsRunning(true);
     setMigrationProgress([]);
     setCurrentStep('Initialisation...');

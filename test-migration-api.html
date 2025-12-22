@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Migration API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .config { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .log { background: #000; color: #0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; height: 300px; overflow-y: auto; }
+        button { padding: 10px 20px; margin: 5px; background: #007cba; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #005a87; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <h1>🔄 Test Migration API</h1>
+    
+    <div class="config">
+        <h3>📊 Configuration Source (Supabase)</h3>
+        <p><strong>URL:</strong> https://szgodrjglbpzkrksnroi.supabase.co</p>
+        <p><strong>Type:</strong> supabase</p>
+    </div>
+    
+    <div class="config">
+        <h3>🐘 Configuration Cible (PostgreSQL)</h3>
+        <p><strong>Host:</strong> localhost:5432</p>
+        <p><strong>Database:</strong> test_migration</p>
+        <p><strong>Username:</strong> postgres</p>
+    </div>
+    
+    <div class="config">
+        <h3>🐬 Configuration Cible (MySQL)</h3>
+        <p><strong>Host:</strong> localhost:3306</p>
+        <p><strong>Database:</strong> test_migration</p>
+        <p><strong>Username:</strong> root</p>
+    </div>
+    
+    <div>
+        <button onclick="testPostgreSQLMigration()" id="btnPostgreSQL">🐘 Tester Migration PostgreSQL</button>
+        <button onclick="testMySQLMigration()" id="btnMySQL">🐬 Tester Migration MySQL</button>
+        <button onclick="clearLog()" id="btnClear">🧹 Effacer Log</button>
+    </div>
+    
+    <div id="status"></div>
+    <div id="log" class="log"></div>
+    
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function setStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = message;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            document.getElementById('status').innerHTML = '';
+        }
+        
+        async function testPostgreSQLMigration() {
+            const btn = document.getElementById('btnPostgreSQL');
+            btn.disabled = true;
+            
+            try {
+                log('🚀 Démarrage test migration PostgreSQL...');
+                setStatus('🔄 Migration en cours...', 'warning');
+                
+                const sourceConfig = {
+                    type: 'supabase',
+                    name: 'Source Supabase',
+                    supabaseUrl: 'https://szgodrjglbpzkrksnroi.supabase.co',
+                    supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTY0ODA0MywiZXhwIjoyMDgxMjI0MDQzfQ.QXWudNf09Ly0BwZHac2vweYkr-ea_iufIVzcP98zZFU'
+                };
+                
+                const targetConfig = {
+                    type: 'postgresql',
+                    name: 'PostgreSQL Local',
+                    host: 'localhost',
+                    port: 5432,
+                    database: 'test_migration',
+                    username: 'postgres',
+                    password: 'postgres'
+                };
+                
+                const options = {
+                    includeSchema: true,
+                    includeData: true,
+                    overwriteExisting: false,
+                    batchSize: 50
+                };
+                
+                log('📤 Envoi de la requête de migration...');
+                
+                const response = await fetch('/api/admin/migration', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sourceConfig,
+                        targetConfig,
+                        options
+                    })
+                });
+                
+                log(`📥 Réponse reçue: ${response.status} ${response.statusText}`);
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log('✅ Migration PostgreSQL réussie !');
+                    setStatus('✅ Migration PostgreSQL terminée avec succès !', 'success');
+                    
+                    if (result.logs) {
+                        log('📋 Logs de migration:');
+                        result.logs.forEach(logEntry => {
+                            log(`  [${logEntry.step}] ${logEntry.message}`);
+                        });
+                    }
+                } else {
+                    log(`❌ Migration PostgreSQL échouée: ${result.error}`);
+                    setStatus(`❌ Migration échouée: ${result.error}`, 'error');
+                    
+                    if (result.details) {
+                        log(`📋 Détails: ${result.details}`);
+                    }
+                }
+                
+            } catch (error) {
+                log(`💥 Erreur: ${error.message}`);
+                setStatus(`💥 Erreur: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        
+        async function testMySQLMigration() {
+            const btn = document.getElementById('btnMySQL');
+            btn.disabled = true;
+            
+            try {
+                log('🚀 Démarrage test migration MySQL...');
+                setStatus('🔄 Migration en cours...', 'warning');
+                
+                const sourceConfig = {
+                    type: 'supabase',
+                    name: 'Source Supabase',
+                    supabaseUrl: 'https://szgodrjglbpzkrksnroi.supabase.co',
+                    supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTY0ODA0MywiZXhwIjoyMDgxMjI0MDQzfQ.QXWudNf09Ly0BwZHac2vweYkr-ea_iufIVzcP98zZFU'
+                };
+                
+                const targetConfig = {
+                    type: 'mysql',
+                    name: 'MySQL Local',
+                    host: 'localhost',
+                    port: 3306,
+                    database: 'test_migration',
+                    username: 'root',
+                    password: ''
+                };
+                
+                const options = {
+                    includeSchema: true,
+                    includeData: true,
+                    overwriteExisting: false,
+                    batchSize: 50
+                };
+                
+                log('📤 Envoi de la requête de migration...');
+                
+                const response = await fetch('/api/admin/migration', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sourceConfig,
+                        targetConfig,
+                        options
+                    })
+                });
+                
+                log(`📥 Réponse reçue: ${response.status} ${response.statusText}`);
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log('✅ Migration MySQL réussie !');
+                    setStatus('✅ Migration MySQL terminée avec succès !', 'success');
+                    
+                    if (result.logs) {
+                        log('📋 Logs de migration:');
+                        result.logs.forEach(logEntry => {
+                            log(`  [${logEntry.step}] ${logEntry.message}`);
+                        });
+                    }
+                } else {
+                    log(`❌ Migration MySQL échouée: ${result.error}`);
+                    setStatus(`❌ Migration échouée: ${result.error}`, 'error');
+                    
+                    if (result.details) {
+                        log(`📋 Détails: ${result.details}`);
+                    }
+                }
+                
+            } catch (error) {
+                log(`💥 Erreur: ${error.message}`);
+                setStatus(`💥 Erreur: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        
+        // Log initial
+        log('🔧 Test Migration API initialisé');
+        log('📋 Prêt pour les tests de migration');
+        setStatus('⚡ Prêt pour les tests', 'success');
+    </script>
+</body>
+</html>

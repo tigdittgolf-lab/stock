@@ -1,0 +1,225 @@
+{
+  "schemas": {
+    "2026_bu01": {
+      "created": "2025-12-22T07:43:24.246Z",
+      "tables": {
+        "article": [
+          {
+            "narticle": "1000",
+            "famille": "Habillement",
+            "designation": "Gillet jaune",
+            "nfournisseur": "FOURNISSEUR 1",
+            "prix_unitaire": 1300,
+            "marge": 20,
+            "tva": 19,
+            "prix_vente": 1856.4,
+            "seuil": 20,
+            "stock_f": 538,
+            "stock_bl": 297
+          },
+          {
+            "narticle": "1112",
+            "famille": "Peinture",
+            "designation": "peinture lavable",
+            "nfournisseur": "FOURNISSEUR 2",
+            "prix_unitaire": 900,
+            "marge": 20,
+            "tva": 19,
+            "prix_vente": 1285.2,
+            "seuil": 10,
+            "stock_f": 305,
+            "stock_bl": 55
+          }
+        ],
+        "client": [
+          {
+            "nclient": "CL01",
+            "raison_sociale": "cl1 nom1",
+            "adresse": "Mostaganem",
+            "contact_person": "cli contact01",
+            "tel": "213216545163",
+            "email": "habib.belkacemi@outlook.com",
+            "nrc": "lzdkazfk564654",
+            "i_fiscal": "ml65464653",
+            "c_affaire_fact": 1000,
+            "c_affaire_bl": 2000
+          },
+          {
+            "nclient": "CLI001",
+            "raison_sociale": "SARL TEST CLIENT",
+            "adresse": "123 Rue de Test, Alger",
+            "contact_person": "Ahmed Testeur",
+            "tel": "+213 21 XX XX XX",
+            "email": "test@client.dz",
+            "nrc": "16/00-1234567",
+            "i_fiscal": "1234567890",
+            "c_affaire_fact": 100,
+            "c_affaire_bl": 2000
+          }
+        ],
+        "fournisseur": [],
+        "famille_art": [],
+        "activite": [],
+        "bl": [],
+        "facture": [],
+        "proforma": []
+      }
+    },
+    "2024_bu01": {
+      "created": "2025-12-22T07:43:24.758Z",
+      "tables": {
+        "article": [],
+        "client": [],
+        "fournisseur": [],
+        "famille_art": [],
+        "activite": [],
+        "bl": [],
+        "facture": [],
+        "proforma": []
+      }
+    },
+    "2025_bu02": {
+      "created": "2025-12-22T07:43:25.275Z",
+      "tables": {
+        "article": [],
+        "client": [],
+        "fournisseur": [],
+        "famille_art": [],
+        "activite": [],
+        "bl": [],
+        "facture": [],
+        "proforma": []
+      }
+    },
+    "2025_bu01": {
+      "created": "2025-12-22T07:43:25.788Z",
+      "tables": {
+        "article": [
+          {
+            "narticle": "1000",
+            "famille": "Habillement",
+            "designation": "Gillet jaune",
+            "nfournisseur": "FOURNISSEUR 1",
+            "prix_unitaire": 1300,
+            "marge": 20,
+            "tva": 19,
+            "prix_vente": 1856.4,
+            "seuil": 20,
+            "stock_f": 538,
+            "stock_bl": 281
+          },
+          {
+            "narticle": "1112",
+            "famille": "Peinture",
+            "designation": "peinture lavable",
+            "nfournisseur": "FOURNISSEUR 2",
+            "prix_unitaire": 900,
+            "marge": 20,
+            "tva": 19,
+            "prix_vente": 1285.2,
+            "seuil": 10,
+            "stock_f": 305,
+            "stock_bl": 42
+          },
+          {
+            "narticle": "142",
+            "famille": "Electricité",
+            "designation": "lampe 12volts",
+            "nfournisseur": "FOURNISSEUR 1",
+            "prix_unitaire": 145,
+            "marge": 20,
+            "tva": 19,
+            "prix_vente": 207.06,
+            "seuil": 10,
+            "stock_f": 50,
+            "stock_bl": 65
+          }
+        ],
+        "client": [
+          {
+            "nclient": "415",
+            "raison_sociale": "Kaddour",
+            "adresse": "mostaganem",
+            "contact_person": "Kaddour",
+            "tel": "465321654",
+            "email": "habib.belkacemi@outlook.com",
+            "nrc": "",
+            "i_fiscal": "",
+            "c_affaire_fact": 0,
+            "c_affaire_bl": 0
+          },
+          {
+            "nclient": "452",
+            "raison_sociale": "Client Test 452",
+            "adresse": "Adresse Test",
+            "contact_person": "Contact Test",
+            "tel": "+213 XX XX XX XX",
+            "email": "test452@client.dz",
+            "nrc": "16/00-452",
+            "i_fiscal": "452452452",
+            "c_affaire_fact": 0,
+            "c_affaire_bl": 0
+          },
+          {
+            "nclient": "CL01",
+            "raison_sociale": "cl1 nom1",
+            "adresse": "Mostaganem",
+            "contact_person": "cli contact01",
+            "tel": "213216545163",
+            "email": "habib.belkacemi@outlook.com",
+            "nrc": "lzdkazfk564654",
+            "i_fiscal": "ml65464653",
+            "c_affaire_fact": 1000,
+            "c_affaire_bl": 2000
+          },
+          {
+            "nclient": "CLI001",
+            "raison_sociale": "SARL TEST CLIENT",
+            "adresse": "123 Rue de Test, Alger",
+            "contact_person": "Ahmed Testeur",
+            "tel": "+213 21 XX XX XX",
+            "email": "test@client.dz",
+            "nrc": "16/00-1234567",
+            "i_fiscal": "1234567890",
+            "c_affaire_fact": 100,
+            "c_affaire_bl": 2000
+          },
+          {
+            "nclient": "TEST123",
+            "raison_sociale": "Test Client SARL",
+            "adresse": "123 Rue Test, Alger",
+            "contact_person": "Ahmed Test",
+            "tel": "+213 21 XX XX XX",
+            "email": "test@client.dz",
+            "nrc": "16/00-1234567",
+            "i_fiscal": "1234567890",
+            "c_affaire_fact": 0,
+            "c_affaire_bl": 0
+          }
+        ],
+        "fournisseur": [],
+        "famille_art": [],
+        "activite": [],
+        "bl": [],
+        "facture": [],
+        "proforma": [
+          {
+            "nfact": 1,
+            "nclient": "CL01",
+            "date_fact": "2025-12-15",
+            "montant_ht": 24990,
+            "tva": 4748.1,
+            "montant_ttc": 29738.1,
+            "created_at": "2025-12-15T11:14:15.930053"
+          }
+        ]
+      }
+    }
+  },
+  "metadata": {
+    "created": "2025-12-22T07:43:24.057Z",
+    "type": "mysql",
+    "host": "localhost",
+    "database": "stock_backup_test"
+  }
+}

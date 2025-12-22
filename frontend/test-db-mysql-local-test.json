@@ -1,0 +1,9 @@
+{
+  "schemas": {},
+  "metadata": {
+    "created": "2025-12-22T07:48:02.107Z",
+    "type": "mysql",
+    "host": "localhost",
+    "database": "mysql"
+  }
+}
