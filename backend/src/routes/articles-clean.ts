@@ -48,24 +48,26 @@ articles.get('/', async (c) => {
 articles.get('/force-refresh', async (c) => {
   try {
     const tenant = getTenantContext(c);
-    console.log(`🔄 Force refresh articles from schema: ${tenant.schema}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔄 Force refresh articles from schema: ${tenant.schema} (DB: ${dbType})`);
 
-    const { data: articlesData, error } = await supabaseAdmin.rpc('get_articles_by_tenant', {
+    const result = await backendDatabaseService.executeRPC('get_articles_by_tenant', {
       p_tenant: tenant.schema
     });
     
-    if (error) {
-      console.error('❌ RPC Error in force-refresh:', error);
-      return c.json({ success: false, data: [], message: 'RPC function not available' });
+    if (!result.success) {
+      console.error('❌ RPC Error in force-refresh:', result.error);
+      return c.json({ success: false, data: [], message: `RPC function not available (${dbType})` });
     }
     
-    console.log(`✅ Force refresh: ${articlesData?.length || 0} articles found`);
+    console.log(`✅ Force refresh: ${result.data?.length || 0} articles found`);
     
     return c.json({ 
       success: true, 
-      data: articlesData || [],
+      data: result.data || [],
       tenant: tenant.schema,
-      source: 'force_refresh_via_rpc'
+      source: `force_refresh_via_${dbType}`,
+      database_type: dbType
     });
     
   } catch (error) {
@@ -79,24 +81,25 @@ articles.get('/:id', async (c) => {
   try {
     const id = c.req.param('id');
     const tenant = getTenantContext(c);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
 
-    console.log(`🔍 Looking for article: ${id} in schema: ${tenant.schema}`);
+    console.log(`🔍 Looking for article: ${id} in schema: ${tenant.schema} (DB: ${dbType})`);
     
-    // Utiliser la fonction RPC spécifique pour récupérer un article par ID
-    const { data: articleData, error } = await supabaseAdmin.rpc('get_article_by_id_from_tenant', {
+    // Utiliser le service de base de données pour récupérer un article par ID
+    const result = await backendDatabaseService.executeRPC('get_article_by_id_from_tenant', {
       p_tenant: tenant.schema,
       p_narticle: id
     });
     
-    if (error) {
-      console.error('❌ RPC Error in GET /:id:', error);
+    if (!result.success) {
+      console.error('❌ RPC Error in GET /:id:', result.error);
       return c.json({ success: false, error: 'Article not found' }, 404);
     }
     
-    if (articleData && articleData.length > 0) {
-      const foundArticle = articleData[0];
-      console.log(`✅ Found article ${id} in database:`, foundArticle);
-      return c.json({ success: true, data: foundArticle });
+    if (result.data && result.data.length > 0) {
+      const foundArticle = result.data[0];
+      console.log(`✅ Found article ${id} in ${dbType} database:`, foundArticle);
+      return c.json({ success: true, data: foundArticle, database_type: dbType });
     }
 
     console.log(`❌ Article ${id} not found`);
@@ -174,8 +177,9 @@ articles.put('/:id', async (c) => {
     const id = c.req.param('id');
     const tenant = getTenantContext(c);
     const body = await c.req.json();
+    const dbType = backendDatabaseService.getActiveDatabaseType();
     
-    console.log(`🔄 Updating article ${id} in ${tenant.schema}`);
+    console.log(`🔄 Updating article ${id} in ${tenant.schema} (DB: ${dbType})`);
     
     const {
       famille,
@@ -192,8 +196,8 @@ articles.put('/:id', async (c) => {
     // Calculate prix_vente
     const prix_vente = prix_unitaire * (1 + marge / 100) * (1 + tva / 100);
 
-    // Use RPC function to update in real database
-    const { data, error } = await supabaseAdmin.rpc('update_article_in_tenant', {
+    // Use database service to update in active database
+    const result = await backendDatabaseService.executeRPC('update_article_in_tenant', {
       p_tenant: tenant.schema,
       p_narticle: id,
       p_famille: famille,
@@ -208,17 +212,18 @@ articles.put('/:id', async (c) => {
       p_stock_bl: stock_bl
     });
     
-    if (error) {
-      console.error('❌ RPC Error updating article:', error);
-      return c.json({ success: false, error: `Failed to update article: ${error.message}` }, 500);
+    if (!result.success) {
+      console.error(`❌ ${dbType} Error updating article:`, result.error);
+      return c.json({ success: false, error: `Failed to update article: ${result.error}` }, 500);
     }
     
-    console.log(`✅ Article updated: ${data}`);
+    console.log(`✅ Article updated in ${dbType}:`, result.data);
     
     return c.json({ 
       success: true, 
-      message: `Article ${id} modifié avec succès !`,
-      data: { narticle: id, prix_vente: prix_vente.toFixed(2) }
+      message: `Article ${id} modifié avec succès dans ${dbType} !`,
+      data: { narticle: id, prix_vente: prix_vente.toFixed(2) },
+      database_type: dbType
     });
 
   } catch (error) {
@@ -232,22 +237,27 @@ articles.delete('/:id', async (c) => {
   try {
     const id = c.req.param('id');
     const tenant = getTenantContext(c);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
 
-    console.log(`🗑️ Deleting article ${id} from ${tenant.schema}`);
+    console.log(`🗑️ Deleting article ${id} from ${tenant.schema} (DB: ${dbType})`);
 
-    // Use RPC function to delete from real database
-    const { data, error } = await supabaseAdmin.rpc('delete_article_from_tenant', {
+    // Use database service to delete from active database
+    const result = await backendDatabaseService.executeRPC('delete_article_from_tenant', {
       p_tenant: tenant.schema,
       p_narticle: id
     });
     
-    if (error) {
-      console.error('❌ RPC Error deleting article:', error);
-      return c.json({ success: false, error: `Failed to delete article: ${error.message}` }, 500);
+    if (!result.success) {
+      console.error(`❌ ${dbType} Error deleting article:`, result.error);
+      return c.json({ success: false, error: `Failed to delete article: ${result.error}` }, 500);
     }
     
-    console.log(`✅ Article deleted: ${data}`);
-    return c.json({ success: true, message: `Article ${id} supprimé avec succès !` });
+    console.log(`✅ Article deleted from ${dbType}:`, result.data);
+    return c.json({ 
+      success: true, 
+      message: `Article ${id} supprimé avec succès de ${dbType} !`,
+      database_type: dbType
+    });
     
   } catch (error) {
     console.error('Error deleting article:', error);

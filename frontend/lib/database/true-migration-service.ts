@@ -337,6 +337,7 @@ export class CompleteMigrationService {
                 console.log(`  ✅ Vérification ${table.tableName}: table existe dans PostgreSQL schéma ${schema.schemaName}`);
               } else {
                 console.error(`  ❌ Vérification ${table.tableName}: table N'EXISTE PAS dans PostgreSQL schéma ${schema.schemaName}!`);
+                console.error(`  🔍 Requête PostgreSQL: ${verifySQL}`);
                 failedCount++;
                 createdCount--; // Corriger le compteur
               }

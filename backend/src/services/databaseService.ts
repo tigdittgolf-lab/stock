@@ -57,6 +57,13 @@ export class BackendDatabaseService {
       // Fermer les connexions existantes
       await this.closeConnections();
       
+      // CORRECTION: Utiliser la configuration correcte pour PostgreSQL
+      if (config.type === 'postgresql') {
+        // Pour PostgreSQL, utiliser 'postgres' comme base avec des schémas
+        config.database = 'postgres';
+        console.log(`🐘 PostgreSQL: Using database 'postgres' with schemas`);
+      }
+      
       // Tester la nouvelle configuration
       const testResult = await this.testConnection(config);
       if (!testResult) {
@@ -102,7 +109,7 @@ export class BackendDatabaseService {
             port: config.port || 5432,
             user: config.username || 'postgres',
             password: config.password || 'postgres',
-            database: config.database || 'stock_local'
+            database: config.database || 'postgres'  // CORRECTION: utiliser 'postgres' par défaut
           });
           await pgClient.connect();
           await pgClient.query('SELECT 1');
@@ -215,7 +222,7 @@ export class BackendDatabaseService {
           port: this.activeConfig?.port || 5432,
           user: this.activeConfig?.username || 'postgres',
           password: this.activeConfig?.password || 'postgres',
-          database: this.activeConfig?.database || 'stock_local'
+          database: this.activeConfig?.database || 'postgres'  // CORRECTION: utiliser 'postgres' par défaut
         });
         await this.pgClient.connect();
       }
@@ -266,7 +273,13 @@ export class BackendDatabaseService {
   }
 
   private async getArticlesByTenant(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
-    const sql = `SELECT * FROM ${tenant}.article ORDER BY narticle`;
+    let sql;
+    if (dbType === 'mysql') {
+      sql = `SELECT * FROM \`${tenant}\`.article ORDER BY narticle`;
+    } else {
+      // PostgreSQL: utiliser des guillemets pour les schémas
+      sql = `SELECT * FROM "${tenant}".article ORDER BY narticle`;
+    }
     return dbType === 'mysql' ? this.executeMySQLQuery(sql, []) : this.executePostgreSQLQuery(sql, []);
   }
 
@@ -286,11 +299,21 @@ export class BackendDatabaseService {
       p_stock_bl
     } = params;
 
-    const sql = `
-      INSERT INTO ${p_tenant}.article 
-      (narticle, famille, designation, nfournisseur, prix_unitaire, marge, tva, prix_vente, seuil, stock_f, stock_bl)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+    let sql;
+    if (dbType === 'mysql') {
+      sql = `
+        INSERT INTO \`${p_tenant}\`.article 
+        (narticle, famille, designation, nfournisseur, prix_unitaire, marge, tva, prix_vente, seuil, stock_f, stock_bl)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+    } else {
+      // PostgreSQL: utiliser des guillemets et $1, $2, etc.
+      sql = `
+        INSERT INTO "${p_tenant}".article 
+        (narticle, famille, designation, nfournisseur, prix_unitaire, marge, tva, prix_vente, seuil, stock_f, stock_bl)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `;
+    }
     
     const values = [
       p_narticle, p_famille, p_designation, p_nfournisseur,
@@ -302,7 +325,12 @@ export class BackendDatabaseService {
   }
 
   private async getArticleByIdFromTenant(dbType: 'mysql' | 'postgresql', tenant: string, narticle: string): Promise<any> {
-    const sql = `SELECT * FROM ${tenant}.article WHERE narticle = ?`;
+    let sql;
+    if (dbType === 'mysql') {
+      sql = `SELECT * FROM \`${tenant}\`.article WHERE narticle = ?`;
+    } else {
+      sql = `SELECT * FROM "${tenant}".article WHERE narticle = $1`;
+    }
     return dbType === 'mysql' ? this.executeMySQLQuery(sql, [narticle]) : this.executePostgreSQLQuery(sql, [narticle]);
   }
 
@@ -322,12 +350,22 @@ export class BackendDatabaseService {
       p_stock_bl
     } = params;
 
-    const sql = `
-      UPDATE ${p_tenant}.article 
-      SET famille = ?, designation = ?, nfournisseur = ?, prix_unitaire = ?, 
-          marge = ?, tva = ?, prix_vente = ?, seuil = ?, stock_f = ?, stock_bl = ?
-      WHERE narticle = ?
-    `;
+    let sql;
+    if (dbType === 'mysql') {
+      sql = `
+        UPDATE \`${p_tenant}\`.article 
+        SET famille = ?, designation = ?, nfournisseur = ?, prix_unitaire = ?, 
+            marge = ?, tva = ?, prix_vente = ?, seuil = ?, stock_f = ?, stock_bl = ?
+        WHERE narticle = ?
+      `;
+    } else {
+      sql = `
+        UPDATE "${p_tenant}".article 
+        SET famille = $1, designation = $2, nfournisseur = $3, prix_unitaire = $4, 
+            marge = $5, tva = $6, prix_vente = $7, seuil = $8, stock_f = $9, stock_bl = $10
+        WHERE narticle = $11
+      `;
+    }
     
     const values = [
       p_famille, p_designation, p_nfournisseur, p_prix_unitaire,
@@ -339,7 +377,12 @@ export class BackendDatabaseService {
   }
 
   private async deleteArticleFromTenant(dbType: 'mysql' | 'postgresql', tenant: string, narticle: string): Promise<any> {
-    const sql = `DELETE FROM ${tenant}.article WHERE narticle = ?`;
+    let sql;
+    if (dbType === 'mysql') {
+      sql = `DELETE FROM \`${tenant}\`.article WHERE narticle = ?`;
+    } else {
+      sql = `DELETE FROM "${tenant}".article WHERE narticle = $1`;
+    }
     return dbType === 'mysql' ? this.executeMySQLQuery(sql, [narticle]) : this.executePostgreSQLQuery(sql, [narticle]);
   }
 }

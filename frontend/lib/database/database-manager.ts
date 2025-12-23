@@ -55,6 +55,30 @@ class DatabaseManagerImpl implements DatabaseManager {
         throw new Error('Test de connexion échoué');
       }
 
+      // NOUVEAU: Notifier le backend du changement
+      try {
+        const backendResponse = await fetch('http://localhost:3000/api/database/switch', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: config.type,
+            config: config
+          })
+        });
+
+        if (backendResponse.ok) {
+          const backendResult = await backendResponse.json();
+          console.log('✅ Backend notifié du changement:', backendResult);
+        } else {
+          console.warn('⚠️ Erreur notification backend:', backendResponse.status);
+        }
+      } catch (backendError) {
+        console.warn('⚠️ Impossible de notifier le backend:', backendError);
+        // Ne pas échouer le switch si le backend n'est pas accessible
+      }
+
       // Sauvegarder la nouvelle configuration
       this.currentAdapter = newAdapter;
       this.activeConfig = { ...config, isActive: true, lastTested: new Date().toISOString() };

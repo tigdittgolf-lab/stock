@@ -80,7 +80,7 @@ export class PostgreSQLAdapter implements DatabaseAdapter {
       const result = await this.query(`
         SELECT schema_name 
         FROM information_schema.schemata 
-        WHERE schema_name ~ '^\\d{4}_bu\\d{2}$'
+        WHERE schema_name ~ '^\\d{4}_bu\\d{2}$'$'
         ORDER BY schema_name
       `);
       
