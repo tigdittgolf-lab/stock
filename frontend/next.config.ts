@@ -40,11 +40,12 @@ const nextConfig: NextConfig = {
   // Redirections
   async redirects() {
     return [
-      {
-        source: '/',
-        destination: '/login',
-        permanent: false,
-      },
+      // TEMPORAIRE: Désactiver la redirection automatique pour tester le déploiement
+      // {
+      //   source: '/',
+      //   destination: '/login',
+      //   permanent: false,
+      // },
     ];
   },
 };
