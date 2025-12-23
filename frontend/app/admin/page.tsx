@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getApiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import styles from "../page.module.css";
 
@@ -29,7 +30,7 @@ export default function AdminDashboard() {
     try {
       setLoading(true);
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${window.location.origin}/api/admin/stats`, {
+      const response = await fetch(`getApiUrl('admin/stats')`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

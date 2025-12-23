@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
+import { backendDatabaseService } from '../services/databaseService.js';
 import { tenantMiddleware, getTenantContext } from '../middleware/tenantMiddleware.js';
 
 const families = new Hono();
@@ -13,7 +15,7 @@ families.get('/', async (c) => {
     const tenant = getTenantContext(c);
     console.log(`Fetching families from schema: ${tenant.schema}`);
 
-    const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+    const { data, error } = await databaseRouter.rpc('exec_sql', {
       sql: `
         SELECT famille FROM "${tenant.schema}".famille_art
         ORDER BY famille;
@@ -26,7 +28,7 @@ families.get('/', async (c) => {
       success: true, 
       data: data || [],
       tenant: tenant.schema
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching families:', error);
     return c.json({ success: false, error: 'Failed to fetch families' }, 500);
@@ -45,7 +47,7 @@ families.post('/', async (c) => {
       return c.json({ success: false, error: 'Family name is required' }, 400);
     }
 
-    const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+    const { data, error } = await databaseRouter.rpc('exec_sql', {
       sql: `
         INSERT INTO "${tenant.schema}".famille_art (famille)
         VALUES ('${famille}')
@@ -71,7 +73,7 @@ families.delete('/:name', async (c) => {
     const name = c.req.param('name');
     const tenant = getTenantContext(c);
 
-    const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+    const { data, error } = await databaseRouter.rpc('exec_sql', {
       sql: `
         DELETE FROM "${tenant.schema}".famille_art 
         WHERE famille = '${name}'

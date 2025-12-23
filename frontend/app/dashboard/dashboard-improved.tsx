@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getApiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import styles from './dashboard.module.css';
 
@@ -53,13 +54,13 @@ export default function ImprovedDashboard() {
     try {
       // Charger les données du dashboard
       const [articlesRes, clientsRes, suppliersRes] = await Promise.all([
-        fetch('${window.location.origin}/api/sales/articles', {
+        fetch('getApiUrl('sales/articles')', {
           headers: { 'X-Tenant': tenant.tenant }
         }),
-        fetch('${window.location.origin}/api/sales/clients', {
+        fetch('getApiUrl('sales/clients')', {
           headers: { 'X-Tenant': tenant.tenant }
         }),
-        fetch('${window.location.origin}/api/sales/suppliers', {
+        fetch('getApiUrl('sales/suppliers')', {
           headers: { 'X-Tenant': tenant.tenant }
         })
       ]);

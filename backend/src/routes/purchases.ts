@@ -4,6 +4,8 @@
 
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
+import { backendDatabaseService } from '../services/databaseService.js';
 
 const purchases = new Hono();
 
@@ -29,7 +31,7 @@ purchases.get('/delivery-notes', async (c) => {
     console.log(`📋 Fetching purchase delivery notes for tenant: ${tenant}`);
 
     // Utiliser la fonction RPC pour récupérer les BL d'achat
-    const { data: blData, error: blError } = await supabaseAdmin.rpc('get_purchase_bl_list', {
+    const { data: blData, error: blError } = await databaseRouter.rpc('get_purchase_bl_list', {
       p_tenant: tenant
     });
 
@@ -52,7 +54,7 @@ purchases.get('/delivery-notes', async (c) => {
       ];
       
       // Enrichir avec les données fournisseurs
-      const { data: suppliersData } = await supabaseAdmin.rpc('get_suppliers_by_tenant', {
+      const { data: suppliersData } = await databaseRouter.rpc('get_suppliers_by_tenant', {
         p_tenant: tenant
       });
 
@@ -70,11 +72,11 @@ purchases.get('/delivery-notes', async (c) => {
         data: enrichedBLs,
         tenant: tenant,
         source: 'fallback'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     // Enrichir avec les données fournisseurs
-    const { data: suppliersData } = await supabaseAdmin.rpc('get_suppliers_by_tenant', {
+    const { data: suppliersData } = await databaseRouter.rpc('get_suppliers_by_tenant', {
       p_tenant: tenant
     });
 
@@ -94,7 +96,7 @@ purchases.get('/delivery-notes', async (c) => {
       data: enrichedBLs,
       tenant: tenant,
       source: 'database'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
 
   } catch (error) {
     console.error('❌ Error fetching purchase delivery notes:', error);
@@ -130,7 +132,7 @@ purchases.post('/delivery-notes', async (c) => {
     console.log(`📋 Using supplier BL number: ${numero_bl_fournisseur}`);
     
     // Vérifier si ce numéro de BL fournisseur existe déjà
-    const { data: existingBL, error: checkError } = await supabaseAdmin.rpc('check_supplier_bl_exists', {
+    const { data: existingBL, error: checkError } = await databaseRouter.rpc('check_supplier_bl_exists', {
       p_tenant: tenant,
       p_nfournisseur: Nfournisseur,
       p_numero_bl: numero_bl_fournisseur
@@ -146,14 +148,14 @@ purchases.post('/delivery-notes', async (c) => {
     }
 
     // Obtenir le prochain ID interne pour le BL d'achat
-    const { data: nextId, error: idError } = await supabaseAdmin.rpc('get_next_purchase_bl_id', {
+    const { data: nextId, error: idError } = await databaseRouter.rpc('get_next_purchase_bl_id', {
       p_tenant: tenant
     });
 
     const blId = nextId || 1;
 
     // 2. Valider le fournisseur
-    const { data: suppliers, error: supplierError } = await supabaseAdmin.rpc('get_suppliers_by_tenant', {
+    const { data: suppliers, error: supplierError } = await databaseRouter.rpc('get_suppliers_by_tenant', {
       p_tenant: tenant
     });
 
@@ -168,7 +170,7 @@ purchases.post('/delivery-notes', async (c) => {
     }
 
     // 3. Valider les articles
-    const { data: articles, error: articleError } = await supabaseAdmin.rpc('get_articles_by_tenant', {
+    const { data: articles, error: articleError } = await databaseRouter.rpc('get_articles_by_tenant', {
       p_tenant: tenant
     });
 
@@ -220,7 +222,7 @@ purchases.post('/delivery-notes', async (c) => {
     // 5. Créer le BL d'achat
     const blDate = date_bl || new Date().toISOString().split('T')[0];
     
-    const { data: blHeader, error: blError } = await supabaseAdmin.rpc('insert_purchase_bl_with_supplier_number', {
+    const { data: blHeader, error: blError } = await databaseRouter.rpc('insert_purchase_bl_with_supplier_number', {
       p_tenant: tenant,
       p_nbl_achat: blId,
       p_nfournisseur: Nfournisseur,
@@ -237,7 +239,7 @@ purchases.post('/delivery-notes', async (c) => {
 
     // 6. Ajouter les détails
     for (const detail of processedDetails) {
-      const { error: detailErr } = await supabaseAdmin.rpc('insert_detail_purchase_bl', {
+      const { error: detailErr } = await databaseRouter.rpc('insert_detail_purchase_bl', {
         p_tenant: tenant,
         p_nbl_achat: detail.nbl_achat,
         p_narticle: detail.narticle,
@@ -255,7 +257,7 @@ purchases.post('/delivery-notes', async (c) => {
 
     // 7. Mettre à jour les stocks (ENTRÉE DE STOCK BL)
     for (const detail of processedDetails) {
-      const { error: stockError } = await supabaseAdmin.rpc('update_stock_purchase_bl', {
+      const { error: stockError } = await databaseRouter.rpc('update_stock_purchase_bl', {
         p_tenant: tenant,
         p_narticle: detail.narticle,
         p_quantity: detail.qte
@@ -319,7 +321,7 @@ purchases.get('/delivery-notes/:id', async (c) => {
     console.log(`📋 Fetching purchase BL ${blId} for tenant: ${tenant}`);
 
     // Utiliser la fonction RPC pour récupérer le BL d'achat avec détails
-    const { data: blResult, error: blError } = await supabaseAdmin.rpc('get_purchase_bl_with_details', {
+    const { data: blResult, error: blError } = await databaseRouter.rpc('get_purchase_bl_with_details', {
       p_tenant: tenant,
       p_nbl_achat: blId
     });
@@ -351,7 +353,7 @@ purchases.get('/delivery-notes/:id', async (c) => {
       };
 
       // Enrichir avec les informations fournisseur
-      const { data: suppliersData } = await supabaseAdmin.rpc('get_suppliers_by_tenant', {
+      const { data: suppliersData } = await databaseRouter.rpc('get_suppliers_by_tenant', {
         p_tenant: tenant
       });
 
@@ -367,11 +369,11 @@ purchases.get('/delivery-notes/:id', async (c) => {
         success: true,
         data: result,
         source: 'fallback'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     // Enrichir les données de la base avec les informations fournisseur
-    const { data: suppliersData } = await supabaseAdmin.rpc('get_suppliers_by_tenant', {
+    const { data: suppliersData } = await databaseRouter.rpc('get_suppliers_by_tenant', {
       p_tenant: tenant
     });
 
@@ -389,7 +391,7 @@ purchases.get('/delivery-notes/:id', async (c) => {
       success: true,
       data: enrichedResult,
       source: 'database'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
 
   } catch (error) {
     console.error('❌ Error fetching purchase BL:', error);
@@ -413,7 +415,7 @@ purchases.get('/invoices', async (c) => {
     console.log(`📋 Fetching purchase invoices for tenant: ${tenant}`);
 
     // Utiliser la fonction RPC pour récupérer les factures d'achat
-    const { data: invoicesData, error: invoicesError } = await supabaseAdmin.rpc('get_purchase_invoices_list', {
+    const { data: invoicesData, error: invoicesError } = await databaseRouter.rpc('get_purchase_invoices_list', {
       p_tenant: tenant
     });
 
@@ -436,7 +438,7 @@ purchases.get('/invoices', async (c) => {
       ];
       
       // Enrichir avec les données fournisseurs
-      const { data: suppliersData } = await supabaseAdmin.rpc('get_suppliers_by_tenant', {
+      const { data: suppliersData } = await databaseRouter.rpc('get_suppliers_by_tenant', {
         p_tenant: tenant
       });
 
@@ -454,11 +456,11 @@ purchases.get('/invoices', async (c) => {
         data: enrichedInvoices,
         tenant: tenant,
         source: 'fallback'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     // Enrichir avec les données fournisseurs
-    const { data: suppliersData } = await supabaseAdmin.rpc('get_suppliers_by_tenant', {
+    const { data: suppliersData } = await databaseRouter.rpc('get_suppliers_by_tenant', {
       p_tenant: tenant
     });
 
@@ -478,7 +480,7 @@ purchases.get('/invoices', async (c) => {
       data: enrichedInvoices,
       tenant: tenant,
       source: 'database'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
 
   } catch (error) {
     console.error('❌ Error fetching purchase invoices:', error);
@@ -514,7 +516,7 @@ purchases.post('/invoices', async (c) => {
     console.log(`📋 Using supplier invoice number: ${numero_facture_fournisseur}`);
     
     // Vérifier si ce numéro de facture fournisseur existe déjà
-    const { data: existingInvoice, error: checkError } = await supabaseAdmin.rpc('check_supplier_invoice_exists', {
+    const { data: existingInvoice, error: checkError } = await databaseRouter.rpc('check_supplier_invoice_exists', {
       p_tenant: tenant,
       p_nfournisseur: Nfournisseur,
       p_numero_facture: numero_facture_fournisseur
@@ -530,14 +532,14 @@ purchases.post('/invoices', async (c) => {
     }
 
     // Obtenir le prochain ID interne pour la facture d'achat
-    const { data: nextId, error: idError } = await supabaseAdmin.rpc('get_next_purchase_invoice_id', {
+    const { data: nextId, error: idError } = await databaseRouter.rpc('get_next_purchase_invoice_id', {
       p_tenant: tenant
     });
 
     const invoiceId = nextId || 1;
 
     // 2. Valider le fournisseur
-    const { data: suppliers, error: supplierError } = await supabaseAdmin.rpc('get_suppliers_by_tenant', {
+    const { data: suppliers, error: supplierError } = await databaseRouter.rpc('get_suppliers_by_tenant', {
       p_tenant: tenant
     });
 
@@ -552,7 +554,7 @@ purchases.post('/invoices', async (c) => {
     }
 
     // 3. Valider les articles
-    const { data: articles, error: articleError } = await supabaseAdmin.rpc('get_articles_by_tenant', {
+    const { data: articles, error: articleError } = await databaseRouter.rpc('get_articles_by_tenant', {
       p_tenant: tenant
     });
 
@@ -604,7 +606,7 @@ purchases.post('/invoices', async (c) => {
     // 5. Créer la facture d'achat
     const invoiceDate = date_fact || new Date().toISOString().split('T')[0];
     
-    const { data: invoiceHeader, error: invoiceError } = await supabaseAdmin.rpc('insert_purchase_invoice_with_supplier_number', {
+    const { data: invoiceHeader, error: invoiceError } = await databaseRouter.rpc('insert_purchase_invoice_with_supplier_number', {
       p_tenant: tenant,
       p_nfact_achat: invoiceId,
       p_nfournisseur: Nfournisseur,
@@ -621,7 +623,7 @@ purchases.post('/invoices', async (c) => {
 
     // 6. Ajouter les détails
     for (const detail of processedDetails) {
-      const { error: detailErr } = await supabaseAdmin.rpc('insert_detail_purchase_invoice', {
+      const { error: detailErr } = await databaseRouter.rpc('insert_detail_purchase_invoice', {
         p_tenant: tenant,
         p_nfact_achat: detail.nfact_achat,
         p_narticle: detail.narticle,
@@ -639,7 +641,7 @@ purchases.post('/invoices', async (c) => {
 
     // 7. Mettre à jour les stocks (ENTRÉE DE STOCK)
     for (const detail of processedDetails) {
-      const { error: stockError } = await supabaseAdmin.rpc('update_stock_purchase_invoice', {
+      const { error: stockError } = await databaseRouter.rpc('update_stock_purchase_invoice', {
         p_tenant: tenant,
         p_narticle: detail.narticle,
         p_quantity: detail.qte
@@ -703,7 +705,7 @@ purchases.get('/invoices/:id', async (c) => {
     console.log(`📋 Fetching purchase invoice ${invoiceId} for tenant: ${tenant}`);
 
     // Utiliser la fonction RPC pour récupérer la facture d'achat avec détails
-    const { data: invoiceResult, error: invoiceError } = await supabaseAdmin.rpc('get_purchase_invoice_with_details', {
+    const { data: invoiceResult, error: invoiceError } = await databaseRouter.rpc('get_purchase_invoice_with_details', {
       p_tenant: tenant,
       p_nfact_achat: invoiceId
     });
@@ -735,7 +737,7 @@ purchases.get('/invoices/:id', async (c) => {
       };
 
       // Enrichir avec les informations fournisseur
-      const { data: suppliersData } = await supabaseAdmin.rpc('get_suppliers_by_tenant', {
+      const { data: suppliersData } = await databaseRouter.rpc('get_suppliers_by_tenant', {
         p_tenant: tenant
       });
 
@@ -751,11 +753,11 @@ purchases.get('/invoices/:id', async (c) => {
         success: true,
         data: result,
         source: 'fallback'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     // Enrichir les données de la base avec les informations fournisseur
-    const { data: suppliersData } = await supabaseAdmin.rpc('get_suppliers_by_tenant', {
+    const { data: suppliersData } = await databaseRouter.rpc('get_suppliers_by_tenant', {
       p_tenant: tenant
     });
 
@@ -773,7 +775,7 @@ purchases.get('/invoices/:id', async (c) => {
       success: true,
       data: enrichedResult,
       source: 'database'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
 
   } catch (error) {
     console.error('❌ Error fetching purchase invoice:', error);
@@ -799,7 +801,7 @@ purchases.get('/stats/overview', async (c) => {
 
     console.log(`📊 Fetching purchase stats overview for tenant: ${tenant}`);
 
-    const { data: statsData, error: statsError } = await supabaseAdmin.rpc('get_purchase_stats_overview', {
+    const { data: statsData, error: statsError } = await databaseRouter.rpc('get_purchase_stats_overview', {
       p_tenant: tenant,
       p_start_date: startDate || null,
       p_end_date: endDate || null
@@ -830,7 +832,7 @@ purchases.get('/stats/overview', async (c) => {
         success: true,
         data: fallbackStats,
         source: 'fallback'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     console.log(`✅ Purchase stats retrieved for tenant ${tenant}`);
@@ -839,7 +841,7 @@ purchases.get('/stats/overview', async (c) => {
       success: true,
       data: statsData,
       source: 'database'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
 
   } catch (error) {
     console.error('❌ Error fetching purchase stats:', error);
@@ -863,7 +865,7 @@ purchases.get('/stats/suppliers', async (c) => {
 
     console.log(`📊 Fetching supplier stats for tenant: ${tenant}`);
 
-    const { data: supplierStats, error: supplierError } = await supabaseAdmin.rpc('get_purchase_stats_by_supplier', {
+    const { data: supplierStats, error: supplierError } = await databaseRouter.rpc('get_purchase_stats_by_supplier', {
       p_tenant: tenant,
       p_start_date: startDate || null,
       p_end_date: endDate || null
@@ -902,14 +904,14 @@ purchases.get('/stats/suppliers', async (c) => {
         success: true,
         data: fallbackSupplierStats,
         source: 'fallback'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     return c.json({
       success: true,
       data: supplierStats.data || [],
       source: 'database'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
 
   } catch (error) {
     console.error('❌ Error fetching supplier stats:', error);
@@ -933,7 +935,7 @@ purchases.get('/stats/articles', async (c) => {
 
     console.log(`📊 Fetching article stats for tenant: ${tenant}`);
 
-    const { data: articleStats, error: articleError } = await supabaseAdmin.rpc('get_purchase_stats_by_article', {
+    const { data: articleStats, error: articleError } = await databaseRouter.rpc('get_purchase_stats_by_article', {
       p_tenant: tenant,
       p_start_date: startDate || null,
       p_end_date: endDate || null
@@ -969,14 +971,14 @@ purchases.get('/stats/articles', async (c) => {
         success: true,
         data: fallbackArticleStats.data,
         source: 'fallback'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     return c.json({
       success: true,
       data: articleStats.data || [],
       source: 'database'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
 
   } catch (error) {
     console.error('❌ Error fetching article stats:', error);
@@ -999,7 +1001,7 @@ purchases.get('/stats/trends', async (c) => {
 
     console.log(`📊 Fetching monthly trends for tenant: ${tenant}, year: ${year || 'current'}`);
 
-    const { data: trendsData, error: trendsError } = await supabaseAdmin.rpc('get_purchase_monthly_trends', {
+    const { data: trendsData, error: trendsError } = await databaseRouter.rpc('get_purchase_monthly_trends', {
       p_tenant: tenant,
       p_year: year ? parseInt(year) : null
     });
@@ -1031,14 +1033,14 @@ purchases.get('/stats/trends', async (c) => {
         success: true,
         data: fallbackTrends,
         source: 'fallback'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     return c.json({
       success: true,
       data: trendsData,
       source: 'database'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
 
   } catch (error) {
     console.error('❌ Error fetching trends:', error);
@@ -1061,7 +1063,7 @@ purchases.get('/stats/recent', async (c) => {
 
     console.log(`📊 Fetching recent activity for tenant: ${tenant}`);
 
-    const { data: recentData, error: recentError } = await supabaseAdmin.rpc('get_purchase_recent_activity', {
+    const { data: recentData, error: recentError } = await databaseRouter.rpc('get_purchase_recent_activity', {
       p_tenant: tenant,
       p_limit: parseInt(limit)
     });
@@ -1098,14 +1100,14 @@ purchases.get('/stats/recent', async (c) => {
         success: true,
         data: fallbackRecent.data,
         source: 'fallback'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     return c.json({
       success: true,
       data: recentData.data || [],
       source: 'database'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
 
   } catch (error) {
     console.error('❌ Error fetching recent activity:', error);
@@ -1128,7 +1130,7 @@ purchases.get('/stock/overview', async (c) => {
 
     console.log(`📊 Fetching stock overview for tenant: ${tenant}`);
 
-    const { data: stockData, error: stockError } = await supabaseAdmin.rpc('get_stock_overview', {
+    const { data: stockData, error: stockError } = await databaseRouter.rpc('get_stock_overview', {
       p_tenant: tenant
     });
 
@@ -1173,7 +1175,7 @@ purchases.get('/stock/overview', async (c) => {
         success: true,
         data: fallbackOverview,
         source: 'fallback'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     console.log(`✅ Stock overview retrieved for tenant ${tenant}`);
@@ -1195,7 +1197,7 @@ purchases.get('/stock/overview', async (c) => {
       success: true,
       data: responseData,
       source: 'database'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
 
   } catch (error) {
     console.error('❌ Error fetching stock overview:', error);
@@ -1218,7 +1220,7 @@ purchases.get('/stock/articles', async (c) => {
 
     console.log(`📊 Fetching stock by article for tenant: ${tenant}${narticle ? `, article: ${narticle}` : ''}`);
 
-    const { data: stockData, error: stockError } = await supabaseAdmin.rpc('get_stock_by_article', {
+    const { data: stockData, error: stockError } = await databaseRouter.rpc('get_stock_by_article', {
       p_tenant: tenant,
       p_narticle: narticle || null
     });
@@ -1264,14 +1266,14 @@ purchases.get('/stock/articles', async (c) => {
         success: true,
         data: narticle ? fallbackArticles.find(a => a.narticle === narticle) : fallbackArticles,
         source: 'fallback'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     return c.json({
       success: true,
       data: stockData.data,
       source: 'database'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
 
   } catch (error) {
     console.error('❌ Error fetching stock by article:', error);
@@ -1292,7 +1294,7 @@ purchases.get('/stock/alerts', async (c) => {
 
     console.log(`📊 Fetching stock alerts for tenant: ${tenant}`);
 
-    const { data: alertsData, error: alertsError } = await supabaseAdmin.rpc('get_stock_alerts', {
+    const { data: alertsData, error: alertsError } = await databaseRouter.rpc('get_stock_alerts', {
       p_tenant: tenant
     });
 
@@ -1333,14 +1335,14 @@ purchases.get('/stock/alerts', async (c) => {
         success: true,
         data: fallbackAlerts,
         source: 'fallback'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     return c.json({
       success: true,
       data: alertsData.data,
       source: 'database'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
 
   } catch (error) {
     console.error('❌ Error fetching stock alerts:', error);
@@ -1361,7 +1363,7 @@ purchases.get('/stock/valuation', async (c) => {
 
     console.log(`📊 Fetching stock valuation for tenant: ${tenant}`);
 
-    const { data: valuationData, error: valuationError } = await supabaseAdmin.rpc('get_stock_valuation', {
+    const { data: valuationData, error: valuationError } = await databaseRouter.rpc('get_stock_valuation', {
       p_tenant: tenant
     });
 
@@ -1408,14 +1410,14 @@ purchases.get('/stock/valuation', async (c) => {
         success: true,
         data: fallbackValuation,
         source: 'fallback'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     return c.json({
       success: true,
       data: valuationData.data,
       source: 'database'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
 
   } catch (error) {
     console.error('❌ Error fetching stock valuation:', error);
@@ -1446,7 +1448,7 @@ purchases.post('/stock/adjustment', async (c) => {
 
     console.log(`📊 Creating stock adjustment for tenant: ${tenant}, article: ${narticle}`);
 
-    const { data: adjustmentData, error: adjustmentError } = await supabaseAdmin.rpc('insert_stock_adjustment', {
+    const { data: adjustmentData, error: adjustmentError } = await databaseRouter.rpc('insert_stock_adjustment', {
       p_tenant: tenant,
       p_narticle: narticle,
       p_new_stock_bl: parseFloat(new_stock_bl),

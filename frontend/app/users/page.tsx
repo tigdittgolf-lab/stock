@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getApiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import styles from '../page.module.css';
 
@@ -67,7 +68,7 @@ export default function UsersPage() {
     e.preventDefault();
 
     try {
-      const response = await fetch('${window.location.origin}/api/auth/create-user', {
+      const response = await fetch('getApiUrl('auth/create-user')', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

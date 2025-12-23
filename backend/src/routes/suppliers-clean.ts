@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
 import { tenantMiddleware, getTenantContext } from '../middleware/tenantMiddleware.js';
+import { backendDatabaseService } from '../services/databaseService.js';
 
 const suppliers = new Hono();
 
@@ -11,28 +13,30 @@ suppliers.use('*', tenantMiddleware);
 suppliers.get('/', async (c) => {
   try {
     const tenant = getTenantContext(c);
-    console.log(`🔍 Fetching suppliers from schema: ${tenant.schema}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Fetching suppliers from schema: ${tenant.schema} (DB: ${dbType})`);
 
-    const { data: suppliersData, error } = await supabaseAdmin.rpc('get_suppliers_by_tenant', {
+    const result = await backendDatabaseService.executeRPC('get_suppliers_by_tenant', {
       p_tenant: tenant.schema
     });
     
-    if (error) {
-      console.error('❌ RPC Error:', error);
+    if (!result.success) {
+      console.error('❌ Database Error:', result.error);
       return c.json({ 
         success: true, 
         data: [], 
-        message: 'RPC function not available. Please run the SQL script first.' 
+        message: `Database function not available (${dbType}). Please check configuration.` 
       });
     }
     
-    console.log(`✅ Found ${suppliersData?.length || 0} suppliers in database`);
+    console.log(`✅ Found ${result.data?.length || 0} suppliers in ${dbType} database`);
     
     return c.json({ 
       success: true, 
-      data: suppliersData || [],
+      data: result.data || [],
       tenant: tenant.schema,
-      source: 'real_database_via_rpc'
+      source: `${dbType}_database`,
+      database_type: dbType
     });
     
   } catch (error) {
@@ -46,23 +50,24 @@ suppliers.get('/:id', async (c) => {
   try {
     const id = c.req.param('id');
     const tenant = getTenantContext(c);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
 
-    console.log(`🔍 Looking for supplier: ${id} in schema: ${tenant.schema}`);
+    console.log(`🔍 Looking for supplier: ${id} in schema: ${tenant.schema} (DB: ${dbType})`);
     
-    const { data: suppliersData, error } = await supabaseAdmin.rpc('get_suppliers_by_tenant', {
+    const result = await backendDatabaseService.executeRPC('get_suppliers_by_tenant', {
       p_tenant: tenant.schema
     });
     
-    if (error) {
-      console.error('❌ RPC Error in GET /:id:', error);
+    if (!result.success) {
+      console.error('❌ Database Error in GET /:id:', result.error);
       return c.json({ success: false, error: 'Supplier not found' }, 404);
     }
     
-    const foundSupplier = suppliersData?.find((supplier: any) => supplier.nfournisseur === id);
+    const foundSupplier = result.data?.find((supplier: any) => supplier.nfournisseur === id);
     
     if (foundSupplier) {
-      console.log(`✅ Found supplier ${id} in database`);
-      return c.json({ success: true, data: foundSupplier });
+      console.log(`✅ Found supplier ${id} in ${dbType} database`);
+      return c.json({ success: true, data: foundSupplier, database_type: dbType });
     }
 
     console.log(`❌ Supplier ${id} not found`);
@@ -78,11 +83,12 @@ suppliers.post('/', async (c) => {
   try {
     const tenant = getTenantContext(c);
     const body = await c.req.json();
+    const dbType = backendDatabaseService.getActiveDatabaseType();
     
-    console.log(`🆕 Creating supplier in ${tenant.schema}:`, body.nfournisseur);
+    console.log(`🆕 Creating supplier in ${tenant.schema} (DB: ${dbType}):`, body.nfournisseur);
     
-    // Use RPC function to insert into real database
-    const { data, error } = await supabaseAdmin.rpc('insert_supplier_to_tenant', {
+    // Use database service to insert into active database
+    const result = await backendDatabaseService.executeRPC('insert_supplier_to_tenant', {
       p_tenant: tenant.schema,
       p_nfournisseur: body.nfournisseur || body.code || `F${Date.now()}`,
       p_nom_fournisseur: body.nom_fournisseur || body.name || '',
@@ -97,17 +103,18 @@ suppliers.post('/', async (c) => {
       p_commentaire: body.commentaire || ''
     });
     
-    if (error) {
-      console.error('❌ RPC Error creating supplier:', error);
-      return c.json({ success: false, error: `Failed to create supplier: ${error.message}` }, 500);
+    if (!result.success) {
+      console.error(`❌ ${dbType} Error creating supplier:`, result.error);
+      return c.json({ success: false, error: `Failed to create supplier: ${result.error}` }, 500);
     }
     
-    console.log(`✅ Supplier created: ${data}`);
+    console.log(`✅ Supplier created in ${dbType}:`, result.data);
     
     return c.json({ 
       success: true, 
-      message: 'Fournisseur créé avec succès !',
-      data: { nfournisseur: body.nfournisseur || body.code }
+      message: `Fournisseur créé avec succès dans ${dbType} !`,
+      data: { nfournisseur: body.nfournisseur || body.code },
+      database_type: dbType
     });
     
   } catch (error) {
@@ -122,8 +129,9 @@ suppliers.put('/:id', async (c) => {
     const id = c.req.param('id');
     const tenant = getTenantContext(c);
     const body = await c.req.json();
+    const dbType = backendDatabaseService.getActiveDatabaseType();
     
-    console.log(`🔄 Updating supplier ${id} in ${tenant.schema}`);
+    console.log(`🔄 Updating supplier ${id} in ${tenant.schema} (DB: ${dbType})`);
     
     const {
       nom_fournisseur,
@@ -134,8 +142,8 @@ suppliers.put('/:id', async (c) => {
       commentaire
     } = body;
 
-    // Use RPC function to update in real database
-    const { data, error } = await supabaseAdmin.rpc('update_supplier_in_tenant', {
+    // Use database service to update in active database
+    const result = await backendDatabaseService.executeRPC('update_supplier_in_tenant', {
       p_tenant: tenant.schema,
       p_nfournisseur: id,
       p_nom_fournisseur: nom_fournisseur,
@@ -146,17 +154,18 @@ suppliers.put('/:id', async (c) => {
       p_commentaire: commentaire || ''
     });
     
-    if (error) {
-      console.error('❌ RPC Error updating supplier:', error);
-      return c.json({ success: false, error: `Failed to update supplier: ${error.message}` }, 500);
+    if (!result.success) {
+      console.error(`❌ ${dbType} Error updating supplier:`, result.error);
+      return c.json({ success: false, error: `Failed to update supplier: ${result.error}` }, 500);
     }
     
-    console.log(`✅ Supplier updated: ${data}`);
+    console.log(`✅ Supplier updated in ${dbType}:`, result.data);
     
     return c.json({ 
       success: true, 
-      message: `Fournisseur ${id} modifié avec succès !`,
-      data: { nfournisseur: id }
+      message: `Fournisseur ${id} modifié avec succès dans ${dbType} !`,
+      data: { nfournisseur: id },
+      database_type: dbType
     });
 
   } catch (error) {
@@ -170,22 +179,27 @@ suppliers.delete('/:id', async (c) => {
   try {
     const id = c.req.param('id');
     const tenant = getTenantContext(c);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
 
-    console.log(`🗑️ Deleting supplier ${id} from ${tenant.schema}`);
+    console.log(`🗑️ Deleting supplier ${id} from ${tenant.schema} (DB: ${dbType})`);
 
-    // Use RPC function to delete from real database
-    const { data, error } = await supabaseAdmin.rpc('delete_supplier_from_tenant', {
+    // Use database service to delete from active database
+    const result = await backendDatabaseService.executeRPC('delete_supplier_from_tenant', {
       p_tenant: tenant.schema,
       p_nfournisseur: id
     });
     
-    if (error) {
-      console.error('❌ RPC Error deleting supplier:', error);
-      return c.json({ success: false, error: `Failed to delete supplier: ${error.message}` }, 500);
+    if (!result.success) {
+      console.error(`❌ ${dbType} Error deleting supplier:`, result.error);
+      return c.json({ success: false, error: `Failed to delete supplier: ${result.error}` }, 500);
     }
     
-    console.log(`✅ Supplier deleted: ${data}`);
-    return c.json({ success: true, message: `Fournisseur ${id} supprimé avec succès !` });
+    console.log(`✅ Supplier deleted from ${dbType}:`, result.data);
+    return c.json({ 
+      success: true, 
+      message: `Fournisseur ${id} supprimé avec succès de ${dbType} !`,
+      database_type: dbType
+    });
     
   } catch (error) {
     console.error('Error deleting supplier:', error);

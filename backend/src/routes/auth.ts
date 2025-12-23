@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
+import { backendDatabaseService } from '../services/databaseService.js';
 import { SchemaManager } from '../utils/schemaManager.js';
 
 const auth = new Hono();
@@ -47,7 +49,7 @@ auth.get('/users', async (c) => {
       return c.json({ success: false, error: error.message }, 400);
     }
 
-    return c.json({ success: true, data: data.users });
+    return c.json({ success: true, data: data.users , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error in list-users:', error);
     return c.json({ success: false, error: 'Failed to list users' }, 500);
@@ -112,7 +114,7 @@ auth.get('/business-units', async (c) => {
       { id: 'bu03', name: 'Business Unit 03', description: 'Unité tertiaire' }
     ];
 
-    return c.json({ success: true, data: businessUnits });
+    return c.json({ success: true, data: businessUnits , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching business units:', error);
     return c.json({ success: false, error: 'Failed to fetch business units' }, 500);
@@ -129,7 +131,7 @@ auth.get('/exercises', async (c) => {
       { year: currentYear - 2, status: 'archived' }
     ];
 
-    return c.json({ success: true, data: exercises });
+    return c.json({ success: true, data: exercises , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching exercises:', error);
     return c.json({ success: false, error: 'Failed to fetch exercises' }, 500);
@@ -160,7 +162,7 @@ auth.post('/set-tenant', async (c) => {
 
     // Check if schema exists, create if not
     try {
-      await supabaseAdmin.rpc('ensure_tenant_schema', {
+      await databaseRouter.rpc('ensure_tenant_schema', {
         schema_name: schema,
         business_unit,
         year
@@ -207,7 +209,7 @@ auth.post('/init-test-data', async (c) => {
     try {
       // First, ensure the schema exists and create all tables
       console.log(`Creating schema ${schema}...`);
-      await supabaseAdmin.rpc('exec_sql', {
+      await databaseRouter.rpc('exec_sql', {
         sql: `CREATE SCHEMA IF NOT EXISTS "${schema}";`
       });
       console.log(`✅ Schema ${schema} created`);
@@ -216,7 +218,7 @@ auth.post('/init-test-data', async (c) => {
       console.log(`Creating tables in schema ${schema}...`);
       
       // Create famille_art table
-      await supabaseAdmin.rpc('exec_sql', {
+      await databaseRouter.rpc('exec_sql', {
         sql: `
           CREATE TABLE IF NOT EXISTS "${schema}".famille_art (
             famille VARCHAR(50) PRIMARY KEY
@@ -225,7 +227,7 @@ auth.post('/init-test-data', async (c) => {
       });
       
       // Create fournisseur table
-      await supabaseAdmin.rpc('exec_sql', {
+      await databaseRouter.rpc('exec_sql', {
         sql: `
           CREATE TABLE IF NOT EXISTS "${schema}".fournisseur (
             nfournisseur VARCHAR(20) PRIMARY KEY,
@@ -244,7 +246,7 @@ auth.post('/init-test-data', async (c) => {
       });
       
       // Create client table
-      await supabaseAdmin.rpc('exec_sql', {
+      await databaseRouter.rpc('exec_sql', {
         sql: `
           CREATE TABLE IF NOT EXISTS "${schema}".client (
             nclient VARCHAR(20) PRIMARY KEY,
@@ -266,7 +268,7 @@ auth.post('/init-test-data', async (c) => {
       });
       
       // Create article table
-      await supabaseAdmin.rpc('exec_sql', {
+      await databaseRouter.rpc('exec_sql', {
         sql: `
           CREATE TABLE IF NOT EXISTS "${schema}".article (
             narticle VARCHAR(20) PRIMARY KEY,
@@ -285,7 +287,7 @@ auth.post('/init-test-data', async (c) => {
       });
 
       // Create fact (factures) table
-      await supabaseAdmin.rpc('exec_sql', {
+      await databaseRouter.rpc('exec_sql', {
         sql: `
           CREATE TABLE IF NOT EXISTS "${schema}".fact (
             nfact BIGINT PRIMARY KEY,
@@ -301,7 +303,7 @@ auth.post('/init-test-data', async (c) => {
       });
 
       // Create detail_fact table
-      await supabaseAdmin.rpc('exec_sql', {
+      await databaseRouter.rpc('exec_sql', {
         sql: `
           CREATE TABLE IF NOT EXISTS "${schema}".detail_fact (
             id SERIAL PRIMARY KEY,
@@ -318,7 +320,7 @@ auth.post('/init-test-data', async (c) => {
       });
 
       // Create bl (bons de livraison) table
-      await supabaseAdmin.rpc('exec_sql', {
+      await databaseRouter.rpc('exec_sql', {
         sql: `
           CREATE TABLE IF NOT EXISTS "${schema}".bl (
             nbl BIGINT PRIMARY KEY,
@@ -334,7 +336,7 @@ auth.post('/init-test-data', async (c) => {
       });
 
       // Create detail_bl table
-      await supabaseAdmin.rpc('exec_sql', {
+      await databaseRouter.rpc('exec_sql', {
         sql: `
           CREATE TABLE IF NOT EXISTS "${schema}".detail_bl (
             id SERIAL PRIMARY KEY,
@@ -351,7 +353,7 @@ auth.post('/init-test-data', async (c) => {
       });
 
       // Create fprof (factures proforma) table
-      await supabaseAdmin.rpc('exec_sql', {
+      await databaseRouter.rpc('exec_sql', {
         sql: `
           CREATE TABLE IF NOT EXISTS "${schema}".fprof (
             nfprof BIGINT PRIMARY KEY,
@@ -367,7 +369,7 @@ auth.post('/init-test-data', async (c) => {
       });
 
       // Create detail_fprof table
-      await supabaseAdmin.rpc('exec_sql', {
+      await databaseRouter.rpc('exec_sql', {
         sql: `
           CREATE TABLE IF NOT EXISTS "${schema}".detail_fprof (
             id SERIAL PRIMARY KEY,
@@ -388,7 +390,7 @@ auth.post('/init-test-data', async (c) => {
       // Add test families
       console.log(`Inserting families into ${schema}...`);
       try {
-        const familiesResult = await supabaseAdmin.rpc('exec_sql', {
+        const familiesResult = await databaseRouter.rpc('exec_sql', {
           sql: `
             INSERT INTO "${schema}".famille_art (famille) VALUES 
             ('Droguerie'),
@@ -404,7 +406,7 @@ auth.post('/init-test-data', async (c) => {
       }
 
       // Add test suppliers
-      await supabaseAdmin.rpc('exec_sql', {
+      await databaseRouter.rpc('exec_sql', {
         sql: `
           INSERT INTO "${schema}".fournisseur (
             nfournisseur, nom_fournisseur, resp_fournisseur, adresse_fourni, tel, email
@@ -417,7 +419,7 @@ auth.post('/init-test-data', async (c) => {
       });
 
       // Add test clients
-      await supabaseAdmin.rpc('exec_sql', {
+      await databaseRouter.rpc('exec_sql', {
         sql: `
           INSERT INTO "${schema}".client (
             nclient, raison_sociale, adresse, tel, email, c_affaire_fact, c_affaire_bl
@@ -430,7 +432,7 @@ auth.post('/init-test-data', async (c) => {
       });
 
       // Add test articles
-      await supabaseAdmin.rpc('exec_sql', {
+      await databaseRouter.rpc('exec_sql', {
         sql: `
           INSERT INTO "${schema}".article (
             narticle, famille, designation, nfournisseur, prix_unitaire, marge, tva, prix_vente, seuil, stock_f, stock_bl

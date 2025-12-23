@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
+import { backendDatabaseService } from '../services/databaseService.js';
 
 const activite = new Hono();
 
@@ -7,7 +9,7 @@ const activite = new Hono();
 activite.get('/', async (c) => {
   try {
     // Get company information from activite table
-    const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+    const { data, error } = await databaseRouter.rpc('exec_sql', {
       sql: `
         SELECT * FROM activite 
         WHERE tenant_id = 'default' OR tenant_id IS NOT NULL
@@ -35,7 +37,7 @@ activite.get('/', async (c) => {
     return c.json({ 
       success: true, 
       data: companyInfo
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching company info:', error);
     return c.json({ success: false, error: 'Failed to fetch company info' }, 500);
@@ -59,7 +61,7 @@ activite.put('/', async (c) => {
     } = body;
 
     // Try to update existing record, or insert if none exists
-    const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+    const { data, error } = await databaseRouter.rpc('exec_sql', {
       sql: `
         INSERT INTO activite (
           tenant_id, nom_entreprise, adresse, telephone, 
@@ -83,7 +85,7 @@ activite.put('/', async (c) => {
 
     if (error) throw error;
 
-    return c.json({ success: true, data: data[0] });
+    return c.json({ success: true, data: data[0] , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error updating company info:', error);
     return c.json({ success: false, error: 'Failed to update company info' }, 500);

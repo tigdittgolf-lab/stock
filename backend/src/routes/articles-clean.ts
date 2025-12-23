@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
 import { tenantMiddleware, getTenantContext } from '../middleware/tenantMiddleware.js';
 import { backendDatabaseService } from '../services/databaseService.js';
 

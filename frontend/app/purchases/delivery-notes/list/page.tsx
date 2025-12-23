@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getApiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import styles from '../../../page.module.css';
 
@@ -29,7 +30,7 @@ export default function PurchaseBLList() {
   const fetchBLs = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`${window.location.origin}/api/purchases/delivery-notes`, {
+      const response = await fetch(`getApiUrl('purchases/delivery-notes')`, {
         headers: {
           'X-Tenant': tenant
         }

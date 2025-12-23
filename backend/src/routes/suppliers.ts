@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
+import { backendDatabaseService } from '../services/databaseService.js';
 
 const suppliers = new Hono();
 
@@ -65,7 +67,7 @@ suppliers.get('/', async (c) => {
       }
     ];
 
-    return c.json({ success: true, data: testSuppliers });
+    return c.json({ success: true, data: testSuppliers , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching suppliers:', error);
     return c.json({ success: false, error: 'Failed to fetch suppliers' }, 500);
@@ -82,7 +84,7 @@ suppliers.get('/:id', async (c) => {
 
     const supplierId = c.req.param('id');
     
-    const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+    const { data, error } = await databaseRouter.rpc('exec_sql', {
       sql: `SELECT * FROM "${tenant}".fournisseur WHERE nfournisseur = '${supplierId}' LIMIT 1;`
     });
 
@@ -95,7 +97,7 @@ suppliers.get('/:id', async (c) => {
       return c.json({ success: false, error: 'Supplier not found' }, 404);
     }
 
-    return c.json({ success: true, data: data[0] });
+    return c.json({ success: true, data: data[0] , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching supplier:', error);
     return c.json({ success: false, error: 'Failed to fetch supplier' }, 500);
@@ -127,7 +129,7 @@ suppliers.post('/', async (c) => {
       return c.json({ success: false, error: 'Supplier code and name are required' }, 400);
     }
 
-    const { error } = await supabaseAdmin.rpc('exec_sql', {
+    const { error } = await databaseRouter.rpc('exec_sql', {
       sql: `
         INSERT INTO "${tenant}".fournisseur (
           nfournisseur, nom_fournisseur, resp_fournisseur, adresse_fourni,

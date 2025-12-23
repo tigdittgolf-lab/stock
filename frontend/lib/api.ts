@@ -42,8 +42,7 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
 
 // Fonction utilitaire pour les URLs API simples
 export const getApiUrl = (endpoint: string): string => {
-  if (typeof window !== 'undefined') {
-    return `${window.location.origin}/api/${endpoint}`;
-  }
-  return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005/api'}/${endpoint}`;
+  // CORRECTION: Toujours pointer vers le backend (port 3005)
+  // Le frontend ne doit jamais appeler ses propres routes API pour les données
+  return `http://localhost:3005/api/${endpoint}`;
 };

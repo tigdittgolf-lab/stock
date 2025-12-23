@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Frontend Exact API Call</title>
+</head>
+<body>
+    <h1>Test Frontend Exact API Call</h1>
+    <button onclick="testSuppliers()">Test Suppliers API</button>
+    <div id="results"></div>
+    
+    <script>
+        // Exact copy of the getApiUrl function from frontend/lib/api.ts
+        const getApiUrl = (endpoint) => {
+          // CORRECTION: Toujours pointer vers le backend (port 3005)
+          // Le frontend ne doit jamais appeler ses propres routes API pour les données
+          return `http://localhost:3005/api/${endpoint}`;
+        };
+        
+        async function testSuppliers() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h2>Testing...</h2>';
+            
+            try {
+                // Exact copy of the fetchSuppliers function from dashboard
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'X-Tenant': '2025_bu01'
+                };
+                
+                console.log('Calling URL:', getApiUrl('sales/suppliers'));
+                console.log('Headers:', headers);
+                
+                const response = await fetch(getApiUrl('sales/suppliers'), { headers });
+                const data = await response.json();
+                
+                results.innerHTML = `
+                    <h2>Results:</h2>
+                    <p><strong>URL Called:</strong> ${getApiUrl('sales/suppliers')}</p>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Success:</strong> ${data.success}</p>
+                    <p><strong>Database Type:</strong> ${data.database_type || 'Not specified'}</p>
+                    <p><strong>Data Count:</strong> ${data.data ? data.data.length : 0}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+                if (data.success && data.data) {
+                    results.innerHTML += '<h3>Suppliers:</h3><ul>';
+                    data.data.forEach(supplier => {
+                        results.innerHTML += `<li>${supplier.nfournisseur} - ${supplier.nom_fournisseur}</li>`;
+                    });
+                    results.innerHTML += '</ul>';
+                }
+                
+            } catch (error) {
+                results.innerHTML = `<h2>Error:</h2><p>${error.message}</p>`;
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

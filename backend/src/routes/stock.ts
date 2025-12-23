@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
+import { backendDatabaseService } from '../services/databaseService.js';
 
 const stock = new Hono();
 
@@ -57,7 +59,7 @@ stock.get('/low-stock', async (c) => {
     // Filter articles where stock_f <= seuil
     const lowStockArticles = articles?.filter(article => article.stock_f <= article.seuil) || [];
 
-    return c.json({ success: true, data: lowStockArticles });
+    return c.json({ success: true, data: lowStockArticles , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching low stock alerts:', error);
     return c.json({ success: false, error: 'Failed to fetch low stock alerts' }, 500);
@@ -149,7 +151,7 @@ stock.post('/entry', async (c) => {
 
     if (movementError) throw movementError;
 
-    return c.json({ success: true, data: movement });
+    return c.json({ success: true, data: movement , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error creating stock entry:', error);
     return c.json({ success: false, error: 'Failed to create stock entry' }, 500);
@@ -184,7 +186,7 @@ stock.get('/valuation/by-family', async (c) => {
       return acc;
     }, {});
 
-    return c.json({ success: true, data: Object.values(valuationByFamily) });
+    return c.json({ success: true, data: Object.values(valuationByFamily) , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching stock valuation:', error);
     return c.json({ success: false, error: 'Failed to fetch stock valuation' }, 500);

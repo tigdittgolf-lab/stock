@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
+import { backendDatabaseService } from '../services/databaseService.js';
 import { tenantMiddleware, getTenantContext } from '../middleware/tenantMiddleware.js';
 
 // Cache global des articles créés
@@ -20,7 +22,7 @@ articles.get('/', async (c) => {
     console.log(`✅ Using real database via RPC function`);
     
     try {
-      const { data: articlesData, error } = await supabaseAdmin.rpc('get_articles_by_tenant', {
+      const { data: articlesData, error } = await databaseRouter.rpc('get_articles_by_tenant', {
         p_tenant: tenant.schema
       });
       
@@ -55,7 +57,7 @@ articles.get('/', async (c) => {
         data: modifiedData,
         tenant: tenant.schema,
         source: 'real_database_via_rpc'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
       
     } catch (rpcError) {
       console.error('❌ RPC function not available, using fallback:', rpcError);
@@ -66,7 +68,7 @@ articles.get('/', async (c) => {
         tenant: tenant.schema,
         source: 'empty_fallback',
         message: 'RPC functions not yet created. Please run the SQL script first.'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
   } catch (error) {
@@ -87,7 +89,7 @@ articles.get('/force-refresh', async (c) => {
     createdArticlesCache.delete(`${tenant.schema}_deleted`);
 
     // Utiliser la même logique que GET /
-    const { data: articlesData, error } = await supabaseAdmin.rpc('get_articles_by_tenant', {
+    const { data: articlesData, error } = await databaseRouter.rpc('get_articles_by_tenant', {
       p_tenant: tenant.schema
     });
     
@@ -103,7 +105,7 @@ articles.get('/force-refresh', async (c) => {
       data: articlesData || [],
       tenant: tenant.schema,
       source: 'force_refresh_via_rpc'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
     
   } catch (error) {
     console.error('Error in force-refresh:', error);
@@ -120,7 +122,7 @@ articles.get('/:id', async (c) => {
     console.log(`🔍 Looking for article: ${id} in schema: ${tenant.schema}`);
     
     // Utiliser la vraie base de données via RPC
-    const { data: articlesData, error } = await supabaseAdmin.rpc('get_articles_by_tenant', {
+    const { data: articlesData, error } = await databaseRouter.rpc('get_articles_by_tenant', {
       p_tenant: tenant.schema
     });
     
@@ -134,7 +136,7 @@ articles.get('/:id', async (c) => {
     
     if (foundArticle) {
       console.log(`✅ Found article ${id} in database`);
-      return c.json({ success: true, data: foundArticle });
+      return c.json({ success: true, data: foundArticle , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     // Chercher aussi dans le cache et les modifications
@@ -145,14 +147,14 @@ articles.get('/:id', async (c) => {
     const modifiedArticle = modifications.get(id);
     if (modifiedArticle) {
       console.log(`✅ Found article ${id} in modifications cache`);
-      return c.json({ success: true, data: modifiedArticle });
+      return c.json({ success: true, data: modifiedArticle , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
     
     // Vérifier le cache des nouveaux articles
     const cachedArticle = cachedArticles.find(article => article.narticle === id);
     if (cachedArticle) {
       console.log(`✅ Found article ${id} in cache`);
-      return c.json({ success: true, data: cachedArticle });
+      return c.json({ success: true, data: cachedArticle , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     console.log(`❌ Article ${id} not found`);

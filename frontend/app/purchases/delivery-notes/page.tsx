@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getApiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import styles from '../../page.module.css';
 
@@ -52,7 +53,7 @@ export default function CreatePurchaseBL() {
   const fetchSuppliers = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('${window.location.origin}/api/sales/suppliers', {
+      const response = await fetch('getApiUrl('sales/suppliers')', {
         headers: {
           'X-Tenant': tenant
         }
@@ -70,7 +71,7 @@ export default function CreatePurchaseBL() {
   const fetchArticles = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('${window.location.origin}/api/sales/articles', {
+      const response = await fetch('getApiUrl('sales/articles')', {
         headers: {
           'X-Tenant': tenant
         }
@@ -162,7 +163,7 @@ export default function CreatePurchaseBL() {
 
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('${window.location.origin}/api/purchases/delivery-notes', {
+      const response = await fetch('getApiUrl('purchases/delivery-notes')', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

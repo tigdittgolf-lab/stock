@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
+import { backendDatabaseService } from '../services/databaseService.js';
 
 const reports = new Hono();
 
@@ -98,7 +100,7 @@ reports.get('/sales/by-client', async (c) => {
       return acc;
     }, {});
 
-    return c.json({ success: true, data: Object.values(salesByClient) });
+    return c.json({ success: true, data: Object.values(salesByClient) , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching sales by client:', error);
     return c.json({ success: false, error: 'Failed to fetch sales by client' }, 500);
@@ -146,7 +148,7 @@ reports.get('/sales/by-article', async (c) => {
       return acc;
     }, {});
 
-    return c.json({ success: true, data: Object.values(salesByArticle) });
+    return c.json({ success: true, data: Object.values(salesByArticle) , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching sales by article:', error);
     return c.json({ success: false, error: 'Failed to fetch sales by article' }, 500);
@@ -313,7 +315,7 @@ reports.get('/top-articles', async (c) => {
       .sort((a: any, b: any) => b.total_revenue - a.total_revenue)
       .slice(0, limit);
 
-    return c.json({ success: true, data: topArticles });
+    return c.json({ success: true, data: topArticles , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching top articles:', error);
     return c.json({ success: false, error: 'Failed to fetch top articles' }, 500);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getApiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import styles from '../login/login.module.css';
 
@@ -19,7 +20,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('${window.location.origin}/api/auth-real/forgot-password', {
+      const response = await fetch('getApiUrl('auth-real/forgot-password')', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
 import { PDFService } from '../services/pdfService.js';
 import { numberToWords } from '../utils/numberToWords.js';
 
@@ -19,7 +20,7 @@ async function fetchBLData(tenant: string, id: string) {
   console.log(`📋 PDF: Fetching REAL BL data ${requestedId} for tenant: ${tenant}`);
 
   // Utiliser la fonction RPC pour récupérer le BL avec détails
-  const { data: blResult, error: blError } = await supabaseAdmin.rpc('get_bl_with_details', {
+  const { data: blResult, error: blError } = await databaseRouter.rpc('get_bl_with_details', {
     p_tenant: tenant,
     p_nfact: requestedId
   });
@@ -60,7 +61,7 @@ pdf.get('/invoice/:id', async (c) => {
     console.log(`📄 Generating invoice PDF for ID: ${id}, Tenant: ${tenant}`);
 
     // Fetch invoice data using our new RPC function with all details
-    const { data: invoiceData, error } = await supabaseAdmin.rpc('get_fact_for_pdf', {
+    const { data: invoiceData, error } = await databaseRouter.rpc('get_fact_for_pdf', {
       p_tenant: tenant,
       p_nfact: parseInt(id)
     });
@@ -309,7 +310,7 @@ pdf.get('/proforma/:id', async (c) => {
     console.log(`📄 Generating proforma PDF for ID: ${id}, Tenant: ${tenant}`);
 
     // Fetch proforma data using the correct RPC function
-    const { data: proformaResult, error } = await supabaseAdmin.rpc('get_proforma_by_id', {
+    const { data: proformaResult, error } = await databaseRouter.rpc('get_proforma_by_id', {
       p_tenant: tenant,
       p_nfact: parseInt(id)
     });
@@ -322,11 +323,11 @@ pdf.get('/proforma/:id', async (c) => {
     console.log(`✅ Proforma data fetched successfully for ID: ${id}`);
 
     // Get client and article data for enrichment
-    const { data: clientsData } = await supabaseAdmin.rpc('get_clients_by_tenant', {
+    const { data: clientsData } = await databaseRouter.rpc('get_clients_by_tenant', {
       p_tenant: tenant
     });
 
-    const { data: articlesData } = await supabaseAdmin.rpc('get_articles_by_tenant', {
+    const { data: articlesData } = await databaseRouter.rpc('get_articles_by_tenant', {
       p_tenant: tenant
     });
 

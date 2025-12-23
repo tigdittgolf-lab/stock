@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getApiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import styles from '../../../page.module.css';
 
@@ -29,7 +30,7 @@ export default function PurchaseInvoicesList() {
   const fetchInvoices = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`${window.location.origin}/api/purchases/invoices`, {
+      const response = await fetch(`getApiUrl('purchases/invoices')`, {
         headers: {
           'X-Tenant': tenant
         }

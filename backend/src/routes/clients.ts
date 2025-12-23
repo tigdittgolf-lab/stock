@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
+import { backendDatabaseService } from '../services/databaseService.js';
 
 const clients = new Hono();
 
@@ -22,7 +24,7 @@ clients.get('/', async (c) => {
 
     console.log(`Fetching clients for tenant: ${tenant}`);
 
-    const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+    const { data, error } = await databaseRouter.rpc('exec_sql', {
       sql: `SELECT * FROM "${tenant}".client ORDER BY nclient;`
     });
 
@@ -33,7 +35,7 @@ clients.get('/', async (c) => {
       return c.json({ success: false, error: `Failed to fetch clients: ${error.message}` }, 500);
     }
 
-    return c.json({ success: true, data: data || [] });
+    return c.json({ success: true, data: data || [] , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching clients:', error);
     return c.json({ success: false, error: 'Failed to fetch clients' }, 500);
@@ -50,7 +52,7 @@ clients.get('/:id', async (c) => {
 
     const clientId = c.req.param('id');
     
-    const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+    const { data, error } = await databaseRouter.rpc('exec_sql', {
       sql: `SELECT * FROM "${tenant}".client WHERE nclient = '${clientId}' LIMIT 1;`
     });
 
@@ -63,7 +65,7 @@ clients.get('/:id', async (c) => {
       return c.json({ success: false, error: 'Client not found' }, 404);
     }
 
-    return c.json({ success: true, data: data[0] });
+    return c.json({ success: true, data: data[0] , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching client:', error);
     return c.json({ success: false, error: 'Failed to fetch client' }, 500);
@@ -95,7 +97,7 @@ clients.post('/', async (c) => {
       return c.json({ success: false, error: 'Client code and company name are required' }, 400);
     }
 
-    const { error } = await supabaseAdmin.rpc('exec_sql', {
+    const { error } = await databaseRouter.rpc('exec_sql', {
       sql: `
         INSERT INTO "${tenant}".client (
           nclient, raison_sociale, adresse, contact_person, tel, email,

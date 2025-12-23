@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getApiUrl } from '@/lib/api';
 
 export default function SimpleTest() {
   const [result, setResult] = useState<string>('');
@@ -13,7 +14,7 @@ export default function SimpleTest() {
     try {
       console.log('🔍 Starting fetch...');
       
-      const response = await fetch('${window.location.origin}/api/sales/clients', {
+      const response = await fetch('getApiUrl('sales/clients')', {
         headers: {
           'Content-Type': 'application/json',
           'X-Tenant': '2025_bu01'

@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
+import { backendDatabaseService } from '../services/databaseService.js';
 
 const sales = new Hono();
 
@@ -27,7 +29,7 @@ sales.get('/test-all-schemas', async (c) => {
     
     // Test 1: Lister tous les schémas
     try {
-      const { data: schemas, error: schemaError } = await supabaseAdmin.rpc('exec_sql', {
+      const { data: schemas, error: schemaError } = await databaseRouter.rpc('exec_sql', {
         sql: `SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE '%bu%' OR schema_name LIKE '%2025%' OR schema_name LIKE '%2024%' ORDER BY schema_name;`
       });
       results.push({
@@ -46,7 +48,7 @@ sales.get('/test-all-schemas', async (c) => {
     
     // Test 2: Chercher des tables client dans tous les schémas
     try {
-      const { data: clientTables, error: tableError } = await supabaseAdmin.rpc('exec_sql', {
+      const { data: clientTables, error: tableError } = await databaseRouter.rpc('exec_sql', {
         sql: `SELECT table_schema, table_name FROM information_schema.tables WHERE table_name = 'client' ORDER BY table_schema;`
       });
       results.push({
@@ -65,7 +67,7 @@ sales.get('/test-all-schemas', async (c) => {
     
     // Test 3: Vérifier la table client dans le schéma public
     try {
-      const { data: publicClients, error: publicError } = await supabaseAdmin.rpc('exec_sql', {
+      const { data: publicClients, error: publicError } = await databaseRouter.rpc('exec_sql', {
         sql: `SELECT COUNT(*) as count FROM public.client;`
       });
       results.push({
@@ -84,7 +86,7 @@ sales.get('/test-all-schemas', async (c) => {
     
     // Test 4: Lister quelques clients du schéma public
     try {
-      const { data: publicClientData, error: publicClientError } = await supabaseAdmin.rpc('exec_sql', {
+      const { data: publicClientData, error: publicClientError } = await databaseRouter.rpc('exec_sql', {
         sql: `SELECT * FROM public.client LIMIT 5;`
       });
       results.push({
@@ -125,7 +127,7 @@ sales.get('/test-db-clients', async (c) => {
     
     // Test 1: Vérifier si la table client existe
     try {
-      const { data: tableCheck, error: tableError } = await supabaseAdmin.rpc('exec_sql', {
+      const { data: tableCheck, error: tableError } = await databaseRouter.rpc('exec_sql', {
         sql: `SELECT table_name FROM information_schema.tables WHERE table_schema = '${tenant}' AND table_name = 'client';`
       });
       results.push({
@@ -144,7 +146,7 @@ sales.get('/test-db-clients', async (c) => {
     
     // Test 2: Compter les clients avec requête simple
     try {
-      const { data: countData, error: countError } = await supabaseAdmin.rpc('exec_sql', {
+      const { data: countData, error: countError } = await databaseRouter.rpc('exec_sql', {
         sql: `SELECT COUNT(*) as count FROM "${tenant}".client;`
       });
       results.push({
@@ -164,7 +166,7 @@ sales.get('/test-db-clients', async (c) => {
 
     // Test 2b: Test avec requête directe sans guillemets
     try {
-      const { data: simpleData, error: simpleError } = await supabaseAdmin.rpc('exec_sql', {
+      const { data: simpleData, error: simpleError } = await databaseRouter.rpc('exec_sql', {
         sql: `SELECT * FROM ${tenant}.client LIMIT 3;`
       });
       results.push({
@@ -183,7 +185,7 @@ sales.get('/test-db-clients', async (c) => {
     
     // Test 3: Lister quelques clients
     try {
-      const { data: clientData, error: clientError } = await supabaseAdmin.rpc('exec_sql', {
+      const { data: clientData, error: clientError } = await databaseRouter.rpc('exec_sql', {
         sql: `SELECT * FROM "${tenant}".client LIMIT 5;`
       });
       results.push({
@@ -472,7 +474,7 @@ sales.post('/create-client-table', async (c) => {
 
     console.log(`🏗️ Creating client table for ${tenant}`);
 
-    const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+    const { data, error } = await databaseRouter.rpc('exec_sql', {
       sql: `
         CREATE TABLE IF NOT EXISTS "${tenant}".client (
           nclient VARCHAR(20) PRIMARY KEY,
@@ -560,7 +562,7 @@ sales.post('/init-sample-clients', async (c) => {
     const results = [];
     for (const client of sampleClients) {
       try {
-        const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+        const { data, error } = await databaseRouter.rpc('exec_sql', {
           sql: `
             INSERT INTO "${tenant}".client (
               nclient, raison_sociale, adresse, contact_person, 
@@ -615,7 +617,7 @@ sales.get('/test-stock-rpc', async (c) => {
     console.log('🧪 Testing RPC stock functions for tenant:', tenant);
     
     // Test get_article_stock
-    const { data: stockData, error: stockError } = await supabaseAdmin.rpc('get_article_stock', {
+    const { data: stockData, error: stockError } = await databaseRouter.rpc('get_article_stock', {
       p_tenant: tenant,
       p_narticle: '121'
     });
@@ -623,7 +625,7 @@ sales.get('/test-stock-rpc', async (c) => {
     console.log('📊 get_article_stock result:', { data: stockData, error: stockError });
     
     // Test update_stock_bl (with 0 quantity to not actually change stock)
-    const { data: updateData, error: updateError } = await supabaseAdmin.rpc('update_stock_bl', {
+    const { data: updateData, error: updateError } = await databaseRouter.rpc('update_stock_bl', {
       p_tenant: tenant,
       p_narticle: '121',
       p_quantity: 0
@@ -650,7 +652,7 @@ sales.get('/test-exec-sql', async (c) => {
     console.log('🧪 Testing exec_sql function');
     
     // Test simple query
-    const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+    const { data, error } = await databaseRouter.rpc('exec_sql', {
       sql: 'SELECT 1 as test_value;'
     });
     
@@ -784,7 +786,7 @@ sales.get('/clients', async (c) => {
       data: allClients,
       tenant: tenant,
       source: 'real_database_data_with_cache'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching clients:', error);
     return c.json({ success: false, error: 'Failed to fetch clients' }, 500);
@@ -891,7 +893,7 @@ sales.get('/clients/:id', async (c) => {
     
     if (foundClient) {
       console.log(`✅ Found client ${id} in real data`);
-      return c.json({ success: true, data: foundClient });
+      return c.json({ success: true, data: foundClient , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     // Si exec_sql retourne null, utiliser les mêmes données que GET /clients avec modifications
@@ -956,7 +958,7 @@ sales.get('/clients/:id', async (c) => {
       return c.json({ success: false, error: 'Client not found' }, 404);
     }
 
-    return c.json({ success: true, data: data[0] });
+    return c.json({ success: true, data: data[0] , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching client:', error);
     return c.json({ success: false, error: 'Client not found' }, 404);
@@ -988,7 +990,7 @@ sales.post('/clients', async (c) => {
     } = body;
 
     // Vérifier si le client existe déjà
-    let { data: existingClient, error: checkError } = await supabaseAdmin.rpc('exec_sql', {
+    let { data: existingClient, error: checkError } = await databaseRouter.rpc('exec_sql', {
       sql: `SELECT nclient FROM "${tenant}".client WHERE nclient = '${nclient}' LIMIT 1;`
     });
 
@@ -1024,7 +1026,7 @@ sales.post('/clients', async (c) => {
     }
 
     // Essayer d'insérer en base de données
-    const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+    const { data, error } = await databaseRouter.rpc('exec_sql', {
       sql: `
         INSERT INTO "${tenant}".client (
           nclient, raison_sociale, adresse, contact_person, 
@@ -1429,7 +1431,7 @@ sales.get('/suppliers', async (c) => {
       data: allSuppliers,
       tenant: tenant,
       source: 'real_database_data_with_cache'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching suppliers:', error);
     return c.json({ success: false, error: 'Failed to fetch suppliers' }, 500);
@@ -1496,7 +1498,7 @@ sales.get('/suppliers/:id', async (c) => {
     
     if (foundSupplier) {
       console.log(`✅ Found supplier ${id} in real data`);
-      return c.json({ success: true, data: foundSupplier });
+      return c.json({ success: true, data: foundSupplier , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     let data = null;
@@ -1506,7 +1508,7 @@ sales.get('/suppliers/:id', async (c) => {
       return c.json({ success: false, error: 'Supplier not found' }, 404);
     }
 
-    return c.json({ success: true, data: data[0] });
+    return c.json({ success: true, data: data[0] , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching supplier:', error);
     return c.json({ success: false, error: 'Supplier not found' }, 404);
@@ -1536,7 +1538,7 @@ sales.post('/suppliers', async (c) => {
     } = body;
 
     // Vérifier si le fournisseur existe déjà
-    let { data: existingSupplier, error: checkError } = await supabaseAdmin.rpc('exec_sql', {
+    let { data: existingSupplier, error: checkError } = await databaseRouter.rpc('exec_sql', {
       sql: `SELECT nfournisseur FROM "${tenant}".fournisseur WHERE nfournisseur = '${nfournisseur}' LIMIT 1;`
     });
 
@@ -1572,7 +1574,7 @@ sales.post('/suppliers', async (c) => {
     }
 
     // Essayer d'insérer en base de données
-    const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+    const { data, error } = await databaseRouter.rpc('exec_sql', {
       sql: `
         INSERT INTO "${tenant}".fournisseur (
           nfournisseur, nom_fournisseur, resp_fournisseur, adresse_fourni, 
@@ -1781,13 +1783,13 @@ sales.get('/articles', async (c) => {
     
     // Utiliser la vraie base de données via RPC (comme dans articles.ts)
     try {
-      const { data: articlesData, error } = await supabaseAdmin.rpc('get_articles_by_tenant', {
+      const { data: articlesData, error } = await databaseRouter.rpc('get_articles_by_tenant', {
         p_tenant: tenant
       });
       
       if (error) {
         console.error('❌ RPC Error in sales/articles:', error);
-        return c.json({ success: true, data: [], message: 'No RPC function available' });
+        return c.json({ success: true, data: [], message: 'No RPC function available' , database_type: backendDatabaseService.getActiveDatabaseType() });
       }
       
       console.log(`✅ Found ${articlesData?.length || 0} articles in database via RPC`);
@@ -1815,7 +1817,7 @@ sales.get('/articles', async (c) => {
         data: modifiedData,
         tenant: tenant,
         source: 'real_database_via_rpc'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
       
     } catch (rpcError) {
       console.error('❌ RPC function not available in sales/articles:', rpcError);
@@ -1825,7 +1827,7 @@ sales.get('/articles', async (c) => {
         tenant: tenant,
         source: 'empty_fallback',
         message: 'RPC functions not available'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
   } catch (error) {
     console.error('Error fetching articles:', error);
@@ -1869,7 +1871,7 @@ sales.get('/invoices', async (c) => {
 
     try {
       // Récupérer les factures depuis la base de données via RPC
-      const { data: invoicesRaw, error: fetchError } = await supabaseAdmin.rpc('get_fact_list', {
+      const { data: invoicesRaw, error: fetchError } = await databaseRouter.rpc('get_fact_list', {
         p_tenant: tenant
       });
       
@@ -1877,7 +1879,7 @@ sales.get('/invoices', async (c) => {
         console.warn('Database fetch failed, using cache fallback:', fetchError);
         const cachedInvoices = createdDocumentsCache.get(`${tenant}_invoices`) || [];
         console.log(`✅ Found ${cachedInvoices.length} invoices in cache (fallback)`);
-        return c.json({ success: true, data: cachedInvoices, source: 'cache_fallback' });
+        return c.json({ success: true, data: cachedInvoices, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
       }
 
       const invoices = invoicesRaw || [];
@@ -1895,13 +1897,13 @@ sales.get('/invoices', async (c) => {
       }));
 
       console.log(`✅ Found ${formattedInvoices.length} invoices in database`);
-      return c.json({ success: true, data: formattedInvoices, source: 'database' });
+      return c.json({ success: true, data: formattedInvoices, source: 'database' , database_type: backendDatabaseService.getActiveDatabaseType() });
 
     } catch (dbError) {
       console.warn('Database connection failed, using cache fallback:', dbError);
       const cachedInvoices = createdDocumentsCache.get(`${tenant}_invoices`) || [];
       console.log(`✅ Found ${cachedInvoices.length} invoices in cache (fallback)`);
-      return c.json({ success: true, data: cachedInvoices, source: 'cache_fallback' });
+      return c.json({ success: true, data: cachedInvoices, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
   } catch (error) {
@@ -1931,7 +1933,7 @@ sales.get('/invoices/:id', async (c) => {
 
     try {
       // Récupérer la facture depuis la base de données via RPC
-      const { data: invoice, error: fetchError } = await supabaseAdmin.rpc('get_fact_by_id', {
+      const { data: invoice, error: fetchError } = await databaseRouter.rpc('get_fact_by_id', {
         p_tenant: tenant,
         p_nfact: id
       });
@@ -1953,7 +1955,7 @@ sales.get('/invoices/:id', async (c) => {
         }
         
         console.log(`✅ Found invoice ${id} in cache (fallback)`);
-        return c.json({ success: true, data: cachedInvoice, source: 'cache_fallback' });
+        return c.json({ success: true, data: cachedInvoice, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
       }
 
       // Formater les données pour correspondre au format attendu
@@ -1978,7 +1980,7 @@ sales.get('/invoices/:id', async (c) => {
       };
 
       console.log(`✅ Found invoice ${id} in database with ${formattedInvoice.details.length} details`);
-      return c.json({ success: true, data: formattedInvoice, source: 'database' });
+      return c.json({ success: true, data: formattedInvoice, source: 'database' , database_type: backendDatabaseService.getActiveDatabaseType() });
 
     } catch (dbError) {
       console.warn('Database connection failed, using cache fallback:', dbError);
@@ -1993,7 +1995,7 @@ sales.get('/invoices/:id', async (c) => {
       }
       
       console.log(`✅ Found invoice ${id} in cache (fallback)`);
-      return c.json({ success: true, data: cachedInvoice, source: 'cache_fallback' });
+      return c.json({ success: true, data: cachedInvoice, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
   } catch (error) {
@@ -2171,7 +2173,7 @@ sales.post('/invoices', async (c) => {
       console.log(`💾 Saving Invoice ${nextNFact} to database for client ${Nclient} in schema ${tenant}`);
       
       // Créer l'en-tête de la facture via RPC
-      const { data: invoiceHeader, error: invoiceError } = await supabaseAdmin.rpc('insert_fact', {
+      const { data: invoiceHeader, error: invoiceError } = await databaseRouter.rpc('insert_fact', {
         p_tenant: tenant,
         p_nfact: nextNFact,
         p_nclient: Nclient,
@@ -2193,7 +2195,7 @@ sales.post('/invoices', async (c) => {
       // Sauvegarder les détails de la facture via RPC
       let detailsError = null;
       for (const detail of processedDetails) {
-        const { data: detailResult, error: detailErr } = await supabaseAdmin.rpc('insert_detail_fact', {
+        const { data: detailResult, error: detailErr } = await databaseRouter.rpc('insert_detail_fact', {
           p_tenant: tenant,
           p_nfact: nextNFact,
           p_narticle: detail.narticle,
@@ -2221,7 +2223,7 @@ sales.post('/invoices', async (c) => {
       for (const detail of processedDetails) {
         try {
           // Vérifier si les fonctions RPC existent
-          const { data: currentStockRaw, error: fetchError } = await supabaseAdmin.rpc('get_article_stock', {
+          const { data: currentStockRaw, error: fetchError } = await databaseRouter.rpc('get_article_stock', {
             p_tenant: tenant,
             p_narticle: detail.narticle
           });
@@ -2239,7 +2241,7 @@ sales.post('/invoices', async (c) => {
           const currentStock = currentStockRaw?.stock_f || 0;
 
           // Mettre à jour le stock via RPC
-          const { data: updateResult, error: stockError } = await supabaseAdmin.rpc('update_stock_f', {
+          const { data: updateResult, error: stockError } = await databaseRouter.rpc('update_stock_f', {
             p_tenant: tenant,
             p_narticle: detail.narticle,
             p_quantity: detail.qte
@@ -2389,7 +2391,7 @@ sales.put('/invoices/:id', async (c) => {
       });
     }
 
-    return c.json({ success: true, data: invoiceData_result });
+    return c.json({ success: true, data: invoiceData_result , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error updating invoice:', error);
     return c.json({ success: false, error: 'Failed to update invoice' }, 500);
@@ -2462,7 +2464,7 @@ sales.get('/delivery-notes', async (c) => {
 
     try {
       // Récupérer les BL depuis la base de données via RPC
-      const { data: deliveryNotesRaw, error: fetchError } = await supabaseAdmin.rpc('get_bl_list', {
+      const { data: deliveryNotesRaw, error: fetchError } = await databaseRouter.rpc('get_bl_list', {
         p_tenant: tenant
       });
       
@@ -2473,7 +2475,7 @@ sales.get('/delivery-notes', async (c) => {
         // Fallback vers le cache si la base de données échoue
         const cachedDeliveryNotes = createdDocumentsCache.get(`${tenant}_bl`) || [];
         console.log(`✅ Found ${cachedDeliveryNotes.length} delivery notes in cache (fallback)`);
-        return c.json({ success: true, data: cachedDeliveryNotes, source: 'cache_fallback' });
+        return c.json({ success: true, data: cachedDeliveryNotes, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
       }
 
       // Formater les données pour correspondre au format attendu
@@ -2489,14 +2491,14 @@ sales.get('/delivery-notes', async (c) => {
       }));
 
       console.log(`✅ Found ${formattedDeliveryNotes.length} delivery notes in database`);
-      return c.json({ success: true, data: formattedDeliveryNotes, source: 'database' });
+      return c.json({ success: true, data: formattedDeliveryNotes, source: 'database' , database_type: backendDatabaseService.getActiveDatabaseType() });
 
     } catch (dbError) {
       console.warn('Database connection failed, using cache fallback:', dbError);
       // Fallback vers le cache si la base de données échoue
       const cachedDeliveryNotes = createdDocumentsCache.get(`${tenant}_bl`) || [];
       console.log(`✅ Found ${cachedDeliveryNotes.length} delivery notes in cache (fallback)`);
-      return c.json({ success: true, data: cachedDeliveryNotes, source: 'cache_fallback' });
+      return c.json({ success: true, data: cachedDeliveryNotes, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
   } catch (error) {
@@ -2527,7 +2529,7 @@ sales.get('/delivery-notes/:id', async (c) => {
     try {
       // Récupérer le BL depuis la base de données via RPC
       console.log(`🔍 Calling get_bl_by_id with tenant: ${tenant}, id: ${id}`);
-      const { data: deliveryNote, error: fetchError } = await supabaseAdmin.rpc('get_bl_by_id', {
+      const { data: deliveryNote, error: fetchError } = await databaseRouter.rpc('get_bl_by_id', {
         p_tenant: tenant,
         p_nfact: id
       });
@@ -2559,7 +2561,7 @@ sales.get('/delivery-notes/:id', async (c) => {
         }
         
         console.log(`✅ Found delivery note ${id} in cache (fallback)`);
-        return c.json({ success: true, data: cachedDeliveryNote, source: 'cache_fallback' });
+        return c.json({ success: true, data: cachedDeliveryNote, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
       }
 
       if (!deliveryNote) {
@@ -2589,7 +2591,7 @@ sales.get('/delivery-notes/:id', async (c) => {
       };
 
       console.log(`✅ Found delivery note ${id} in database with ${formattedDeliveryNote.details.length} details`);
-      return c.json({ success: true, data: formattedDeliveryNote, source: 'database' });
+      return c.json({ success: true, data: formattedDeliveryNote, source: 'database' , database_type: backendDatabaseService.getActiveDatabaseType() });
 
     } catch (dbError) {
       console.warn('Database connection failed, using cache fallback:', dbError);
@@ -2604,7 +2606,7 @@ sales.get('/delivery-notes/:id', async (c) => {
       }
       
       console.log(`✅ Found delivery note ${id} in cache (fallback)`);
-      return c.json({ success: true, data: cachedDeliveryNote, source: 'cache_fallback' });
+      return c.json({ success: true, data: cachedDeliveryNote, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
   } catch (error) {
@@ -2632,7 +2634,7 @@ sales.post('/delivery-notes', async (c) => {
     console.log(`🆕 Creating delivery note for tenant: ${tenant}, Client: ${Nclient}`);
 
     // 1. Obtenir le prochain numéro de BL
-    const { data: nextNBl, error: numberError } = await supabaseAdmin.rpc('get_next_bl_number_simple', {
+    const { data: nextNBl, error: numberError } = await databaseRouter.rpc('get_next_bl_number_simple', {
       p_tenant: tenant
     });
 
@@ -2642,7 +2644,7 @@ sales.post('/delivery-notes', async (c) => {
     }
 
     // 2. Valider le client
-    const { data: clients, error: clientError } = await supabaseAdmin.rpc('get_clients_by_tenant', {
+    const { data: clients, error: clientError } = await databaseRouter.rpc('get_clients_by_tenant', {
       p_tenant: tenant
     });
 
@@ -2657,7 +2659,7 @@ sales.post('/delivery-notes', async (c) => {
     }
 
     // 3. Valider les articles
-    const { data: articles, error: articleError } = await supabaseAdmin.rpc('get_articles_by_tenant', {
+    const { data: articles, error: articleError } = await databaseRouter.rpc('get_articles_by_tenant', {
       p_tenant: tenant
     });
 
@@ -2678,7 +2680,7 @@ sales.post('/delivery-notes', async (c) => {
       }
 
       // Vérifier le stock
-      const { data: stockInfo, error: stockError } = await supabaseAdmin.rpc('get_article_stock_simple', {
+      const { data: stockInfo, error: stockError } = await databaseRouter.rpc('get_article_stock_simple', {
         p_tenant: tenant,
         p_narticle: detail.Narticle
       });
@@ -2717,7 +2719,7 @@ sales.post('/delivery-notes', async (c) => {
     // 5. Créer le BL
     const blDate = date_fact || new Date().toISOString().split('T')[0];
     
-    const { data: blHeader, error: blError } = await supabaseAdmin.rpc('insert_bl_simple', {
+    const { data: blHeader, error: blError } = await databaseRouter.rpc('insert_bl_simple', {
       p_tenant: tenant,
       p_nfact: nextNBl,
       p_nclient: Nclient,
@@ -2733,7 +2735,7 @@ sales.post('/delivery-notes', async (c) => {
 
     // 6. Ajouter les détails
     for (const detail of processedDetails) {
-      const { error: detailErr } = await supabaseAdmin.rpc('insert_detail_bl_simple', {
+      const { error: detailErr } = await databaseRouter.rpc('insert_detail_bl_simple', {
         p_tenant: tenant,
         p_nfact: detail.nfact,
         p_narticle: detail.narticle,
@@ -2751,7 +2753,7 @@ sales.post('/delivery-notes', async (c) => {
 
     // 7. Mettre à jour les stocks
     for (const detail of processedDetails) {
-      const { error: stockError } = await supabaseAdmin.rpc('update_stock_bl_simple', {
+      const { error: stockError } = await databaseRouter.rpc('update_stock_bl_simple', {
         p_tenant: tenant,
         p_narticle: detail.narticle,
         p_quantity: detail.qte
@@ -2835,7 +2837,7 @@ sales.get('/proforma', async (c) => {
 
     try {
       // Récupérer les proformas depuis la base de données via RPC
-      const { data: proformasRaw, error: fetchError } = await supabaseAdmin.rpc('get_fprof_list', {
+      const { data: proformasRaw, error: fetchError } = await databaseRouter.rpc('get_fprof_list', {
         p_tenant: tenant
       });
 
@@ -2846,7 +2848,7 @@ sales.get('/proforma', async (c) => {
 
       const proformas = proformasRaw || [];
       console.log(`✅ Found ${proformas.length} proforma invoices in database`);
-      return c.json({ success: true, data: proformas });
+      return c.json({ success: true, data: proformas , database_type: backendDatabaseService.getActiveDatabaseType() });
 
     } catch (dbError) {
       console.warn('Database access failed, falling back to cache:', dbError);
@@ -2854,7 +2856,7 @@ sales.get('/proforma', async (c) => {
       // Fallback: utiliser le cache
       const proformas = createdDocumentsCache.get(`${tenant}_proformas`) || [];
       console.log(`📊 Cache has ${proformas.length} proforma invoices`);
-      return c.json({ success: true, data: proformas, source: 'cache_fallback' });
+      return c.json({ success: true, data: proformas, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
   } catch (error) {
     console.error('Error fetching proforma invoices:', error);
@@ -2883,7 +2885,7 @@ sales.get('/proforma/:id', async (c) => {
 
     try {
       // Récupérer la proforma depuis la base de données via RPC
-      const { data: proformaRaw, error: fetchError } = await supabaseAdmin.rpc('get_fprof_by_id', {
+      const { data: proformaRaw, error: fetchError } = await databaseRouter.rpc('get_fprof_by_id', {
         p_tenant: tenant,
         p_nfact: id
       });
@@ -2899,7 +2901,7 @@ sales.get('/proforma/:id', async (c) => {
       }
 
       console.log(`✅ Found proforma ${id} in database`);
-      return c.json({ success: true, data: proformaRaw });
+      return c.json({ success: true, data: proformaRaw , database_type: backendDatabaseService.getActiveDatabaseType() });
 
     } catch (dbError) {
       console.warn('Database access failed, falling back to cache:', dbError);
@@ -2916,7 +2918,7 @@ sales.get('/proforma/:id', async (c) => {
       }
 
       console.log(`✅ Found proforma ${id} in cache`);
-      return c.json({ success: true, data: proforma, source: 'cache_fallback' });
+      return c.json({ success: true, data: proforma, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
   } catch (error) {
     console.error('Error fetching proforma invoice:', error);
@@ -3010,7 +3012,7 @@ sales.post('/proforma', async (c) => {
       console.log(`💾 Saving Proforma ${nextNProf} to database for client ${Nclient} in schema ${tenant}`);
       
       // Créer l'en-tête de la proforma via RPC
-      const { data: proformaHeader, error: proformaError } = await supabaseAdmin.rpc('insert_fprof', {
+      const { data: proformaHeader, error: proformaError } = await databaseRouter.rpc('insert_fprof', {
         p_tenant: tenant,
         p_nfact: nextNProf,
         p_nclient: Nclient,
@@ -3032,7 +3034,7 @@ sales.post('/proforma', async (c) => {
       // Sauvegarder les détails de la proforma via RPC
       let detailsError = null;
       for (const detail of processedDetails) {
-        const { data: detailResult, error: detailErr } = await supabaseAdmin.rpc('insert_detail_fprof', {
+        const { data: detailResult, error: detailErr } = await databaseRouter.rpc('insert_detail_fprof', {
           p_tenant: tenant,
           p_nfact: nextNProf,
           p_narticle: detail.narticle,
@@ -3383,7 +3385,7 @@ sales.post('/purchases/invoices', async (c) => {
 
     // Update stock levels
     for (const detail of processedDetails) {
-      const { error: stockError } = await supabaseAdmin.rpc('update_stock_on_purchase', {
+      const { error: stockError } = await databaseRouter.rpc('update_stock_on_purchase', {
         p_narticle: detail.narticle,
         p_quantity: detail.qte
       });
@@ -3803,7 +3805,7 @@ sales.get('/stock/low-stock', async (c) => {
     // Sort by stock_f ascending
     lowStockArticles.sort((a, b) => a.stock_f - b.stock_f);
 
-    return c.json({ success: true, data: lowStockArticles });
+    return c.json({ success: true, data: lowStockArticles , database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching low stock alerts:', error);
     return c.json({ success: false, error: 'Failed to fetch low stock alerts' }, 500);

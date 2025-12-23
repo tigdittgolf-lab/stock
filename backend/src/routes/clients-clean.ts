@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
 import { tenantMiddleware, getTenantContext } from '../middleware/tenantMiddleware.js';
+import { backendDatabaseService } from '../services/databaseService.js';
 
 const clients = new Hono();
 
@@ -11,28 +13,31 @@ clients.use('*', tenantMiddleware);
 clients.get('/', async (c) => {
   try {
     const tenant = getTenantContext(c);
-    console.log(`🔍 Fetching clients from schema: ${tenant.schema}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Fetching clients from schema: ${tenant.schema} (DB: ${dbType})`);
 
-    const { data: clientsData, error } = await supabaseAdmin.rpc('get_clients_by_tenant', {
+    const result = await backendDatabaseService.executeRPC('get_clients_by_tenant', {
       p_tenant: tenant.schema
     });
     
-    if (error) {
-      console.error('❌ RPC Error:', error);
+    if (!result.success) {
+      console.error('❌ Database Error:', result.error);
       return c.json({ 
         success: true, 
         data: [], 
-        message: 'RPC function not available. Please run the SQL script first.' 
+        message: `Database function not available (${dbType}). Please check configuration.`,
+        database_type: backendDatabaseService.getActiveDatabaseType()
       });
     }
     
-    console.log(`✅ Found ${clientsData?.length || 0} clients in database`);
+    console.log(`✅ Found ${result.data?.length || 0} clients in ${dbType} database`);
     
     return c.json({ 
       success: true, 
-      data: clientsData || [],
+      data: result.data || [],
       tenant: tenant.schema,
-      source: 'real_database_via_rpc'
+      source: `${dbType}_database`,
+      database_type: dbType
     });
     
   } catch (error) {
@@ -49,7 +54,7 @@ clients.get('/:id', async (c) => {
 
     console.log(`🔍 Looking for client: ${id} in schema: ${tenant.schema}`);
     
-    const { data: clientsData, error } = await supabaseAdmin.rpc('get_clients_by_tenant', {
+    const { data: clientsData, error } = await databaseRouter.rpc('get_clients_by_tenant', {
       p_tenant: tenant.schema
     });
     
@@ -62,7 +67,7 @@ clients.get('/:id', async (c) => {
     
     if (foundClient) {
       console.log(`✅ Found client ${id} in database`);
-      return c.json({ success: true, data: foundClient });
+      return c.json({ success: true, data: foundClient , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
 
     console.log(`❌ Client ${id} not found`);
@@ -99,7 +104,7 @@ clients.post('/', async (c) => {
     } = body;
 
     // Use RPC function to insert into real database
-    const { data, error } = await supabaseAdmin.rpc('insert_client_to_tenant', {
+    const { data, error } = await databaseRouter.rpc('insert_client_to_tenant', {
       p_tenant: tenant.schema,
       p_nclient: nclient,
       p_raison_sociale: raison_sociale,
@@ -155,7 +160,7 @@ clients.put('/:id', async (c) => {
     } = body;
 
     // Use RPC function to update in real database
-    const { data, error } = await supabaseAdmin.rpc('update_client_in_tenant', {
+    const { data, error } = await databaseRouter.rpc('update_client_in_tenant', {
       p_tenant: tenant.schema,
       p_nclient: id,
       p_raison_sociale: raison_sociale,
@@ -194,7 +199,7 @@ clients.delete('/:id', async (c) => {
     console.log(`🗑️ Deleting client ${id} from ${tenant.schema}`);
 
     // Use RPC function to delete from real database
-    const { data, error } = await supabaseAdmin.rpc('delete_client_from_tenant', {
+    const { data, error } = await databaseRouter.rpc('delete_client_from_tenant', {
       p_tenant: tenant.schema,
       p_nclient: id
     });

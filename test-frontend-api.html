@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Frontend API Calls</title>
+</head>
+<body>
+    <h1>Test Frontend API Calls</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testAPICalls() {
+            const results = document.getElementById('results');
+            
+            // Test the getApiUrl function like the frontend does
+            const getApiUrl = (endpoint) => {
+                return `http://localhost:3005/api/${endpoint}`;
+            };
+            
+            try {
+                results.innerHTML += '<h2>Testing API URL Generation:</h2>';
+                results.innerHTML += `<p>getApiUrl('sales/suppliers'): ${getApiUrl('sales/suppliers')}</p>`;
+                
+                results.innerHTML += '<h2>Testing Backend API Call:</h2>';
+                
+                // Test the actual API call that the frontend makes
+                const response = await fetch(getApiUrl('sales/suppliers'), {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                results.innerHTML += `<p><strong>Response Status:</strong> ${response.status}</p>`;
+                results.innerHTML += `<p><strong>Response Data:</strong></p>`;
+                results.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                
+                if (data.success && data.data) {
+                    results.innerHTML += `<p><strong>✅ Found ${data.data.length} suppliers from ${data.database_type || 'unknown'}</strong></p>`;
+                    results.innerHTML += '<ul>';
+                    data.data.forEach(supplier => {
+                        results.innerHTML += `<li>${supplier.nfournisseur} - ${supplier.nom_fournisseur}</li>`;
+                    });
+                    results.innerHTML += '</ul>';
+                } else {
+                    results.innerHTML += `<p><strong>❌ Error:</strong> ${data.error || 'No data'}</p>`;
+                }
+                
+            } catch (error) {
+                results.innerHTML += `<p><strong>❌ Fetch Error:</strong> ${error.message}</p>`;
+            }
+        }
+        
+        // Run test when page loads
+        testAPICalls();
+    </script>
+</body>
+</html>

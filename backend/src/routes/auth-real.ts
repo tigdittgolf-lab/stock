@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
 import { sign, verify } from 'hono/jwt';
 
 // Note: JWT est inclus dans Hono, pas besoin d'installation séparée
@@ -27,7 +28,7 @@ authReal.post('/login', async (c) => {
     }
 
     // Authentifier via RPC
-    const { data, error } = await supabaseAdmin.rpc('authenticate_user', {
+    const { data, error } = await databaseRouter.rpc('authenticate_user', {
       p_username: username,
       p_password: password
     });
@@ -65,7 +66,7 @@ authReal.post('/login', async (c) => {
     );
 
     // Créer une session dans la base de données
-    const { data: sessionData, error: sessionError } = await supabaseAdmin.rpc('create_session', {
+    const { data: sessionData, error: sessionError } = await databaseRouter.rpc('create_session', {
       p_user_id: user.id,
       p_token: token,
       p_ip_address: c.req.header('x-forwarded-for') || 'unknown',
@@ -117,7 +118,7 @@ authReal.post('/logout', async (c) => {
     const token = authHeader.substring(7);
 
     // Supprimer la session
-    const { data, error } = await supabaseAdmin.rpc('logout_user', {
+    const { data, error } = await databaseRouter.rpc('logout_user', {
       p_token: token
     });
 
@@ -160,7 +161,7 @@ authReal.get('/validate', async (c) => {
       const payload = await verify(token, JWT_SECRET);
       
       // Vérifier aussi dans la base de données
-      const { data, error } = await supabaseAdmin.rpc('validate_session', {
+      const { data, error } = await databaseRouter.rpc('validate_session', {
         p_token: token
       });
 
@@ -221,7 +222,7 @@ authReal.get('/me', async (c) => {
     const payload = await verify(token, JWT_SECRET);
 
     // Récupérer les infos complètes depuis la base
-    const { data, error } = await supabaseAdmin.rpc('validate_session', {
+    const { data, error } = await databaseRouter.rpc('validate_session', {
       p_token: token
     });
 
@@ -275,7 +276,7 @@ authReal.post('/check-permission', async (c) => {
     const payload = await verify(token, JWT_SECRET);
 
     // Vérifier la permission
-    const { data, error } = await supabaseAdmin.rpc('check_user_permission', {
+    const { data, error } = await databaseRouter.rpc('check_user_permission', {
       p_user_id: payload.userId,
       p_module: module,
       p_action: action
@@ -320,7 +321,7 @@ authReal.post('/forgot-password', async (c) => {
 
     console.log(`🔑 Demande de récupération pour: ${email}`);
 
-    const { data, error } = await supabaseAdmin.rpc('request_password_reset', {
+    const { data, error } = await databaseRouter.rpc('request_password_reset', {
       p_email_or_username: email
     });
 
@@ -350,7 +351,7 @@ authReal.get('/validate-reset-token/:token', async (c) => {
   try {
     const token = c.req.param('token');
 
-    const { data, error } = await supabaseAdmin.rpc('validate_reset_token', {
+    const { data, error } = await databaseRouter.rpc('validate_reset_token', {
       p_token: token
     });
 
@@ -397,7 +398,7 @@ authReal.post('/reset-password', async (c) => {
 
     console.log(`🔑 Réinitialisation de mot de passe avec token: ${token.substring(0, 10)}...`);
 
-    const { data, error } = await supabaseAdmin.rpc('reset_password', {
+    const { data, error } = await databaseRouter.rpc('reset_password', {
       p_token: token,
       p_new_password: password
     });
@@ -426,7 +427,7 @@ authReal.post('/reset-password', async (c) => {
 // GET /api/auth-real/cleanup-sessions - Nettoyer les sessions expirées (admin only)
 authReal.get('/cleanup-sessions', async (c) => {
   try {
-    const { data, error } = await supabaseAdmin.rpc('cleanup_expired_sessions');
+    const { data, error } = await databaseRouter.rpc('cleanup_expired_sessions');
 
     if (error) {
       console.error('❌ Cleanup Error:', error);

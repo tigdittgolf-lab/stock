@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
+import { backendDatabaseService } from '../services/databaseService.js';
 import { tenantMiddleware, getTenantContext } from '../middleware/tenantMiddleware.js';
 
 const settings = new Hono();
@@ -15,7 +17,7 @@ settings.get('/families', async (c) => {
     const tenant = getTenantContext(c);
     console.log(`🔍 Fetching families from schema: ${tenant.schema}`);
 
-    const { data, error } = await supabaseAdmin.rpc('get_families_by_tenant', {
+    const { data, error } = await databaseRouter.rpc('get_families_by_tenant', {
       p_tenant: tenant.schema
     });
     
@@ -25,7 +27,7 @@ settings.get('/families', async (c) => {
         success: true, 
         data: [], 
         message: 'RPC function not available' 
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
     
     console.log(`✅ Found ${data?.length || 0} families`);
@@ -34,7 +36,7 @@ settings.get('/families', async (c) => {
       success: true, 
       data: data || [],
       tenant: tenant.schema
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
     
   } catch (error) {
     console.error('Error fetching families:', error);
@@ -56,7 +58,7 @@ settings.post('/families', async (c) => {
       return c.json({ success: false, error: 'Nom de famille requis' }, 400);
     }
 
-    const { data, error } = await supabaseAdmin.rpc('insert_family_to_tenant', {
+    const { data, error } = await databaseRouter.rpc('insert_family_to_tenant', {
       p_tenant: tenant.schema,
       p_famille: famille.trim()
     });
@@ -95,7 +97,7 @@ settings.put('/families/:id', async (c) => {
       return c.json({ success: false, error: 'Nom de famille requis' }, 400);
     }
 
-    const { data, error } = await supabaseAdmin.rpc('update_family_in_tenant', {
+    const { data, error } = await databaseRouter.rpc('update_family_in_tenant', {
       p_tenant: tenant.schema,
       p_old_famille: oldFamille,
       p_new_famille: famille.trim()
@@ -128,7 +130,7 @@ settings.delete('/families/:id', async (c) => {
 
     console.log(`🗑️ Deleting family ${famille} from ${tenant.schema}`);
 
-    const { data, error } = await supabaseAdmin.rpc('delete_family_from_tenant', {
+    const { data, error } = await databaseRouter.rpc('delete_family_from_tenant', {
       p_tenant: tenant.schema,
       p_famille: famille
     });
@@ -155,7 +157,7 @@ settings.get('/company', async (c) => {
     const tenant = getTenantContext(c);
     console.log(`🔍 Fetching company info from schema: ${tenant.schema}`);
 
-    const { data, error } = await supabaseAdmin.rpc('get_company_info', {
+    const { data, error } = await databaseRouter.rpc('get_company_info', {
       p_tenant: tenant.schema
     });
     
@@ -200,7 +202,7 @@ settings.put('/company', async (c) => {
       slogan
     } = body;
 
-    const { data, error } = await supabaseAdmin.rpc('update_company_info', {
+    const { data, error } = await databaseRouter.rpc('update_company_info', {
       p_tenant: tenant.schema,
       p_nom_entreprise: nom_entreprise,
       p_adresse: adresse,
@@ -239,7 +241,7 @@ settings.get('/units', async (c) => {
     const tenant = getTenantContext(c);
     console.log(`🔍 Fetching units from schema: ${tenant.schema}`);
 
-    const { data, error } = await supabaseAdmin.rpc('get_units_by_tenant', {
+    const { data, error } = await databaseRouter.rpc('get_units_by_tenant', {
       p_tenant: tenant.schema
     });
     
@@ -258,7 +260,7 @@ settings.get('/units', async (c) => {
         success: true, 
         data: defaultUnits,
         message: 'Default units (table not created yet)'
-      });
+      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
     
     console.log(`✅ Found ${data?.length || 0} units`);
@@ -267,7 +269,7 @@ settings.get('/units', async (c) => {
       success: true, 
       data: data || [],
       tenant: tenant.schema
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
     
   } catch (error) {
     console.error('Error fetching units:', error);
@@ -295,7 +297,7 @@ settings.get('/tva-rates', async (c) => {
       data: defaultTvaRates,
       tenant: tenant.schema,
       message: 'Taux de TVA algériens'
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
     
   } catch (error) {
     console.error('Error fetching TVA rates:', error);
@@ -366,7 +368,7 @@ settings.get('/activities', async (c) => {
       success: true, 
       data: data || [],
       tenant: tenant.schema
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
     
   } catch (error) {
     console.error('Error fetching activities:', error);
@@ -440,7 +442,7 @@ settings.put('/activities/:id', async (c) => {
     }
 
     // Utiliser la vraie fonction de mise à jour
-    const { data, error } = await supabaseAdmin.rpc('update_tenant_activite', {
+    const { data, error } = await databaseRouter.rpc('update_tenant_activite', {
       p_schema: tenant.schema,
       p_id: parseInt(activityId),
       p_adresse: adresse?.trim() || null,
@@ -482,7 +484,7 @@ settings.delete('/activities/:id', async (c) => {
 
     console.log(`🗑️ Deleting activity ${activityId} from ${tenant.schema}`);
 
-    const { data, error } = await supabaseAdmin.rpc('delete_activity_from_tenant', {
+    const { data, error } = await databaseRouter.rpc('delete_activity_from_tenant', {
       p_tenant: tenant.schema,
       p_activity_id: parseInt(activityId)
     });

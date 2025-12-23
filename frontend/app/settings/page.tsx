@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getApiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import styles from "../page.module.css";
 
@@ -84,7 +85,7 @@ export default function SettingsPage() {
       setLoading(true);
       console.log('🔍 Chargement des familles...');
       
-      const response = await fetch(`${window.location.origin}/api/settings/families`, {
+      const response = await fetch(`getApiUrl('settings/families')`, {
         headers: {
           'X-Tenant': getTenant()
         }
@@ -127,7 +128,7 @@ export default function SettingsPage() {
 
     try {
       setLoading(true);
-      const response = await fetch(`${window.location.origin}/api/settings/families`, {
+      const response = await fetch(`getApiUrl('settings/families')`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -161,7 +162,7 @@ export default function SettingsPage() {
 
     try {
       setLoading(true);
-      const response = await fetch(`${window.location.origin}/api/settings/families/${encodeURIComponent(famille)}`, {
+      const response = await fetch(`getApiUrl('settings/families/${encodeURIComponent(famille)}')`, {
         method: 'DELETE',
         headers: {
           'X-Tenant': getTenant()
@@ -190,7 +191,7 @@ export default function SettingsPage() {
       setLoading(true);
       console.log('🔍 Chargement des informations entreprise...');
       
-      const response = await fetch(`${window.location.origin}/api/settings/activities`, {
+      const response = await fetch(`getApiUrl('settings/activities')`, {
         headers: {
           'X-Tenant': getTenant()
         }
@@ -254,7 +255,7 @@ export default function SettingsPage() {
       let response;
       if (companyInfo.id === 0) {
         // Créer si n'existe pas
-        response = await fetch(`${window.location.origin}/api/settings/activities`, {
+        response = await fetch(`getApiUrl('settings/activities')`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -264,7 +265,7 @@ export default function SettingsPage() {
         });
       } else {
         // Mettre à jour si existe - utiliser POST au lieu de PUT
-        response = await fetch(`${window.location.origin}/api/settings/activities`, {
+        response = await fetch(`getApiUrl('settings/activities')`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

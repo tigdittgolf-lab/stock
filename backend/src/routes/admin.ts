@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
+import { databaseRouter } from '../services/databaseRouter.js';
+import { backendDatabaseService } from '../services/databaseService.js';
 import { authMiddleware, requireAdmin, logUserAction, AuthUser } from '../middleware/authMiddleware.js';
 
 const admin = new Hono();
@@ -16,7 +18,7 @@ admin.get('/stats', async (c) => {
     console.log('📊 Fetching admin stats');
 
     // Récupérer toutes les BU (schémas qui commencent par une année)
-    const { data: schemas, error: schemasError } = await supabaseAdmin.rpc('get_all_tenant_schemas');
+    const { data: schemas, error: schemasError } = await databaseRouter.rpc('get_all_tenant_schemas');
     
     const totalBU = schemas?.length || 0;
     const activeBU = totalBU; // Pour l'instant, toutes les BU sont considérées actives
@@ -58,7 +60,7 @@ admin.get('/business-units', async (c) => {
   try {
     console.log('🏢 Fetching all business units');
 
-    const { data, error } = await supabaseAdmin.rpc('get_all_business_units');
+    const { data, error } = await databaseRouter.rpc('get_all_business_units');
     
     if (error) {
       console.error('❌ RPC Error:', error);
@@ -96,7 +98,7 @@ admin.get('/business-units', async (c) => {
     return c.json({
       success: true,
       data: businessUnits || []
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
 
   } catch (error) {
     console.error('Error fetching business units:', error);
@@ -132,7 +134,7 @@ admin.post('/business-units', async (c) => {
     }
 
     // Créer la BU avec son schéma
-    const { data, error } = await supabaseAdmin.rpc('create_business_unit', {
+    const { data, error } = await databaseRouter.rpc('create_business_unit', {
       p_bu_code: bu_code,
       p_year: year,
       p_nom_entreprise: nom_entreprise,
@@ -183,7 +185,7 @@ admin.put('/business-units/:schema', async (c) => {
       active
     } = body;
 
-    const { data, error } = await supabaseAdmin.rpc('update_business_unit', {
+    const { data, error } = await databaseRouter.rpc('update_business_unit', {
       p_schema: schema,
       p_nom_entreprise: nom_entreprise,
       p_adresse: adresse,
@@ -221,7 +223,7 @@ admin.delete('/business-units/:schema', async (c) => {
     const schema = c.req.param('schema');
     console.log(`🗑️ Deleting business unit: ${schema}`);
 
-    const { data, error } = await supabaseAdmin.rpc('delete_business_unit', {
+    const { data, error } = await databaseRouter.rpc('delete_business_unit', {
       p_schema: schema
     });
 
@@ -254,7 +256,7 @@ admin.get('/logs', async (c) => {
 
     console.log(`📊 Fetching system logs (limit: ${limit}, level: ${level})`);
 
-    const { data, error } = await supabaseAdmin.rpc('get_system_logs', {
+    const { data, error } = await databaseRouter.rpc('get_system_logs', {
       p_limit: limit,
       p_level: level,
       p_user_id: userId
@@ -282,7 +284,7 @@ admin.get('/logs', async (c) => {
     return c.json({
       success: true,
       data: logs || []
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
 
   } catch (error) {
     console.error('Error fetching logs:', error);
@@ -297,7 +299,7 @@ admin.get('/users', async (c) => {
   try {
     console.log('👥 Fetching all users');
 
-    const { data, error } = await supabaseAdmin.rpc('get_all_users');
+    const { data, error } = await databaseRouter.rpc('get_all_users');
     
     if (error) {
       console.error('❌ RPC Error:', error);
@@ -309,7 +311,7 @@ admin.get('/users', async (c) => {
     return c.json({
       success: true,
       data: data || []
-    });
+    , database_type: backendDatabaseService.getActiveDatabaseType() });
 
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -340,7 +342,7 @@ admin.post('/users', async (c) => {
       }, 400);
     }
 
-    const { data, error } = await supabaseAdmin.rpc('create_user', {
+    const { data, error } = await databaseRouter.rpc('create_user', {
       p_username: username,
       p_email: email,
       p_password: password,
@@ -384,7 +386,7 @@ admin.put('/users/:id', async (c) => {
       active
     } = body;
 
-    const { data, error } = await supabaseAdmin.rpc('update_user', {
+    const { data, error } = await databaseRouter.rpc('update_user', {
       p_user_id: parseInt(userId),
       p_username: username,
       p_email: email,
@@ -419,7 +421,7 @@ admin.delete('/users/:id', async (c) => {
     const userId = c.req.param('id');
     console.log(`🗑️ Deleting user: ${userId}`);
 
-    const { data, error } = await supabaseAdmin.rpc('delete_user', {
+    const { data, error } = await databaseRouter.rpc('delete_user', {
       p_user_id: parseInt(userId)
     });
 
