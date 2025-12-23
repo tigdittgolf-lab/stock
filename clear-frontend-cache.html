@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Nettoyage Cache Frontend</title>
+</head>
+<body>
+    <h1>🧹 Nettoyage Cache Frontend</h1>
+    <div id="results"></div>
+    
+    <script>
+        function clearFrontendCache() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h2>🔄 Nettoyage en cours...</h2>';
+            
+            try {
+                // Nettoyer toutes les clés liées à la base de données
+                const keysToRemove = [
+                    'activeDbConfig',
+                    'selectedTenant',
+                    'tenant_info',
+                    'database_type',
+                    'created_articles',
+                    'created_clients',
+                    'created_suppliers'
+                ];
+                
+                let removedKeys = [];
+                
+                keysToRemove.forEach(key => {
+                    if (localStorage.getItem(key)) {
+                        localStorage.removeItem(key);
+                        removedKeys.push(key);
+                    }
+                });
+                
+                // Nettoyer aussi sessionStorage
+                sessionStorage.clear();
+                
+                results.innerHTML = `
+                    <h2>✅ Nettoyage Terminé</h2>
+                    <p><strong>Clés supprimées du localStorage:</strong></p>
+                    <ul>
+                        ${removedKeys.map(key => `<li>${key}</li>`).join('')}
+                    </ul>
+                    <p><strong>SessionStorage:</strong> Vidé complètement</p>
+                    
+                    <h3>📋 Actions Suivantes:</h3>
+                    <ol>
+                        <li>Fermez cet onglet</li>
+                        <li>Rafraîchissez la page du dashboard (Ctrl+F5)</li>
+                        <li>L'indicateur devrait maintenant afficher: 🐬 MySQL Local</li>
+                        <li>Plus de message "Non Synchronisé"</li>
+                    </ol>
+                    
+                    <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                        <strong>✅ Cache nettoyé avec succès !</strong><br>
+                        Le frontend va maintenant se synchroniser automatiquement avec le backend.
+                    </div>
+                `;
+                
+            } catch (error) {
+                results.innerHTML = `
+                    <h2>❌ Erreur</h2>
+                    <p>Erreur lors du nettoyage: ${error.message}</p>
+                `;
+            }
+        }
+        
+        // Exécuter automatiquement au chargement
+        clearFrontendCache();
+    </script>
+</body>
+</html>

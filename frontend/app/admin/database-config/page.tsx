@@ -2,23 +2,29 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { databaseManager } from '../../../lib/database/database-manager';
-import { DatabaseConfig, DatabaseType } from '../../../lib/database/types';
 import styles from "../../page.module.css";
+
+type DatabaseType = 'supabase' | 'postgresql' | 'mysql';
+
+interface DatabaseConfig {
+  type: DatabaseType;
+  name: string;
+  host?: string;
+  port?: number;
+  database?: string;
+  username?: string;
+  password?: string;
+  supabaseUrl?: string;
+  supabaseKey?: string;
+}
 
 export default function DatabaseConfigPage() {
   const router = useRouter();
-  const [activeConfig, setActiveConfig] = useState<DatabaseConfig | null>(null);
-  const [testConfig, setTestConfig] = useState<DatabaseConfig>({
+  const [backendStatus, setBackendStatus] = useState<any>(null);
+  const [selectedType, setSelectedType] = useState<DatabaseType>('supabase');
+  const [config, setConfig] = useState<DatabaseConfig>({
     type: 'supabase',
-    name: '',
-    supabaseUrl: '',
-    supabaseKey: '',
-    host: 'localhost',
-    port: 5432,
-    database: 'stock_db',
-    username: 'postgres',
-    password: ''
+    name: 'Supabase Production'
   });
   
   const [loading, setLoading] = useState(false);
@@ -28,7 +34,7 @@ export default function DatabaseConfigPage() {
   const [testResult, setTestResult] = useState<boolean | null>(null);
 
   useEffect(() => {
-    loadCurrentConfig();
+    loadBackendStatus();
   }, []);
 
   const showMessage = (msg: string, isError = false) => {
@@ -45,27 +51,57 @@ export default function DatabaseConfigPage() {
     }, 5000);
   };
 
-  const loadCurrentConfig = () => {
-    const config = databaseManager.getActiveConfig();
-    setActiveConfig(config);
-    
-    if (config) {
-      setTestConfig({
-        ...config,
-        password: '' // Ne pas afficher le mot de passe
-      });
+  const loadBackendStatus = async () => {
+    try {
+      const response = await fetch('http://localhost:3005/api/database-config');
+      if (response.ok) {
+        const data = await response.json();
+        setBackendStatus(data.data);
+        
+        // Initialiser l'interface avec le type backend actuel
+        if (data.data.type) {
+          setSelectedType(data.data.type);
+          setConfig(getDefaultConfig(data.data.type));
+        }
+      }
+    } catch (error) {
+      console.error('Erreur chargement statut backend:', error);
     }
   };
 
+  const getDefaultConfig = (type: DatabaseType): DatabaseConfig => {
+    const configs = {
+      supabase: {
+        type: 'supabase' as DatabaseType,
+        name: 'Supabase Production',
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co',
+        supabaseKey: ''
+      },
+      postgresql: {
+        type: 'postgresql' as DatabaseType,
+        name: 'PostgreSQL Local',
+        host: 'localhost',
+        port: 5432,
+        database: 'postgres',
+        username: 'postgres',
+        password: 'postgres'
+      },
+      mysql: {
+        type: 'mysql' as DatabaseType,
+        name: 'MySQL Local',
+        host: 'localhost',
+        port: 3306,
+        database: 'stock_local',
+        username: 'root',
+        password: ''
+      }
+    };
+    return configs[type];
+  };
+
   const handleTypeChange = (type: DatabaseType) => {
-    setTestConfig({
-      ...testConfig,
-      type,
-      name: type === 'supabase' ? 'Supabase Cloud' : 
-            type === 'postgresql' ? 'PostgreSQL Local' : 
-            type === 'mysql' ? 'MySQL Local' : `${type} Database`,
-      port: type === 'mysql' ? 3306 : 5432
-    });
+    setSelectedType(type);
+    setConfig(getDefaultConfig(type));
     setTestResult(null);
   };
 
@@ -74,16 +110,22 @@ export default function DatabaseConfigPage() {
     setTestResult(null);
     
     try {
-      const result = await databaseManager.testConfig(testConfig);
-      setTestResult(result);
+      const response = await fetch('http://localhost:3005/api/database-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+      });
       
-      if (result) {
+      const data = await response.json();
+      
+      if (data.success) {
+        setTestResult(true);
         showMessage('✅ Test de connexion réussi !');
       } else {
-        showMessage('❌ Test de connexion échoué', true);
+        setTestResult(false);
+        showMessage(`❌ Test échoué: ${data.error}`, true);
       }
     } catch (error) {
-      console.error('Erreur test:', error);
       setTestResult(false);
       showMessage('❌ Erreur lors du test de connexion', true);
     } finally {
@@ -93,28 +135,33 @@ export default function DatabaseConfigPage() {
 
   const switchDatabase = async () => {
     if (!testResult) {
-      showMessage('Veuillez d\'abord tester la connexion', true);
+      showMessage('Veuillez d\'abord tester la connexion avec succès', true);
       return;
     }
 
     setLoading(true);
     
     try {
-      const success = await databaseManager.switchDatabase(testConfig);
+      const response = await fetch('http://localhost:3005/api/database-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+      });
       
-      if (success) {
+      const data = await response.json();
+      
+      if (data.success) {
         showMessage('✅ Base de données changée avec succès !');
-        loadCurrentConfig();
+        await loadBackendStatus(); // Recharger le statut
         
-        // Recharger la page après un délai pour appliquer les changements
+        // Rediriger vers le dashboard après 2 secondes
         setTimeout(() => {
-          window.location.reload();
+          router.push('/dashboard');
         }, 2000);
       } else {
-        showMessage('❌ Erreur lors du changement de base de données', true);
+        showMessage(`❌ Erreur: ${data.error}`, true);
       }
     } catch (error) {
-      console.error('Erreur switch:', error);
       showMessage('❌ Erreur lors du changement de base de données', true);
     } finally {
       setLoading(false);
@@ -128,7 +175,7 @@ export default function DatabaseConfigPage() {
           <div>
             <h1>🗄️ Configuration Base de Données</h1>
             <div style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
-              Gérer les connexions aux bases de données
+              Changer la base de données active du système
             </div>
           </div>
           <button 
@@ -175,7 +222,7 @@ export default function DatabaseConfigPage() {
           </div>
         )}
 
-        {/* Configuration actuelle */}
+        {/* Statut actuel */}
         <div style={{
           background: 'white',
           padding: '25px',
@@ -184,72 +231,70 @@ export default function DatabaseConfigPage() {
           marginBottom: '20px'
         }}>
           <h2 style={{ margin: '0 0 15px 0', color: '#212529' }}>
-            📊 Configuration Actuelle
+            📊 Base de Données Actuellement Active
           </h2>
           
-          {activeConfig ? (
+          {backendStatus ? (
             <div style={{ 
-              padding: '15px', 
+              padding: '20px', 
               background: '#e8f5e8', 
-              borderRadius: '5px',
-              border: '1px solid #c3e6cb'
+              borderRadius: '8px',
+              border: '2px solid #28a745'
             }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-                <div>
-                  <strong>Type :</strong><br />
-                  <span style={{ 
-                    padding: '2px 8px', 
-                    background: activeConfig.type === 'supabase' ? '#007bff' : '#28a745',
-                    color: 'white',
-                    borderRadius: '3px',
-                    fontSize: '12px'
-                  }}>
-                    {activeConfig.type.toUpperCase()}
-                  </span>
-                </div>
-                <div>
-                  <strong>Nom :</strong><br />
-                  {activeConfig.name || 'Configuration par défaut'}
-                </div>
-                {activeConfig.type === 'supabase' ? (
-                  <div>
-                    <strong>URL Supabase :</strong><br />
-                    {activeConfig.supabaseUrl?.substring(0, 30)}...
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <strong>Host :</strong><br />
-                      {activeConfig.host}:{activeConfig.port}
-                    </div>
-                    <div>
-                      <strong>Base :</strong><br />
-                      {activeConfig.database}
-                    </div>
-                  </>
-                )}
-                <div>
-                  <strong>Dernière vérification :</strong><br />
-                  {activeConfig.lastTested ? 
-                    new Date(activeConfig.lastTested).toLocaleString() : 
-                    'Jamais testée'
-                  }
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
+                <span style={{ 
+                  padding: '8px 16px', 
+                  background: '#28a745',
+                  color: 'white',
+                  borderRadius: '20px',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}>
+                  🟢 ACTIF
+                </span>
+                <span style={{ 
+                  padding: '8px 16px', 
+                  background: backendStatus.type === 'supabase' ? '#007bff' : 
+                             backendStatus.type === 'mysql' ? '#fd7e14' : '#6f42c1',
+                  color: 'white',
+                  borderRadius: '20px',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}>
+                  {backendStatus.type?.toUpperCase() || 'INCONNU'}
+                </span>
+              </div>
+              <div style={{ fontSize: '16px', color: '#155724' }}>
+                <strong>Type :</strong> {backendStatus.type || 'Non défini'}<br />
+                <strong>Statut :</strong> Connecté et fonctionnel<br />
+                <strong>Dernière vérification :</strong> {new Date(backendStatus.timestamp).toLocaleString()}
               </div>
             </div>
           ) : (
             <div style={{ 
-              padding: '15px', 
+              padding: '20px', 
               background: '#fff3cd', 
-              borderRadius: '5px',
-              border: '1px solid #ffeaa7'
+              borderRadius: '8px',
+              border: '2px solid #ffc107'
             }}>
-              Aucune configuration active détectée
+              <span style={{ 
+                padding: '8px 16px', 
+                background: '#ffc107',
+                color: '#212529',
+                borderRadius: '20px',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}>
+                ⚠️ CHARGEMENT...
+              </span>
+              <div style={{ marginTop: '10px', fontSize: '16px' }}>
+                Récupération du statut de la base de données...
+              </div>
             </div>
           )}
         </div>
 
-        {/* Configuration de test */}
+        {/* Sélection nouvelle base */}
         <div style={{
           background: 'white',
           padding: '25px',
@@ -257,71 +302,71 @@ export default function DatabaseConfigPage() {
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
         }}>
           <h2 style={{ margin: '0 0 20px 0', color: '#212529' }}>
-            🔧 Nouvelle Configuration
+            🔄 Changer de Base de Données
           </h2>
 
           {/* Sélecteur de type */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '10px', fontWeight: '500' }}>
-              Type de base de données :
+          <div style={{ marginBottom: '25px' }}>
+            <label style={{ display: 'block', marginBottom: '15px', fontWeight: '600', fontSize: '16px' }}>
+              Choisir le type de base de données :
             </label>
-            <div style={{ display: 'flex', gap: '15px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
               {(['supabase', 'postgresql', 'mysql'] as DatabaseType[]).map((type) => (
-                <label key={type} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <label key={type} style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  cursor: 'pointer',
+                  padding: '15px',
+                  border: `2px solid ${selectedType === type ? '#007bff' : '#dee2e6'}`,
+                  borderRadius: '8px',
+                  background: selectedType === type ? '#f8f9ff' : '#fff'
+                }}>
                   <input
                     type="radio"
                     name="dbType"
                     value={type}
-                    checked={testConfig.type === type}
+                    checked={selectedType === type}
                     onChange={() => handleTypeChange(type)}
-                    style={{ marginRight: '8px' }}
+                    style={{ marginRight: '12px', transform: 'scale(1.2)' }}
                   />
-                  <span style={{ 
-                    padding: '5px 10px',
-                    background: testConfig.type === type ? '#007bff' : '#f8f9fa',
-                    color: testConfig.type === type ? 'white' : '#333',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}>
-                    {type === 'supabase' ? '☁️ Supabase (Cloud)' : 
-                     type === 'postgresql' ? '🐘 PostgreSQL (Local)' : 
-                     type === 'mysql' ? '🐬 MySQL (Local)' : type}
-                  </span>
+                  <div>
+                    <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
+                      {type === 'supabase' ? '☁️ Supabase (Cloud)' : 
+                       type === 'postgresql' ? '🐘 PostgreSQL (Local)' : 
+                       '🐬 MySQL (Local)'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>
+                      {type === 'supabase' ? 'Base de données cloud' : 
+                       type === 'postgresql' ? 'postgres:postgres@localhost:5432' : 
+                       'root@localhost:3306'}
+                    </div>
+                  </div>
                 </label>
               ))}
             </div>
           </div>
 
-          {/* Champs de configuration */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '15px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
-                Nom de la configuration
-              </label>
-              <input
-                type="text"
-                value={testConfig.name || ''}
-                onChange={(e) => setTestConfig({...testConfig, name: e.target.value})}
-                placeholder="Ex: Production Local"
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  border: '1px solid #dee2e6',
-                  borderRadius: '4px'
-                }}
-              />
-            </div>
-
-            {testConfig.type === 'supabase' ? (
-              <>
+          {/* Configuration détaillée */}
+          <div style={{ 
+            padding: '20px', 
+            background: '#f8f9fa', 
+            borderRadius: '8px',
+            marginBottom: '20px'
+          }}>
+            <h3 style={{ margin: '0 0 15px 0', color: '#495057' }}>
+              Configuration : {config.name}
+            </h3>
+            
+            {selectedType === 'supabase' ? (
+              <div style={{ display: 'grid', gap: '15px' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
                     URL Supabase
                   </label>
                   <input
                     type="url"
-                    value={testConfig.supabaseUrl || ''}
-                    onChange={(e) => setTestConfig({...testConfig, supabaseUrl: e.target.value})}
+                    value={config.supabaseUrl || ''}
+                    onChange={(e) => setConfig({...config, supabaseUrl: e.target.value})}
                     placeholder="https://xxx.supabase.co"
                     style={{
                       width: '100%',
@@ -331,15 +376,15 @@ export default function DatabaseConfigPage() {
                     }}
                   />
                 </div>
-                <div style={{ gridColumn: '1 / -1' }}>
+                <div>
                   <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
-                    Clé de service Supabase
+                    Clé de service (optionnel pour test)
                   </label>
                   <input
                     type="password"
-                    value={testConfig.supabaseKey || ''}
-                    onChange={(e) => setTestConfig({...testConfig, supabaseKey: e.target.value})}
-                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    value={config.supabaseKey || ''}
+                    onChange={(e) => setConfig({...config, supabaseKey: e.target.value})}
+                    placeholder="Laisser vide pour utiliser les variables d'environnement"
                     style={{
                       width: '100%',
                       padding: '10px',
@@ -348,146 +393,113 @@ export default function DatabaseConfigPage() {
                     }}
                   />
                 </div>
-              </>
+              </div>
             ) : (
-              <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
-                    Host
-                  </label>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Host</label>
                   <input
                     type="text"
-                    value={testConfig.host || ''}
-                    onChange={(e) => setTestConfig({...testConfig, host: e.target.value})}
-                    placeholder="localhost"
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: '1px solid #dee2e6',
-                      borderRadius: '4px'
-                    }}
+                    value={config.host || ''}
+                    onChange={(e) => setConfig({...config, host: e.target.value})}
+                    style={{ width: '100%', padding: '10px', border: '1px solid #dee2e6', borderRadius: '4px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
-                    Port
-                  </label>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Port</label>
                   <input
                     type="number"
-                    value={testConfig.port || ''}
-                    onChange={(e) => setTestConfig({...testConfig, port: parseInt(e.target.value)})}
-                    placeholder={testConfig.type === 'mysql' ? '3306' : '5432'}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: '1px solid #dee2e6',
-                      borderRadius: '4px'
-                    }}
+                    value={config.port || ''}
+                    onChange={(e) => setConfig({...config, port: parseInt(e.target.value)})}
+                    style={{ width: '100%', padding: '10px', border: '1px solid #dee2e6', borderRadius: '4px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
-                    Base de données
-                  </label>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Base de données</label>
                   <input
                     type="text"
-                    value={testConfig.database || ''}
-                    onChange={(e) => setTestConfig({...testConfig, database: e.target.value})}
-                    placeholder="stock_db"
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: '1px solid #dee2e6',
-                      borderRadius: '4px'
-                    }}
+                    value={config.database || ''}
+                    onChange={(e) => setConfig({...config, database: e.target.value})}
+                    style={{ width: '100%', padding: '10px', border: '1px solid #dee2e6', borderRadius: '4px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
-                    Utilisateur
-                  </label>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Utilisateur</label>
                   <input
                     type="text"
-                    value={testConfig.username || ''}
-                    onChange={(e) => setTestConfig({...testConfig, username: e.target.value})}
-                    placeholder="postgres"
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: '1px solid #dee2e6',
-                      borderRadius: '4px'
-                    }}
+                    value={config.username || ''}
+                    onChange={(e) => setConfig({...config, username: e.target.value})}
+                    style={{ width: '100%', padding: '10px', border: '1px solid #dee2e6', borderRadius: '4px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
-                    Mot de passe
-                  </label>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Mot de passe</label>
                   <input
                     type="password"
-                    value={testConfig.password || ''}
-                    onChange={(e) => setTestConfig({...testConfig, password: e.target.value})}
-                    placeholder="••••••••"
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: '1px solid #dee2e6',
-                      borderRadius: '4px'
-                    }}
+                    value={config.password || ''}
+                    onChange={(e) => setConfig({...config, password: e.target.value})}
+                    style={{ width: '100%', padding: '10px', border: '1px solid #dee2e6', borderRadius: '4px' }}
                   />
                 </div>
-              </>
+              </div>
             )}
           </div>
 
           {/* Résultat du test */}
           {testResult !== null && (
             <div style={{
-              marginTop: '15px',
-              padding: '10px',
-              borderRadius: '4px',
+              marginBottom: '20px',
+              padding: '15px',
+              borderRadius: '8px',
               background: testResult ? '#d4edda' : '#f8d7da',
-              border: `1px solid ${testResult ? '#c3e6cb' : '#f5c6cb'}`,
+              border: `2px solid ${testResult ? '#28a745' : '#dc3545'}`,
               color: testResult ? '#155724' : '#721c24'
             }}>
-              {testResult ? '✅ Connexion réussie !' : '❌ Connexion échouée'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '20px' }}>
+                  {testResult ? '✅' : '❌'}
+                </span>
+                <span style={{ fontWeight: 'bold', fontSize: '16px' }}>
+                  {testResult ? 'Test de connexion réussi !' : 'Test de connexion échoué'}
+                </span>
+              </div>
             </div>
           )}
 
           {/* Boutons d'action */}
-          <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+          <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
             <button
               onClick={testConnection}
               disabled={testing}
               style={{
-                padding: '12px 24px',
+                padding: '15px 30px',
                 backgroundColor: testing ? '#6c757d' : '#17a2b8',
                 color: 'white',
                 border: 'none',
-                borderRadius: '4px',
+                borderRadius: '8px',
                 cursor: testing ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                fontWeight: '500'
+                fontSize: '16px',
+                fontWeight: '600'
               }}
             >
-              {testing ? '🔄 Test en cours...' : '🧪 Tester la connexion'}
+              {testing ? '🔄 Test en cours...' : '🧪 Tester la Connexion'}
             </button>
 
             <button
               onClick={switchDatabase}
               disabled={loading || !testResult}
               style={{
-                padding: '12px 24px',
+                padding: '15px 30px',
                 backgroundColor: loading || !testResult ? '#6c757d' : '#28a745',
                 color: 'white',
                 border: 'none',
-                borderRadius: '4px',
+                borderRadius: '8px',
                 cursor: loading || !testResult ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                fontWeight: '500'
+                fontSize: '16px',
+                fontWeight: '600'
               }}
             >
-              {loading ? '🔄 Changement...' : '🔄 Changer de base'}
+              {loading ? '🔄 Changement...' : '✅ Changer de Base'}
             </button>
           </div>
         </div>
@@ -496,17 +508,17 @@ export default function DatabaseConfigPage() {
         <div style={{
           background: '#e7f3ff',
           border: '1px solid #b8daff',
-          padding: '15px',
-          borderRadius: '4px',
+          padding: '20px',
+          borderRadius: '8px',
           marginTop: '20px'
         }}>
-          <h3 style={{ margin: '0 0 10px 0', color: '#004085' }}>💡 Instructions</h3>
-          <ul style={{ margin: '0', paddingLeft: '20px', color: '#004085' }}>
-            <li><strong>Supabase :</strong> Utilisez l'URL et la clé de service de votre projet</li>
-            <li><strong>PostgreSQL Local :</strong> Assurez-vous que le serveur est démarré</li>
-            <li><strong>Test obligatoire :</strong> Testez toujours avant de changer de base</li>
-            <li><strong>Sauvegarde :</strong> La configuration est sauvegardée localement</li>
-          </ul>
+          <h3 style={{ margin: '0 0 15px 0', color: '#004085' }}>💡 Instructions</h3>
+          <div style={{ color: '#004085', lineHeight: '1.6' }}>
+            <p><strong>1. Choisissez le type</strong> de base de données (les champs se remplissent automatiquement)</p>
+            <p><strong>2. Testez la connexion</strong> pour vérifier que la configuration fonctionne</p>
+            <p><strong>3. Changez de base</strong> une fois le test réussi</p>
+            <p><strong>Note :</strong> Le changement est immédiat et affecte toute l'application</p>
+          </div>
         </div>
       </main>
     </div>

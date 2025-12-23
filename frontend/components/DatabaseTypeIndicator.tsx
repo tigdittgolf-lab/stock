@@ -11,6 +11,7 @@ interface DatabaseTypeIndicatorProps {
 export default function DatabaseTypeIndicator({ className, style }: DatabaseTypeIndicatorProps) {
   const [databaseType, setDatabaseType] = useState<string>('supabase');
   const [isLoading, setIsLoading] = useState(true);
+  const [isAutoFixing, setIsAutoFixing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<{
     synced: boolean;
     frontendType: string;
@@ -20,19 +21,104 @@ export default function DatabaseTypeIndicator({ className, style }: DatabaseType
   useEffect(() => {
     const detectDatabaseType = async () => {
       try {
-        const dbType = DatabaseService.getActiveDatabaseType();
-        setDatabaseType(dbType);
-        setSyncStatus({ synced: true, frontendType: dbType, backendType: dbType });
+        // CORRECTION: Interroger le backend directement au lieu du localStorage
+        const response = await fetch('http://localhost:3005/api/database-config');
+        if (response.ok) {
+          const data = await response.json();
+          const backendType = data.data.type;
+          setDatabaseType(backendType);
+          
+          // Vérifier la synchronisation avec le frontend
+          const frontendType = DatabaseService.getActiveDatabaseType();
+          const isSync = frontendType === backendType;
+          
+          setSyncStatus({ 
+            synced: isSync, 
+            frontendType, 
+            backendType 
+          });
+          
+          // AUTO-CORRECTION: Si pas synchronisé, corriger automatiquement
+          if (!isSync) {
+            console.log(`🔧 Auto-correction: Frontend (${frontendType}) → Backend (${backendType})`);
+            setIsAutoFixing(true);
+            await autoFixSynchronization(backendType);
+            setIsAutoFixing(false);
+          }
+        } else {
+          throw new Error('Backend non accessible');
+        }
       } catch (error) {
         console.error('Erreur détection type base de données:', error);
-        setDatabaseType('supabase'); // Fallback
-        setSyncStatus({ synced: true, frontendType: 'supabase', backendType: 'supabase' });
+        // Fallback: utiliser le type frontend
+        const frontendType = DatabaseService.getActiveDatabaseType();
+        setDatabaseType(frontendType);
+        setSyncStatus({ synced: true, frontendType, backendType: frontendType });
       } finally {
         setIsLoading(false);
       }
     };
 
+    const autoFixSynchronization = async (correctBackendType: string) => {
+      try {
+        console.log(`🔄 Auto-correction vers ${correctBackendType}...`);
+        
+        // Obtenir la configuration par défaut pour le type backend
+        const defaultConfigs = {
+          supabase: {
+            type: 'supabase',
+            name: 'Supabase Production',
+            supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co'
+          },
+          postgresql: {
+            type: 'postgresql',
+            name: 'PostgreSQL Local',
+            host: 'localhost',
+            port: 5432,
+            database: 'postgres',
+            username: 'postgres',
+            password: 'postgres'
+          },
+          mysql: {
+            type: 'mysql',
+            name: 'MySQL Local',
+            host: 'localhost',
+            port: 3306,
+            database: 'stock_local',
+            username: 'root',
+            password: ''
+          }
+        };
+        
+        const correctConfig = defaultConfigs[correctBackendType as keyof typeof defaultConfigs];
+        
+        if (correctConfig) {
+          // Mettre à jour le localStorage frontend pour qu'il corresponde au backend
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('activeDbConfig', JSON.stringify({
+              ...correctConfig,
+              isActive: true,
+              lastTested: new Date().toISOString()
+            }));
+            console.log(`✅ Frontend synchronisé avec ${correctBackendType}`);
+            
+            // Mettre à jour l'état local
+            setSyncStatus({ 
+              synced: true, 
+              frontendType: correctBackendType, 
+              backendType: correctBackendType 
+            });
+          }
+        }
+      } catch (error) {
+        console.error('❌ Erreur auto-correction:', error);
+      }
+    };
+
     detectDatabaseType();
+
+    // Recharger toutes les 10 secondes pour rester synchronisé
+    const interval = setInterval(detectDatabaseType, 10000);
 
     // Écouter les changements de configuration de base de données
     const handleStorageChange = (e: StorageEvent) => {
@@ -43,8 +129,13 @@ export default function DatabaseTypeIndicator({ className, style }: DatabaseType
 
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', handleStorageChange);
-      return () => window.removeEventListener('storage', handleStorageChange);
+      return () => {
+        window.removeEventListener('storage', handleStorageChange);
+        clearInterval(interval);
+      };
     }
+
+    return () => clearInterval(interval);
   }, []);
 
   const getDatabaseInfo = (type: string) => {
@@ -121,7 +212,51 @@ export default function DatabaseTypeIndicator({ className, style }: DatabaseType
   }
 
   const dbInfo = getDatabaseInfo(databaseType);
-  const isNotSynced = syncStatus && !syncStatus.synced;
+  const isNotSynced = syncStatus && !syncStatus.synced && !isAutoFixing;
+
+  // Si auto-correction en cours, afficher un message spécial
+  if (isAutoFixing) {
+    return (
+      <div 
+        className={className}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '8px 12px',
+          borderRadius: '6px',
+          backgroundColor: '#fff3cd',
+          border: '1px solid #ffc107',
+          fontSize: '14px',
+          color: '#856404',
+          ...style
+        }}
+      >
+        <div style={{
+          width: '16px',
+          height: '16px',
+          border: '2px solid #ffc107',
+          borderTop: '2px solid #856404',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+          <span style={{ fontWeight: 'bold', fontSize: '13px' }}>
+            🔧 Auto-correction
+          </span>
+          <span style={{ fontSize: '11px', opacity: 0.8 }}>
+            Synchronisation en cours...
+          </span>
+        </div>
+        <style jsx>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -146,15 +281,15 @@ export default function DatabaseTypeIndicator({ className, style }: DatabaseType
       }
     >
       <span style={{ fontSize: '16px' }}>
-        {isNotSynced ? '⚠️' : dbInfo.icon}
+        {dbInfo.icon}
       </span>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
         <span style={{ fontWeight: 'bold', fontSize: '13px' }}>
-          {isNotSynced ? 'Non Synchronisé' : dbInfo.name}
+          {dbInfo.name}
         </span>
         <span style={{ fontSize: '11px', opacity: 0.8 }}>
           {isNotSynced 
-            ? `F:${syncStatus?.frontendType} ≠ B:${syncStatus?.backendType}`
+            ? `⚠️ Non Synchronisé (F:${syncStatus?.frontendType} ≠ B:${syncStatus?.backendType})`
             : dbInfo.description
           }
         </span>

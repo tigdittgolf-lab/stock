@@ -55,17 +55,14 @@ class DatabaseManagerImpl implements DatabaseManager {
         throw new Error('Test de connexion échoué');
       }
 
-      // NOUVEAU: Notifier le backend du changement
+      // CORRECTION: Notifier le backend du changement avec la bonne URL
       try {
-        const backendResponse = await fetch('http://localhost:3000/api/database/switch', {
+        const backendResponse = await fetch('http://localhost:3005/api/database-config', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            type: config.type,
-            config: config
-          })
+          body: JSON.stringify(config)
         });
 
         if (backendResponse.ok) {

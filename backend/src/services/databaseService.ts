@@ -223,8 +223,67 @@ export class BackendDatabaseService {
   }
 
   private async executeMySQLRPC(functionName: string, params: Record<string, any>): Promise<any> {
-    // Pour MySQL, convertir les appels RPC en requêtes SQL directes
-    return this.convertRPCToSQL('mysql', functionName, params);
+    // Pour MySQL, essayer d'abord les vraies procédures stockées, puis fallback vers SQL
+    console.log(`🐬 MySQL: Trying real stored procedure ${functionName}...`);
+    
+    try {
+      if (!this.mysqlConnection) {
+        this.mysqlConnection = await mysql.createConnection({
+          host: this.activeConfig?.host || 'localhost',
+          port: this.activeConfig?.port || 3306,
+          user: this.activeConfig?.username || 'root',
+          password: this.activeConfig?.password || '',
+          database: this.activeConfig?.database || 'stock_local'
+        });
+      }
+      
+      // Essayer d'abord d'appeler la vraie procédure stockée
+      let procedureName = '';
+      let procedureParams: any[] = [];
+      
+      switch (functionName) {
+        case 'get_articles_by_tenant':
+        case 'get_suppliers_by_tenant':
+        case 'get_fournisseurs_by_tenant':
+        case 'get_clients_by_tenant':
+        case 'get_bl_list_by_tenant':
+        case 'get_bl_list':
+        case 'get_fact_list_by_tenant':
+        case 'get_fact_list':
+        case 'get_proforma_list_by_tenant':
+        case 'get_next_bl_number_by_tenant':
+        case 'get_next_bl_number':
+        case 'get_next_bl_number_simple':
+        case 'get_next_fact_number_by_tenant':
+        case 'get_next_fact_number':
+        case 'get_next_proforma_number_by_tenant':
+          procedureName = functionName;
+          procedureParams = [params.p_tenant];
+          break;
+        
+        default:
+          // Si la procédure stockée n'est pas supportée, utiliser la conversion SQL
+          console.log(`🐬 MySQL: No stored procedure for ${functionName}, using SQL conversion`);
+          return this.convertRPCToSQL('mysql', functionName, params);
+      }
+      
+      // Essayer d'exécuter la vraie procédure stockée
+      const [rows] = await this.mysqlConnection.execute(`CALL ${procedureName}(?)`, procedureParams);
+      console.log(`✅ MySQL: Real stored procedure ${functionName} succeeded with ${Array.isArray(rows) ? rows.length : 0} results`);
+      
+      return { 
+        success: true, 
+        data: rows,
+        source: 'real_procedure' // Indiquer que c'est une vraie procédure stockée
+      };
+      
+    } catch (procedureError) {
+      console.warn(`⚠️ MySQL: Real stored procedure ${functionName} failed, falling back to SQL conversion`);
+      console.warn(`   Procedure Error: ${procedureError instanceof Error ? procedureError.message : procedureError}`);
+      
+      // Fallback vers la conversion SQL si la procédure stockée n'existe pas
+      return this.convertRPCToSQL('mysql', functionName, params);
+    }
   }
 
   private async executePostgreSQLQuery(sql: string, params: any[]): Promise<any> {
@@ -249,15 +308,66 @@ export class BackendDatabaseService {
   }
 
   private async executePostgreSQLRPC(functionName: string, params: Record<string, any>): Promise<any> {
-    // Pour PostgreSQL, essayer d'abord les fonctions RPC, sinon convertir en SQL
+    // Pour PostgreSQL local, essayer d'abord les vraies fonctions RPC, puis fallback vers SQL
+    console.log(`🐘 PostgreSQL: Trying real RPC function ${functionName}...`);
+    
     try {
-      const paramList = Object.entries(params).map(([key, value]) => `${key} => $${Object.keys(params).indexOf(key) + 1}`).join(', ');
-      const sql = `SELECT * FROM ${functionName}(${paramList})`;
-      const values = Object.values(params);
+      if (!this.pgClient) {
+        this.pgClient = new Client({
+          host: this.activeConfig?.host || 'localhost',
+          port: this.activeConfig?.port || 5432,
+          user: this.activeConfig?.username || 'postgres',
+          password: this.activeConfig?.password || 'postgres',
+          database: this.activeConfig?.database || 'postgres'
+        });
+        await this.pgClient.connect();
+      }
       
-      return await this.executePostgreSQLQuery(sql, values);
-    } catch (error) {
-      // Si la fonction RPC n'existe pas, convertir en SQL direct
+      // Essayer d'abord d'appeler la vraie fonction RPC
+      let rpcSQL = '';
+      let rpcParams: any[] = [];
+      
+      switch (functionName) {
+        case 'get_articles_by_tenant':
+        case 'get_suppliers_by_tenant':
+        case 'get_fournisseurs_by_tenant':
+        case 'get_clients_by_tenant':
+        case 'get_bl_list_by_tenant':
+        case 'get_bl_list':
+        case 'get_fact_list_by_tenant':
+        case 'get_fact_list':
+        case 'get_proforma_list_by_tenant':
+        case 'get_next_bl_number_by_tenant':
+        case 'get_next_bl_number':
+        case 'get_next_bl_number_simple':
+        case 'get_next_fact_number_by_tenant':
+        case 'get_next_fact_number':
+        case 'get_next_proforma_number_by_tenant':
+          rpcSQL = `SELECT * FROM ${functionName}($1)`;
+          rpcParams = [params.p_tenant];
+          break;
+        
+        default:
+          // Si la fonction RPC n'est pas supportée, utiliser la conversion SQL
+          console.log(`🐘 PostgreSQL: No RPC function for ${functionName}, using SQL conversion`);
+          return this.convertRPCToSQL('postgresql', functionName, params);
+      }
+      
+      // Essayer d'exécuter la vraie fonction RPC
+      const result = await this.pgClient.query(rpcSQL, rpcParams);
+      console.log(`✅ PostgreSQL: Real RPC function ${functionName} succeeded with ${result.rows.length} results`);
+      
+      return { 
+        success: true, 
+        data: result.rows,
+        source: 'real_rpc' // Indiquer que c'est une vraie fonction RPC
+      };
+      
+    } catch (rpcError) {
+      console.warn(`⚠️ PostgreSQL: Real RPC function ${functionName} failed, falling back to SQL conversion`);
+      console.warn(`   RPC Error: ${rpcError instanceof Error ? rpcError.message : rpcError}`);
+      
+      // Fallback vers la conversion SQL si la fonction RPC n'existe pas
       return this.convertRPCToSQL('postgresql', functionName, params);
     }
   }
@@ -295,28 +405,53 @@ export class BackendDatabaseService {
           return this.deleteClientFromTenant(dbType, params.p_tenant, params.p_nclient);
         // Fonctions pour les ventes (BL, factures, proformas)
         case 'get_bl_list':
+        case 'get_bl_list_by_tenant':
           return this.getBLList(dbType, params.p_tenant);
         case 'get_bl_by_id':
+        case 'get_bl_by_id_from_tenant':
           return this.getBLById(dbType, params.p_tenant, params.p_nfact);
         case 'get_fact_list':
+        case 'get_fact_list_by_tenant':
           return this.getFactList(dbType, params.p_tenant);
         case 'get_fact_by_id':
+        case 'get_fact_by_id_from_tenant':
           return this.getFactById(dbType, params.p_tenant, params.p_nfact);
+        case 'get_proforma_list':
+        case 'get_proforma_list_by_tenant':
+          return this.getProformaList(dbType, params.p_tenant);
+        case 'get_proforma_by_id':
+        case 'get_proforma_by_id_from_tenant':
+          return this.getProformaById(dbType, params.p_tenant, params.p_nfact);
         case 'insert_bl_simple':
         case 'insert_bl':
+        case 'insert_bl_to_tenant':
           return this.insertBL(dbType, params);
         case 'insert_fact':
+        case 'insert_fact_to_tenant':
           return this.insertFact(dbType, params);
+        case 'insert_proforma':
+        case 'insert_proforma_to_tenant':
+          return this.insertProforma(dbType, params);
         case 'insert_detail_bl_simple':
         case 'insert_detail_bl':
+        case 'insert_detail_bl_to_tenant':
           return this.insertDetailBL(dbType, params);
         case 'insert_detail_fact':
+        case 'insert_detail_fact_to_tenant':
           return this.insertDetailFact(dbType, params);
+        case 'insert_detail_proforma':
+        case 'insert_detail_proforma_to_tenant':
+          return this.insertDetailProforma(dbType, params);
         case 'get_next_bl_number_simple':
         case 'get_next_bl_number':
+        case 'get_next_bl_number_by_tenant':
           return this.getNextBLNumber(dbType, params.p_tenant);
         case 'get_next_fact_number':
+        case 'get_next_fact_number_by_tenant':
           return this.getNextFactNumber(dbType, params.p_tenant);
+        case 'get_next_proforma_number':
+        case 'get_next_proforma_number_by_tenant':
+          return this.getNextProformaNumber(dbType, params.p_tenant);
         // Fonctions pour le stock
         case 'get_article_stock':
         case 'get_article_stock_simple':
@@ -877,6 +1012,61 @@ export class BackendDatabaseService {
         { unite: 'Mètre' }
       ]
     };
+  }
+
+  // Méthodes pour les proformas
+  private async getProformaList(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
+    let sql;
+    if (dbType === 'mysql') {
+      sql = `SELECT * FROM \`${tenant}\`.proforma ORDER BY nfact DESC`;
+    } else {
+      sql = `SELECT * FROM "${tenant}".proforma ORDER BY nfact DESC`;
+    }
+    return dbType === 'mysql' ? this.executeMySQLQuery(sql, []) : this.executePostgreSQLQuery(sql, []);
+  }
+
+  private async getProformaById(dbType: 'mysql' | 'postgresql', tenant: string, nfact: string): Promise<any> {
+    let sql;
+    if (dbType === 'mysql') {
+      sql = `SELECT * FROM \`${tenant}\`.proforma WHERE nfact = ?`;
+    } else {
+      sql = `SELECT * FROM "${tenant}".proforma WHERE nfact = $1`;
+    }
+    return dbType === 'mysql' ? this.executeMySQLQuery(sql, [nfact]) : this.executePostgreSQLQuery(sql, [nfact]);
+  }
+
+  private async insertProforma(dbType: 'mysql' | 'postgresql', params: any): Promise<any> {
+    const { p_tenant, p_nfact, p_nclient, p_date_fact, p_total_ht, p_total_ttc } = params;
+    let sql;
+    if (dbType === 'mysql') {
+      sql = `INSERT INTO \`${p_tenant}\`.proforma (nfact, nclient, date_fact, total_ht, total_ttc) VALUES (?, ?, ?, ?, ?)`;
+    } else {
+      sql = `INSERT INTO "${p_tenant}".proforma (nfact, nclient, date_fact, total_ht, total_ttc) VALUES ($1, $2, $3, $4, $5)`;
+    }
+    const values = [p_nfact, p_nclient, p_date_fact, p_total_ht, p_total_ttc];
+    return dbType === 'mysql' ? this.executeMySQLQuery(sql, values) : this.executePostgreSQLQuery(sql, values);
+  }
+
+  private async insertDetailProforma(dbType: 'mysql' | 'postgresql', params: any): Promise<any> {
+    const { p_tenant, p_nfact, p_narticle, p_qte, p_prix, p_total_ligne } = params;
+    let sql;
+    if (dbType === 'mysql') {
+      sql = `INSERT INTO \`${p_tenant}\`.detail_proforma (nfact, narticle, qte, prix, total_ligne) VALUES (?, ?, ?, ?, ?)`;
+    } else {
+      sql = `INSERT INTO "${p_tenant}".detail_proforma (nfact, narticle, qte, prix, total_ligne) VALUES ($1, $2, $3, $4, $5)`;
+    }
+    const values = [p_nfact, p_narticle, p_qte, p_prix, p_total_ligne];
+    return dbType === 'mysql' ? this.executeMySQLQuery(sql, values) : this.executePostgreSQLQuery(sql, values);
+  }
+
+  private async getNextProformaNumber(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
+    let sql;
+    if (dbType === 'mysql') {
+      sql = `SELECT COALESCE(MAX(nfact), 0) + 1 as next_number FROM \`${tenant}\`.proforma`;
+    } else {
+      sql = `SELECT COALESCE(MAX(nfact), 0) + 1 as next_number FROM "${tenant}".proforma`;
+    }
+    return dbType === 'mysql' ? this.executeMySQLQuery(sql, []) : this.executePostgreSQLQuery(sql, []);
   }
 
   // Méthodes pour l'activité

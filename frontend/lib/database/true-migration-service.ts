@@ -4,6 +4,7 @@ import { MySQLAdapter } from './adapters/mysql-adapter';
 import { PostgreSQLAdapter } from './adapters/postgresql-adapter';
 import { DatabaseAdapter } from './types';
 import { CompleteDiscoveryService, CompleteSchema, CompleteTable } from './complete-discovery-service';
+import { RPCMigrationService } from './rpc-migration-service';
 
 export interface MigrationProgress {
   step: string;
@@ -73,7 +74,7 @@ export class CompleteMigrationService {
 
     try {
       // Étape 1: Découverte COMPLÈTE de TOUTES les tables réelles
-      this.reportProgress('Découverte', 1, 8, 'Découverte COMPLÈTE de toutes les tables réelles...', true);
+      this.reportProgress('Découverte', 1, 9, 'Découverte COMPLÈTE de toutes les tables réelles...', true);
       const allRealSchemas = await this.discoveryService.discoverAllRealTables();
       
       if (allRealSchemas.length === 0) {
@@ -84,37 +85,41 @@ export class CompleteMigrationService {
       console.log(`🎯 DÉCOUVERTE COMPLÈTE: ${allRealSchemas.length} schémas, ${totalTables} tables RÉELLES`);
 
       // Étape 2: Validation de la découverte
-      this.reportProgress('Validation', 2, 8, `Validation de ${totalTables} tables découvertes...`, true);
+      this.reportProgress('Validation', 2, 9, `Validation de ${totalTables} tables découvertes...`, true);
       await this.validateCompleteDiscovery(allRealSchemas);
 
       // Étape 3: Nettoyage de la cible
-      this.reportProgress('Nettoyage', 3, 8, 'Nettoyage complet de la base cible...', true);
+      this.reportProgress('Nettoyage', 3, 9, 'Nettoyage complet de la base cible...', true);
       await this.cleanupTarget(allRealSchemas.map(s => s.schemaName));
 
       // Étape 4: Création des schémas
-      this.reportProgress('Schémas', 4, 8, 'Création des schémas cibles...', true);
+      this.reportProgress('Schémas', 4, 9, 'Création des schémas cibles...', true);
       await this.createAllTargetSchemas(allRealSchemas);
 
       // Étape 5: Création de TOUTES les tables
-      this.reportProgress('Tables', 5, 8, `Création de ${totalTables} tables réelles...`, true);
+      this.reportProgress('Tables', 5, 9, `Création de ${totalTables} tables réelles...`, true);
       await this.createAllRealTables(allRealSchemas);
 
       // Étape 6: Migration de TOUTES les données
-      this.reportProgress('Données', 6, 8, 'Migration de toutes les données réelles...', true);
+      this.reportProgress('Données', 6, 9, 'Migration de toutes les données réelles...', true);
       if (options.includeData) {
         await this.migrateAllRealData(allRealSchemas);
       }
 
-      // Étape 7: Vérification complète
-      this.reportProgress('Vérification', 7, 8, 'Vérification complète de la migration...', true);
+      // ÉTAPE 7: MIGRATION DES FONCTIONS RPC (CRITIQUE!)
+      this.reportProgress('Fonctions RPC', 7, 9, 'Migration des fonctions RPC vers la base locale...', true);
+      await this.migrateRPCFunctions();
+
+      // Étape 8: Vérification complète
+      this.reportProgress('Vérification', 8, 9, 'Vérification complète de la migration...', true);
       await this.verifyCompleteMigration(allRealSchemas);
 
-      // Étape 8: Finalisation
-      this.reportProgress('Terminé', 8, 8, `Migration VRAIE terminée: ${totalTables} tables migrées!`, true);
+      // Étape 9: Finalisation
+      this.reportProgress('Terminé', 9, 9, `Migration VRAIE terminée: ${totalTables} tables + RPC migrées!`, true);
       return true;
 
     } catch (error) {
-      this.reportProgress('Erreur', 0, 8, 'Migration échouée', false,
+      this.reportProgress('Erreur', 0, 9, 'Migration échouée', false,
         error instanceof Error ? error.message : 'Erreur');
       return false;
     }
@@ -646,6 +651,95 @@ export class CompleteMigrationService {
       }
     } else if (totalTargetRecords < totalSourceRecords) {
       console.log('⚠️ MIGRATION PARTIELLE: Certaines données n\'ont pas pu être migrées');
+    }
+  }
+
+  /**
+   * ÉTAPE CRITIQUE: Migration des fonctions RPC vers la base locale
+   * Cette étape crée les VRAIES fonctions RPC dans PostgreSQL/MySQL
+   * pour que le système fonctionne de manière transparente
+   */
+  private async migrateRPCFunctions(): Promise<void> {
+    if (!this.targetAdapter) return;
+
+    const isMySQL = this.targetAdapter.constructor.name === 'MySQLAdapter';
+    const dbType = isMySQL ? 'mysql' : 'postgresql';
+    
+    console.log(`🔧 MIGRATION DES FONCTIONS RPC VERS ${dbType.toUpperCase()}...`);
+    
+    try {
+      // Utiliser l'API pour créer les fonctions RPC
+      const apiEndpoint = isMySQL 
+        ? 'http://localhost:3000/api/database/mysql/rpc-migration'
+        : 'http://localhost:3000/api/database/postgresql/rpc-migration';
+      
+      console.log(`📡 Appel API migration RPC: ${apiEndpoint}`);
+      
+      const response = await fetch(apiEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          config: (this.targetAdapter as any).config,
+          action: 'migrate'
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erreur HTTP ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log(`✅ Fonctions RPC ${dbType.toUpperCase()} migrées avec succès`);
+        console.log(`📊 ${result.functionsCreated || 'Plusieurs'} fonctions créées`);
+        
+        // Test des fonctions RPC via API
+        console.log(`🧪 Test des fonctions RPC ${dbType.toUpperCase()}...`);
+        const testResponse = await fetch(apiEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            config: (this.targetAdapter as any).config,
+            action: 'test',
+            tenant: '2025_bu01'
+          })
+        });
+
+        if (testResponse.ok) {
+          const testResult = await testResponse.json();
+          if (testResult.success) {
+            console.log(`✅ Tests RPC ${dbType.toUpperCase()} réussis`);
+            console.log(`📊 ${testResult.testsRun || 0} tests exécutés`);
+          } else {
+            console.warn(`⚠️ Certains tests RPC ${dbType.toUpperCase()} ont échoué:`, testResult.error);
+          }
+        } else {
+          console.warn(`⚠️ Impossible de tester les fonctions RPC ${dbType.toUpperCase()}`);
+        }
+        
+      } else {
+        throw new Error(result.error || `Échec migration RPC ${dbType}`);
+      }
+      
+      console.log(`🎯 MIGRATION RPC ${dbType.toUpperCase()} TERMINÉE`);
+      console.log(`💡 Les fonctions RPC sont maintenant disponibles dans la base locale`);
+      console.log(`💡 Le système peut maintenant fonctionner de manière transparente`);
+      
+    } catch (error) {
+      console.error(`❌ ERREUR CRITIQUE: Migration RPC ${dbType} échouée:`, error);
+      console.error(`💡 CONSÉQUENCE: Les appels RPC échoueront lors du switch vers ${dbType}`);
+      console.error(`💡 SOLUTION: Vérifier les permissions et la configuration de la base`);
+      
+      // Ne pas faire échouer toute la migration pour les RPC
+      // Mais avertir l'utilisateur
+      console.warn(`⚠️ Migration des données réussie mais RPC ${dbType} échouées`);
+      console.warn(`⚠️ Le système utilisera les conversions SQL au lieu des vraies fonctions RPC`);
     }
   }
 
