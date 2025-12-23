@@ -54,7 +54,7 @@ export default function CreatePurchaseInvoice() {
   const fetchSuppliers = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('getApiUrl('sales/suppliers')', {
+      const response = await fetch(getApiUrl('sales/suppliers'), {
         headers: {
           'X-Tenant': tenant
         }
@@ -72,7 +72,7 @@ export default function CreatePurchaseInvoice() {
   const fetchArticles = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('getApiUrl('sales/articles')', {
+      const response = await fetch(getApiUrl('sales/articles'), {
         headers: {
           'X-Tenant': tenant
         }
@@ -164,7 +164,7 @@ export default function CreatePurchaseInvoice() {
 
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('getApiUrl('purchases/invoices')', {
+      const response = await fetch(getApiUrl('purchases/invoices'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

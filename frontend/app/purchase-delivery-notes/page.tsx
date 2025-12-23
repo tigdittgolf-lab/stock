@@ -50,7 +50,7 @@ export default function CreatePurchaseDeliveryNote() {
 
   const fetchSuppliers = async () => {
     try {
-      const response = await fetch('getApiUrl('suppliers')');
+      const response = await fetch(getApiUrl('suppliers'));
       const data = await response.json();
       if (data.success) {
         setSuppliers(data.data);
@@ -62,7 +62,7 @@ export default function CreatePurchaseDeliveryNote() {
 
   const fetchArticles = async () => {
     try {
-      const response = await fetch('getApiUrl('articles')');
+      const response = await fetch(getApiUrl('articles'));
       const data = await response.json();
       if (data.success) {
         setArticles(data.data);
@@ -137,7 +137,7 @@ export default function CreatePurchaseDeliveryNote() {
     }
 
     try {
-      const response = await fetch('getApiUrl('sales/purchases/delivery-notes')', {
+      const response = await fetch(getApiUrl('sales/purchases/delivery-notes'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

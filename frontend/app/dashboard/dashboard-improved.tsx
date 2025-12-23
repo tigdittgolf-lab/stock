@@ -54,13 +54,13 @@ export default function ImprovedDashboard() {
     try {
       // Charger les données du dashboard
       const [articlesRes, clientsRes, suppliersRes] = await Promise.all([
-        fetch('getApiUrl('sales/articles')', {
+        fetch(getApiUrl('sales/articles'), {
           headers: { 'X-Tenant': tenant.tenant }
         }),
-        fetch('getApiUrl('sales/clients')', {
+        fetch(getApiUrl('sales/clients'), {
           headers: { 'X-Tenant': tenant.tenant }
         }),
-        fetch('getApiUrl('sales/suppliers')', {
+        fetch(getApiUrl('sales/suppliers'), {
           headers: { 'X-Tenant': tenant.tenant }
         })
       ]);

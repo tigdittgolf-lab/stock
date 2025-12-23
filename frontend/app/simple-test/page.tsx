@@ -14,7 +14,7 @@ export default function SimpleTest() {
     try {
       console.log('🔍 Starting fetch...');
       
-      const response = await fetch('getApiUrl('sales/clients')', {
+      const response = await fetch(getApiUrl('sales/clients'), {
         headers: {
           'Content-Type': 'application/json',
           'X-Tenant': '2025_bu01'

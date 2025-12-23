@@ -69,7 +69,7 @@ function ResetPasswordForm() {
     setLoading(true);
 
     try {
-      const response = await fetch('getApiUrl('auth-real/reset-password')', {
+      const response = await fetch(getApiUrl('auth-real/reset-password'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

@@ -120,7 +120,7 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
   const fetchSuppliers = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('getApiUrl('sales/suppliers')', {
+      const response = await fetch(getApiUrl('sales/suppliers'), {
         headers: {
           'X-Tenant': tenant
         }
@@ -138,7 +138,7 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
   const fetchArticles = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch('getApiUrl('sales/articles')', {
+      const response = await fetch(getApiUrl('sales/articles'), {
         headers: {
           'X-Tenant': tenant
         }

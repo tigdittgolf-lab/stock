@@ -26,7 +26,7 @@ export default function NewExercise() {
 
   const loadBusinessUnits = async () => {
     try {
-      const response = await fetch('getApiUrl('auth/business-units')');
+      const response = await fetch(getApiUrl('auth/business-units'));
       const data = await response.json();
       if (data.success) {
         setBusinessUnits(data.data.map((bu: any) => bu.id));
@@ -39,7 +39,7 @@ export default function NewExercise() {
 
   const loadExercises = async () => {
     try {
-      const response = await fetch('getApiUrl('auth/exercises')');
+      const response = await fetch(getApiUrl('auth/exercises'));
       const data = await response.json();
       if (data.success) {
         setExercises(data.data);
@@ -67,7 +67,7 @@ export default function NewExercise() {
 
     setLoading(true);
     try {
-      const response = await fetch('getApiUrl('auth/create-new-exercise')', {
+      const response = await fetch(getApiUrl('auth/create-new-exercise'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -68,7 +68,7 @@ export default function UsersPage() {
     e.preventDefault();
 
     try {
-      const response = await fetch('getApiUrl('auth/create-user')', {
+      const response = await fetch(getApiUrl('auth/create-user'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
