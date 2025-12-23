@@ -1,94 +1,99 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 export async function GET(request: NextRequest) {
   try {
-    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
-    console.log(`🔍 Récupération des BL pour le tenant: ${tenant}`);
-
-    try {
-      const { data, error } = await supabase.rpc('get_delivery_notes', {
-        p_tenant: tenant
-      });
-
-      console.log(`📊 Résultat RPC get_delivery_notes:`, { 
-        error: error, 
-        dataType: typeof data,
-        dataContent: data,
-        tenant: tenant 
-      });
-
-      if (!error && data) {
-        let deliveryNotes = data;
-        if (typeof data === 'string') {
-          try {
-            deliveryNotes = JSON.parse(data);
-          } catch (parseError) {
-            console.log('⚠️ Failed to parse JSON:', parseError);
-            deliveryNotes = [];
-          }
-        }
-        
-        console.log(`✅ BL récupérés via RPC:`, deliveryNotes?.length || 0);
-        return NextResponse.json({
-          success: true,
-          data: deliveryNotes || [],
-          debug: {
-            tenant: tenant,
-            method: 'rpc_function',
-            function: 'get_delivery_notes',
-            dataType: typeof data,
-            originalData: data
-          }
-        });
-      } else if (error) {
-        console.log(`❌ Erreur RPC:`, error);
-        return NextResponse.json({
-          success: true,
-          data: [],
-          debug: {
-            tenant: tenant,
-            error: error.message,
-            function: 'get_delivery_notes',
-            suggestion: 'Vérifiez que la fonction RPC get_delivery_notes existe dans Supabase'
-          }
-        });
-      }
-    } catch (rpcError) {
-      console.log('⚠️ RPC function failed:', rpcError);
+    if (!supabase) {
       return NextResponse.json({
-        success: true,
-        data: [],
-        debug: {
-          tenant: tenant,
-          error: rpcError instanceof Error ? rpcError.message : 'RPC Error',
-          function: 'get_delivery_notes',
-          suggestion: 'La fonction RPC get_delivery_notes n\'existe pas ou a échoué'
-        }
-      });
+        success: false,
+        error: 'Configuration Supabase manquante - Utiliser le backend local en développement'
+      }, { status: 503 });
+    }
+    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    
+    console.log(`🔍 Production API: Fetching delivery notes for tenant ${tenant}`);
+    
+    const { data, error } = await supabase.rpc('get_bl_list_by_tenant', {
+      p_tenant: tenant
+    });
+
+    if (error) {
+      console.error('❌ Supabase error:', error);
+      return NextResponse.json({
+        success: false,
+        error: error.message
+      }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      data: [],
-      debug: {
-        tenant: tenant,
-        method: 'fallback',
-        message: 'Aucune méthode n\'a fonctionné'
-      }
+      data: data || []
     });
 
   } catch (error) {
-    console.error('❌ Erreur serveur:', error);
+    console.error('❌ Production API error:', error);
     return NextResponse.json({
       success: false,
-      error: 'Erreur interne du serveur',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Erreur serveur'
+    }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    if (!supabase) {
+      return NextResponse.json({
+        success: false,
+        error: 'Configuration Supabase manquante - Utiliser le backend local en développement'
+      }, { status: 503 });
+    }
+    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    const body = await request.json();
+    
+    console.log(`📝 Production API: Creating delivery note for tenant ${tenant}`);
+    
+    // Créer le BL
+    const { data: blData, error: blError } = await supabase.rpc('insert_bl_to_tenant', {
+      p_tenant: tenant,
+      ...body.bl
+    });
+
+    if (blError) {
+      console.error('❌ Supabase BL error:', blError);
+      return NextResponse.json({
+        success: false,
+        error: blError.message
+      }, { status: 500 });
+    }
+
+    // Créer les détails si fournis
+    if (body.details && body.details.length > 0) {
+      for (const detail of body.details) {
+        const { error: detailError } = await supabase.rpc('insert_detail_bl_to_tenant', {
+          p_tenant: tenant,
+          ...detail
+        });
+        
+        if (detailError) {
+          console.warn('⚠️ Detail insertion error:', detailError);
+        }
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: blData
+    });
+
+  } catch (error) {
+    console.error('❌ Production API error:', error);
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur serveur'
     }, { status: 500 });
   }
 }

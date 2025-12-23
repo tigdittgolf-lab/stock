@@ -1,83 +1,82 @@
-# 🔧 Configuration des Variables d'Environnement Vercel
+# Configuration Variables d'Environnement Vercel
 
-## Variables à Configurer
+## PROBLÈME IDENTIFIÉ
+En production sur Vercel, l'application ne peut pas se connecter aux bases de données car :
+1. Le backend n'est pas déployé
+2. Les variables Supabase ne sont pas configurées
+3. Les bases MySQL/PostgreSQL locales ne sont pas accessibles
 
-Allez sur : **https://vercel.com/tigdittgolf-9191s-projects/[nom-projet]/settings/environment-variables**
+## SOLUTION IMMÉDIATE
 
-### 1. NEXT_PUBLIC_SUPABASE_URL
-```
-https://szgodrjglbpzkrksnroi.supabase.co
-```
-- Environment: **Production**
+### 1. Configurer les Variables Supabase sur Vercel
 
-### 2. NEXT_PUBLIC_SUPABASE_ANON_KEY
-```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2NDgwNDMsImV4cCI6MjA4MTIyNDA0M30.5LS_VF6mkFIodLIe3oHEYdlrZD0-rXJioEm2HVFcsBg
-```
-- Environment: **Production**
+Aller sur : https://vercel.com/tigdittgolf-9191s-projects/frontend/settings/environment-variables
 
-### 3. SUPABASE_SERVICE_ROLE_KEY
-```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTY0ODA0MywiZXhwIjoyMDgxMjI0MDQzfQ.QXWudNf09Ly0BwZHac2vweYkr-ea_iufIVzcP98zZFU
-```
-- Environment: **Production**
+Ajouter ces variables :
 
-### 4. JWT_SECRET
 ```
-St_Article_2025_Super_Secret_JWT_Key_256_Bits_Production_Ready_Token_Security
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NODE_ENV=production
 ```
-- Environment: **Production**
 
-### 5. NEXT_PUBLIC_API_URL
+### 2. Commandes pour configurer automatiquement
+
+```bash
+# Configurer les variables Vercel (remplacer par vos vraies valeurs)
+vercel env add SUPABASE_URL
+# Entrer: https://your-project.supabase.co
+
+vercel env add SUPABASE_SERVICE_ROLE_KEY  
+# Entrer: your-service-role-key
+
+vercel env add NODE_ENV
+# Entrer: production
 ```
-https://frontend-dcay82cpv-tigdittgolf-9191s-projects.vercel.app/api
-```
-- Environment: **Production**
 
-### 6. NODE_ENV
-```
-production
-```
-- Environment: **Production**
-
-## 📋 Étapes de Configuration
-
-1. **Connectez-vous à Vercel** : https://vercel.com
-2. **Allez dans votre projet** : tigdittgolf-9191s-projects/[nom-projet]
-3. **Cliquez sur "Settings"** dans le menu du haut
-4. **Cliquez sur "Environment Variables"** dans le menu latéral
-5. **Pour chaque variable** :
-   - Cliquez sur "Add New"
-   - Entrez le nom de la variable (ex: `NEXT_PUBLIC_SUPABASE_URL`)
-   - Entrez la valeur
-   - Sélectionnez "Production"
-   - Cliquez sur "Save"
-
-## 🔄 Après Configuration
-
-Une fois toutes les variables ajoutées, **redéployez** votre application :
+### 3. Redéployer après configuration
 
 ```bash
 cd frontend
 vercel --prod
 ```
 
-Ou attendez que Vercel redéploie automatiquement (si vous avez configuré le Git integration).
+## ARCHITECTURE PRODUCTION
 
-## ✅ Vérification
+### Mode Développement (Local)
+```
+Frontend (3000) → Backend (3005) → Supabase/MySQL/PostgreSQL
+```
 
-Testez ces URLs après le redéploiement :
+### Mode Production (Vercel)
+```
+Frontend (Vercel) → API Routes Next.js → Supabase uniquement
+```
 
-1. **Homepage** : https://frontend-dcay82cpv-tigdittgolf-9191s-projects.vercel.app
-2. **Login** : https://frontend-dcay82cpv-tigdittgolf-9191s-projects.vercel.app/login
-3. **API Health** : https://frontend-dcay82cpv-tigdittgolf-9191s-projects.vercel.app/api/health
+## FONCTIONNALITÉS EN PRODUCTION
 
-## 🔐 Configuration Supabase
+### ✅ Disponibles
+- Connexion/Authentification
+- Gestion Articles/Clients/Fournisseurs
+- Bons de livraison/Factures/Proformas
+- Dashboard et statistiques
+- **Supabase uniquement** (pas de switch de base)
 
-N'oubliez pas de mettre à jour les URLs autorisées dans Supabase :
+### ❌ Non disponibles en production
+- Migration vers MySQL/PostgreSQL local
+- Switch entre bases de données
+- Fonctions RPC locales (MySQL/PostgreSQL)
 
-1. Allez sur : https://supabase.com/dashboard/project/szgodrjglbpzkrksnroi
-2. **Authentication** → **URL Configuration**
-3. Ajoutez :
-   - **Site URL** : `https://frontend-dcay82cpv-tigdittgolf-9191s-projects.vercel.app`
-   - **Redirect URLs** : `https://frontend-dcay82cpv-tigdittgolf-9191s-projects.vercel.app/auth/callback`
+## SOLUTION COMPLÈTE (Optionnelle)
+
+Pour avoir toutes les fonctionnalités en production, il faudrait :
+
+1. **Déployer le backend** sur un service comme Railway/Render
+2. **Utiliser des bases cloud** (PlanetScale MySQL, Neon PostgreSQL)
+3. **Configurer les connexions cloud** dans le backend déployé
+
+## RECOMMANDATION
+
+Pour l'instant, configurer les variables Supabase permet d'avoir une application fonctionnelle en production avec toutes les fonctionnalités de base.
+
+Le switch entre bases de données reste une fonctionnalité de développement/local.

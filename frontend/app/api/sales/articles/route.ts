@@ -1,71 +1,96 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '../../../../lib/database/database-service';
+import { createClient } from '@supabase/supabase-js';
+
+// Configuration Supabase pour la production
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Vérifier si les variables Supabase sont disponibles
+if (!supabaseUrl || !supabaseKey) {
+  console.warn('⚠️ Variables Supabase non configurées - Mode développement détecté');
+}
+
+// Créer le client Supabase seulement si les variables sont disponibles
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 export async function GET(request: NextRequest) {
   try {
-    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
-    const dbType = DatabaseService.getActiveDatabaseType();
-    
-    console.log(`🔍 Récupération des articles pour le tenant: ${tenant} (DB: ${dbType})`);
+    // Si pas de Supabase configuré, rediriger vers le backend local
+    if (!supabase) {
+      return NextResponse.json({
+        success: false,
+        error: 'Configuration Supabase manquante - Utiliser le backend local en développement'
+      }, { status: 503 });
+    }
 
-    // Utiliser le service de base de données unifié
-    const result = await DatabaseService.executeRPC('get_articles', {
+    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    
+    console.log(`🔍 Production API: Fetching articles for tenant ${tenant}`);
+    
+    const { data, error } = await supabase.rpc('get_articles_by_tenant', {
       p_tenant: tenant
     });
 
-    console.log(`📊 Résultat ${dbType} get_articles:`, { 
-      success: result.success,
-      dataType: typeof result.data,
-      dataLength: Array.isArray(result.data) ? result.data.length : 0,
-      tenant: tenant 
-    });
-
-    if (result.success && result.data) {
-      // Parse JSON if it's a string (Supabase case)
-      let articles = result.data;
-      if (typeof result.data === 'string') {
-        try {
-          articles = JSON.parse(result.data);
-        } catch (parseError) {
-          console.log('⚠️ Failed to parse JSON:', parseError);
-          articles = [];
-        }
-      }
-      
-      console.log(`✅ Articles récupérés via ${dbType}:`, articles?.length || 0);
+    if (error) {
+      console.error('❌ Supabase error:', error);
       return NextResponse.json({
-        success: true,
-        data: articles || [],
-        debug: {
-          tenant: tenant,
-          method: 'database_service',
-          database_type: dbType,
-          function: 'get_articles',
-          dataType: typeof result.data,
-          originalData: result.data
-        }
-      });
-    } else {
-      console.log(`❌ Erreur ${dbType}:`, result.error);
-      return NextResponse.json({
-        success: true,
-        data: [],
-        debug: {
-          tenant: tenant,
-          database_type: dbType,
-          error: result.error,
-          function: 'get_articles',
-          suggestion: `Vérifiez que la fonction/table get_articles existe dans ${dbType}`
-        }
-      });
+        success: false,
+        error: error.message
+      }, { status: 500 });
     }
 
+    return NextResponse.json({
+      success: true,
+      data: data || []
+    });
+
   } catch (error) {
-    console.error('❌ Erreur serveur:', error);
+    console.error('❌ Production API error:', error);
     return NextResponse.json({
       success: false,
-      error: 'Erreur interne du serveur',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Erreur serveur'
+    }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    // Si pas de Supabase configuré, rediriger vers le backend local
+    if (!supabase) {
+      return NextResponse.json({
+        success: false,
+        error: 'Configuration Supabase manquante - Utiliser le backend local en développement'
+      }, { status: 503 });
+    }
+
+    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    const body = await request.json();
+    
+    console.log(`📝 Production API: Creating article for tenant ${tenant}`);
+    
+    const { data, error } = await supabase.rpc('insert_article_to_tenant', {
+      p_tenant: tenant,
+      ...body
+    });
+
+    if (error) {
+      console.error('❌ Supabase error:', error);
+      return NextResponse.json({
+        success: false,
+        error: error.message
+      }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data
+    });
+
+  } catch (error) {
+    console.error('❌ Production API error:', error);
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur serveur'
     }, { status: 500 });
   }
 }

@@ -40,9 +40,21 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
   return fetch(apiUrl(endpoint), mergedOptions);
 };
 
-// Fonction utilitaire pour les URLs API simples
+// Fonction utilitaire pour les URLs API - PRODUCTION READY
 export const getApiUrl = (endpoint: string): string => {
-  // CORRECTION: Toujours pointer vers le backend (port 3005)
-  // Le frontend ne doit jamais appeler ses propres routes API pour les données
-  return `http://localhost:3005/api/${endpoint}`;
+  // Détecter l'environnement
+  const isProduction = process.env.NODE_ENV === 'production' || 
+                      (typeof window !== 'undefined' && window.location.hostname !== 'localhost');
+  
+  if (isProduction) {
+    // En production, utiliser les routes API Next.js intégrées
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/api/${endpoint}`;
+    }
+    // Fallback SSR
+    return `/api/${endpoint}`;
+  } else {
+    // En développement, utiliser le backend séparé
+    return `http://localhost:3005/api/${endpoint}`;
+  }
 };
