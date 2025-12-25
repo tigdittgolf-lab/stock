@@ -180,7 +180,7 @@ export default function EditArticle() {
 
   const fetchSuppliers = async (headers: any) => {
     try {
-      const response = await fetch(`http://localhost:3005/api/sales/suppliers`, { headers });
+      const response = await fetch(getApiUrl('sales/suppliers'), { headers });
       const data = await response.json();
       
       if (data.success) {

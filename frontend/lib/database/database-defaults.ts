@@ -25,7 +25,7 @@ export function getDatabaseDefaults(type: DatabaseType): Partial<DatabaseConfig>
         supabaseUrl: undefined,
         supabaseKey: undefined,
         host: 'localhost',
-        port: 3306,
+        port: 3307,
         database: undefined, // Pas de base par défaut - on se connecte directement aux bases tenant
         username: 'root',
         password: ''

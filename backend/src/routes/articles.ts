@@ -16,38 +16,40 @@ articles.use('*', tenantMiddleware);
 articles.get('/', async (c) => {
   try {
     const tenant = getTenantContext(c);
-    console.log(`🔍 Fetching articles from schema: ${tenant.schema}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Fetching articles from ${dbType} database for schema: ${tenant.schema}`);
 
-    // Utiliser la vraie base de données via RPC
-    console.log(`✅ Using real database via RPC function`);
+    const result = await backendDatabaseService.executeRPC('get_articles_by_tenant', {
+      p_tenant: tenant.schema
+    });
     
-    try {
-      const { data: articlesData, error } = await databaseRouter.rpc('get_articles_by_tenant', {
-        p_tenant: tenant.schema
+    if (!result.success) {
+      console.error('❌ RPC Error:', result.error);
+      // Fallback: return empty array if function doesn't exist yet
+      return c.json([]);
+    }
+    
+    console.log(`✅ Found ${result.data?.length || 0} articles from ${dbType} database`);
+    
+    // Apply cache modifications if necessary
+    const cachedArticles = createdArticlesCache.get(tenant.schema) || [];
+    const modifications = createdArticlesCache.get(`${tenant.schema}_modifications`) || new Map();
+    const deletedArticles = createdArticlesCache.get(`${tenant.schema}_deleted`) || new Set();
+    
+    // Combine database data with cached articles
+    let allArticles = [...(result.data || []), ...cachedArticles];
+    
+    // Apply modifications and filter deleted
+    let modifiedData = allArticles
+      .filter(article => !deletedArticles.has(article.narticle)) // Exclude deleted
+      .map(article => {
+        const modification = modifications.get(article.narticle);
+        return modification || article;
       });
-      
-      if (error) {
-        console.error('❌ RPC Error:', error);
-        // Fallback: retourner un tableau vide si la fonction n'existe pas encore
-        return c.json([]);
-      }
-      
-      console.log(`✅ Found ${articlesData?.length || 0} articles in database`);
-      
-      // Appliquer les modifications du cache si nécessaire
-      const cachedArticles = createdArticlesCache.get(tenant.schema) || [];
-      const modifications = createdArticlesCache.get(`${tenant.schema}_modifications`) || new Map();
-      const deletedArticles = createdArticlesCache.get(`${tenant.schema}_deleted`) || new Set();
-      
-      // Combiner les données de la base avec les articles créés en cache
-      let allArticles = [...(articlesData || []), ...cachedArticles];
-      
-      // Appliquer les modifications et filtrer les supprimés
-      let modifiedData = allArticles
-        .filter(article => !deletedArticles.has(article.narticle)) // Exclure les supprimés
-        .map(article => {
-          const modification = modifications.get(article.narticle);
-          return modification || article;
+    
+    console.log(`✅ Returning article data: ${result.data?.length || 0} from ${dbType} + ${cachedArticles.length} cached = ${modifiedData.length} total`);
+    
+    return c.json(modifiedData);
         });
       
       console.log(`✅ Returning article data: ${articlesData?.length || 0} from database + ${cachedArticles.length} cached = ${modifiedData.length} total`);

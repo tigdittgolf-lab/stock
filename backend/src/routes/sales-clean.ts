@@ -24,29 +24,31 @@ sales.get('/articles', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    console.log(`🔍 Sales: Fetching articles from schema: ${tenant}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Sales: Fetching articles from schema: ${tenant} (DB: ${dbType})`);
 
-    const { data: articlesData, error } = await databaseRouter.rpc('get_articles_by_tenant', {
+    const result = await backendDatabaseService.executeRPC('get_articles_by_tenant', {
       p_tenant: tenant
     });
     
-    if (error) {
-      console.error('❌ RPC Error in sales/articles:', error);
-      return c.json({ success: true, data: [], message: 'RPC function not available' , database_type: backendDatabaseService.getActiveDatabaseType() });
+    if (!result.success) {
+      console.error('❌ RPC Error in sales/articles:', result.error);
+      return c.json({ success: true, data: [], message: 'RPC function not available', database_type: dbType });
     }
     
-    console.log(`✅ Sales articles: ${articlesData?.length || 0} found`);
+    console.log(`✅ Sales articles: ${result.data?.length || 0} found in ${dbType} database`);
     
     return c.json({ 
       success: true, 
-      data: articlesData || [],
+      data: result.data || [],
       tenant: tenant,
-      source: 'real_database_via_rpc'
-    , database_type: backendDatabaseService.getActiveDatabaseType() });
+      source: `${dbType}_database_via_rpc`,
+      database_type: dbType
+    });
     
   } catch (error) {
     console.error('Error in sales/articles:', error);
-    return c.json({ success: true, data: [], error: 'RPC not available' , database_type: backendDatabaseService.getActiveDatabaseType() });
+    return c.json({ success: true, data: [], error: 'RPC not available', database_type: backendDatabaseService.getActiveDatabaseType() });
   }
 });
 
@@ -58,29 +60,31 @@ sales.get('/clients', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    console.log(`🔍 Sales: Fetching clients from schema: ${tenant}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Sales: Fetching clients from schema: ${tenant} (DB: ${dbType})`);
 
-    const { data: clientsData, error } = await databaseRouter.rpc('get_clients_by_tenant', {
+    const result = await backendDatabaseService.executeRPC('get_clients_by_tenant', {
       p_tenant: tenant
     });
     
-    if (error) {
-      console.error('❌ RPC Error in sales/clients:', error);
-      return c.json({ success: true, data: [], message: 'RPC function not available' , database_type: backendDatabaseService.getActiveDatabaseType() });
+    if (!result.success) {
+      console.error('❌ RPC Error in sales/clients:', result.error);
+      return c.json({ success: true, data: [], message: 'RPC function not available', database_type: dbType });
     }
     
-    console.log(`✅ Sales clients: ${clientsData?.length || 0} found`);
+    console.log(`✅ Sales clients: ${result.data?.length || 0} found in ${dbType} database`);
     
     return c.json({ 
       success: true, 
-      data: clientsData || [],
+      data: result.data || [],
       tenant: tenant,
-      source: 'real_database_via_rpc'
-    , database_type: backendDatabaseService.getActiveDatabaseType() });
+      source: `${dbType}_database_via_rpc`,
+      database_type: dbType
+    });
     
   } catch (error) {
     console.error('Error in sales/clients:', error);
-    return c.json({ success: true, data: [], error: 'RPC not available' , database_type: backendDatabaseService.getActiveDatabaseType() });
+    return c.json({ success: true, data: [], error: 'RPC not available', database_type: backendDatabaseService.getActiveDatabaseType() });
   }
 });
 
@@ -92,29 +96,31 @@ sales.get('/suppliers', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    console.log(`🔍 Sales: Fetching suppliers from schema: ${tenant}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Sales: Fetching suppliers from schema: ${tenant} (DB: ${dbType})`);
 
-    const { data: suppliersData, error } = await databaseRouter.rpc('get_suppliers_by_tenant', {
+    const result = await backendDatabaseService.executeRPC('get_suppliers_by_tenant', {
       p_tenant: tenant
     });
     
-    if (error) {
-      console.error('❌ RPC Error in sales/suppliers:', error);
-      return c.json({ success: true, data: [], message: 'RPC function not available' , database_type: backendDatabaseService.getActiveDatabaseType() });
+    if (!result.success) {
+      console.error('❌ RPC Error in sales/suppliers:', result.error);
+      return c.json({ success: true, data: [], message: 'RPC function not available', database_type: dbType });
     }
     
-    console.log(`✅ Sales suppliers: ${suppliersData?.length || 0} found`);
+    console.log(`✅ Sales suppliers: ${result.data?.length || 0} found in ${dbType} database`);
     
     return c.json({ 
       success: true, 
-      data: suppliersData || [],
+      data: result.data || [],
       tenant: tenant,
-      source: 'real_database_via_rpc'
-    , database_type: backendDatabaseService.getActiveDatabaseType() });
+      source: `${dbType}_database_via_rpc`,
+      database_type: dbType
+    });
     
   } catch (error) {
     console.error('Error in sales/suppliers:', error);
-    return c.json({ success: true, data: [], error: 'RPC not available' , database_type: backendDatabaseService.getActiveDatabaseType() });
+    return c.json({ success: true, data: [], error: 'RPC not available', database_type: backendDatabaseService.getActiveDatabaseType() });
   }
 });
 

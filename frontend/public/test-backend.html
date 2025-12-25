@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 Test Backend depuis Vercel</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .button {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        .button.success { background: linear-gradient(45deg, #56ab2f, #a8e6cf); }
+        .button.danger { background: linear-gradient(45deg, #ff416c, #ff4b2b); }
+        .button.primary { background: linear-gradient(45deg, #667eea, #764ba2); }
+        
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-weight: bold;
+            text-align: center;
+        }
+        .status.success { background: rgba(76, 175, 80, 0.3); border: 1px solid #4CAF50; }
+        .status.error { background: rgba(244, 67, 54, 0.3); border: 1px solid #f44336; }
+        .status.warning { background: rgba(255, 193, 7, 0.3); border: 1px solid #FFC107; }
+        
+        .log {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .emoji { font-size: 1.5em; margin-right: 10px; }
+        
+        .config-info {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Test Backend depuis Vercel</h1>
+        <p style="text-align: center; font-size: 1.2em; margin-bottom: 30px;">
+            Test de connexion de l'application Vercel vers le backend local via tunnel
+        </p>
+
+        <!-- Configuration -->
+        <div class="section">
+            <h3>⚙️ Configuration</h3>
+            <div class="config-info">
+                <div><strong>Backend URL:</strong> <span id="backendUrl">Détection en cours...</span></div>
+                <div><strong>Environnement:</strong> <span id="environment">Détection en cours...</span></div>
+                <div><strong>Origine:</strong> <span id="origin">Détection en cours...</span></div>
+            </div>
+        </div>
+
+        <!-- Tests -->
+        <div class="section">
+            <h3>🧪 Tests de Connexion</h3>
+            
+            <button class="button primary" onclick="testBackendHealth()">
+                <span class="emoji">🔍</span> Test Connexion Backend
+            </button>
+            
+            <button class="button success" onclick="testAuthentication()">
+                <span class="emoji">🔐</span> Test Authentification
+            </button>
+            
+            <button class="button primary" onclick="testDatabaseSwitch()">
+                <span class="emoji">🔄</span> Test Switch Database
+            </button>
+            
+            <button class="button success" onclick="runAllTests()">
+                <span class="emoji">🚀</span> LANCER TOUS LES TESTS
+            </button>
+            
+            <button class="button danger" onclick="clearLogs()">
+                <span class="emoji">🧹</span> Effacer Logs
+            </button>
+        </div>
+
+        <!-- Résultats -->
+        <div class="section">
+            <h3>📊 Résultats</h3>
+            <div id="testStatus" class="status warning">
+                <span class="emoji">⏳</span> En attente de tests...
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="section">
+            <h3>📋 Logs</h3>
+            <div id="logs" class="log">
+                <div style="color: #4CAF50;">🚀 Interface de test chargée depuis Vercel</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration dynamique
+        let BACKEND_URL = 'https://enabled-encourage-mechanics-performance.trycloudflare.com';
+        let authToken = null;
+
+        // Fonction de logging
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: '#2196F3',
+                success: '#4CAF50',
+                error: '#f44336',
+                warning: '#FF9800'
+            };
+            
+            const logEntry = document.createElement('div');
+            logEntry.style.color = colors[type] || colors.info;
+            logEntry.innerHTML = `${timestamp} - ${message}`;
+            logs.appendChild(logEntry);
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        // Mise à jour du statut
+        function updateStatus(message, type = 'warning') {
+            const statusDiv = document.getElementById('testStatus');
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = `<span class="emoji">${type === 'success' ? '✅' : type === 'error' ? '❌' : '⏳'}</span> ${message}`;
+        }
+
+        // Test de santé du backend
+        async function testBackendHealth() {
+            log('🔍 Test de connexion au backend...', 'info');
+            updateStatus('Test de connexion en cours...', 'warning');
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`);
+                const data = await response.json();
+                
+                if (data.status === 'OK') {
+                    log('✅ Backend accessible via tunnel', 'success');
+                    log(`🕐 Timestamp: ${data.timestamp}`, 'info');
+                    updateStatus('Backend accessible via tunnel', 'success');
+                    return true;
+                } else {
+                    throw new Error('Status non OK');
+                }
+                
+            } catch (error) {
+                log(`❌ Erreur connexion backend: ${error.message}`, 'error');
+                updateStatus('Erreur de connexion backend', 'error');
+                return false;
+            }
+        }
+
+        // Test d'authentification
+        async function testAuthentication() {
+            log('🔐 Test d\'authentification...', 'info');
+            updateStatus('Test authentification en cours...', 'warning');
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/auth-real/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    authToken = data.token;
+                    log('✅ Authentification réussie', 'success');
+                    log(`👤 Utilisateur: ${data.user.username} (${data.user.role})`, 'info');
+                    log(`🔑 Token: ${data.token.substring(0, 20)}...`, 'info');
+                    updateStatus('Authentification réussie', 'success');
+                    return true;
+                } else {
+                    throw new Error(data.error || 'Authentification échouée');
+                }
+                
+            } catch (error) {
+                log(`❌ Erreur authentification: ${error.message}`, 'error');
+                updateStatus('Erreur authentification', 'error');
+                return false;
+            }
+        }
+
+        // Test switch base de données
+        async function testDatabaseSwitch() {
+            if (!authToken) {
+                log('⚠️ Authentification requise pour le test de switch', 'warning');
+                return false;
+            }
+            
+            log('🔄 Test switch base de données...', 'info');
+            updateStatus('Test switch database en cours...', 'warning');
+            
+            const databases = ['supabase', 'mysql', 'postgresql'];
+            let successCount = 0;
+            
+            for (const db of databases) {
+                try {
+                    log(`🔄 Switch vers ${db.toUpperCase()}...`, 'info');
+                    
+                    const response = await fetch(`${BACKEND_URL}/api/database-config/switch`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({
+                            database: db
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        log(`✅ Switch vers ${db.toUpperCase()} réussi`, 'success');
+                        successCount++;
+                    } else {
+                        log(`⚠️ Switch vers ${db.toUpperCase()} échoué: ${data.error}`, 'warning');
+                    }
+                    
+                } catch (error) {
+                    log(`❌ Erreur switch ${db}: ${error.message}`, 'error');
+                }
+            }
+            
+            if (successCount > 0) {
+                log(`✅ Switch database: ${successCount}/${databases.length} réussis`, 'success');
+                updateStatus(`Switch database: ${successCount}/${databases.length} réussis`, 'success');
+                return true;
+            } else {
+                updateStatus('Erreur switch database', 'error');
+                return false;
+            }
+        }
+
+        // Lancer tous les tests
+        async function runAllTests() {
+            log('🚀 DÉMARRAGE DE TOUS LES TESTS', 'info');
+            log('='.repeat(50), 'info');
+            
+            updateStatus('Tests en cours...', 'warning');
+            
+            const healthOk = await testBackendHealth();
+            if (!healthOk) return;
+            
+            const authOk = await testAuthentication();
+            if (!authOk) return;
+            
+            const switchOk = await testDatabaseSwitch();
+            
+            if (healthOk && authOk && switchOk) {
+                log('🎉 TOUS LES TESTS RÉUSSIS !', 'success');
+                log('🏆 DÉFI VERCEL → BACKEND LOCAL RÉUSSI !', 'success');
+                updateStatus('🎉 TOUS LES TESTS RÉUSSIS !', 'success');
+            } else {
+                log('⚠️ Certains tests ont échoué', 'warning');
+                updateStatus('Tests partiellement réussis', 'warning');
+            }
+        }
+
+        // Effacer les logs
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+            log('🧹 Logs effacés', 'info');
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Détecter la configuration
+            document.getElementById('backendUrl').textContent = BACKEND_URL;
+            document.getElementById('environment').textContent = window.location.hostname.includes('vercel') ? 'Vercel Production' : 'Local';
+            document.getElementById('origin').textContent = window.location.origin;
+            
+            log('🌐 Application chargée depuis Vercel', 'success');
+            log('🎯 Prêt à tester la connexion backend !', 'info');
+            log(`🔗 Backend URL: ${BACKEND_URL}`, 'info');
+        });
+    </script>
+</body>
+</html>

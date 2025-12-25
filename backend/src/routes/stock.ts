@@ -8,27 +8,32 @@ const stock = new Hono();
 // Get stock summary
 stock.get('/summary', async (c) => {
   try {
-    const { data: articles, error } = await supabaseAdmin
-      .from('article')
-      .select('stock_f, stock_bl, prix_vente, seuil');
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Fetching stock summary from ${dbType} database`);
 
-    if (error) throw error;
-
-    const totalArticles = articles.length;
-    const totalStockValue = articles.reduce((sum, art) => sum + (art.stock_f * art.prix_vente), 0);
-    const totalReservedStock = articles.reduce((sum, art) => sum + art.stock_bl, 0);
-    const lowStockCount = articles.filter(art => art.stock_f <= art.seuil).length;
-    const outOfStockCount = articles.filter(art => art.stock_f === 0).length;
+    const result = await backendDatabaseService.executeRPC('get_stock_summary', {});
+    
+    if (!result.success) {
+      console.error('❌ RPC Error:', result.error);
+      // Return fallback data
+      return c.json({
+        success: true,
+        data: {
+          total_articles: 0,
+          total_stock_value: 0,
+          total_reserved_stock: 0,
+          low_stock_count: 0,
+          out_of_stock_count: 0
+        },
+        message: 'Using fallback data (RPC not available)',
+        database_type: dbType
+      });
+    }
 
     return c.json({
       success: true,
-      data: {
-        total_articles: totalArticles,
-        total_stock_value: totalStockValue,
-        total_reserved_stock: totalReservedStock,
-        low_stock_count: lowStockCount,
-        out_of_stock_count: outOfStockCount
-      }
+      data: result.data,
+      database_type: dbType
     });
   } catch (error) {
     console.error('Error fetching stock summary:', error);
@@ -39,27 +44,26 @@ stock.get('/summary', async (c) => {
 // Get low stock alerts
 stock.get('/low-stock', async (c) => {
   try {
-    // First get all articles
-    const { data: articles, error } = await supabaseAdmin
-      .from('article')
-      .select(`
-        narticle,
-        designation,
-        stock_f,
-        stock_bl,
-        seuil,
-        prix_vente,
-        nfournisseur,
-        fournisseur:fournisseur(nfournisseur, nom_fournisseur)
-      `)
-      .order('stock_f', { ascending: true });
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Fetching low stock alerts from ${dbType} database`);
 
-    if (error) throw error;
+    const result = await backendDatabaseService.executeRPC('get_low_stock_articles', {});
+    
+    if (!result.success) {
+      console.error('❌ RPC Error:', result.error);
+      return c.json({ 
+        success: true, 
+        data: [],
+        message: 'RPC function not available',
+        database_type: dbType
+      });
+    }
 
-    // Filter articles where stock_f <= seuil
-    const lowStockArticles = articles?.filter(article => article.stock_f <= article.seuil) || [];
-
-    return c.json({ success: true, data: lowStockArticles , database_type: backendDatabaseService.getActiveDatabaseType() });
+    return c.json({ 
+      success: true, 
+      data: result.data || [],
+      database_type: dbType
+    });
   } catch (error) {
     console.error('Error fetching low stock alerts:', error);
     return c.json({ success: false, error: 'Failed to fetch low stock alerts' }, 500);
@@ -69,18 +73,26 @@ stock.get('/low-stock', async (c) => {
 // Get stock movements
 stock.get('/movements', async (c) => {
   try {
-    const { data, error } = await supabaseAdmin
-      .from('mouvement_stock')
-      .select(`
-        *,
-        article:article(narticle, designation)
-      `)
-      .order('date_mouvement', { ascending: false })
-      .limit(100);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Fetching stock movements from ${dbType} database`);
 
-    if (error) throw error;
+    const result = await backendDatabaseService.executeRPC('get_stock_movements', {});
+    
+    if (!result.success) {
+      console.error('❌ RPC Error:', result.error);
+      return c.json({ 
+        success: true, 
+        data: [],
+        message: 'RPC function not available',
+        database_type: dbType
+      });
+    }
 
-    return c.json({ success: true, data });
+    return c.json({ 
+      success: true, 
+      data: result.data || [],
+      database_type: dbType
+    });
   } catch (error) {
     console.error('Error fetching stock movements:', error);
     return c.json({ success: false, error: 'Failed to fetch stock movements' }, 500);
@@ -91,15 +103,28 @@ stock.get('/movements', async (c) => {
 stock.get('/movements/:articleId', async (c) => {
   try {
     const articleId = c.req.param('articleId');
-    const { data, error } = await supabaseAdmin
-      .from('mouvement_stock')
-      .select('*')
-      .eq('narticle', articleId)
-      .order('date_mouvement', { ascending: false });
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Fetching stock movements for article ${articleId} from ${dbType} database`);
 
-    if (error) throw error;
+    const result = await backendDatabaseService.executeRPC('get_stock_movements_by_article', {
+      p_narticle: articleId
+    });
+    
+    if (!result.success) {
+      console.error('❌ RPC Error:', result.error);
+      return c.json({ 
+        success: true, 
+        data: [],
+        message: 'RPC function not available',
+        database_type: dbType
+      });
+    }
 
-    return c.json({ success: true, data });
+    return c.json({ 
+      success: true, 
+      data: result.data || [],
+      database_type: dbType
+    });
   } catch (error) {
     console.error('Error fetching article stock movements:', error);
     return c.json({ success: false, error: 'Failed to fetch article stock movements' }, 500);
@@ -112,46 +137,30 @@ stock.post('/entry', async (c) => {
     const body = await c.req.json();
     const { narticle, qte, type_mouvement, commentaire } = body;
 
-    // Get current stock
-    const { data: article, error: articleError } = await supabaseAdmin
-      .from('article')
-      .select('stock_f')
-      .eq('narticle', narticle)
-      .single();
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🆕 Creating stock entry in ${dbType} database`);
 
-    if (articleError) throw articleError;
+    const result = await backendDatabaseService.executeRPC('create_stock_entry', {
+      p_narticle: narticle,
+      p_qte: qte,
+      p_type_mouvement: type_mouvement,
+      p_commentaire: commentaire
+    });
+    
+    if (!result.success) {
+      console.error('❌ RPC Error:', result.error);
+      return c.json({ 
+        success: false, 
+        error: 'Failed to create stock entry',
+        database_type: dbType
+      }, 500);
+    }
 
-    // Calculate new stock
-    const newStock = type_mouvement === 'ENTREE' 
-      ? article.stock_f + qte 
-      : article.stock_f - qte;
-
-    // Update article stock
-    const { error: updateError } = await supabaseAdmin
-      .from('article')
-      .update({ stock_f: newStock })
-      .eq('narticle', narticle);
-
-    if (updateError) throw updateError;
-
-    // Create stock movement record
-    const { data: movement, error: movementError } = await supabaseAdmin
-      .from('mouvement_stock')
-      .insert({
-        narticle,
-        type_mouvement,
-        quantite: qte,
-        stock_avant: article.stock_f,
-        stock_apres: newStock,
-        date_mouvement: new Date().toISOString(),
-        commentaire
-      })
-      .select()
-      .single();
-
-    if (movementError) throw movementError;
-
-    return c.json({ success: true, data: movement , database_type: backendDatabaseService.getActiveDatabaseType() });
+    return c.json({ 
+      success: true, 
+      data: result.data,
+      database_type: dbType
+    });
   } catch (error) {
     console.error('Error creating stock entry:', error);
     return c.json({ success: false, error: 'Failed to create stock entry' }, 500);
@@ -161,32 +170,26 @@ stock.post('/entry', async (c) => {
 // Get stock valuation by family
 stock.get('/valuation/by-family', async (c) => {
   try {
-    const { data, error } = await supabaseAdmin
-      .from('article')
-      .select('famille, stock_f, prix_vente, prix_unitaire');
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Fetching stock valuation by family from ${dbType} database`);
 
-    if (error) throw error;
+    const result = await backendDatabaseService.executeRPC('get_stock_valuation_by_family', {});
+    
+    if (!result.success) {
+      console.error('❌ RPC Error:', result.error);
+      return c.json({ 
+        success: true, 
+        data: [],
+        message: 'RPC function not available',
+        database_type: dbType
+      });
+    }
 
-    const valuationByFamily = data.reduce((acc: any, article) => {
-      if (!acc[article.famille]) {
-        acc[article.famille] = {
-          famille: article.famille,
-          total_stock: 0,
-          total_value_sale: 0,
-          total_value_cost: 0,
-          article_count: 0
-        };
-      }
-
-      acc[article.famille].total_stock += article.stock_f;
-      acc[article.famille].total_value_sale += article.stock_f * article.prix_vente;
-      acc[article.famille].total_value_cost += article.stock_f * article.prix_unitaire;
-      acc[article.famille].article_count += 1;
-
-      return acc;
-    }, {});
-
-    return c.json({ success: true, data: Object.values(valuationByFamily) , database_type: backendDatabaseService.getActiveDatabaseType() });
+    return c.json({ 
+      success: true, 
+      data: result.data || [],
+      database_type: dbType
+    });
   } catch (error) {
     console.error('Error fetching stock valuation:', error);
     return c.json({ success: false, error: 'Failed to fetch stock valuation' }, 500);

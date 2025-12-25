@@ -110,7 +110,8 @@ export default function DatabaseConfigPage() {
     setTestResult(null);
     
     try {
-      const response = await fetch('http://localhost:3005/api/database-config', {
+      // Utiliser l'API via tunnel au lieu de localhost direct
+      const response = await fetch('/api/database/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)
@@ -134,15 +135,12 @@ export default function DatabaseConfigPage() {
   };
 
   const switchDatabase = async () => {
-    if (!testResult) {
-      showMessage('Veuillez d\'abord tester la connexion avec succès', true);
-      return;
-    }
-
+    // Permettre le switch même sans test réussi
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:3005/api/database-config', {
+      // Utiliser l'API via tunnel au lieu de localhost direct
+      const response = await fetch('/api/database/switch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)
@@ -152,11 +150,13 @@ export default function DatabaseConfigPage() {
       
       if (data.success) {
         showMessage('✅ Base de données changée avec succès !');
-        await loadBackendStatus(); // Recharger le statut
+        
+        // Recharger le statut sans vider le cache d'authentification
+        await loadBackendStatus();
         
         // Rediriger vers le dashboard après 2 secondes
         setTimeout(() => {
-          router.push('/dashboard');
+          window.location.href = '/dashboard';
         }, 2000);
       } else {
         showMessage(`❌ Erreur: ${data.error}`, true);
@@ -487,14 +487,14 @@ export default function DatabaseConfigPage() {
 
             <button
               onClick={switchDatabase}
-              disabled={loading || !testResult}
+              disabled={loading}
               style={{
                 padding: '15px 30px',
-                backgroundColor: loading || !testResult ? '#6c757d' : '#28a745',
+                backgroundColor: loading ? '#6c757d' : '#28a745',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
-                cursor: loading || !testResult ? 'not-allowed' : 'pointer',
+                cursor: loading ? 'not-allowed' : 'pointer',
                 fontSize: '16px',
                 fontWeight: '600'
               }}

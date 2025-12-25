@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Test Switch Base de Données Frontend</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .button {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        .button.success { background: linear-gradient(45deg, #56ab2f, #a8e6cf); }
+        .button.danger { background: linear-gradient(45deg, #ff416c, #ff4b2b); }
+        .button.primary { background: linear-gradient(45deg, #667eea, #764ba2); }
+        
+        .log {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-weight: bold;
+            text-align: center;
+        }
+        .status.success { background: rgba(76, 175, 80, 0.3); border: 1px solid #4CAF50; }
+        .status.error { background: rgba(244, 67, 54, 0.3); border: 1px solid #f44336; }
+        .status.warning { background: rgba(255, 193, 7, 0.3); border: 1px solid #FFC107; }
+        
+        .database-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .database-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .database-card:hover {
+            border-color: #4ECDC4;
+            transform: translateY(-5px);
+        }
+        
+        .database-card.active {
+            border-color: #56ab2f;
+            background: rgba(86, 171, 47, 0.2);
+        }
+        
+        .emoji { font-size: 1.5em; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Test Switch Base de Données Frontend</h1>
+        <p style="text-align: center; font-size: 1.2em; margin-bottom: 30px;">
+            Vérification que le frontend voit les bonnes données selon la base sélectionnée
+        </p>
+
+        <!-- Status -->
+        <div class="section">
+            <h3>📊 Status Authentification</h3>
+            <div id="authStatus" class="status warning">
+                <span class="emoji">⏳</span> En attente d'authentification...
+            </div>
+            <button class="button primary" onclick="authenticate()">
+                <span class="emoji">🔐</span> S'authentifier (admin/admin123)
+            </button>
+        </div>
+
+        <!-- Test des bases de données -->
+        <div class="section">
+            <h3>🗄️ Test Switch Bases de Données</h3>
+            <div class="database-grid">
+                <div class="database-card" id="supabase-card">
+                    <h4>☁️ Supabase (Cloud)</h4>
+                    <p>Base de données cloud</p>
+                    <div id="supabase-data">Aucune donnée</div>
+                    <button class="button success" onclick="testDatabase('supabase')">
+                        <span class="emoji">🔄</span> Tester Supabase
+                    </button>
+                </div>
+                
+                <div class="database-card" id="mysql-card">
+                    <h4>🐬 MySQL (Local)</h4>
+                    <p>Port 3307 - WAMP</p>
+                    <div id="mysql-data">Aucune donnée</div>
+                    <button class="button success" onclick="testDatabase('mysql')">
+                        <span class="emoji">🔄</span> Tester MySQL
+                    </button>
+                </div>
+                
+                <div class="database-card" id="postgresql-card">
+                    <h4>🐘 PostgreSQL (Local)</h4>
+                    <p>Port 5432</p>
+                    <div id="postgresql-data">Aucune donnée</div>
+                    <button class="button success" onclick="testDatabase('postgresql')">
+                        <span class="emoji">🔄</span> Tester PostgreSQL
+                    </button>
+                </div>
+            </div>
+            
+            <button class="button primary" onclick="testAllDatabases()">
+                <span class="emoji">🚀</span> TESTER TOUTES LES BASES
+            </button>
+        </div>
+
+        <!-- Logs -->
+        <div class="section">
+            <h3>📋 Logs de Test</h3>
+            <div id="logs" class="log">
+                <div style="color: #4CAF50;">🚀 Interface de test chargée</div>
+                <div style="color: #2196F3;">📋 Prêt à tester le switch de bases de données</div>
+            </div>
+            <button class="button danger" onclick="clearLogs()">
+                <span class="emoji">🧹</span> Effacer Logs
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const BACKEND_URL = 'https://his-affects-major-injured.trycloudflare.com';
+        let authToken = null;
+
+        // Fonction de logging
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: '#2196F3',
+                success: '#4CAF50',
+                error: '#f44336',
+                warning: '#FF9800'
+            };
+            
+            const logEntry = document.createElement('div');
+            logEntry.style.color = colors[type] || colors.info;
+            logEntry.innerHTML = `${timestamp} - ${message}`;
+            logs.appendChild(logEntry);
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        // Authentification
+        async function authenticate() {
+            const authStatus = document.getElementById('authStatus');
+            
+            try {
+                log('🔐 Tentative d\'authentification...', 'info');
+                
+                const response = await fetch(`${BACKEND_URL}/api/auth-real/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    authToken = data.token;
+                    authStatus.className = 'status success';
+                    authStatus.innerHTML = '<span class="emoji">✅</span> Authentifié: ' + data.user.username;
+                    log('✅ Authentification réussie', 'success');
+                } else {
+                    throw new Error(data.error || 'Authentification échouée');
+                }
+                
+            } catch (error) {
+                authStatus.className = 'status error';
+                authStatus.innerHTML = '<span class="emoji">❌</span> Erreur: ' + error.message;
+                log('❌ Erreur authentification: ' + error.message, 'error');
+            }
+        }
+
+        // Test d'une base de données
+        async function testDatabase(dbType) {
+            if (!authToken) {
+                log('❌ Authentification requise', 'error');
+                return;
+            }
+            
+            const card = document.getElementById(`${dbType}-card`);
+            const dataDiv = document.getElementById(`${dbType}-data`);
+            
+            try {
+                log(`🔄 Test ${dbType.toUpperCase()}...`, 'info');
+                
+                // Réinitialiser les cartes
+                document.querySelectorAll('.database-card').forEach(c => c.classList.remove('active'));
+                
+                // 1. Switch vers la base de données
+                const switchResponse = await fetch(`${BACKEND_URL}/api/database-config/switch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        database: dbType
+                    })
+                });
+                
+                const switchData = await switchResponse.json();
+                
+                if (!switchData.success) {
+                    throw new Error(`Switch échoué: ${switchData.error}`);
+                }
+                
+                log(`✅ Switch vers ${dbType} réussi`, 'success');
+                
+                // 2. Récupérer les fournisseurs via /api/sales/suppliers (route utilisée par le frontend)
+                const suppliersResponse = await fetch(`${BACKEND_URL}/api/sales/suppliers`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+                
+                if (suppliersResponse.ok) {
+                    const suppliersData = await suppliersResponse.json();
+                    const suppliers = suppliersData.data || suppliersData;
+                    
+                    // Mettre à jour l'affichage
+                    card.classList.add('active');
+                    dataDiv.innerHTML = `
+                        <strong>📦 ${suppliers.length} fournisseurs</strong><br>
+                        🔗 Source: ${suppliersData.source || 'unknown'}<br>
+                        🗄️ DB: ${suppliersData.database_type || 'unknown'}<br>
+                        ${suppliers.length > 0 ? `📋 Premier: ${suppliers[0].nom_fournisseur}` : ''}
+                    `;
+                    
+                    log(`📦 ${dbType}: ${suppliers.length} fournisseurs trouvés`, 'success');
+                    if (suppliers.length > 0) {
+                        log(`   Premier fournisseur: ${suppliers[0].nom_fournisseur}`, 'info');
+                    }
+                    
+                } else {
+                    throw new Error(`Erreur récupération fournisseurs: ${suppliersResponse.status}`);
+                }
+                
+            } catch (error) {
+                card.classList.remove('active');
+                dataDiv.innerHTML = `<strong style="color: #f44336;">❌ Erreur: ${error.message}</strong>`;
+                log(`❌ Erreur ${dbType}: ${error.message}`, 'error');
+            }
+        }
+
+        // Test de toutes les bases
+        async function testAllDatabases() {
+            log('🚀 DÉMARRAGE TEST COMPLET', 'info');
+            log('='.repeat(40), 'info');
+            
+            const databases = ['supabase', 'mysql', 'postgresql'];
+            
+            for (const db of databases) {
+                await testDatabase(db);
+                // Petite pause entre les tests
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            log('🎉 TESTS TERMINÉS !', 'success');
+            log('Vérifiez que chaque base affiche des données différentes', 'info');
+        }
+
+        // Effacer les logs
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+            log('🧹 Logs effacés', 'info');
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🌐 Interface de test chargée', 'success');
+            log('🎯 Prêt à tester le switch de bases de données !', 'info');
+        });
+    </script>
+</body>
+</html>

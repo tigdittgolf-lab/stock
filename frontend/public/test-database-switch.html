@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 Test Switch Base de Données</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .button {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        .button.success { background: linear-gradient(45deg, #56ab2f, #a8e6cf); }
+        .button.danger { background: linear-gradient(45deg, #ff416c, #ff4b2b); }
+        .button.primary { background: linear-gradient(45deg, #667eea, #764ba2); }
+        
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-weight: bold;
+            text-align: center;
+        }
+        .status.success { background: rgba(76, 175, 80, 0.3); border: 1px solid #4CAF50; }
+        .status.error { background: rgba(244, 67, 54, 0.3); border: 1px solid #f44336; }
+        .status.warning { background: rgba(255, 193, 7, 0.3); border: 1px solid #FFC107; }
+        
+        .log {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .emoji { font-size: 1.5em; margin-right: 10px; }
+        
+        .config-info {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .db-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Test Switch Base de Données</h1>
+        <p style="text-align: center; font-size: 1.2em; margin-bottom: 30px;">
+            Test complet du switch entre Supabase, MySQL et PostgreSQL
+        </p>
+
+        <!-- Configuration -->
+        <div class="section">
+            <h3>⚙️ Configuration Détectée</h3>
+            <div class="config-info">
+                <div><strong>Backend URL:</strong> https://his-affects-major-injured.trycloudflare.com</div>
+                <div><strong>MySQL:</strong> localhost:3307 (WAMP)</div>
+                <div><strong>PostgreSQL:</strong> localhost:5432</div>
+                <div><strong>Supabase:</strong> Cloud</div>
+            </div>
+        </div>
+
+        <!-- Tests individuels -->
+        <div class="section">
+            <h3>🧪 Tests Individuels</h3>
+            
+            <div class="db-card">
+                <h4>☁️ Supabase (Cloud)</h4>
+                <button class="button success" onclick="testDatabase('supabase')">
+                    <span class="emoji">☁️</span> Tester Supabase
+                </button>
+                <div id="supabase-status" class="status warning">En attente...</div>
+            </div>
+            
+            <div class="db-card">
+                <h4>🐬 MySQL (Local - Port 3307)</h4>
+                <button class="button primary" onclick="testDatabase('mysql')">
+                    <span class="emoji">🐬</span> Tester MySQL
+                </button>
+                <div id="mysql-status" class="status warning">En attente...</div>
+            </div>
+            
+            <div class="db-card">
+                <h4>🐘 PostgreSQL (Local - Port 5432)</h4>
+                <button class="button primary" onclick="testDatabase('postgresql')">
+                    <span class="emoji">🐘</span> Tester PostgreSQL
+                </button>
+                <div id="postgresql-status" class="status warning">En attente...</div>
+            </div>
+        </div>
+
+        <!-- Test complet -->
+        <div class="section">
+            <h3>🚀 Test Complet</h3>
+            
+            <button class="button success" onclick="runAllTests()">
+                <span class="emoji">🚀</span> TESTER TOUTES LES BASES
+            </button>
+            
+            <button class="button danger" onclick="clearLogs()">
+                <span class="emoji">🧹</span> Effacer Logs
+            </button>
+            
+            <div id="globalStatus" class="status warning">
+                <span class="emoji">⏳</span> En attente de tests...
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="section">
+            <h3>📋 Logs Détaillés</h3>
+            <div id="logs" class="log">
+                <div style="color: #4CAF50;">🚀 Interface de test chargée</div>
+                <div style="color: #2196F3;">🎯 Prêt à tester le switch entre bases de données</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const BACKEND_URL = 'https://his-affects-major-injured.trycloudflare.com';
+        let authToken = null;
+        let testResults = {
+            supabase: false,
+            mysql: false,
+            postgresql: false
+        };
+
+        // Fonction de logging
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: '#2196F3',
+                success: '#4CAF50',
+                error: '#f44336',
+                warning: '#FF9800'
+            };
+            
+            const logEntry = document.createElement('div');
+            logEntry.style.color = colors[type] || colors.info;
+            logEntry.innerHTML = `${timestamp} - ${message}`;
+            logs.appendChild(logEntry);
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        // Mise à jour du statut global
+        function updateGlobalStatus() {
+            const globalStatus = document.getElementById('globalStatus');
+            const successCount = Object.values(testResults).filter(r => r).length;
+            const totalTests = Object.keys(testResults).length;
+            
+            if (successCount === totalTests) {
+                globalStatus.className = 'status success';
+                globalStatus.innerHTML = `<span class="emoji">🎉</span> TOUS LES TESTS RÉUSSIS ! (${successCount}/${totalTests})`;
+            } else if (successCount > 0) {
+                globalStatus.className = 'status warning';
+                globalStatus.innerHTML = `<span class="emoji">⚠️</span> Tests partiels: ${successCount}/${totalTests} réussis`;
+            } else {
+                globalStatus.className = 'status error';
+                globalStatus.innerHTML = `<span class="emoji">❌</span> Aucun test réussi`;
+            }
+        }
+
+        // Authentification
+        async function authenticate() {
+            if (authToken) return authToken;
+            
+            try {
+                log('🔐 Authentification...', 'info');
+                
+                const response = await fetch(`${BACKEND_URL}/api/auth-real/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    authToken = data.token;
+                    log('✅ Authentification réussie', 'success');
+                    return authToken;
+                } else {
+                    throw new Error(data.error || 'Authentification échouée');
+                }
+                
+            } catch (error) {
+                log(`❌ Erreur authentification: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        // Test d'une base de données
+        async function testDatabase(dbType) {
+            const statusElement = document.getElementById(`${dbType}-status`);
+            statusElement.className = 'status warning';
+            statusElement.innerHTML = `<span class="emoji">⏳</span> Test en cours...`;
+            
+            try {
+                log(`🔄 Test switch vers ${dbType.toUpperCase()}...`, 'info');
+                
+                const token = await authenticate();
+                if (!token) {
+                    throw new Error('Authentification requise');
+                }
+                
+                const response = await fetch(`${BACKEND_URL}/api/database-config/switch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ database: dbType })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`✅ Switch vers ${dbType.toUpperCase()} réussi`, 'success');
+                    log(`📊 Message: ${data.message}`, 'info');
+                    
+                    statusElement.className = 'status success';
+                    statusElement.innerHTML = `<span class="emoji">✅</span> ${dbType.toUpperCase()} OK`;
+                    
+                    testResults[dbType] = true;
+                } else {
+                    throw new Error(data.error || 'Switch échoué');
+                }
+                
+            } catch (error) {
+                log(`❌ Erreur ${dbType}: ${error.message}`, 'error');
+                
+                statusElement.className = 'status error';
+                statusElement.innerHTML = `<span class="emoji">❌</span> ${dbType.toUpperCase()} ÉCHEC`;
+                
+                testResults[dbType] = false;
+            }
+            
+            updateGlobalStatus();
+        }
+
+        // Lancer tous les tests
+        async function runAllTests() {
+            log('🚀 DÉMARRAGE DE TOUS LES TESTS', 'info');
+            log('='.repeat(50), 'info');
+            
+            // Reset des résultats
+            testResults = { supabase: false, mysql: false, postgresql: false };
+            
+            // Tester chaque base de données
+            await testDatabase('supabase');
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Pause 1s
+            
+            await testDatabase('mysql');
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Pause 1s
+            
+            await testDatabase('postgresql');
+            
+            log('🏁 TOUS LES TESTS TERMINÉS', 'info');
+            
+            const successCount = Object.values(testResults).filter(r => r).length;
+            if (successCount === 3) {
+                log('🎉 DÉFI COMPLÈTEMENT RÉUSSI ! Toutes les bases fonctionnent !', 'success');
+            } else {
+                log(`⚠️ ${successCount}/3 bases de données fonctionnelles`, 'warning');
+            }
+        }
+
+        // Effacer les logs
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+            log('🧹 Logs effacés', 'info');
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🌐 Interface de test chargée depuis Vercel', 'success');
+            log('🎯 Prêt à tester le switch entre bases de données !', 'info');
+        });
+    </script>
+</body>
+</html>

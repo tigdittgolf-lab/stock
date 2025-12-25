@@ -28,7 +28,7 @@ export class MySQLServerAdapter implements DatabaseAdapter {
 
       this.pool = mysql.createPool({
         host: this.config.host,
-        port: this.config.port || 3306,
+        port: this.config.port || 3307,
         database: this.config.database,
         user: this.config.username,
         password: this.config.password,

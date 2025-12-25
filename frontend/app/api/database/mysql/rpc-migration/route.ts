@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     // Créer la connexion MySQL
     const connection = await mysql.createConnection({
       host: config.host || 'localhost',
-      port: config.port || 3306,
+      port: config.port || 3307,
       user: config.username || 'root',
       password: config.password || '',
       database: 'mysql', // Utiliser la base système pour créer les procédures

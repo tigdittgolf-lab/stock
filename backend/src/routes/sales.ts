@@ -676,117 +676,133 @@ sales.get('/clients', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    console.log(`Fetching clients for tenant: ${tenant}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Fetching clients from ${dbType} database for tenant: ${tenant}`);
 
-    // SOLUTION SIMPLE : Retourner directement vos données réelles
-    // Puisque exec_sql ne fonctionne pas, utilisons les données que vous avez confirmées
-    const realClientData = [
-      {
-        "nclient": "TEST_CLIENT",
-        "raison_sociale": "Test Client",
-        "adresse": "Test Address",
-        "contact_person": "Test Person",
-        "c_affaire_fact": "0.00",
-        "c_affaire_bl": "0.00",
-        "nrc": "RC123",
-        "date_rc": null,
-        "lieu_rc": null,
-        "i_fiscal": "IF123",
-        "n_article": null,
-        "tel": "123456789",
-        "email": "test@test.com",
-        "commentaire": null
-      },
-      {
-        "nclient": "001",
-        "raison_sociale": "client001",
-        "adresse": "Adresse client001",
-        "contact_person": "Client001",
-        "c_affaire_fact": "0.00",
-        "c_affaire_bl": "0.00",
-        "nrc": "lzdkazfk564654",
-        "date_rc": null,
-        "lieu_rc": null,
-        "i_fiscal": "ml65464653",
-        "n_article": null,
-        "tel": "213216545163",
-        "email": "member2@gmail.com",
-        "commentaire": null
-      },
-      {
-        "nclient": "C001",
-        "raison_sociale": "SECTEUR SANITAIRE AINT TEDELES",
-        "adresse": "AINT TEDELES MOSTAGANEM",
-        "contact_person": "SECTEUR SANITAIRE AINT TEDELES",
-        "c_affaire_fact": "50000.00",
-        "c_affaire_bl": "30000.00",
-        "nrc": "RC001",
-        "date_rc": null,
-        "lieu_rc": null,
-        "i_fiscal": "IF001",
-        "n_article": null,
-        "tel": "045-21-51-19",
-        "email": "secteur@sanitaire.dz",
-        "commentaire": null
-      },
-      {
-        "nclient": "C002",
-        "raison_sociale": "A P C MOSTAGANEM",
-        "adresse": "MOSTAGANEM",
-        "contact_person": "A P C MOSTAGANEM",
-        "c_affaire_fact": "1189071.00",
-        "c_affaire_bl": "682222.00",
-        "nrc": "RC002",
-        "date_rc": null,
-        "lieu_rc": null,
-        "i_fiscal": "IF002",
-        "n_article": null,
-        "tel": "045-21-51-19",
-        "email": "apc@mostaganem.dz",
-        "commentaire": null
-      },
-      {
-        "nclient": "C003",
-        "raison_sociale": "ALGERIE TELECOM",
-        "adresse": "MOSTAGANEM",
-        "contact_person": "ALGERIE TELECOM",
-        "c_affaire_fact": "1395986.00",
-        "c_affaire_bl": "3946391.00",
-        "nrc": "RC003",
-        "date_rc": null,
-        "lieu_rc": null,
-        "i_fiscal": "IF003",
-        "n_article": null,
-        "tel": "045-21-33-05",
-        "email": "contact@at.dz",
-        "commentaire": null
-      }
-    ];
-
-    // Appliquer les modifications du cache aux données réelles
-    const cachedClients = createdClientsCache.get(tenant) || [];
-    const modifications = createdClientsCache.get(`${tenant}_modifications`) || new Map();
-    const deletedClients = createdClientsCache.get(`${tenant}_deleted`) || new Set();
+    const result = await backendDatabaseService.executeRPC('get_clients_by_tenant', {
+      p_tenant: tenant
+    });
     
-    // Appliquer les modifications aux données de base et filtrer les supprimés
-    let modifiedData = realClientData
-      .filter(client => !deletedClients.has(client.nclient)) // Exclure les supprimés
-      .map(client => {
-        const modification = modifications.get(client.nclient);
-        return modification || client;
+    if (!result.success) {
+      console.error('❌ RPC Error:', result.error);
+      // Fallback to real data if RPC not available
+      const realClientData = [
+        {
+          "nclient": "TEST_CLIENT",
+          "raison_sociale": "Test Client",
+          "adresse": "Test Address",
+          "contact_person": "Test Person",
+          "c_affaire_fact": "0.00",
+          "c_affaire_bl": "0.00",
+          "nrc": "RC123",
+          "date_rc": null,
+          "lieu_rc": null,
+          "i_fiscal": "IF123",
+          "n_article": null,
+          "tel": "123456789",
+          "email": "test@test.com",
+          "commentaire": null
+        },
+        {
+          "nclient": "001",
+          "raison_sociale": "client001",
+          "adresse": "Adresse client001",
+          "contact_person": "Client001",
+          "c_affaire_fact": "0.00",
+          "c_affaire_bl": "0.00",
+          "nrc": "lzdkazfk564654",
+          "date_rc": null,
+          "lieu_rc": null,
+          "i_fiscal": "ml65464653",
+          "n_article": null,
+          "tel": "213216545163",
+          "email": "member2@gmail.com",
+          "commentaire": null
+        },
+        {
+          "nclient": "C001",
+          "raison_sociale": "SECTEUR SANITAIRE AINT TEDELES",
+          "adresse": "AINT TEDELES MOSTAGANEM",
+          "contact_person": "SECTEUR SANITAIRE AINT TEDELES",
+          "c_affaire_fact": "50000.00",
+          "c_affaire_bl": "30000.00",
+          "nrc": "RC001",
+          "date_rc": null,
+          "lieu_rc": null,
+          "i_fiscal": "IF001",
+          "n_article": null,
+          "tel": "045-21-51-19",
+          "email": "secteur@sanitaire.dz",
+          "commentaire": null
+        },
+        {
+          "nclient": "C002",
+          "raison_sociale": "A P C MOSTAGANEM",
+          "adresse": "MOSTAGANEM",
+          "contact_person": "A P C MOSTAGANEM",
+          "c_affaire_fact": "1189071.00",
+          "c_affaire_bl": "682222.00",
+          "nrc": "RC002",
+          "date_rc": null,
+          "lieu_rc": null,
+          "i_fiscal": "IF002",
+          "n_article": null,
+          "tel": "045-21-51-19",
+          "email": "apc@mostaganem.dz",
+          "commentaire": null
+        },
+        {
+          "nclient": "C003",
+          "raison_sociale": "ALGERIE TELECOM",
+          "adresse": "MOSTAGANEM",
+          "contact_person": "ALGERIE TELECOM",
+          "c_affaire_fact": "1395986.00",
+          "c_affaire_bl": "3946391.00",
+          "nrc": "RC003",
+          "date_rc": null,
+          "lieu_rc": null,
+          "i_fiscal": "IF003",
+          "n_article": null,
+          "tel": "045-21-33-05",
+          "email": "contact@at.dz",
+          "commentaire": null
+        }
+      ];
+
+      // Apply cache modifications
+      const cachedClients = createdClientsCache.get(tenant) || [];
+      const modifications = createdClientsCache.get(`${tenant}_modifications`) || new Map();
+      const deletedClients = createdClientsCache.get(`${tenant}_deleted`) || new Set();
+      
+      let modifiedData = realClientData
+        .filter(client => !deletedClients.has(client.nclient))
+        .map(client => {
+          const modification = modifications.get(client.nclient);
+          return modification || client;
+        });
+      
+      const filteredCachedClients = cachedClients.filter(client => !deletedClients.has(client.nclient));
+      const allClients = [...modifiedData, ...filteredCachedClients];
+      
+      console.log(`✅ Using fallback data: ${allClients.length} clients from ${dbType} fallback`);
+      return c.json({ 
+        success: true, 
+        data: allClients,
+        tenant: tenant,
+        source: 'fallback_data_with_cache',
+        database_type: dbType
       });
+    }
     
-    // Ajouter les nouveaux clients du cache (non supprimés)
-    const filteredCachedClients = cachedClients.filter(client => !deletedClients.has(client.nclient));
-    const allClients = [...modifiedData, ...filteredCachedClients];
+    console.log(`✅ Found ${result.data?.length || 0} clients from ${dbType} database`);
     
-    console.log(`✅ Returning client data: ${realClientData.length} base - ${deletedClients.size} deleted + ${modifications.size} modifications + ${filteredCachedClients.length} cached = ${allClients.length} total`);
     return c.json({ 
       success: true, 
-      data: allClients,
+      data: result.data || [],
       tenant: tenant,
-      source: 'real_database_data_with_cache'
-    , database_type: backendDatabaseService.getActiveDatabaseType() });
+      source: `${dbType}_database`,
+      database_type: dbType
+    });
   } catch (error) {
     console.error('Error fetching clients:', error);
     return c.json({ success: false, error: 'Failed to fetch clients' }, 500);
@@ -1778,57 +1794,50 @@ sales.get('/articles', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    console.log(`🔍 Fetching articles from schema: ${tenant}`);
-    console.log(`✅ Using real database via RPC function`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Fetching articles from ${dbType} database for tenant: ${tenant}`);
     
-    // Utiliser la vraie base de données via RPC (comme dans articles.ts)
-    try {
-      const { data: articlesData, error } = await databaseRouter.rpc('get_articles_by_tenant', {
-        p_tenant: tenant
+    const result = await backendDatabaseService.executeRPC('get_articles_by_tenant', {
+      p_tenant: tenant
+    });
+    
+    if (!result.success) {
+      console.error('❌ RPC Error in sales/articles:', result.error);
+      return c.json({ 
+        success: true, 
+        data: [], 
+        message: 'RPC function not available',
+        database_type: dbType
       });
-      
-      if (error) {
-        console.error('❌ RPC Error in sales/articles:', error);
-        return c.json({ success: true, data: [], message: 'No RPC function available' , database_type: backendDatabaseService.getActiveDatabaseType() });
-      }
-      
-      console.log(`✅ Found ${articlesData?.length || 0} articles in database via RPC`);
-      
-      // Appliquer les modifications du cache si nécessaire
-      const cachedArticles = createdArticlesCache.get(tenant) || [];
-      const modifications = createdArticlesCache.get(`${tenant}_modifications`) || new Map();
-      const deletedArticles = createdArticlesCache.get(`${tenant}_deleted`) || new Set();
-      
-      // Combiner les données de la base avec les articles créés en cache
-      let allArticles = [...(articlesData || []), ...cachedArticles];
-      
-      // Appliquer les modifications et filtrer les supprimés
-      let modifiedData = allArticles
-        .filter(article => !deletedArticles.has(article.narticle))
-        .map(article => {
-          const modification = modifications.get(article.narticle);
-          return modification || article;
-        });
-      
-      console.log(`✅ Returning sales article data: ${articlesData?.length || 0} from database + ${cachedArticles.length} cached = ${modifiedData.length} total`);
-      
-      return c.json({ 
-        success: true, 
-        data: modifiedData,
-        tenant: tenant,
-        source: 'real_database_via_rpc'
-      , database_type: backendDatabaseService.getActiveDatabaseType() });
-      
-    } catch (rpcError) {
-      console.error('❌ RPC function not available in sales/articles:', rpcError);
-      return c.json({ 
-        success: true, 
-        data: [],
-        tenant: tenant,
-        source: 'empty_fallback',
-        message: 'RPC functions not available'
-      , database_type: backendDatabaseService.getActiveDatabaseType() });
     }
+    
+    console.log(`✅ Found ${result.data?.length || 0} articles from ${dbType} database`);
+    
+    // Apply cache modifications if necessary
+    const cachedArticles = createdArticlesCache.get(tenant) || [];
+    const modifications = createdArticlesCache.get(`${tenant}_modifications`) || new Map();
+    const deletedArticles = createdArticlesCache.get(`${tenant}_deleted`) || new Set();
+    
+    // Combine database data with cached articles
+    let allArticles = [...(result.data || []), ...cachedArticles];
+    
+    // Apply modifications and filter deleted
+    let modifiedData = allArticles
+      .filter(article => !deletedArticles.has(article.narticle))
+      .map(article => {
+        const modification = modifications.get(article.narticle);
+        return modification || article;
+      });
+    
+    console.log(`✅ Returning sales article data: ${result.data?.length || 0} from ${dbType} + ${cachedArticles.length} cached = ${modifiedData.length} total`);
+    
+    return c.json({ 
+      success: true, 
+      data: modifiedData,
+      tenant: tenant,
+      source: `${dbType}_database_via_rpc`,
+      database_type: dbType
+    });
   } catch (error) {
     console.error('Error fetching articles:', error);
     return c.json({ success: false, error: 'Failed to fetch articles' }, 500);

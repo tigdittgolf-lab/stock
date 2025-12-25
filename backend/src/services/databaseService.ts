@@ -36,14 +36,44 @@ export class BackendDatabaseService {
   }
 
   private loadActiveConfig(): void {
-    // Essayer de charger depuis les variables d'environnement ou fichier de config
-    // Pour l'instant, utiliser Supabase par défaut
+    try {
+      // Essayer de charger depuis un fichier de configuration
+      const fs = require('fs');
+      const path = require('path');
+      const configPath = path.join(process.cwd(), 'database-config.json');
+      
+      if (fs.existsSync(configPath)) {
+        const configData = fs.readFileSync(configPath, 'utf8');
+        const savedConfig = JSON.parse(configData);
+        this.activeConfig = savedConfig;
+        console.log(`🔄 Configuration chargée depuis le fichier: ${savedConfig.type}`);
+        return;
+      }
+    } catch (error) {
+      console.warn('⚠️ Erreur lors du chargement de la configuration:', error);
+    }
+    
+    // Configuration par défaut si aucun fichier trouvé
     this.activeConfig = {
       type: 'supabase',
       name: 'Supabase Production',
       supabaseUrl: process.env.SUPABASE_URL,
       supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY
     };
+    console.log('📊 Configuration par défaut: Supabase');
+  }
+
+  private saveActiveConfig(): void {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const configPath = path.join(process.cwd(), 'database-config.json');
+      
+      fs.writeFileSync(configPath, JSON.stringify(this.activeConfig, null, 2));
+      console.log(`💾 Configuration sauvegardée: ${this.activeConfig?.type}`);
+    } catch (error) {
+      console.error('❌ Erreur lors de la sauvegarde:', error);
+    }
   }
 
   public getActiveDatabaseType(): DatabaseType {
@@ -79,6 +109,7 @@ export class BackendDatabaseService {
       
       // Sauvegarder la nouvelle configuration
       this.activeConfig = config;
+      this.saveActiveConfig(); // Ajouter la sauvegarde persistante
       
       console.log(`✅ Backend database switched to: ${config.type}`);
       return true;
@@ -106,10 +137,10 @@ export class BackendDatabaseService {
           // Test MySQL connection
           const mysqlConn = await mysql.createConnection({
             host: config.host || 'localhost',
-            port: config.port || 3306,
+            port: config.port || 3307,  // CORRECTION: WAMP utilise 3307
             user: config.username || 'root',
             password: config.password || '',
-            database: config.database || 'stock_local'
+            database: config.database || 'stock_management'  // CORRECTION: utiliser stock_management
           });
           await mysqlConn.ping();
           await mysqlConn.end();
@@ -207,10 +238,10 @@ export class BackendDatabaseService {
       if (!this.mysqlConnection) {
         this.mysqlConnection = await mysql.createConnection({
           host: this.activeConfig?.host || 'localhost',
-          port: this.activeConfig?.port || 3306,
+          port: this.activeConfig?.port || 3307,  // CORRECTION: WAMP utilise 3307
           user: this.activeConfig?.username || 'root',
           password: this.activeConfig?.password || '',
-          database: this.activeConfig?.database || 'stock_local'
+          database: this.activeConfig?.database || 'stock_management'
         });
       }
       
@@ -230,10 +261,10 @@ export class BackendDatabaseService {
       if (!this.mysqlConnection) {
         this.mysqlConnection = await mysql.createConnection({
           host: this.activeConfig?.host || 'localhost',
-          port: this.activeConfig?.port || 3306,
+          port: this.activeConfig?.port || 3307,  // CORRECTION: WAMP utilise 3307
           user: this.activeConfig?.username || 'root',
           password: this.activeConfig?.password || '',
-          database: this.activeConfig?.database || 'stock_local'
+          database: this.activeConfig?.database || 'stock_management'
         });
       }
       

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 Test Vercel dans Navigateur</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .url-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .button {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            text-decoration: none;
+            display: inline-block;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        .button.success { background: linear-gradient(45deg, #56ab2f, #a8e6cf); }
+        .button.danger { background: linear-gradient(45deg, #ff416c, #ff4b2b); }
+        .button.primary { background: linear-gradient(45deg, #667eea, #764ba2); }
+        
+        .url-input {
+            width: 100%;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .url-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-weight: bold;
+            text-align: center;
+        }
+        .status.success { background: rgba(76, 175, 80, 0.3); border: 1px solid #4CAF50; }
+        .status.error { background: rgba(244, 67, 54, 0.3); border: 1px solid #f44336; }
+        .status.warning { background: rgba(255, 193, 7, 0.3); border: 1px solid #FFC107; }
+        
+        .instructions {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .emoji { font-size: 1.5em; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Test Application Vercel Réelle</h1>
+        
+        <div class="url-section">
+            <h3>🌐 URLs de Test</h3>
+            
+            <div class="status warning">
+                <span class="emoji">⚠️</span> 
+                Les applications Vercel ont une protection d'authentification active
+            </div>
+            
+            <h4>📱 Application Originale:</h4>
+            <input type="text" class="url-input" id="originalUrl" 
+                   value="https://st-article-1-b5pn7fp0k-tigdittgolf-9191s-projects.vercel.app" readonly>
+            <a href="https://st-article-1-b5pn7fp0k-tigdittgolf-9191s-projects.vercel.app" 
+               target="_blank" class="button primary">
+                <span class="emoji">🚀</span> Ouvrir Application Originale
+            </a>
+            
+            <h4>🆕 Nouveau Déploiement:</h4>
+            <input type="text" class="url-input" id="newUrl" 
+                   value="https://frontend-9rz1jzr4n-tigdittgolf-9191s-projects.vercel.app" readonly>
+            <a href="https://frontend-9rz1jzr4n-tigdittgolf-9191s-projects.vercel.app" 
+               target="_blank" class="button success">
+                <span class="emoji">🆕</span> Ouvrir Nouveau Déploiement
+            </a>
+            
+            <h4>🔗 Backend Tunnel:</h4>
+            <input type="text" class="url-input" id="backendUrl" 
+                   value="https://enabled-encourage-mechanics-performance.trycloudflare.com" readonly>
+            <a href="https://enabled-encourage-mechanics-performance.trycloudflare.com" 
+               target="_blank" class="button primary">
+                <span class="emoji">🔗</span> Ouvrir Backend Tunnel
+            </a>
+        </div>
+        
+        <div class="url-section">
+            <h3>🧪 Tests Manuels</h3>
+            
+            <div class="instructions">
+                <h4>📋 Instructions de Test:</h4>
+                <ol>
+                    <li><strong>Ouvrir l'application Vercel</strong> dans un nouvel onglet</li>
+                    <li><strong>Si protection Vercel:</strong> Se connecter avec votre compte Vercel</li>
+                    <li><strong>Une fois dans l'app:</strong> Tester la connexion admin/admin123</li>
+                    <li><strong>Vérifier:</strong> Switch entre bases de données</li>
+                    <li><strong>Confirmer:</strong> Accès aux données (Articles, Clients, etc.)</li>
+                </ol>
+            </div>
+            
+            <button class="button success" onclick="testBackend()">
+                <span class="emoji">🔍</span> Tester Backend Tunnel
+            </button>
+            
+            <button class="button primary" onclick="openAllApps()">
+                <span class="emoji">🚀</span> Ouvrir Toutes les Applications
+            </button>
+        </div>
+        
+        <div class="url-section">
+            <h3>🎯 Objectif du Défi</h3>
+            
+            <div class="status warning">
+                <span class="emoji">🎯</span> 
+                <strong>DÉFI:</strong> Prouver que l'application Vercel peut se connecter au backend local via tunnel
+            </div>
+            
+            <div class="instructions">
+                <h4>✅ Critères de Réussite:</h4>
+                <ul>
+                    <li>✅ Application Vercel accessible (avec ou sans auth Vercel)</li>
+                    <li>✅ Connexion admin/admin123 fonctionne</li>
+                    <li>✅ Switch entre Supabase, MySQL, PostgreSQL</li>
+                    <li>✅ Accès aux données via tunnel</li>
+                    <li>✅ Architecture hybride cloud/local opérationnelle</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div id="results" class="url-section" style="display: none;">
+            <h3>📊 Résultats des Tests</h3>
+            <div id="testResults"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const BACKEND_URL = 'https://enabled-encourage-mechanics-performance.trycloudflare.com';
+        
+        // Test du backend avec gestion CORS
+        async function testBackend() {
+            const resultsDiv = document.getElementById('results');
+            const testResultsDiv = document.getElementById('testResults');
+            
+            resultsDiv.style.display = 'block';
+            testResultsDiv.innerHTML = '<div class="status warning">🔍 Test en cours...</div>';
+            
+            try {
+                // Test 1: Health check avec mode no-cors pour éviter les erreurs CORS
+                testResultsDiv.innerHTML += '<div class="status warning">🔍 Test de connexion backend...</div>';
+                
+                // Utiliser une image pour tester la connectivité (contourne CORS)
+                const testConnectivity = new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => resolve(true);
+                    img.onerror = () => reject(new Error('Backend inaccessible'));
+                    img.src = `${BACKEND_URL}/health?_=${Date.now()}`;
+                    
+                    // Timeout après 5 secondes
+                    setTimeout(() => reject(new Error('Timeout')), 5000);
+                });
+                
+                await testConnectivity;
+                testResultsDiv.innerHTML += '<div class="status success">✅ Backend accessible via tunnel</div>';
+                
+                // Test 2: Authentification avec fetch en mode no-cors
+                testResultsDiv.innerHTML += '<div class="status warning">🔍 Test authentification...</div>';
+                
+                try {
+                    const authResponse = await fetch(`${BACKEND_URL}/api/auth-real/login`, {
+                        method: 'POST',
+                        mode: 'no-cors', // Évite les erreurs CORS mais ne permet pas de lire la réponse
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                    });
+                    
+                    testResultsDiv.innerHTML += '<div class="status success">✅ Requête d\'authentification envoyée</div>';
+                    testResultsDiv.innerHTML += '<div class="status warning">ℹ️ Réponse non lisible à cause de CORS (normal depuis file://)</div>';
+                } catch (authError) {
+                    testResultsDiv.innerHTML += '<div class="status warning">⚠️ CORS bloque la lecture de réponse (normal depuis file://)</div>';
+                }
+                
+                testResultsDiv.innerHTML += '<div class="status success">🎉 Backend prêt ! Testez depuis l\'application Vercel</div>';
+                testResultsDiv.innerHTML += '<div class="status warning">💡 Pour un test complet, utilisez l\'application Vercel ou le proxy local</div>';
+                
+            } catch (error) {
+                testResultsDiv.innerHTML += `<div class="status error">❌ Backend inaccessible: ${error.message}</div>`;
+                testResultsDiv.innerHTML += '<div class="status warning">🔧 Vérifiez que le tunnel et le backend sont actifs</div>';
+            }
+        }
+        
+        // Ouvrir toutes les applications
+        function openAllApps() {
+            const urls = [
+                'https://st-article-1-b5pn7fp0k-tigdittgolf-9191s-projects.vercel.app',
+                'https://frontend-9rz1jzr4n-tigdittgolf-9191s-projects.vercel.app',
+                'https://enabled-encourage-mechanics-performance.trycloudflare.com'
+            ];
+            
+            urls.forEach((url, index) => {
+                setTimeout(() => {
+                    window.open(url, `_blank_${index}`);
+                }, index * 1000); // Délai d'1 seconde entre chaque ouverture
+            });
+        }
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎯 Interface de test Vercel chargée');
+            console.log('🚀 Prêt à tester les applications !');
+        });
+    </script>
+</body>
+</html>

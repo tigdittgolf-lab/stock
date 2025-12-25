@@ -15,29 +15,32 @@ settings.use('*', tenantMiddleware);
 settings.get('/families', async (c) => {
   try {
     const tenant = getTenantContext(c);
-    console.log(`🔍 Fetching families from schema: ${tenant.schema}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Fetching families from schema: ${tenant.schema} (DB: ${dbType})`);
 
-    const { data, error } = await databaseRouter.rpc('get_families_by_tenant', {
+    const result = await backendDatabaseService.executeRPC('get_families_by_tenant', {
       p_tenant: tenant.schema
     });
     
-    if (error) {
-      console.error('❌ RPC Error:', error);
+    if (!result.success) {
+      console.error('❌ RPC Error:', result.error);
       return c.json({ 
         success: true, 
         data: [], 
-        message: 'RPC function not available' 
-      , database_type: backendDatabaseService.getActiveDatabaseType() });
+        message: 'RPC function not available',
+        database_type: dbType
+      });
     }
     
-    console.log(`✅ Found ${data?.length || 0} families`);
+    console.log(`✅ Found ${result.data?.length || 0} families in ${dbType} database`);
     
     return c.json({ 
       success: true, 
-      data: data || [],
-      tenant: tenant.schema
-    , database_type: backendDatabaseService.getActiveDatabaseType() });
-    
+      data: result.data || [],
+      tenant: tenant.schema,
+      source: `${dbType}_database`,
+      database_type: dbType
+    });
   } catch (error) {
     console.error('Error fetching families:', error);
     return c.json({ success: false, error: 'Failed to fetch families' }, 500);
@@ -58,10 +61,12 @@ settings.post('/families', async (c) => {
       return c.json({ success: false, error: 'Nom de famille requis' }, 400);
     }
 
-    const { data, error } = await databaseRouter.rpc('insert_family_to_tenant', {
+    const result = await backendDatabaseService.executeRPC('insert_family_to_tenant', {
       p_tenant: tenant.schema,
       p_famille: famille.trim()
     });
+    
+    const { data, error } = result.success ? { data: result.data, error: null } : { data: null, error: { message: result.error } };
     
     if (error) {
       console.error('❌ RPC Error creating family:', error);
@@ -97,11 +102,13 @@ settings.put('/families/:id', async (c) => {
       return c.json({ success: false, error: 'Nom de famille requis' }, 400);
     }
 
-    const { data, error } = await databaseRouter.rpc('update_family_in_tenant', {
+    const result = await backendDatabaseService.executeRPC('update_family_in_tenant', {
       p_tenant: tenant.schema,
       p_old_famille: oldFamille,
       p_new_famille: famille.trim()
     });
+    
+    const { data, error } = result.success ? { data: result.data, error: null } : { data: null, error: { message: result.error } };
     
     if (error) {
       console.error('❌ RPC Error updating family:', error);
@@ -130,10 +137,12 @@ settings.delete('/families/:id', async (c) => {
 
     console.log(`🗑️ Deleting family ${famille} from ${tenant.schema}`);
 
-    const { data, error } = await databaseRouter.rpc('delete_family_from_tenant', {
+    const result = await backendDatabaseService.executeRPC('delete_family_from_tenant', {
       p_tenant: tenant.schema,
       p_famille: famille
     });
+    
+    const { data, error } = result.success ? { data: result.data, error: null } : { data: null, error: { message: result.error } };
     
     if (error) {
       console.error('❌ RPC Error deleting family:', error);
@@ -155,26 +164,29 @@ settings.delete('/families/:id', async (c) => {
 settings.get('/company', async (c) => {
   try {
     const tenant = getTenantContext(c);
-    console.log(`🔍 Fetching company info from schema: ${tenant.schema}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Fetching company info from schema: ${tenant.schema} (DB: ${dbType})`);
 
-    const { data, error } = await databaseRouter.rpc('get_company_info', {
+    const result = await backendDatabaseService.executeRPC('get_company_info', {
       p_tenant: tenant.schema
     });
     
-    if (error) {
-      console.error('❌ RPC Error:', error);
+    if (!result.success) {
+      console.error('❌ RPC Error:', result.error);
       return c.json({ 
         success: false, 
-        error: 'Failed to fetch company info' 
+        error: 'Failed to fetch company info',
+        database_type: dbType
       }, 500);
     }
     
-    console.log(`✅ Company info retrieved`);
+    console.log(`✅ Company info retrieved from ${dbType} database`);
     
     return c.json({ 
       success: true, 
-      data: data || {},
-      tenant: tenant.schema
+      data: result.data || {},
+      tenant: tenant.schema,
+      database_type: dbType
     });
     
   } catch (error) {
@@ -202,7 +214,7 @@ settings.put('/company', async (c) => {
       slogan
     } = body;
 
-    const { data, error } = await databaseRouter.rpc('update_company_info', {
+    const result = await backendDatabaseService.executeRPC('update_company_info', {
       p_tenant: tenant.schema,
       p_nom_entreprise: nom_entreprise,
       p_adresse: adresse,
@@ -213,6 +225,8 @@ settings.put('/company', async (c) => {
       p_activite: activite,
       p_slogan: slogan
     });
+    
+    const { data, error } = result.success ? { data: result.data, error: null } : { data: null, error: { message: result.error } };
     
     if (error) {
       console.error('❌ RPC Error updating company:', error);
@@ -241,9 +255,11 @@ settings.get('/units', async (c) => {
     const tenant = getTenantContext(c);
     console.log(`🔍 Fetching units from schema: ${tenant.schema}`);
 
-    const { data, error } = await databaseRouter.rpc('get_units_by_tenant', {
+    const result = await backendDatabaseService.executeRPC('get_units_by_tenant', {
       p_tenant: tenant.schema
     });
+    
+    const { data, error } = result.success ? { data: result.data, error: null } : { data: null, error: { message: result.error } };
     
     if (error) {
       console.error('❌ RPC Error:', error);
@@ -442,7 +458,7 @@ settings.put('/activities/:id', async (c) => {
     }
 
     // Utiliser la vraie fonction de mise à jour
-    const { data, error } = await databaseRouter.rpc('update_tenant_activite', {
+    const result = await backendDatabaseService.executeRPC('update_tenant_activite', {
       p_schema: tenant.schema,
       p_id: parseInt(activityId),
       p_adresse: adresse?.trim() || null,
@@ -451,6 +467,8 @@ settings.put('/activities/:id', async (c) => {
       p_activite: activite?.trim() || null,
       p_slogan: slogan?.trim() || null
     });
+    
+    const { data, error } = result.success ? { data: result.data, error: null } : { data: null, error: { message: result.error } };
     
     if (error) {
       console.error('❌ RPC Error updating activity:', error);
@@ -484,10 +502,12 @@ settings.delete('/activities/:id', async (c) => {
 
     console.log(`🗑️ Deleting activity ${activityId} from ${tenant.schema}`);
 
-    const { data, error } = await databaseRouter.rpc('delete_activity_from_tenant', {
+    const result = await backendDatabaseService.executeRPC('delete_activity_from_tenant', {
       p_tenant: tenant.schema,
       p_activity_id: parseInt(activityId)
     });
+    
+    const { data, error } = result.success ? { data: result.data, error: null } : { data: null, error: { message: result.error } };
     
     if (error) {
       console.error('❌ RPC Error deleting activity:', error);

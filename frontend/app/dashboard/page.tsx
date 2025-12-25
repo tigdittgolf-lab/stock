@@ -139,6 +139,15 @@ export default function Dashboard() {
     if (tenantInfo && typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const message = urlParams.get('message');
+      const refresh = urlParams.get('refresh');
+      
+      // Si on a un paramètre refresh, vider le cache
+      if (refresh) {
+        localStorage.removeItem('cached_suppliers');
+        localStorage.removeItem('cached_articles');
+        localStorage.removeItem('cached_clients');
+        console.log('🧹 Cache cleared due to refresh parameter');
+      }
       
       if (message) {
         // Recharger les données immédiatement et plusieurs fois pour s'assurer
@@ -230,11 +239,20 @@ export default function Dashboard() {
 
   const fetchSuppliers = async (headers: any) => {
     try {
-      const response = await fetch(getApiUrl('sales/suppliers'), { headers });
+      // Ajouter cache-busting pour forcer le refresh
+      const cacheBuster = Date.now();
+      const response = await fetch(getApiUrl(`sales/suppliers?t=${cacheBuster}`), { 
+        headers: {
+          ...headers,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       const data = await response.json();
       
       if (data.success) {
         setSuppliers(data.data || []);
+        console.log(`📦 Suppliers loaded: ${data.data?.length || 0} from ${data.database_type || 'unknown'}`);
       } else {
         console.warn('Suppliers not loaded:', data.error);
       }

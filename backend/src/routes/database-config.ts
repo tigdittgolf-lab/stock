@@ -24,6 +24,57 @@ databaseConfig.get('/', async (c) => {
   }
 });
 
+// POST /api/database-config/switch - Switch database (alternative endpoint)
+databaseConfig.post('/switch', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { database } = body;
+    
+    console.log(`🔄 Backend received database switch request to: ${database}`);
+    
+    // Map simple database names to full config
+    const configs = {
+      'supabase': { type: 'supabase' as const, name: 'Supabase' },
+      'mysql': { type: 'mysql' as const, name: 'MySQL Local' },
+      'postgresql': { type: 'postgresql' as const, name: 'PostgreSQL Local' }
+    };
+    
+    const config = configs[database as keyof typeof configs];
+    
+    if (!config) {
+      return c.json({
+        success: false,
+        error: `Database type '${database}' not supported. Use: supabase, mysql, postgresql`
+      }, 400);
+    }
+    
+    const success = await backendDatabaseService.switchDatabase(config);
+    
+    if (success) {
+      return c.json({
+        success: true,
+        message: `Backend switched to ${config.type} (${config.name})`,
+        data: {
+          type: config.type,
+          name: config.name,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } else {
+      return c.json({
+        success: false,
+        error: `Failed to switch backend to ${config.type}`
+      }, 500);
+    }
+  } catch (error) {
+    console.error('Error switching database:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
 // POST /api/database-config - Switch database configuration
 databaseConfig.post('/', async (c) => {
   try {

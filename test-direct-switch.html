@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Direct Database Switch</title>
+</head>
+<body>
+    <h1>Test Direct du Switch de Base de Données</h1>
+    
+    <button onclick="switchToMySQL()">Switch vers MySQL</button>
+    <button onclick="switchToPostgreSQL()">Switch vers PostgreSQL</button>
+    <button onclick="switchToSupabase()">Switch vers Supabase</button>
+    <br><br>
+    
+    <button onclick="getClients()">Récupérer Clients</button>
+    <button onclick="getSuppliers()">Récupérer Fournisseurs</button>
+    <br><br>
+    
+    <div id="result"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:3005';
+        
+        async function switchToMySQL() {
+            try {
+                const response = await fetch(`${API_BASE}/api/database/switch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': '2025_bu01'
+                    },
+                    body: JSON.stringify({
+                        type: 'mysql',
+                        host: 'localhost',
+                        port: 3307,
+                        database: 'stock_management',
+                        username: 'root',
+                        password: ''
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('result').innerHTML = `<h3>Switch MySQL:</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `<h3>Erreur MySQL:</h3><pre>${error}</pre>`;
+            }
+        }
+        
+        async function switchToPostgreSQL() {
+            try {
+                const response = await fetch(`${API_BASE}/api/database/switch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': '2025_bu01'
+                    },
+                    body: JSON.stringify({
+                        type: 'postgresql',
+                        host: 'localhost',
+                        port: 5432,
+                        database: 'stock_management',
+                        username: 'postgres',
+                        password: 'postgres'
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('result').innerHTML = `<h3>Switch PostgreSQL:</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `<h3>Erreur PostgreSQL:</h3><pre>${error}</pre>`;
+            }
+        }
+        
+        async function switchToSupabase() {
+            try {
+                const response = await fetch(`${API_BASE}/api/database/switch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': '2025_bu01'
+                    },
+                    body: JSON.stringify({
+                        type: 'supabase'
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('result').innerHTML = `<h3>Switch Supabase:</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `<h3>Erreur Supabase:</h3><pre>${error}</pre>`;
+            }
+        }
+        
+        async function getClients() {
+            try {
+                const response = await fetch(`${API_BASE}/api/sales/clients`, {
+                    headers: {
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+                const data = await response.json();
+                document.getElementById('result').innerHTML = `<h3>Clients (${data.database_type}):</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `<h3>Erreur Clients:</h3><pre>${error}</pre>`;
+            }
+        }
+        
+        async function getSuppliers() {
+            try {
+                const response = await fetch(`${API_BASE}/api/suppliers`, {
+                    headers: {
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+                const data = await response.json();
+                document.getElementById('result').innerHTML = `<h3>Fournisseurs (${data.database_type}):</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `<h3>Erreur Fournisseurs:</h3><pre>${error}</pre>`;
+            }
+        }
+    </script>
+</body>
+</html>

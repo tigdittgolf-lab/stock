@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     try {
       connection = await mysql.createConnection({
         host: config.host || 'localhost',
-        port: config.port || 3306,
+        port: config.port || 3307,
         user: config.username || 'root',
         password: config.password || '',
         database: config.database,

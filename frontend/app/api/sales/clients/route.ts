@@ -1,41 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+// Configuration du backend via tunnel
+const BACKEND_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://tampa-headphones-registrar-bracelet.trycloudflare.com/api'
+  : 'http://localhost:3005/api';
 
 export async function GET(request: NextRequest) {
   try {
-    if (!supabase) {
-      return NextResponse.json({
-        success: false,
-        error: 'Configuration Supabase manquante - Utiliser le backend local en développement'
-      }, { status: 503 });
-    }
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     
-    console.log(`🔍 Production API: Fetching clients for tenant ${tenant}`);
+    console.log(`🔄 Frontend API: Forwarding clients request to backend for tenant ${tenant}`);
     
-    const { data, error } = await supabase.rpc('get_clients_by_tenant', {
-      p_tenant: tenant
+    // Forwarder la requête vers le backend
+    const backendResponse = await fetch(`${BACKEND_URL}/sales/clients`, {
+      method: 'GET',
+      headers: {
+        'X-Tenant': tenant,
+        'Content-Type': 'application/json'
+      }
     });
 
-    if (error) {
-      console.error('❌ Supabase error:', error);
-      return NextResponse.json({
-        success: false,
-        error: error.message
-      }, { status: 500 });
+    if (!backendResponse.ok) {
+      throw new Error(`Backend responded with status ${backendResponse.status}`);
     }
 
-    return NextResponse.json({
-      success: true,
-      data: data || []
-    });
+    const data = await backendResponse.json();
+    
+    console.log(`✅ Frontend API: Received ${data.data?.length || 0} clients from backend (${data.database_type || 'unknown'} database)`);
+    
+    return NextResponse.json(data);
 
   } catch (error) {
-    console.error('❌ Production API error:', error);
+    console.error('❌ Frontend API error forwarding to backend:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erreur serveur'
@@ -45,37 +41,33 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    if (!supabase) {
-      return NextResponse.json({
-        success: false,
-        error: 'Configuration Supabase manquante - Utiliser le backend local en développement'
-      }, { status: 503 });
-    }
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     const body = await request.json();
     
-    console.log(`📝 Production API: Creating client for tenant ${tenant}`);
+    console.log(`🔄 Frontend API: Forwarding client creation to backend for tenant ${tenant}`);
     
-    const { data, error } = await supabase.rpc('insert_client_to_tenant', {
-      p_tenant: tenant,
-      ...body
+    // Forwarder la requête vers le backend
+    const backendResponse = await fetch(`${BACKEND_URL}/sales/clients`, {
+      method: 'POST',
+      headers: {
+        'X-Tenant': tenant,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
     });
 
-    if (error) {
-      console.error('❌ Supabase error:', error);
-      return NextResponse.json({
-        success: false,
-        error: error.message
-      }, { status: 500 });
+    if (!backendResponse.ok) {
+      throw new Error(`Backend responded with status ${backendResponse.status}`);
     }
 
-    return NextResponse.json({
-      success: true,
-      data
-    });
+    const data = await backendResponse.json();
+    
+    console.log(`✅ Frontend API: Client created via backend (${data.database_type || 'unknown'} database)`);
+    
+    return NextResponse.json(data);
 
   } catch (error) {
-    console.error('❌ Production API error:', error);
+    console.error('❌ Frontend API error forwarding to backend:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erreur serveur'

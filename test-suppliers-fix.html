@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Suppliers Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .database-indicator { display: inline-block; padding: 5px 10px; border-radius: 15px; font-weight: bold; margin: 5px; }
+        .supabase { background: #3ecf8e; color: white; }
+        .mysql { background: #f29111; color: white; }
+        .postgresql { background: #336791; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Test Fix: Suppliers Data Source</h1>
+        <p>Ce test vérifie que les données des fournisseurs proviennent de la bonne base de données selon la configuration active.</p>
+        
+        <div class="test-section info">
+            <h3>📊 Statut Base de Données Active</h3>
+            <div id="database-status">Chargement...</div>
+            <button onclick="checkDatabaseStatus()">🔄 Vérifier Statut</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🔄 Changer de Base de Données</h3>
+            <button onclick="switchToDatabase('mysql')">🐬 Passer à MySQL</button>
+            <button onclick="switchToDatabase('postgresql')">🐘 Passer à PostgreSQL</button>
+            <button onclick="switchToDatabase('supabase')">☁️ Passer à Supabase</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Test Fournisseurs</h3>
+            <button onclick="testSuppliers()">🔍 Récupérer Fournisseurs</button>
+            <div id="suppliers-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Test Articles</h3>
+            <button onclick="testArticles()">🔍 Récupérer Articles</button>
+            <div id="articles-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Test Clients</h3>
+            <button onclick="testClients()">🔍 Récupérer Clients</button>
+            <div id="clients-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Résumé des Tests</h3>
+            <div id="test-summary"></div>
+        </div>
+    </div>
+
+    <script>
+        const FRONTEND_URL = 'https://frontend-hlypeq6aa-tigdittgolf-9191s-projects.vercel.app';
+        
+        async function checkDatabaseStatus() {
+            try {
+                const response = await fetch(`${FRONTEND_URL}/api/database/status`, {
+                    headers: { 'X-Tenant': '2025_bu01' }
+                });
+                const data = await response.json();
+                
+                const statusDiv = document.getElementById('database-status');
+                if (data.success) {
+                    const dbType = data.data.type;
+                    const dbClass = dbType === 'supabase' ? 'supabase' : dbType === 'mysql' ? 'mysql' : 'postgresql';
+                    statusDiv.innerHTML = `
+                        <div class="database-indicator ${dbClass}">
+                            ${dbType === 'supabase' ? '☁️ Supabase' : dbType === 'mysql' ? '🐬 MySQL' : '🐘 PostgreSQL'} 
+                            (${data.data.name})
+                        </div>
+                        <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                    `;
+                } else {
+                    statusDiv.innerHTML = `<div class="error">❌ Erreur: ${data.error}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('database-status').innerHTML = `<div class="error">❌ Erreur réseau: ${error.message}</div>`;
+            }
+        }
+
+        async function switchToDatabase(type) {
+            try {
+                const configs = {
+                    mysql: {
+                        type: 'mysql',
+                        name: 'MySQL Local',
+                        host: 'localhost',
+                        port: 3307,
+                        database: 'stock_management',
+                        username: 'root',
+                        password: ''
+                    },
+                    postgresql: {
+                        type: 'postgresql',
+                        name: 'PostgreSQL Local',
+                        host: 'localhost',
+                        port: 5432,
+                        database: 'postgres',
+                        username: 'postgres',
+                        password: 'postgres'
+                    },
+                    supabase: {
+                        type: 'supabase',
+                        name: 'Supabase Production'
+                    }
+                };
+
+                const response = await fetch(`${FRONTEND_URL}/api/database/switch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': '2025_bu01'
+                    },
+                    body: JSON.stringify(configs[type])
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Basculé vers ${type} avec succès!`);
+                    await checkDatabaseStatus();
+                } else {
+                    alert(`❌ Erreur: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`❌ Erreur réseau: ${error.message}`);
+            }
+        }
+
+        async function testSuppliers() {
+            const resultDiv = document.getElementById('suppliers-result');
+            resultDiv.innerHTML = '<div>🔄 Chargement...</div>';
+            
+            try {
+                const response = await fetch(`${FRONTEND_URL}/api/sales/suppliers`, {
+                    headers: { 'X-Tenant': '2025_bu01' }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    const dbType = data.database_type || 'unknown';
+                    const dbClass = dbType === 'supabase' ? 'supabase' : dbType === 'mysql' ? 'mysql' : 'postgresql';
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ ${data.data.length} fournisseurs trouvés</strong>
+                            <div class="database-indicator ${dbClass}">
+                                Source: ${dbType === 'supabase' ? '☁️ Supabase' : dbType === 'mysql' ? '🐬 MySQL' : '🐘 PostgreSQL'}
+                            </div>
+                            <pre>${JSON.stringify(data.data.slice(0, 3), null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Erreur: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur réseau: ${error.message}</div>`;
+            }
+        }
+
+        async function testArticles() {
+            const resultDiv = document.getElementById('articles-result');
+            resultDiv.innerHTML = '<div>🔄 Chargement...</div>';
+            
+            try {
+                const response = await fetch(`${FRONTEND_URL}/api/sales/articles`, {
+                    headers: { 'X-Tenant': '2025_bu01' }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    const dbType = data.database_type || 'unknown';
+                    const dbClass = dbType === 'supabase' ? 'supabase' : dbType === 'mysql' ? 'mysql' : 'postgresql';
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ ${data.data.length} articles trouvés</strong>
+                            <div class="database-indicator ${dbClass}">
+                                Source: ${dbType === 'supabase' ? '☁️ Supabase' : dbType === 'mysql' ? '🐬 MySQL' : '🐘 PostgreSQL'}
+                            </div>
+                            <pre>${JSON.stringify(data.data.slice(0, 3), null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Erreur: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur réseau: ${error.message}</div>`;
+            }
+        }
+
+        async function testClients() {
+            const resultDiv = document.getElementById('clients-result');
+            resultDiv.innerHTML = '<div>🔄 Chargement...</div>';
+            
+            try {
+                const response = await fetch(`${FRONTEND_URL}/api/sales/clients`, {
+                    headers: { 'X-Tenant': '2025_bu01' }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    const dbType = data.database_type || 'unknown';
+                    const dbClass = dbType === 'supabase' ? 'supabase' : dbType === 'mysql' ? 'mysql' : 'postgresql';
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ ${data.data.length} clients trouvés</strong>
+                            <div class="database-indicator ${dbClass}">
+                                Source: ${dbType === 'supabase' ? '☁️ Supabase' : dbType === 'mysql' ? '🐬 MySQL' : '🐘 PostgreSQL'}
+                            </div>
+                            <pre>${JSON.stringify(data.data.slice(0, 3), null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Erreur: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur réseau: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-load status on page load
+        window.onload = function() {
+            checkDatabaseStatus();
+        };
+    </script>
+</body>
+</html>

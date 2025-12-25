@@ -29,11 +29,26 @@ app.use('/*', cors({
     'http://localhost:3000', 
     'http://localhost:3001',
     'https://frontend-pn8z8dd7o-tigdittgolf-9191s-projects.vercel.app',
+    'https://st-article-1-b5pn7fp0k-tigdittgolf-9191s-projects.vercel.app',
+    'https://vercel-test-edfqv1w3m-tigdittgolf-9191s-projects.vercel.app',
+    'https://frontend-9rz1jzr4n-tigdittgolf-9191s-projects.vercel.app',
+    'https://frontend-ctz9rb2z5-tigdittgolf-9191s-projects.vercel.app',
+    'https://frontend-jv1h2b1wf-tigdittgolf-9191s-projects.vercel.app',
+    'https://frontend-80xymdp0o-tigdittgolf-9191s-projects.vercel.app',
+    'https://frontend-8e5ekyvfr-tigdittgolf-9191s-projects.vercel.app',
     // Permettre toutes les URLs Vercel pour ce projet
-    /^https:\/\/frontend-.*-tigdittgolf-9191s-projects\.vercel\.app$/
+    /^https:\/\/frontend-.*-tigdittgolf-9191s-projects\.vercel\.app$/,
+    /^https:\/\/st-article-1-.*-tigdittgolf-9191s-projects\.vercel\.app$/,
+    /^https:\/\/vercel-test-.*-tigdittgolf-9191s-projects\.vercel\.app$/,
+    // Permettre les fichiers locaux et tous les tunnels pour les tests
+    null, // Permet file:// et autres origines nulles
+    /^https:\/\/.*\.trycloudflare\.com$/,
+    /^https:\/\/.*\.ngrok\.io$/,
+    /^https:\/\/.*\.loca\.lt$/
   ],
   allowHeaders: ['Content-Type', 'Authorization', 'X-Tenant'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: false // Important pour les requêtes cross-origin
 }));
 
 // API Routes

@@ -2,10 +2,17 @@
 // Utilisation: import { apiClient } from '@/utils/apiClient';
 
 class APIClient {
-  private baseURL = 'http://localhost:3005';
+  private getBaseURL() {
+    // En production, utiliser la variable d'environnement ou l'URL par défaut
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+      return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
+    }
+    return 'http://localhost:3005';
+  }
   
   async request(endpoint: string, options: RequestInit = {}) {
-    const url = `${this.baseURL}${endpoint}`;
+    const baseURL = this.getBaseURL();
+    const url = `${baseURL}${endpoint}`;
     
     try {
       const response = await fetch(url, {
