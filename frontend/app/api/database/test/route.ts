@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Utiliser directement le nouveau tunnel Cloudflare
-    const backendUrl = 'https://tampa-headphones-registrar-bracelet.trycloudflare.com/api/database-config';
+    const backendUrl = 'https://approach-entire-agriculture-participated.trycloudflare.com/api/database-config';
     
     console.log('Testing database connection via tunnel:', backendUrl);
     

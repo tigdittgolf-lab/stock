@@ -1,6 +1,6 @@
 // Configuration des URLs selon l'environnement
 export const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://tampa-headphones-registrar-bracelet.trycloudflare.com/api'
+  ? 'https://approach-entire-agriculture-participated.trycloudflare.com/api'
   : 'http://localhost:3005/api';
 
 export const SUPABASE_CONFIG = {

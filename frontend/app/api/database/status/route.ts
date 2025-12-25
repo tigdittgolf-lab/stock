@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 function getApiUrl() {
   // En production, utiliser le tunnel Cloudflare
   if (process.env.NODE_ENV === 'production') {
-    return 'https://tampa-headphones-registrar-bracelet.trycloudflare.com';
+    return 'https://approach-entire-agriculture-participated.trycloudflare.com';
   }
   // En développement, utiliser localhost
   return 'http://localhost:3005';

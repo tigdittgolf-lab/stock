@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Chargement Données</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; max-height: 300px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Test Chargement des Données</h1>
+        
+        <div class="test-section">
+            <h3>📊 Statut Base de Données</h3>
+            <button onclick="checkDatabaseStatus()">Vérifier Statut</button>
+            <div id="database-status"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🏭 Test Fournisseurs</h3>
+            <button onclick="testSuppliers()">Charger Fournisseurs</button>
+            <div id="suppliers-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📦 Test Articles</h3>
+            <button onclick="testArticles()">Charger Articles</button>
+            <div id="articles-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>👥 Test Clients</h3>
+            <button onclick="testClients()">Charger Clients</button>
+            <div id="clients-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔄 Test Backend Direct</h3>
+            <button onclick="testBackendDirect()">Test Backend Direct</button>
+            <div id="backend-result"></div>
+        </div>
+    </div>
+
+    <script>
+        const FRONTEND_URL = 'https://frontend-7ey92l802-tigdittgolf-9191s-projects.vercel.app';
+        const BACKEND_URL = 'https://approach-entire-agriculture-participated.trycloudflare.com/api';
+        
+        async function checkDatabaseStatus() {
+            const resultDiv = document.getElementById('database-status');
+            resultDiv.innerHTML = '🔄 Chargement...';
+            
+            try {
+                const response = await fetch(`${FRONTEND_URL}/api/database/status`, {
+                    headers: { 'X-Tenant': '2025_bu01' }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ Base active: ${data.data.type}</strong>
+                            <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Erreur: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur réseau: ${error.message}</div>`;
+            }
+        }
+
+        async function testSuppliers() {
+            const resultDiv = document.getElementById('suppliers-result');
+            resultDiv.innerHTML = '🔄 Chargement...';
+            
+            try {
+                const response = await fetch(`${FRONTEND_URL}/api/sales/suppliers`, {
+                    headers: { 'X-Tenant': '2025_bu01' }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ ${data.data.length} fournisseurs trouvés</strong>
+                            <p>Source: ${data.database_type || 'unknown'}</p>
+                            <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Erreur: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur réseau: ${error.message}</div>`;
+            }
+        }
+
+        async function testArticles() {
+            const resultDiv = document.getElementById('articles-result');
+            resultDiv.innerHTML = '🔄 Chargement...';
+            
+            try {
+                const response = await fetch(`${FRONTEND_URL}/api/sales/articles`, {
+                    headers: { 'X-Tenant': '2025_bu01' }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ ${data.data.length} articles trouvés</strong>
+                            <p>Source: ${data.database_type || 'unknown'}</p>
+                            <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Erreur: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur réseau: ${error.message}</div>`;
+            }
+        }
+
+        async function testClients() {
+            const resultDiv = document.getElementById('clients-result');
+            resultDiv.innerHTML = '🔄 Chargement...';
+            
+            try {
+                const response = await fetch(`${FRONTEND_URL}/api/sales/clients`, {
+                    headers: { 'X-Tenant': '2025_bu01' }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ ${data.data.length} clients trouvés</strong>
+                            <p>Source: ${data.database_type || 'unknown'}</p>
+                            <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Erreur: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur réseau: ${error.message}</div>`;
+            }
+        }
+
+        async function testBackendDirect() {
+            const resultDiv = document.getElementById('backend-result');
+            resultDiv.innerHTML = '🔄 Test backend direct...';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/suppliers`, {
+                    headers: { 'X-Tenant': '2025_bu01' }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ Backend direct: ${data.data.length} fournisseurs</strong>
+                            <p>Source: ${data.database_type || 'unknown'}</p>
+                            <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Backend erreur: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Backend inaccessible: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-test au chargement
+        window.onload = function() {
+            checkDatabaseStatus();
+            setTimeout(() => {
+                testSuppliers();
+                testArticles();
+                testClients();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

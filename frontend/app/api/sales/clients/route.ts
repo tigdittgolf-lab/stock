@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Configuration du backend via tunnel
 const BACKEND_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://tampa-headphones-registrar-bracelet.trycloudflare.com/api'
+  ? 'https://approach-entire-agriculture-participated.trycloudflare.com/api'
   : 'http://localhost:3005/api';
 
 export async function GET(request: NextRequest) {
