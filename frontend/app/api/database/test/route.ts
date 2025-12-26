@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    // Utiliser directement le nouveau tunnel Cloudflare
-    const backendUrl = 'https://approach-entire-agriculture-participated.trycloudflare.com/api/database-config';
+    // Utiliser Tailscale (URL permanente)
+    const backendUrl = 'https://desktop-bhhs068.tail1d9c54.ts.net/api/database-config';
     
     console.log('Testing database connection via tunnel:', backendUrl);
     

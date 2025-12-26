@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mode Local</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; max-height: 300px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏠 Test Mode Local (Sans Internet)</h1>
+        
+        <div class="test-section info">
+            <h3>📊 Configuration Locale</h3>
+            <p><strong>Frontend:</strong> http://localhost:3002</p>
+            <p><strong>Backend:</strong> http://localhost:3005</p>
+            <p><strong>Mode:</strong> 100% Local (pas d'Internet requis)</p>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 Test Backend</h3>
+            <button onclick="testBackend()">Tester Backend</button>
+            <div id="backend-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Test Base de Données</h3>
+            <button onclick="testDatabase()">Tester Statut DB</button>
+            <div id="database-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🏭 Test Fournisseurs</h3>
+            <button onclick="testSuppliers()">Charger Fournisseurs</button>
+            <div id="suppliers-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📦 Test Articles</h3>
+            <button onclick="testArticles()">Charger Articles</button>
+            <div id="articles-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>👥 Test Clients</h3>
+            <button onclick="testClients()">Charger Clients</button>
+            <div id="clients-result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration locale
+        const BACKEND_URL = 'http://localhost:3005/api';
+        
+        async function testBackend() {
+            const resultDiv = document.getElementById('backend-result');
+            resultDiv.innerHTML = '🔄 Test backend...';
+            
+            try {
+                const response = await fetch('http://localhost:3005/health');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ Backend fonctionne !</strong>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(`Status: ${response.status}`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Backend inaccessible: ${error.message}</div>`;
+            }
+        }
+
+        async function testDatabase() {
+            const resultDiv = document.getElementById('database-result');
+            resultDiv.innerHTML = '🔄 Test base de données...';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/database-config`, {
+                    headers: { 'X-Tenant': '2025_bu01' }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ Base de données: ${data.data.type}</strong>
+                            <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Erreur DB: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur réseau: ${error.message}</div>`;
+            }
+        }
+
+        async function testSuppliers() {
+            const resultDiv = document.getElementById('suppliers-result');
+            resultDiv.innerHTML = '🔄 Chargement fournisseurs...';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/suppliers`, {
+                    headers: { 'X-Tenant': '2025_bu01' }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ ${data.data.length} fournisseurs trouvés</strong>
+                            <p>Source: ${data.database_type || 'local'}</p>
+                            <pre>${JSON.stringify(data.data.slice(0, 3), null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Erreur: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur réseau: ${error.message}</div>`;
+            }
+        }
+
+        async function testArticles() {
+            const resultDiv = document.getElementById('articles-result');
+            resultDiv.innerHTML = '🔄 Chargement articles...';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/articles`, {
+                    headers: { 'X-Tenant': '2025_bu01' }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ ${data.data.length} articles trouvés</strong>
+                            <p>Source: ${data.database_type || 'local'}</p>
+                            <pre>${JSON.stringify(data.data.slice(0, 3), null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Erreur: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur réseau: ${error.message}</div>`;
+            }
+        }
+
+        async function testClients() {
+            const resultDiv = document.getElementById('clients-result');
+            resultDiv.innerHTML = '🔄 Chargement clients...';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/sales/clients`, {
+                    headers: { 'X-Tenant': '2025_bu01' }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ ${data.data.length} clients trouvés</strong>
+                            <p>Source: ${data.database_type || 'local'}</p>
+                            <pre>${JSON.stringify(data.data.slice(0, 3), null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Erreur: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur réseau: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-test au chargement
+        window.onload = function() {
+            testBackend();
+        };
+    </script>
+</body>
+</html>

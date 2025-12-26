@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 function getApiUrl() {
-  // En production, utiliser le tunnel Cloudflare
+  // En production, utiliser Tailscale (URL permanente)
   if (process.env.NODE_ENV === 'production') {
-    return 'https://approach-entire-agriculture-participated.trycloudflare.com';
+    return 'https://desktop-bhhs068.tail1d9c54.ts.net';
   }
   // En développement, utiliser localhost
   return 'http://localhost:3005';

@@ -1,7 +1,18 @@
 // Configuration des URLs selon l'environnement
 export const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://approach-entire-agriculture-participated.trycloudflare.com/api'
+  ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
   : 'http://localhost:3005/api';
+
+// Configuration pour mode offline (sans Internet)
+export const getApiBaseUrl = () => {
+  // Si on est en développement local ou pas d'Internet
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return 'http://localhost:3005/api';
+  }
+  
+  // Sinon utiliser la configuration normale
+  return API_BASE_URL;
+};
 
 export const SUPABASE_CONFIG = {
   url: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co',
