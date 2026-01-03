@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test PDF Production</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        input { padding: 8px; margin: 5px; width: 100px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test PDF Production</h1>
+    
+    <div class="test-section">
+        <h2>Problème Identifié</h2>
+        <div style="background: #f8d7da; padding: 15px; border-radius: 5px;">
+            <strong>❌ Problème:</strong> Les routes PDF n'existaient pas dans le frontend Vercel<br>
+            <strong>✅ Solution:</strong> Création des routes frontend qui redirigent vers le backend via Tailscale
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>1. Lister les BL Disponibles</h2>
+        <button onclick="listDeliveryNotes()">Lister les BL</button>
+        <div id="bl-list"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Test PDF Routes</h2>
+        <p>ID du document: <input type="number" id="doc-id" value="1" placeholder="ID"></p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+            <button onclick="testPDF('delivery-note')">📄 BL Normal</button>
+            <button onclick="testPDF('delivery-note-small')">📄 BL Small</button>
+            <button onclick="testPDF('delivery-note-ticket')">🎫 BL Ticket</button>
+            <button onclick="testPDF('invoice')">🧾 Facture</button>
+            <button onclick="testPDF('proforma')">📋 Proforma</button>
+        </div>
+        
+        <div id="pdf-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Test Backend Direct</h2>
+        <button onclick="testBackendDirect()">Test Backend Direct</button>
+        <div id="backend-result"></div>
+    </div>
+
+    <script>
+        async function listDeliveryNotes() {
+            const resultDiv = document.getElementById('bl-list');
+            resultDiv.innerHTML = '<div class="loading">🔄 Récupération des BL...</div>';
+            
+            try {
+                const response = await fetch('/api/sales/delivery-notes', {
+                    headers: { 'X-Tenant': '2025_bu01' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    const blList = data.data.map(bl => `
+                        <div style="padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 3px;">
+                            <strong>BL #${bl.nfact || bl.nbl}</strong> - 
+                            Client: ${bl.nclient || 'N/A'} - 
+                            Date: ${bl.date_fact || bl.date_bl || 'N/A'}
+                            <button onclick="document.getElementById('doc-id').value = ${bl.nfact || bl.nbl}" style="margin-left: 10px;">
+                                Utiliser cet ID
+                            </button>
+                        </div>
+                    `).join('');
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ ${data.data.length} BL trouvés
+                            ${blList}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div style="background: #fff3cd; padding: 15px; border-radius: 5px;">
+                            ⚠️ Aucun BL trouvé. Créez un BL d'abord.
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Erreur: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testPDF(type) {
+            const docId = document.getElementById('doc-id').value;
+            const resultDiv = document.getElementById('pdf-result');
+            
+            if (!docId) {
+                alert('Veuillez entrer un ID de document');
+                return;
+            }
+            
+            resultDiv.innerHTML = `<div class="loading">🔄 Test PDF ${type} pour ID ${docId}...</div>`;
+            
+            try {
+                const response = await fetch(`/api/pdf/${type}/${docId}`, {
+                    headers: { 'X-Tenant': '2025_bu01' }
+                });
+                
+                if (response.ok && response.headers.get('content-type')?.includes('application/pdf')) {
+                    // PDF généré avec succès
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ PDF ${type} généré avec succès pour ID ${docId} !
+                            <p>
+                                <a href="${url}" target="_blank" style="color: blue; text-decoration: underline;">
+                                    📄 Ouvrir le PDF
+                                </a>
+                                |
+                                <a href="${url}" download="${type}_${docId}.pdf" style="color: green; text-decoration: underline;">
+                                    💾 Télécharger
+                                </a>
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    // Erreur
+                    const errorData = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Erreur PDF ${type}
+                            <pre>${JSON.stringify(errorData, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Erreur: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testBackendDirect() {
+            const resultDiv = document.getElementById('backend-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Test backend direct...</div>';
+            
+            try {
+                const response = await fetch('https://desktop-bhhs068.tail1d9c54.ts.net/health');
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ Backend accessible via Tailscale
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Backend inaccessible: ${error.message}
+                        <p>Vérifiez que le backend local est démarré et que Tailscale fonctionne.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-charger la liste des BL
+        window.onload = function() {
+            listDeliveryNotes();
+        };
+    </script>
+</body>
+</html>
