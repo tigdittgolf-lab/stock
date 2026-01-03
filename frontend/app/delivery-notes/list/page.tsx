@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import PrintOptions from '../../../components/PrintOptions';
-import styles from '../../page.module.css';
 
 interface DeliveryNote {
+  nfact: number;
   nbl: number;
+  client_name: string;
   nclient: string;
   date_fact: string;
   montant_ht: number;
@@ -19,170 +19,269 @@ export default function DeliveryNotesList() {
   const router = useRouter();
   const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [tenant, setTenant] = useState<string>('');
 
   useEffect(() => {
-    fetchDeliveryNotes();
-  }, []);
+    // Récupérer le tenant depuis localStorage
+    const tenantInfo = localStorage.getItem('tenant_info');
+    if (!tenantInfo) {
+      router.push('/login');
+      return;
+    }
 
-  const fetchDeliveryNotes = async () => {
     try {
-      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`http://localhost:3005/api/sales/delivery-notes`, {
+      const tenant = JSON.parse(tenantInfo);
+      setTenant(tenant.schema);
+      loadDeliveryNotes(tenant.schema);
+    } catch (error) {
+      console.error('Error parsing tenant info:', error);
+      router.push('/login');
+    }
+  }, [router]);
+
+  const loadDeliveryNotes = async (tenantSchema: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('🔄 Loading delivery notes for tenant:', tenantSchema);
+
+      const response = await fetch('/api/sales/delivery-notes', {
+        method: 'GET',
         headers: {
-          'X-Tenant': tenant
+          'Content-Type': 'application/json',
+          'X-Tenant': tenantSchema
         }
       });
+
+      console.log('📊 Response status:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
+      console.log('📋 Delivery notes data:', data);
+
       if (data.success) {
         setDeliveryNotes(data.data || []);
+        console.log('✅ Loaded', data.data?.length || 0, 'delivery notes');
+      } else {
+        throw new Error(data.error || 'Failed to load delivery notes');
       }
     } catch (error) {
-      console.error('Error fetching delivery notes:', error);
+      console.error('❌ Error loading delivery notes:', error);
+      setError(error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (blId: number) => {
-    // Confirmation de suppression
-    const confirmed = window.confirm(
-      `Êtes-vous sûr de vouloir supprimer le bon de livraison N° ${blId} ?\n\n` +
-      `Cette action va :\n` +
-      `• Supprimer définitivement le BL\n` +
-      `• Récupérer le stock des articles\n` +
-      `• Diminuer le chiffre d'affaires du client\n\n` +
-      `Cette action est irréversible.`
-    );
+  const handlePrintPDF = (blId: number) => {
+    const pdfUrl = `/api/pdf/delivery-note/${blId}`;
+    window.open(pdfUrl, '_blank');
+  };
 
-    if (!confirmed) return;
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR');
+  };
 
-    setDeleting(blId);
-
-    try {
-      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`http://localhost:3005/api/sales/delivery-notes/${blId}`, {
-        method: 'DELETE',
-        headers: {
-          'X-Tenant': tenant
-        }
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        alert(`✅ Bon de livraison N° ${blId} supprimé avec succès !\n\n` +
-              `• Stock récupéré automatiquement\n` +
-              `• Chiffre d'affaires client mis à jour`);
-        
-        // Recharger la liste
-        await fetchDeliveryNotes();
-      } else {
-        alert(`❌ Erreur lors de la suppression :\n${result.error}`);
-      }
-    } catch (error) {
-      console.error('Error deleting delivery note:', error);
-      alert('❌ Erreur de connexion lors de la suppression');
-    } finally {
-      setDeleting(null);
-    }
+  const formatAmount = (amount: number) => {
+    return amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' DA';
   };
 
   return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <h1>Liste des Bons de Livraison</h1>
+    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '30px',
+        borderBottom: '2px solid #eee',
+        paddingBottom: '20px'
+      }}>
         <div>
-          <button onClick={() => router.push('/delivery-notes')} className={styles.primaryButton}>
-            Nouveau BL
+          <h1 style={{ margin: 0, color: '#333' }}>📋 Liste des Bons de Livraison</h1>
+          <p style={{ margin: '5px 0 0 0', color: '#666' }}>
+            Tenant: {tenant} • {deliveryNotes.length} BL trouvés
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={() => router.push('/delivery-notes')}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            ➕ Nouveau BL
           </button>
-          <button onClick={() => router.push('/dashboard')} className={styles.secondaryButton}>
-            Retour
+          <button
+            onClick={() => router.push('/dashboard')}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            ← Retour Dashboard
           </button>
         </div>
-      </header>
+      </div>
 
-      <main className={styles.main}>
-        {loading ? (
-          <p>Chargement...</p>
-        ) : deliveryNotes.length === 0 ? (
-          <div className={styles.emptyState}>
-            <h2>Aucun bon de livraison</h2>
-            <p>Vous n'avez pas encore créé de bon de livraison.</p>
-            <button 
-              onClick={() => router.push('/delivery-notes')} 
-              className={styles.primaryButton}
-            >
-              Créer le premier BL
-            </button>
-          </div>
-        ) : (
-          <div className={styles.tableContainer}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>N° BL</th>
-                  <th>Client</th>
-                  <th>Date</th>
-                  <th style={{ textAlign: 'right' }}>Montant HT</th>
-                  <th style={{ textAlign: 'right' }}>TVA</th>
-                  <th style={{ textAlign: 'right' }}>Total TTC</th>
-                  <th>Actions</th>
-                  <th>Impression</th>
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '4px solid #f3f3f3',
+            borderTop: '4px solid #007bff',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 20px'
+          }}></div>
+          <p>Chargement des bons de livraison...</p>
+        </div>
+      )}
+
+      {error && (
+        <div style={{
+          background: '#f8d7da',
+          color: '#721c24',
+          padding: '15px',
+          borderRadius: '5px',
+          marginBottom: '20px',
+          textAlign: 'center'
+        }}>
+          <p>❌ Erreur: {error}</p>
+          <button 
+            onClick={() => tenant && loadDeliveryNotes(tenant)}
+            style={{
+              marginTop: '10px',
+              padding: '8px 16px',
+              backgroundColor: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Réessayer
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && deliveryNotes.length === 0 && (
+        <div style={{
+          textAlign: 'center',
+          padding: '60px 20px',
+          background: '#f8f9fa',
+          borderRadius: '10px',
+          border: '2px dashed #dee2e6'
+        }}>
+          <h3 style={{ color: '#6c757d', marginBottom: '15px' }}>📋 Aucun bon de livraison</h3>
+          <p style={{ color: '#6c757d', marginBottom: '20px' }}>
+            Vous n'avez pas encore créé de bons de livraison.
+          </p>
+          <button
+            onClick={() => router.push('/delivery-notes')}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              fontSize: '16px'
+            }}
+          >
+            ➕ Créer le premier BL
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && deliveryNotes.length > 0 && (
+        <div style={{ background: 'white', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
+                <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>N° BL</th>
+                <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>Client</th>
+                <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>Date</th>
+                <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>Montant HT</th>
+                <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>TVA</th>
+                <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>Total TTC</th>
+                <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {deliveryNotes.map((bl, index) => (
+                <tr 
+                  key={bl.nfact || bl.nbl || index}
+                  style={{ 
+                    borderBottom: '1px solid #dee2e6',
+                    backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa'
+                  }}
+                >
+                  <td style={{ padding: '15px', fontWeight: 'bold', color: '#007bff' }}>
+                    BL {bl.nfact || bl.nbl}
+                  </td>
+                  <td style={{ padding: '15px' }}>
+                    <div>
+                      <div style={{ fontWeight: 'bold' }}>{bl.client_name}</div>
+                      <div style={{ fontSize: '12px', color: '#666' }}>Code: {bl.nclient}</div>
+                    </div>
+                  </td>
+                  <td style={{ padding: '15px' }}>
+                    {formatDate(bl.date_fact)}
+                  </td>
+                  <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>
+                    {formatAmount(bl.montant_ht)}
+                  </td>
+                  <td style={{ padding: '15px', textAlign: 'right' }}>
+                    {formatAmount(bl.tva)}
+                  </td>
+                  <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: '#28a745' }}>
+                    {formatAmount(bl.montant_ttc || (bl.montant_ht + bl.tva))}
+                  </td>
+                  <td style={{ padding: '15px', textAlign: 'center' }}>
+                    <button
+                      onClick={() => handlePrintPDF(bl.nfact || bl.nbl)}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                      title="Imprimer PDF"
+                    >
+                      📄 PDF
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {deliveryNotes.map((bl) => (
-                  <tr key={bl.nbl}>
-                    <td><strong>{bl.nbl}</strong></td>
-                    <td>{bl.nclient}</td>
-                    <td>{new Date(bl.date_fact).toLocaleDateString('fr-FR')}</td>
-                    <td style={{ textAlign: 'right' }}>{bl.montant_ht?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
-                    <td style={{ textAlign: 'right' }}>{bl.tva?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
-                    <td style={{ textAlign: 'right' }}><strong>{bl.montant_ttc?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</strong></td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '5px' }}>
-                        <button 
-                          onClick={() => router.push(`/delivery-notes/${bl.nbl}`)}
-                          className={styles.viewButton}
-                          style={{ fontSize: '12px', padding: '4px 8px' }}
-                        >
-                          👁️ Voir
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(bl.nbl)}
-                          disabled={deleting === bl.nbl}
-                          className={styles.deleteButton}
-                          style={{ 
-                            fontSize: '12px', 
-                            padding: '4px 8px',
-                            backgroundColor: deleting === bl.nbl ? '#ccc' : '#dc3545',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: deleting === bl.nbl ? 'not-allowed' : 'pointer'
-                          }}
-                        >
-                          {deleting === bl.nbl ? '⏳' : '🗑️'} Supprimer
-                        </button>
-                      </div>
-                    </td>
-                    <td>
-                      <PrintOptions
-                        documentType="bl"
-                        documentId={bl.nbl}
-                        documentNumber={bl.nbl}
-                        clientName={(bl as any).client_name || (bl as any).clientName || 'Client'}
-                        isModal={false}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </main>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
