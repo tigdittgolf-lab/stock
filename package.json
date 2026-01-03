@@ -1,5 +1,6 @@
 {
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0"
-  }
+  },
+  "deploymentTrigger": "2026-01-03-21:55-force-mobile-deployment"
 }
