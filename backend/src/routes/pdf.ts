@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { supabaseAdmin } from '../supabaseClient.js';
-import { databaseRouter } from '../services/databaseRouter.js';
+import { backendDatabaseService } from '../services/databaseService.js';
 import { PDFService } from '../services/pdfService.js';
 import { numberToWords } from '../utils/numberToWords.js';
 import { createdDocumentsCache } from './sales.js';
@@ -38,7 +38,7 @@ async function fetchBLData(tenant: string, id: string) {
   
   try {
     // Utiliser la fonction RPC get_bl_with_details qui retourne un JSON complet
-    const result = await databaseRouter.executeRPC('get_bl_with_details', {
+    const result = await backendDatabaseService.executeRPC('get_bl_with_details', {
       p_tenant: tenant,
       p_nfact: requestedId
     });
