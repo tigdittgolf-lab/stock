@@ -14,11 +14,6 @@
   ],
   "env": {
     "NODE_ENV": "production",
-    "NEXT_PUBLIC_API_URL": "https://enabled-encourage-mechanics-performance.trycloudflare.com/api"
-  },
-  "functions": {
-    "frontend/pages/api/**/*.js": {
-      "maxDuration": 30
-    }
+    "NEXT_PUBLIC_API_URL": "https://desktop-bhhs068.tail1d9c54.ts.net/api"
   }
 }
