@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Simple Production</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Production Simple</h1>
+    <div id="results"></div>
+
+    <script>
+        async function testAll() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>🔄 Testing...</p>';
+
+            const tests = [
+                {
+                    name: 'Backend Health',
+                    url: 'https://desktop-bhhs068.tail1d9c54.ts.net/health'
+                },
+                {
+                    name: 'Suppliers Direct',
+                    url: 'https://desktop-bhhs068.tail1d9c54.ts.net/api/suppliers',
+                    headers: { 'X-Tenant': '2025_bu01' }
+                },
+                {
+                    name: 'Suppliers via Frontend',
+                    url: '/api/sales/suppliers',
+                    headers: { 'X-Tenant': '2025_bu01' }
+                },
+                {
+                    name: 'Delivery Notes via Frontend',
+                    url: '/api/sales/delivery-notes',
+                    headers: { 'X-Tenant': '2025_bu01' }
+                }
+            ];
+
+            let html = '';
+            
+            for (const test of tests) {
+                try {
+                    const response = await fetch(test.url, { headers: test.headers || {} });
+                    const data = await response.json();
+                    
+                    html += `
+                        <div class="result success">
+                            <h3>✅ ${test.name}</h3>
+                            <p>Status: ${response.status}</p>
+                            <p>Data: ${data.data?.length || 'N/A'} items</p>
+                            <pre>${JSON.stringify(data, null, 2).substring(0, 500)}...</pre>
+                        </div>
+                    `;
+                } catch (error) {
+                    html += `
+                        <div class="result error">
+                            <h3>❌ ${test.name}</h3>
+                            <p>Error: ${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            results.innerHTML = html;
+        }
+
+        // Auto-run
+        testAll();
+    </script>
+</body>
+</html>
