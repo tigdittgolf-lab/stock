@@ -21,6 +21,19 @@ export default function DeliveryNotesList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tenant, setTenant] = useState<string>('');
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    // Détecter si on est sur mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     // Récupérer le tenant depuis localStorage
@@ -91,32 +104,301 @@ export default function DeliveryNotesList() {
     return amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' DA';
   };
 
+  // Version mobile avec cartes
+  const MobileView = () => (
+    <div style={{ padding: '10px' }}>
+      {deliveryNotes.map((bl, index) => (
+        <div 
+          key={bl.nfact || bl.nbl || index}
+          style={{
+            background: 'white',
+            borderRadius: '10px',
+            padding: '15px',
+            marginBottom: '15px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            border: '1px solid #e0e0e0'
+          }}
+        >
+          {/* En-tête BL */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '12px',
+            paddingBottom: '10px',
+            borderBottom: '2px solid #f0f0f0'
+          }}>
+            <div style={{
+              fontSize: '18px',
+              fontWeight: 'bold',
+              color: '#007bff'
+            }}>
+              📋 BL {bl.nfact || bl.nbl}
+            </div>
+            <button
+              onClick={() => handlePrintPDF(bl.nfact || bl.nbl)}
+              style={{
+                padding: '8px 15px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+              }}
+            >
+              📄 PDF
+            </button>
+          </div>
+
+          {/* Informations client */}
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{
+              fontSize: '16px',
+              fontWeight: 'bold',
+              color: '#333',
+              marginBottom: '4px'
+            }}>
+              👤 {bl.client_name}
+            </div>
+            <div style={{
+              fontSize: '12px',
+              color: '#666'
+            }}>
+              Code client: {bl.nclient}
+            </div>
+          </div>
+
+          {/* Date */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            marginBottom: '12px'
+          }}>
+            <span style={{
+              fontSize: '14px',
+              color: '#666',
+              marginRight: '8px'
+            }}>
+              📅
+            </span>
+            <span style={{ fontSize: '14px', color: '#333' }}>
+              {formatDate(bl.date_fact)}
+            </span>
+          </div>
+
+          {/* Montants */}
+          <div style={{
+            background: '#f8f9fa',
+            borderRadius: '8px',
+            padding: '12px',
+            marginBottom: '12px'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: '6px'
+            }}>
+              <span style={{ fontSize: '14px', color: '#666' }}>Montant HT:</span>
+              <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                {formatAmount(bl.montant_ht)}
+              </span>
+            </div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: '6px'
+            }}>
+              <span style={{ fontSize: '14px', color: '#666' }}>TVA:</span>
+              <span style={{ fontSize: '14px' }}>
+                {formatAmount(bl.tva)}
+              </span>
+            </div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              paddingTop: '6px',
+              borderTop: '1px solid #dee2e6'
+            }}>
+              <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#28a745' }}>
+                Total TTC:
+              </span>
+              <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#28a745' }}>
+                {formatAmount(bl.montant_ttc || (bl.montant_ht + bl.tva))}
+              </span>
+            </div>
+          </div>
+
+          {/* Actions supplémentaires */}
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            flexWrap: 'wrap'
+          }}>
+            <button
+              onClick={() => handlePrintPDF(bl.nfact || bl.nbl)}
+              style={{
+                flex: 1,
+                minWidth: '120px',
+                padding: '10px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}
+            >
+              📄 Imprimer PDF
+            </button>
+            <button
+              onClick={() => alert(`Détails du BL ${bl.nfact || bl.nbl}\nClient: ${bl.client_name}\nMontant: ${formatAmount(bl.montant_ht + bl.tva)}`)}
+              style={{
+                flex: 1,
+                minWidth: '120px',
+                padding: '10px',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}
+            >
+              ℹ️ Détails
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  // Version desktop avec tableau
+  const DesktopView = () => (
+    <div style={{ background: 'white', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
+            <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>N° BL</th>
+            <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>Client</th>
+            <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>Date</th>
+            <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>Montant HT</th>
+            <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>TVA</th>
+            <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>Total TTC</th>
+            <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold' }}>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {deliveryNotes.map((bl, index) => (
+            <tr 
+              key={bl.nfact || bl.nbl || index}
+              style={{ 
+                borderBottom: '1px solid #dee2e6',
+                backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa'
+              }}
+            >
+              <td style={{ padding: '15px', fontWeight: 'bold', color: '#007bff' }}>
+                BL {bl.nfact || bl.nbl}
+              </td>
+              <td style={{ padding: '15px' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold' }}>{bl.client_name}</div>
+                  <div style={{ fontSize: '12px', color: '#666' }}>Code: {bl.nclient}</div>
+                </div>
+              </td>
+              <td style={{ padding: '15px' }}>
+                {formatDate(bl.date_fact)}
+              </td>
+              <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>
+                {formatAmount(bl.montant_ht)}
+              </td>
+              <td style={{ padding: '15px', textAlign: 'right' }}>
+                {formatAmount(bl.tva)}
+              </td>
+              <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: '#28a745' }}>
+                {formatAmount(bl.montant_ttc || (bl.montant_ht + bl.tva))}
+              </td>
+              <td style={{ padding: '15px', textAlign: 'center' }}>
+                <button
+                  onClick={() => handlePrintPDF(bl.nfact || bl.nbl)}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#dc3545',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                  title="Imprimer PDF"
+                >
+                  📄 PDF
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ 
+      padding: isMobile ? '10px' : '20px', 
+      maxWidth: isMobile ? '100%' : '1200px', 
+      margin: '0 auto',
+      minHeight: '100vh',
+      background: isMobile ? '#f5f5f5' : 'white'
+    }}>
+      {/* En-tête responsive */}
       <div style={{ 
         display: 'flex', 
+        flexDirection: isMobile ? 'column' : 'row',
         justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '30px',
-        borderBottom: '2px solid #eee',
-        paddingBottom: '20px'
+        alignItems: isMobile ? 'stretch' : 'center', 
+        marginBottom: '20px',
+        background: 'white',
+        padding: isMobile ? '15px' : '20px',
+        borderRadius: '10px',
+        boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.1)' : 'none',
+        borderBottom: isMobile ? 'none' : '2px solid #eee'
       }}>
-        <div>
-          <h1 style={{ margin: 0, color: '#333' }}>📋 Liste des Bons de Livraison</h1>
-          <p style={{ margin: '5px 0 0 0', color: '#666' }}>
-            Tenant: {tenant} • {deliveryNotes.length} BL trouvés
+        <div style={{ marginBottom: isMobile ? '15px' : '0' }}>
+          <h1 style={{ 
+            margin: 0, 
+            color: '#333',
+            fontSize: isMobile ? '20px' : '28px'
+          }}>
+            📋 Liste des Bons de Livraison
+          </h1>
+          <p style={{ 
+            margin: '5px 0 0 0', 
+            color: '#666',
+            fontSize: isMobile ? '14px' : '16px'
+          }}>
+            {isMobile ? `${deliveryNotes.length} BL` : `Tenant: ${tenant} • ${deliveryNotes.length} BL trouvés`}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ 
+          display: 'flex', 
+          gap: '10px',
+          flexDirection: isMobile ? 'column' : 'row'
+        }}>
           <button
             onClick={() => router.push('/delivery-notes')}
             style={{
-              padding: '10px 20px',
+              padding: isMobile ? '12px 20px' : '10px 20px',
               backgroundColor: '#007bff',
               color: 'white',
               border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer'
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: isMobile ? '16px' : '14px',
+              fontWeight: 'bold'
             }}
           >
             ➕ Nouveau BL
@@ -124,12 +406,14 @@ export default function DeliveryNotesList() {
           <button
             onClick={() => router.push('/dashboard')}
             style={{
-              padding: '10px 20px',
+              padding: isMobile ? '12px 20px' : '10px 20px',
               backgroundColor: '#6c757d',
               color: 'white',
               border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer'
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: isMobile ? '16px' : '14px',
+              fontWeight: 'bold'
             }}
           >
             ← Retour Dashboard
@@ -157,7 +441,7 @@ export default function DeliveryNotesList() {
           background: '#f8d7da',
           color: '#721c24',
           padding: '15px',
-          borderRadius: '5px',
+          borderRadius: '8px',
           marginBottom: '20px',
           textAlign: 'center'
         }}>
@@ -182,8 +466,8 @@ export default function DeliveryNotesList() {
       {!loading && !error && deliveryNotes.length === 0 && (
         <div style={{
           textAlign: 'center',
-          padding: '60px 20px',
-          background: '#f8f9fa',
+          padding: isMobile ? '40px 20px' : '60px 20px',
+          background: 'white',
           borderRadius: '10px',
           border: '2px dashed #dee2e6'
         }}>
@@ -198,9 +482,10 @@ export default function DeliveryNotesList() {
               backgroundColor: '#007bff',
               color: 'white',
               border: 'none',
-              borderRadius: '5px',
+              borderRadius: '8px',
               cursor: 'pointer',
-              fontSize: '16px'
+              fontSize: '16px',
+              fontWeight: 'bold'
             }}
           >
             ➕ Créer le premier BL
@@ -209,77 +494,20 @@ export default function DeliveryNotesList() {
       )}
 
       {!loading && !error && deliveryNotes.length > 0 && (
-        <div style={{ background: 'white', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
-                <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>N° BL</th>
-                <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>Client</th>
-                <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>Date</th>
-                <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>Montant HT</th>
-                <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>TVA</th>
-                <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>Total TTC</th>
-                <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deliveryNotes.map((bl, index) => (
-                <tr 
-                  key={bl.nfact || bl.nbl || index}
-                  style={{ 
-                    borderBottom: '1px solid #dee2e6',
-                    backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa'
-                  }}
-                >
-                  <td style={{ padding: '15px', fontWeight: 'bold', color: '#007bff' }}>
-                    BL {bl.nfact || bl.nbl}
-                  </td>
-                  <td style={{ padding: '15px' }}>
-                    <div>
-                      <div style={{ fontWeight: 'bold' }}>{bl.client_name}</div>
-                      <div style={{ fontSize: '12px', color: '#666' }}>Code: {bl.nclient}</div>
-                    </div>
-                  </td>
-                  <td style={{ padding: '15px' }}>
-                    {formatDate(bl.date_fact)}
-                  </td>
-                  <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>
-                    {formatAmount(bl.montant_ht)}
-                  </td>
-                  <td style={{ padding: '15px', textAlign: 'right' }}>
-                    {formatAmount(bl.tva)}
-                  </td>
-                  <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: '#28a745' }}>
-                    {formatAmount(bl.montant_ttc || (bl.montant_ht + bl.tva))}
-                  </td>
-                  <td style={{ padding: '15px', textAlign: 'center' }}>
-                    <button
-                      onClick={() => handlePrintPDF(bl.nfact || bl.nbl)}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#dc3545',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px'
-                      }}
-                      title="Imprimer PDF"
-                    >
-                      📄 PDF
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        isMobile ? <MobileView /> : <DesktopView />
       )}
 
       <style jsx>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+          body {
+            margin: 0;
+            padding: 0;
+          }
         }
       `}</style>
     </div>
