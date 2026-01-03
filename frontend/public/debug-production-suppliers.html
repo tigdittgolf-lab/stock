@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Production Suppliers</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Production Suppliers</h1>
+    
+    <div class="test-section">
+        <h2>Problème Observé</h2>
+        <div style="background: #f8d7da; padding: 15px; border-radius: 5px;">
+            <strong>❌ Dashboard Production:</strong> "🏭 Total Fournisseurs 0"<br>
+            <strong>✅ Tests Locaux:</strong> 4 fournisseurs trouvés<br>
+            <strong>🔍 Diagnostic:</strong> Problème spécifique à la production Vercel
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>1. Test API Suppliers Production</h2>
+        <button onclick="testSuppliersAPI()">Test API Suppliers</button>
+        <div id="suppliers-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Test Backend Direct via Tailscale</h2>
+        <button onclick="testBackendDirect()">Test Backend Direct</button>
+        <div id="backend-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Test Database Status</h2>
+        <button onclick="testDatabaseStatus()">Test Database Status</button>
+        <div id="database-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Test avec Différents Tenants</h2>
+        <button onclick="testDifferentTenants()">Test Tenants</button>
+        <div id="tenants-result"></div>
+    </div>
+
+    <script>
+        async function testSuppliersAPI() {
+            const resultDiv = document.getElementById('suppliers-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Test API suppliers...</div>';
+            
+            try {
+                console.log('🔍 Testing suppliers API...');
+                
+                const response = await fetch('/api/sales/suppliers', {
+                    headers: {
+                        'X-Tenant': '2025_bu01',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+
+                console.log('📡 Response status:', response.status);
+                console.log('📡 Response headers:', [...response.headers.entries()]);
+
+                const data = await response.json();
+                console.log('📊 Response data:', data);
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ API Suppliers Success!
+                            <p><strong>Fournisseurs trouvés:</strong> ${data.data?.length || 0}</p>
+                            <p><strong>Source:</strong> ${data.source || 'N/A'}</p>
+                            <p><strong>Database:</strong> ${data.database_type || 'N/A'}</p>
+                            <p><strong>Tenant:</strong> ${data.tenant || 'N/A'}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ API Suppliers Failed
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('❌ Suppliers API error:', error);
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Erreur API: ${error.message}
+                        <p>Vérifiez la console du navigateur pour plus de détails.</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testBackendDirect() {
+            const resultDiv = document.getElementById('backend-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Test backend direct...</div>';
+            
+            try {
+                console.log('🔍 Testing backend direct via Tailscale...');
+                
+                // Test 1: Health check
+                const healthResponse = await fetch('https://desktop-bhhs068.tail1d9c54.ts.net/health');
+                const healthData = await healthResponse.json();
+                console.log('💚 Health check:', healthData);
+
+                // Test 2: Suppliers direct
+                const suppliersResponse = await fetch('https://desktop-bhhs068.tail1d9c54.ts.net/api/suppliers', {
+                    headers: {
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+                const suppliersData = await suppliersResponse.json();
+                console.log('🏭 Suppliers direct:', suppliersData);
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ Backend Direct Success!
+                        <h4>Health Check:</h4>
+                        <pre>${JSON.stringify(healthData, null, 2)}</pre>
+                        <h4>Suppliers Direct:</h4>
+                        <p><strong>Fournisseurs:</strong> ${suppliersData.data?.length || 0}</p>
+                        <pre>${JSON.stringify(suppliersData, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('❌ Backend direct error:', error);
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Backend inaccessible: ${error.message}
+                        <p>Le backend local ou Tailscale ne fonctionne pas.</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testDatabaseStatus() {
+            const resultDiv = document.getElementById('database-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Test database status...</div>';
+            
+            try {
+                const response = await fetch('/api/database/status');
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ Database Status
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Database Status Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testDifferentTenants() {
+            const resultDiv = document.getElementById('tenants-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Test différents tenants...</div>';
+            
+            const tenants = ['2025_bu01', '2026_bu01', '2024_bu01'];
+            const results = [];
+            
+            for (const tenant of tenants) {
+                try {
+                    console.log(`🔍 Testing tenant: ${tenant}`);
+                    
+                    const response = await fetch('/api/sales/suppliers', {
+                        headers: {
+                            'X-Tenant': tenant,
+                            'Cache-Control': 'no-cache'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    results.push({
+                        tenant,
+                        success: data.success,
+                        count: data.data?.length || 0,
+                        database: data.database_type,
+                        error: data.error
+                    });
+                } catch (error) {
+                    results.push({
+                        tenant,
+                        success: false,
+                        error: error.message
+                    });
+                }
+            }
+            
+            const resultsHtml = results.map(result => `
+                <div style="padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 3px; background: ${result.success ? '#d4edda' : '#f8d7da'}">
+                    <strong>Tenant: ${result.tenant}</strong><br>
+                    Success: ${result.success ? '✅' : '❌'}<br>
+                    Fournisseurs: ${result.count || 0}<br>
+                    Database: ${result.database || 'N/A'}<br>
+                    ${result.error ? `Erreur: ${result.error}` : ''}
+                </div>
+            `).join('');
+            
+            resultDiv.innerHTML = `
+                <div>
+                    <h4>Résultats par Tenant:</h4>
+                    ${resultsHtml}
+                </div>
+            `;
+        }
+
+        // Auto-run tests
+        window.onload = function() {
+            console.log('🚀 Starting production suppliers debug...');
+            testSuppliersAPI();
+        };
+    </script>
+</body>
+</html>
