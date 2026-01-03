@@ -241,13 +241,52 @@ export default function Dashboard() {
     try {
       // Ajouter cache-busting pour forcer le refresh
       const cacheBuster = Date.now();
-      const response = await fetch(getApiUrl(`sales/suppliers?t=${cacheBuster}`), { 
+      const apiUrl = getApiUrl(`sales/suppliers?t=${cacheBuster}`);
+      
+      console.log('🔍 Fetching suppliers:', {
+        apiUrl,
+        headers,
+        cacheBuster,
+        windowLocation: typeof window !== 'undefined' ? {
+          hostname: window.location.hostname,
+          port: window.location.port,
+          origin: window.location.origin
+        } : 'SSR'
+      });
+      
+      // Test if the backend is reachable first
+      try {
+        const healthCheck = await fetch('http://localhost:3005/health', {
+          method: 'GET',
+          mode: 'cors'
+        });
+        console.log('🏥 Backend health check:', {
+          status: healthCheck.status,
+          ok: healthCheck.ok
+        });
+      } catch (healthError) {
+        console.error('❌ Backend health check failed:', healthError);
+        throw new Error(`Backend not reachable: ${healthError.message}`);
+      }
+      
+      const response = await fetch(apiUrl, { 
+        method: 'GET',
+        mode: 'cors',
         headers: {
           ...headers,
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         }
       });
+      
+      console.log('📡 Suppliers response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        url: response.url,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+      
       const data = await response.json();
       
       if (data.success) {

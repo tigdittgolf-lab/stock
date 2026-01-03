@@ -3,6 +3,7 @@ import { supabaseAdmin } from '../supabaseClient.js';
 import { databaseRouter } from '../services/databaseRouter.js';
 import { PDFService } from '../services/pdfService.js';
 import { numberToWords } from '../utils/numberToWords.js';
+import { createdDocumentsCache } from './sales.js';
 
 const pdf = new Hono();
 
@@ -17,26 +18,22 @@ async function fetchBLData(tenant: string, id: string) {
     throw new Error(`Invalid BL ID: ${id}`);
   }
 
-  console.log(`📋 PDF: Fetching REAL BL data ${requestedId} for tenant: ${tenant}`);
+  console.log(`📋 PDF: Fetching BL data ${requestedId} for tenant: ${tenant}`);
 
-  // Utiliser la fonction RPC pour récupérer le BL avec détails
-  const { data: blResult, error: blError } = await databaseRouter.rpc('get_bl_with_details', {
-    p_tenant: tenant,
-    p_nfact: requestedId
-  });
-
-  if (blError) {
-    console.error('❌ PDF: Failed to fetch REAL BL data:', blError);
-    throw new Error(`Failed to fetch BL data: ${blError.message}`);
+  // Récupérer directement depuis le cache
+  const deliveryNotes = createdDocumentsCache.get(`${tenant}_bl`) || [];
+  
+  console.log(`📊 Cache contains ${deliveryNotes.length} delivery notes`);
+  console.log(`📊 Available cache IDs:`, deliveryNotes.map(bl => bl.nbl));
+  
+  const blData = deliveryNotes.find(bl => bl.nbl === requestedId);
+  
+  if (!blData) {
+    throw new Error(`BL ${requestedId} not found in cache`);
   }
-
-  if (!blResult || blResult.error) {
-    throw new Error(`BL ${requestedId} not found`);
-  }
-
-  console.log(`✅ PDF: Found REAL BL data ${requestedId} with ${blResult.details?.length || 0} items`);
-
-  return blResult;
+  
+  console.log(`✅ PDF: Found BL data ${requestedId} in cache`);
+  return blData;
 }
 
 // Middleware to extract tenant from header

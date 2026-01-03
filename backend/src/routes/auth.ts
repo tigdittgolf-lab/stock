@@ -124,14 +124,36 @@ auth.get('/business-units', async (c) => {
 // Get available exercises (years)
 auth.get('/exercises', async (c) => {
   try {
-    const currentYear = new Date().getFullYear();
-    const exercises = [
-      { year: currentYear, status: 'active' },
-      { year: currentYear - 1, status: 'closed' },
-      { year: currentYear - 2, status: 'archived' }
+    // Retourner les vraies business units avec les schémas
+    const businessUnits = [
+      {
+        year: 2025,
+        status: 'active',
+        schema_name: '2025_bu01',
+        bu_code: 'BU01',
+        nom_entreprise: 'Entreprise Stock Management'
+      },
+      {
+        year: 2024,
+        status: 'closed', 
+        schema_name: '2024_bu01',
+        bu_code: 'BU01',
+        nom_entreprise: 'Entreprise Stock Management'
+      },
+      {
+        year: 2023,
+        status: 'archived',
+        schema_name: '2023_bu01', 
+        bu_code: 'BU01',
+        nom_entreprise: 'Entreprise Stock Management'
+      }
     ];
 
-    return c.json({ success: true, data: exercises , database_type: backendDatabaseService.getActiveDatabaseType() });
+    return c.json({ 
+      success: true, 
+      data: businessUnits, 
+      database_type: backendDatabaseService.getActiveDatabaseType() 
+    });
   } catch (error) {
     console.error('Error fetching exercises:', error);
     return c.json({ success: false, error: 'Failed to fetch exercises' }, 500);

@@ -1,6 +1,9 @@
 {
-  "type": "supabase",
-  "name": "Supabase Production",
-  "supabaseUrl": "admin",
-  "supabaseKey": "admin123"
+  "type": "mysql",
+  "name": "MySQL Local",
+  "host": "localhost",
+  "port": 3306,
+  "database": "stock_local",
+  "username": "root",
+  "password": ""
 }

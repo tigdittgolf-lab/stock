@@ -18,7 +18,7 @@ sales.use('*', async (c, next) => {
 const createdClientsCache = new Map<string, any[]>();
 
 // Cache global des documents créés
-const createdDocumentsCache = new Map<string, any[]>();
+export const createdDocumentsCache = new Map<string, any[]>();
 
 // Test endpoint to check all schemas and client data
 sales.get('/test-all-schemas', async (c) => {

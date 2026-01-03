@@ -28,6 +28,10 @@ app.use('/*', cors({
   origin: [
     'http://localhost:3000', 
     'http://localhost:3001',
+    'http://localhost:3002',
+    /^http:\/\/localhost:\d+$/,  // Allow any localhost port
+    'https://frontend-iota-six-72.vercel.app',
+    'https://desktop-bhhs068.tail1d9c54.ts.net',
     'https://frontend-pn8z8dd7o-tigdittgolf-9191s-projects.vercel.app',
     'https://st-article-1-b5pn7fp0k-tigdittgolf-9191s-projects.vercel.app',
     'https://vercel-test-edfqv1w3m-tigdittgolf-9191s-projects.vercel.app',
@@ -44,9 +48,10 @@ app.use('/*', cors({
     null, // Permet file:// et autres origines nulles
     /^https:\/\/.*\.trycloudflare\.com$/,
     /^https:\/\/.*\.ngrok\.io$/,
-    /^https:\/\/.*\.loca\.lt$/
+    /^https:\/\/.*\.loca\.lt$/,
+    /^https:\/\/.*\.tail.*\.ts\.net$/
   ],
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Tenant'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Tenant', 'Cache-Control', 'Pragma'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: false // Important pour les requêtes cross-origin
 }));

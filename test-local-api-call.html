@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Local API Call</title>
+</head>
+<body>
+    <h1>Test Local API Call</h1>
+    <button onclick="testApiCall()">Test API Call</button>
+    <div id="results"></div>
+
+    <script>
+        // Copy the exact getApiUrl function from the frontend
+        function getApiUrl(endpoint) {
+            // Détecter l'environnement - plus robuste
+            const isLocalhost = typeof window !== 'undefined' && 
+                               (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+            
+            const isProduction = (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production') || 
+                                (typeof window !== 'undefined' && !isLocalhost);
+            
+            console.log('🔍 API URL Debug:', {
+                endpoint,
+                hostname: typeof window !== 'undefined' ? window.location.hostname : 'SSR',
+                isLocalhost,
+                isProduction,
+                NODE_ENV: typeof process !== 'undefined' && process.env ? process.env.NODE_ENV : 'undefined'
+            });
+            
+            if (isProduction) {
+                // En production, utiliser les routes API Next.js intégrées
+                if (typeof window !== 'undefined') {
+                    const url = `${window.location.origin}/api/${endpoint}`;
+                    console.log('🌐 Production URL:', url);
+                    return url;
+                }
+                // Fallback SSR
+                return `/api/${endpoint}`;
+            } else {
+                // En développement, utiliser le backend séparé
+                const url = `http://localhost:3005/api/${endpoint}`;
+                console.log('🏠 Local URL:', url);
+                return url;
+            }
+        }
+
+        async function testApiCall() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Testing...</p>';
+            
+            try {
+                const apiUrl = getApiUrl('sales/suppliers');
+                console.log('Testing API URL:', apiUrl);
+                
+                const response = await fetch(apiUrl, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+                
+                console.log('Response:', response);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Data:', data);
+                
+                resultsDiv.innerHTML = `
+                    <h2>✅ Success!</h2>
+                    <p><strong>URL:</strong> ${apiUrl}</p>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Suppliers count:</strong> ${data.data ? data.data.length : 0}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                resultsDiv.innerHTML = `
+                    <h2>❌ Error!</h2>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>Check console for details</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

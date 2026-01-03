@@ -42,19 +42,41 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
 
 // Fonction utilitaire pour les URLs API - PRODUCTION READY
 export const getApiUrl = (endpoint: string): string => {
-  // Détecter l'environnement
-  const isProduction = process.env.NODE_ENV === 'production' || 
-                      (typeof window !== 'undefined' && window.location.hostname !== 'localhost');
+  // Détecter l'environnement - plus robuste
+  const isLocalhost = typeof window !== 'undefined' && 
+                     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   
-  if (isProduction) {
-    // En production, utiliser les routes API Next.js intégrées
-    if (typeof window !== 'undefined') {
-      return `${window.location.origin}/api/${endpoint}`;
-    }
-    // Fallback SSR
-    return `/api/${endpoint}`;
-  } else {
-    // En développement, utiliser le backend séparé
-    return `http://localhost:3005/api/${endpoint}`;
+  // En mode développement Next.js, NODE_ENV est 'development'
+  // En production Vercel, NODE_ENV est 'production'
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  console.log('🔍 API URL Debug:', {
+    endpoint,
+    hostname: typeof window !== 'undefined' ? window.location.hostname : 'SSR',
+    port: typeof window !== 'undefined' ? window.location.port : 'SSR',
+    isLocalhost,
+    isDevelopment,
+    isProduction,
+    NODE_ENV: process.env.NODE_ENV
+  });
+  
+  // Si on est sur localhost ET en mode développement, utiliser le backend local
+  if (isLocalhost && isDevelopment) {
+    const url = `http://localhost:3005/api/${endpoint}`;
+    console.log('🏠 Local Development URL:', url);
+    return url;
   }
+  
+  // Sinon, utiliser les routes API Next.js intégrées (production ou SSR)
+  if (typeof window !== 'undefined') {
+    const url = `${window.location.origin}/api/${endpoint}`;
+    console.log('🌐 Production/SSR URL:', url);
+    return url;
+  }
+  
+  // Fallback SSR
+  const url = `/api/${endpoint}`;
+  console.log('🔄 Fallback SSR URL:', url);
+  return url;
 };

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API URL Debug Test</title>
+</head>
+<body>
+    <h1>API URL Debug Test</h1>
+    <div id="results"></div>
+
+    <script>
+        // Simulate the getApiUrl function
+        function getApiUrl(endpoint) {
+            const isProduction = process?.env?.NODE_ENV === 'production' || 
+                                (typeof window !== 'undefined' && window.location.hostname !== 'localhost');
+            
+            console.log('Debug info:', {
+                'process.env.NODE_ENV': typeof process !== 'undefined' ? process?.env?.NODE_ENV : 'undefined',
+                'window.location.hostname': window.location.hostname,
+                'isProduction': isProduction
+            });
+            
+            if (isProduction) {
+                // En production, utiliser les routes API Next.js intégrées
+                if (typeof window !== 'undefined') {
+                    return `${window.location.origin}/api/${endpoint}`;
+                }
+                // Fallback SSR
+                return `/api/${endpoint}`;
+            } else {
+                // En développement, utiliser le backend séparé
+                return `http://localhost:3005/api/${endpoint}`;
+            }
+        }
+
+        // Test the function
+        const testEndpoint = 'sales/suppliers';
+        const result = getApiUrl(testEndpoint);
+        
+        document.getElementById('results').innerHTML = `
+            <h2>Results:</h2>
+            <p><strong>Endpoint:</strong> ${testEndpoint}</p>
+            <p><strong>Generated URL:</strong> ${result}</p>
+            <p><strong>Current hostname:</strong> ${window.location.hostname}</p>
+            <p><strong>Current origin:</strong> ${window.location.origin}</p>
+            <p><strong>NODE_ENV:</strong> ${typeof process !== 'undefined' ? process?.env?.NODE_ENV || 'undefined' : 'process not available'}</p>
+        `;
+
+        // Test the actual fetch
+        console.log('Testing fetch to:', result);
+        fetch(result, {
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Tenant': '2025_bu01'
+            }
+        })
+        .then(response => {
+            console.log('Fetch response:', response.status, response.statusText);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Fetch data:', data);
+            document.getElementById('results').innerHTML += `
+                <h3>Fetch Test Result:</h3>
+                <p><strong>Status:</strong> Success</p>
+                <p><strong>Data:</strong> ${JSON.stringify(data, null, 2)}</p>
+            `;
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            document.getElementById('results').innerHTML += `
+                <h3>Fetch Test Result:</h3>
+                <p><strong>Status:</strong> Error</p>
+                <p><strong>Error:</strong> ${error.message}</p>
+            `;
+        });
+    </script>
+</body>
+</html>

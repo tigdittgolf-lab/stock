@@ -218,8 +218,8 @@ export default function TenantSelection() {
               }}
             >
               <option value="">Sélectionner une unité d'affaires</option>
-              {businessUnits.map(bu => (
-                <option key={bu.id} value={bu.id}>
+              {businessUnits.map((bu, index) => (
+                <option key={`${bu.id}-${index}`} value={bu.id}>
                   {bu.name} - {bu.description}
                 </option>
               ))}
