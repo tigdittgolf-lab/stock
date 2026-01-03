@@ -195,8 +195,8 @@ export default function Dashboard() {
     try {
       console.log('🔄 Fetching articles...');
       
-      // Utiliser directement la route qui fonctionne
-      const response = await fetch(getApiUrl('sales/articles'), { headers });
+      // Utiliser la route frontend qui fonctionne
+      const response = await fetch('/api/sales/articles', { headers });
       const data = await response.json();
       
       console.log('📊 Articles response:', { success: data.success, dataLength: data.data?.length || 0 });
@@ -224,11 +224,13 @@ export default function Dashboard() {
 
   const fetchClients = async (headers: any) => {
     try {
-      const response = await fetch(getApiUrl('sales/clients'), { headers });
+      // Utiliser la route frontend qui fonctionne
+      const response = await fetch('/api/sales/clients', { headers });
       const data = await response.json();
       
       if (data.success) {
         setClients(data.data || []);
+        console.log(`📦 Clients loaded: ${data.data?.length || 0}`);
       } else {
         console.warn('Clients not loaded:', data.error);
       }
@@ -241,37 +243,17 @@ export default function Dashboard() {
     try {
       // Ajouter cache-busting pour forcer le refresh
       const cacheBuster = Date.now();
-      const apiUrl = getApiUrl(`sales/suppliers?t=${cacheBuster}`);
+      // Utiliser la route frontend qui fonctionne (confirmé par le debug)
+      const apiUrl = `/api/sales/suppliers?t=${cacheBuster}`;
       
-      console.log('🔍 Fetching suppliers:', {
+      console.log('🔍 Fetching suppliers via frontend route:', {
         apiUrl,
         headers,
-        cacheBuster,
-        windowLocation: typeof window !== 'undefined' ? {
-          hostname: window.location.hostname,
-          port: window.location.port,
-          origin: window.location.origin
-        } : 'SSR'
+        cacheBuster
       });
-      
-      // Test if the backend is reachable first
-      try {
-        const healthCheck = await fetch('http://localhost:3005/health', {
-          method: 'GET',
-          mode: 'cors'
-        });
-        console.log('🏥 Backend health check:', {
-          status: healthCheck.status,
-          ok: healthCheck.ok
-        });
-      } catch (healthError) {
-        console.error('❌ Backend health check failed:', healthError);
-        throw new Error(`Backend not reachable: ${healthError.message}`);
-      }
       
       const response = await fetch(apiUrl, { 
         method: 'GET',
-        mode: 'cors',
         headers: {
           ...headers,
           'Cache-Control': 'no-cache',
@@ -283,8 +265,7 @@ export default function Dashboard() {
         status: response.status,
         statusText: response.statusText,
         ok: response.ok,
-        url: response.url,
-        headers: Object.fromEntries(response.headers.entries())
+        url: response.url
       });
       
       const data = await response.json();
