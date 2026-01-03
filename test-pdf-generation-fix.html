@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test PDF Generation Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .bl-item { padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test PDF Generation Fix</h1>
+    
+    <div class="test-section">
+        <h2>Problème Résolu</h2>
+        <div style="background: #d4edda; padding: 15px; border-radius: 5px;">
+            <strong>✅ Fix Appliqué:</strong> La fonction <code>fetchBLData</code> peut maintenant récupérer les BL depuis la base de données si ils ne sont pas dans le cache.<br>
+            <strong>Nouvelle logique:</strong> Cache → Base de données → Erreur
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>1. Lister les BL Disponibles</h2>
+        <button onclick="listAvailableBL()">Lister les BL</button>
+        <div id="bl-list-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Créer un Nouveau BL pour Test</h2>
+        <button onclick="createTestBL()">Créer BL de Test</button>
+        <div id="create-bl-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Tester Génération PDF</h2>
+        <p>Entrez l'ID d'un BL existant :</p>
+        <input type="number" id="bl-id" placeholder="ID du BL" value="1">
+        <button onclick="testPDFGeneration()">Générer PDF</button>
+        <div id="pdf-result"></div>
+    </div>
+
+    <script>
+        async function listAvailableBL() {
+            const resultDiv = document.getElementById('bl-list-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Récupération des BL...</div>';
+            
+            try {
+                const response = await fetch('/api/sales/delivery-notes', {
+                    headers: {
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    const blList = data.data.map(bl => `
+                        <div class="bl-item">
+                            <strong>BL #${bl.nfact || bl.nbl}</strong> - 
+                            Client: ${bl.nclient || 'N/A'} - 
+                            Date: ${bl.date_fact || bl.date_bl || 'N/A'} - 
+                            Montant: ${bl.montant_ht || 0}€
+                            <button onclick="testSpecificPDF(${bl.nfact || bl.nbl})" style="margin-left: 10px;">
+                                📄 Générer PDF
+                            </button>
+                        </div>
+                    `).join('');
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ ${data.data.length} BL trouvés dans la base de données
+                            ${blList}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div style="background: #fff3cd; padding: 15px; border-radius: 5px;">
+                            ⚠️ Aucun BL trouvé dans la base de données
+                            <p>Vous devez créer un BL d'abord pour pouvoir générer un PDF.</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Erreur lors de la récupération des BL: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function createTestBL() {
+            const resultDiv = document.getElementById('create-bl-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Création d\'un BL de test...</div>';
+            
+            try {
+                const testBL = {
+                    nclient: 'CLIENT001',
+                    date_fact: new Date().toISOString().split('T')[0],
+                    articles: [
+                        {
+                            narticle: 'ART001',
+                            designation: 'Article de test',
+                            qte: 2,
+                            prix: 50.00
+                        }
+                    ]
+                };
+
+                const response = await fetch('/api/sales/delivery-notes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': '2025_bu01'
+                    },
+                    body: JSON.stringify(testBL)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ BL de test créé avec succès !
+                            <p>ID: ${data.data.nbl || data.data.nfact}</p>
+                            <button onclick="testSpecificPDF(${data.data.nbl || data.data.nfact})" style="margin-top: 10px;">
+                                📄 Générer PDF de ce BL
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Erreur lors de la création du BL: ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Erreur lors de la création du BL: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testPDFGeneration() {
+            const blId = document.getElementById('bl-id').value;
+            if (!blId) {
+                alert('Veuillez entrer un ID de BL');
+                return;
+            }
+            testSpecificPDF(parseInt(blId));
+        }
+
+        async function testSpecificPDF(blId) {
+            const resultDiv = document.getElementById('pdf-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Génération du PDF...</div>';
+            
+            try {
+                const response = await fetch(`/api/pdf/delivery-note/${blId}`, {
+                    headers: {
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+                
+                if (response.ok && response.headers.get('content-type')?.includes('application/pdf')) {
+                    // PDF généré avec succès
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ PDF généré avec succès pour le BL #${blId} !
+                            <p>
+                                <a href="${url}" target="_blank" style="color: blue; text-decoration: underline;">
+                                    📄 Ouvrir le PDF
+                                </a>
+                            </p>
+                            <p>
+                                <a href="${url}" download="BL_${blId}.pdf" style="color: green; text-decoration: underline;">
+                                    💾 Télécharger le PDF
+                                </a>
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    // Erreur dans la génération
+                    const errorData = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Erreur lors de la génération du PDF
+                            <pre>${JSON.stringify(errorData, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Erreur lors de la génération du PDF: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-charger la liste des BL au chargement de la page
+        window.onload = function() {
+            listAvailableBL();
+        };
+    </script>
+</body>
+</html>

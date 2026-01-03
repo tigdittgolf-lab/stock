@@ -21,10 +21,8 @@ export default function DatabaseTypeIndicator({ className, style }: DatabaseType
   useEffect(() => {
     const detectDatabaseType = async () => {
       try {
-        // CORRECTION: Utiliser l'API via le tunnel en production
-        const apiUrl = process.env.NODE_ENV === 'production' 
-          ? '/api/database/status'  // Route API Next.js qui redirige vers le backend
-          : 'http://localhost:3005/api/database-config';
+        // CORRECTION: Toujours utiliser l'API frontend qui redirige vers le backend
+        const apiUrl = '/api/database/status';
           
         const response = await fetch(apiUrl);
         if (response.ok) {

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Database Connection Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Database Connection Fix</h1>
+    
+    <div class="test-section">
+        <h2>1. Test Backend Direct (Tunnel)</h2>
+        <button onclick="testBackendDirect()">Test Backend Direct</button>
+        <div id="backend-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Test Frontend API Proxy</h2>
+        <button onclick="testFrontendProxy()">Test Frontend Proxy</button>
+        <div id="frontend-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Test Supabase Connection</h2>
+        <button onclick="testSupabaseConnection()">Test Supabase</button>
+        <div id="supabase-result"></div>
+    </div>
+
+    <script>
+        async function testBackendDirect() {
+            const resultDiv = document.getElementById('backend-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Testing backend direct...</div>';
+            
+            try {
+                const config = {
+                    type: 'supabase',
+                    name: 'Supabase Production',
+                    supabaseUrl: 'https://szgodrjglbpzkrksnroi.supabase.co',
+                    supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTY0ODA0MywiZXhwIjoyMDgxMjI0MDQzfQ.QXWudNf09Ly0BwZHac2vweYkr-ea_iufIVzcP98zZFU'
+                };
+
+                const response = await fetch('https://desktop-bhhs068.tail1d9c54.ts.net/api/database/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant': '2025_bu01'
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Backend Direct Test Success!
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Backend Direct Test Failed
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Backend Direct Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testFrontendProxy() {
+            const resultDiv = document.getElementById('frontend-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Testing frontend proxy...</div>';
+            
+            try {
+                const config = {
+                    type: 'supabase',
+                    name: 'Supabase Production',
+                    supabaseUrl: 'https://szgodrjglbpzkrksnroi.supabase.co',
+                    supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTY0ODA0MywiZXhwIjoyMDgxMjI0MDQzfQ.QXWudNf09Ly0BwZHac2vweYkr-ea_iufIVzcP98zZFU'
+                };
+
+                const response = await fetch('/api/database/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Frontend Proxy Test Success!
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Frontend Proxy Test Failed
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Frontend Proxy Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testSupabaseConnection() {
+            const resultDiv = document.getElementById('supabase-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Testing Supabase connection...</div>';
+            
+            try {
+                // Test avec une requête simple vers Supabase
+                const response = await fetch('https://szgodrjglbpzkrksnroi.supabase.co/rest/v1/', {
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2NDgwNDMsImV4cCI6MjA4MTIyNDA0M30.Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTY0ODA0MywiZXhwIjoyMDgxMjI0MDQzfQ.QXWudNf09Ly0BwZHac2vweYkr-ea_iufIVzcP98zZFU'
+                    }
+                });
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Supabase Connection Success!
+                            <p>Status: ${response.status}</p>
+                            <p>Supabase API is accessible</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Supabase Connection Failed
+                            <p>Status: ${response.status}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Supabase Connection Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

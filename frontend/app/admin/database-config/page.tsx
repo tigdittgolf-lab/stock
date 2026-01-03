@@ -53,7 +53,8 @@ export default function DatabaseConfigPage() {
 
   const loadBackendStatus = async () => {
     try {
-      const response = await fetch('http://localhost:3005/api/database-config');
+      // Utiliser l'API frontend qui redirige vers le backend via tunnel
+      const response = await fetch('/api/database/status');
       if (response.ok) {
         const data = await response.json();
         setBackendStatus(data.data);

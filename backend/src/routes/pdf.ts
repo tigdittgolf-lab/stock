@@ -20,20 +20,71 @@ async function fetchBLData(tenant: string, id: string) {
 
   console.log(`📋 PDF: Fetching BL data ${requestedId} for tenant: ${tenant}`);
 
-  // Récupérer directement depuis le cache
+  // Essayer d'abord le cache
   const deliveryNotes = createdDocumentsCache.get(`${tenant}_bl`) || [];
   
   console.log(`📊 Cache contains ${deliveryNotes.length} delivery notes`);
   console.log(`📊 Available cache IDs:`, deliveryNotes.map(bl => bl.nbl));
   
-  const blData = deliveryNotes.find(bl => bl.nbl === requestedId);
+  let blData = deliveryNotes.find(bl => bl.nbl === requestedId);
   
-  if (!blData) {
-    throw new Error(`BL ${requestedId} not found in cache`);
+  if (blData) {
+    console.log(`✅ PDF: Found BL data ${requestedId} in cache`);
+    return blData;
   }
+
+  // Si pas dans le cache, récupérer depuis la base de données
+  console.log(`🔍 PDF: BL ${requestedId} not in cache, fetching from database...`);
   
-  console.log(`✅ PDF: Found BL data ${requestedId} in cache`);
-  return blData;
+  try {
+    // Utiliser la fonction RPC get_bl_with_details qui retourne un JSON complet
+    const result = await databaseRouter.executeRPC('get_bl_with_details', {
+      p_tenant: tenant,
+      p_nfact: requestedId
+    });
+
+    if (!result.success || !result.data) {
+      throw new Error(`BL ${requestedId} not found in database`);
+    }
+
+    // La fonction retourne un JSON, donc on parse les données
+    const blDataFromDB = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+    
+    if (blDataFromDB.error) {
+      throw new Error(`Database error: ${blDataFromDB.error}`);
+    }
+
+    // Transformer les données de la base en format attendu par le PDF
+    blData = {
+      nbl: blDataFromDB.nbl || requestedId,
+      date_bl: blDataFromDB.date_fact || new Date().toISOString().split('T')[0],
+      client_nom: blDataFromDB.client_name || blDataFromDB.nclient || 'Client',
+      client_adresse: blDataFromDB.client_address || '',
+      client_telephone: '', // Pas disponible dans cette fonction
+      articles: (blDataFromDB.details || []).map((item: any) => ({
+        designation: item.designation || 'Article',
+        quantite: item.qte || 1,
+        prix_unitaire: item.prix || 0,
+        total: item.total_ligne || ((item.qte || 1) * (item.prix || 0))
+      })),
+      total_ht: blDataFromDB.montant_ht || 0,
+      total_ttc: blDataFromDB.montant_ttc || 0,
+      tva: blDataFromDB.tva || 0
+    };
+
+    console.log(`✅ PDF: Retrieved BL data ${requestedId} from database`);
+    console.log(`📊 PDF: BL contains ${blData.articles.length} articles`);
+    
+    // Ajouter au cache pour les prochaines fois
+    deliveryNotes.push(blData);
+    createdDocumentsCache.set(`${tenant}_bl`, deliveryNotes);
+    
+    return blData;
+    
+  } catch (dbError) {
+    console.error(`❌ PDF: Failed to fetch BL ${requestedId} from database:`, dbError);
+    throw new Error(`BL ${requestedId} not found in cache or database: ${dbError.message}`);
+  }
 }
 
 // Middleware to extract tenant from header

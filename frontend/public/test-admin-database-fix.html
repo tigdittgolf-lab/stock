@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Admin Database Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Admin Database Fix</h1>
+    
+    <div class="test-section">
+        <h2>1. Test Database Status API</h2>
+        <button onclick="testDatabaseStatus()">Test Status</button>
+        <div id="status-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Test Database Test API</h2>
+        <button onclick="testDatabaseTest()">Test Connection</button>
+        <div id="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Test Database Switch API</h2>
+        <button onclick="testDatabaseSwitch()">Test Switch</button>
+        <div id="switch-result"></div>
+    </div>
+
+    <script>
+        async function testDatabaseStatus() {
+            const resultDiv = document.getElementById('status-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Testing database status...</div>';
+            
+            try {
+                const response = await fetch('/api/database/status');
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Database Status Success!
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Database Status Failed
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Database Status Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testDatabaseTest() {
+            const resultDiv = document.getElementById('test-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Testing database connection...</div>';
+            
+            try {
+                const config = {
+                    type: 'supabase',
+                    name: 'Supabase Production',
+                    supabaseUrl: 'https://szgodrjglbpzkrksnroi.supabase.co',
+                    supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTY0ODA0MywiZXhwIjoyMDgxMjI0MDQzfQ.QXWudNf09Ly0BwZHac2vweYkr-ea_iufIVzcP98zZFU'
+                };
+
+                const response = await fetch('/api/database/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Database Test Success!
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Database Test Failed
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Database Test Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testDatabaseSwitch() {
+            const resultDiv = document.getElementById('switch-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Testing database switch...</div>';
+            
+            try {
+                const config = {
+                    type: 'supabase',
+                    name: 'Supabase Production',
+                    supabaseUrl: 'https://szgodrjglbpzkrksnroi.supabase.co',
+                    supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTY0ODA0MywiZXhwIjoyMDgxMjI0MDQzfQ.QXWudNf09Ly0BwZHac2vweYkr-ea_iufIVzcP98zZFU'
+                };
+
+                const response = await fetch('/api/database/switch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Database Switch Success!
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Database Switch Failed
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Database Switch Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-function getApiUrl() {
-  // En production, utiliser le tunnel Cloudflare
-  if (process.env.NODE_ENV === 'production') {
-    return 'https://his-affects-major-injured.trycloudflare.com';
-  }
-  // En développement, utiliser localhost
-  return 'http://localhost:3005';
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    // Utiliser Tailscale (URL permanente)
-    const backendUrl = 'https://desktop-bhhs068.tail1d9c54.ts.net/api/database-config';
+    // Utiliser Tailscale (URL permanente) avec le bon endpoint
+    const backendUrl = 'https://desktop-bhhs068.tail1d9c54.ts.net/api/database/test';
     
     console.log('Testing database connection via tunnel:', backendUrl);
+    console.log('Test config:', body);
     
     const response = await fetch(backendUrl, {
       method: 'POST',
@@ -28,17 +20,19 @@ export async function POST(request: NextRequest) {
     });
     
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Backend error response:', response.status, errorText);
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
     const data = await response.json();
-    console.log('Backend response:', data);
+    console.log('Backend test response:', data);
     
     return NextResponse.json(data);
   } catch (error) {
     console.error('Database test error:', error);
     return NextResponse.json(
-      { success: false, error: `Failed to test database connection: ${error.message}` },
+      { success: false, error: `Failed to test database connection: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
     );
   }
