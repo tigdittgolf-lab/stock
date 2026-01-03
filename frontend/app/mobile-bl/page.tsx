@@ -350,34 +350,88 @@ export default function MobileBLPage() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons - Tous les formats d'impression + Détails */}
               <div style={{
                 display: 'flex',
                 gap: '8px',
                 flexWrap: 'wrap'
               }}>
+                {/* Première ligne - Impressions PDF */}
                 <button
-                  onClick={() => handlePrintPDF(bl.nfact || bl.nbl)}
+                  onClick={() => {
+                    const pdfUrl = `/api/pdf/delivery-note/${bl.nfact || bl.nbl}`;
+                    window.open(pdfUrl, '_blank');
+                  }}
                   style={{
                     flex: 1,
-                    minWidth: '120px',
-                    padding: '12px',
+                    minWidth: '110px',
+                    padding: '10px',
                     backgroundColor: '#007bff',
                     color: 'white',
                     border: 'none',
                     borderRadius: '6px',
                     cursor: 'pointer',
-                    fontSize: '14px',
+                    fontSize: '13px',
                     fontWeight: 'bold'
                   }}
                 >
-                  📄 Imprimer PDF
+                  📄 BL Complet
                 </button>
                 <button
-                  onClick={() => alert(`Détails du BL ${bl.nfact || bl.nbl}\nClient: ${bl.client_name}\nMontant: ${formatAmount(bl.montant_ht + bl.tva)}`)}
+                  onClick={() => {
+                    const pdfUrl = `/api/pdf/delivery-note-small/${bl.nfact || bl.nbl}`;
+                    window.open(pdfUrl, '_blank');
+                  }}
                   style={{
                     flex: 1,
-                    minWidth: '120px',
+                    minWidth: '110px',
+                    padding: '10px',
+                    backgroundColor: '#17a2b8',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  📋 BL Réduit
+                </button>
+                <button
+                  onClick={() => {
+                    const pdfUrl = `/api/pdf/delivery-note-ticket/${bl.nfact || bl.nbl}`;
+                    window.open(pdfUrl, '_blank');
+                  }}
+                  style={{
+                    flex: 1,
+                    minWidth: '110px',
+                    padding: '10px',
+                    backgroundColor: '#6f42c1',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  🎫 Ticket
+                </button>
+              </div>
+              
+              {/* Deuxième ligne - Bouton Détails */}
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                marginTop: '8px'
+              }}>
+                <button
+                  onClick={() => {
+                    // Naviguer vers une page de détails ou afficher un modal
+                    router.push(`/delivery-notes/details/${bl.nfact || bl.nbl}`);
+                  }}
+                  style={{
+                    flex: 1,
                     padding: '12px',
                     backgroundColor: '#28a745',
                     color: 'white',
@@ -388,7 +442,7 @@ export default function MobileBLPage() {
                     fontWeight: 'bold'
                   }}
                 >
-                  ℹ️ Détails
+                  ℹ️ Voir Détails du BL
                 </button>
               </div>
             </div>

@@ -349,34 +349,48 @@ export default function MobileFacturesPage() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons - Tous les formats d'impression + Détails */}
               <div style={{
                 display: 'flex',
                 gap: '8px',
                 flexWrap: 'wrap'
               }}>
+                {/* Première ligne - Impressions PDF */}
                 <button
-                  onClick={() => handlePrintPDF(fact.nfact)}
+                  onClick={() => {
+                    const pdfUrl = `/api/pdf/invoice/${fact.nfact}`;
+                    window.open(pdfUrl, '_blank');
+                  }}
                   style={{
                     flex: 1,
-                    minWidth: '120px',
-                    padding: '12px',
+                    minWidth: '140px',
+                    padding: '10px',
                     backgroundColor: '#28a745',
                     color: 'white',
                     border: 'none',
                     borderRadius: '6px',
                     cursor: 'pointer',
-                    fontSize: '14px',
+                    fontSize: '13px',
                     fontWeight: 'bold'
                   }}
                 >
-                  📄 Imprimer PDF
+                  📄 Imprimer Facture
                 </button>
+              </div>
+              
+              {/* Deuxième ligne - Bouton Détails */}
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                marginTop: '8px'
+              }}>
                 <button
-                  onClick={() => alert(`Détails de la Facture ${fact.nfact}\nClient: ${fact.client_name || 'Client'}\nMontant: ${formatAmount(fact.montant_ht + fact.tva)}`)}
+                  onClick={() => {
+                    // Naviguer vers une page de détails ou afficher un modal
+                    router.push(`/invoices/details/${fact.nfact}`);
+                  }}
                   style={{
                     flex: 1,
-                    minWidth: '120px',
                     padding: '12px',
                     backgroundColor: '#007bff',
                     color: 'white',
@@ -387,7 +401,7 @@ export default function MobileFacturesPage() {
                     fontWeight: 'bold'
                   }}
                 >
-                  ℹ️ Détails
+                  ℹ️ Voir Détails de la Facture
                 </button>
               </div>
             </div>

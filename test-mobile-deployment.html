@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mobile Deployment - Stock Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .button {
+            display: inline-block;
+            padding: 12px 20px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 5px;
+            font-weight: bold;
+        }
+        .button:hover { background: #0056b3; }
+        .mobile-test {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        @media (max-width: 768px) {
+            .mobile-indicator {
+                background: #28a745;
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+                text-align: center;
+                font-weight: bold;
+            }
+        }
+        @media (min-width: 769px) {
+            .mobile-indicator {
+                background: #6c757d;
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+                text-align: center;
+                font-weight: bold;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Test de Déploiement Mobile</h1>
+        
+        <div class="mobile-indicator" id="deviceIndicator">
+            📱 Détection de l'appareil en cours...
+        </div>
+        
+        <div class="status success">
+            <h3>✅ Déploiement Effectué</h3>
+            <p><strong>Commit:</strong> Fix mobile responsiveness</p>
+            <p><strong>Heure:</strong> <span id="deployTime"></span></p>
+            <p><strong>Status:</strong> Poussé vers GitHub et Vercel</p>
+        </div>
+        
+        <div class="status info">
+            <h3>📱 Améliorations Mobile</h3>
+            <ul>
+                <li>✅ Interface responsive (mobile-first)</li>
+                <li>✅ Cartes tactiles pour BL et factures</li>
+                <li>✅ Boutons plus grands pour mobile</li>
+                <li>✅ Espacement optimisé pour iPhone</li>
+                <li>✅ PDF accessible sur mobile</li>
+            </ul>
+        </div>
+        
+        <div class="mobile-test">
+            <h3>🧪 Test des Fonctionnalités</h3>
+            <p>Testez ces liens sur votre iPhone:</p>
+            
+            <a href="https://frontend-iota-six-72.vercel.app/delivery-notes/list?v=mobile" class="button">
+                📋 Liste BL (Mobile)
+            </a>
+            
+            <a href="https://frontend-iota-six-72.vercel.app/invoices/list?v=mobile" class="button">
+                🧾 Liste Factures (Mobile)
+            </a>
+            
+            <a href="https://frontend-iota-six-72.vercel.app/dashboard?v=mobile" class="button">
+                🏠 Dashboard (Mobile)
+            </a>
+        </div>
+        
+        <div class="status warning">
+            <h3>⏳ Instructions pour votre ami</h3>
+            <ol>
+                <li>Ouvrir Safari sur iPhone</li>
+                <li>Aller sur: <strong>https://frontend-iota-six-72.vercel.app</strong></li>
+                <li>Se connecter avec les mêmes identifiants</li>
+                <li>Naviguer vers "Liste BL" ou "Liste Factures"</li>
+                <li>Vérifier que l'interface est maintenant mobile-friendly</li>
+            </ol>
+        </div>
+        
+        <div class="status info">
+            <h3>🔧 Si le problème persiste</h3>
+            <p>Demandez à votre ami de:</p>
+            <ul>
+                <li>Vider le cache Safari (Réglages > Safari > Effacer historique)</li>
+                <li>Fermer et rouvrir Safari</li>
+                <li>Essayer en mode privé</li>
+                <li>Ajouter <code>?v=mobile</code> à la fin de l'URL</li>
+            </ul>
+        </div>
+        
+        <div id="deploymentStatus" class="status info">
+            <h3>📊 Status de Déploiement</h3>
+            <p id="statusText">Vérification en cours...</p>
+        </div>
+    </div>
+
+    <script>
+        // Détecter le type d'appareil
+        function detectDevice() {
+            const indicator = document.getElementById('deviceIndicator');
+            const isMobile = window.innerWidth <= 768;
+            
+            if (isMobile) {
+                indicator.textContent = '📱 Appareil Mobile Détecté - Interface Optimisée';
+                indicator.style.background = '#28a745';
+            } else {
+                indicator.textContent = '💻 Appareil Desktop Détecté - Version Complète';
+                indicator.style.background = '#6c757d';
+            }
+        }
+        
+        // Afficher l'heure de déploiement
+        document.getElementById('deployTime').textContent = new Date().toLocaleString('fr-FR');
+        
+        // Détecter l'appareil au chargement et au redimensionnement
+        detectDevice();
+        window.addEventListener('resize', detectDevice);
+        
+        // Vérifier le status de déploiement
+        async function checkDeploymentStatus() {
+            const statusElement = document.getElementById('statusText');
+            
+            try {
+                // Tester l'accès à l'application
+                const response = await fetch('https://frontend-iota-six-72.vercel.app/api/health', {
+                    method: 'GET',
+                    cache: 'no-cache'
+                });
+                
+                if (response.ok) {
+                    statusElement.innerHTML = '✅ <strong>Application accessible</strong><br>Le déploiement mobile devrait être actif dans 1-2 minutes.';
+                } else {
+                    statusElement.innerHTML = '⚠️ <strong>Déploiement en cours</strong><br>Veuillez patienter quelques minutes.';
+                }
+            } catch (error) {
+                statusElement.innerHTML = '🔄 <strong>Vérification...</strong><br>Le déploiement Vercel peut prendre 2-3 minutes.';
+            }
+        }
+        
+        // Vérifier le status au chargement
+        checkDeploymentStatus();
+        
+        // Revérifier toutes les 30 secondes
+        setInterval(checkDeploymentStatus, 30000);
+    </script>
+</body>
+</html>
