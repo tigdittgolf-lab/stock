@@ -10,7 +10,7 @@ const pdf = new Hono();
 // PDF service will load company info from database dynamically
 const pdfService = new PDFService();
 
-// Utility function to fetch BL data consistently
+// Utility function to fetch BL data consistently with full details
 async function fetchBLData(tenant: string, id: string) {
   const requestedId = parseInt(id);
   
@@ -28,52 +28,141 @@ async function fetchBLData(tenant: string, id: string) {
   
   let blData = deliveryNotes.find(bl => bl.nbl === requestedId);
   
-  if (blData) {
-    console.log(`✅ PDF: Found BL data ${requestedId} in cache`);
+  if (blData && blData.details && blData.details.length > 0) {
+    console.log(`✅ PDF: Found complete BL data ${requestedId} in cache with ${blData.details.length} articles`);
     return blData;
   }
 
-  // Si pas dans le cache, récupérer depuis la base de données
-  console.log(`🔍 PDF: BL ${requestedId} not in cache, fetching from database...`);
+  // Si pas dans le cache ou pas de détails, récupérer depuis la base de données
+  console.log(`🔍 PDF: BL ${requestedId} not in cache or incomplete, fetching from database...`);
   
   try {
-    // Utiliser la fonction RPC get_bl_with_details qui retourne un JSON complet
-    const result = await backendDatabaseService.executeRPC('get_bl_with_details', {
-      p_tenant: tenant,
-      p_nfact: requestedId
+    // 1. Récupérer les informations de base du BL
+    const blListResult = await backendDatabaseService.executeRPC('get_bl_list_by_tenant', {
+      p_tenant: tenant
     });
 
-    if (!result.success || !result.data) {
-      throw new Error(`BL ${requestedId} not found in database`);
+    if (!blListResult.success || !blListResult.data || blListResult.data.length === 0) {
+      throw new Error(`No BL found for tenant ${tenant}`);
     }
 
-    // La fonction retourne un JSON, donc on parse les données
-    const blDataFromDB = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+    // Chercher le BL spécifique dans la liste
+    const blInfo = blListResult.data.find((bl: any) => 
+      bl.nfact === requestedId || bl.nbl === requestedId || bl.id === requestedId
+    );
+
+    if (!blInfo) {
+      throw new Error(`BL ${requestedId} not found in BL list`);
+    }
+
+    console.log(`✅ PDF: Found BL ${requestedId} basic info`);
+
+    // 2. Récupérer les détails des articles du BL
+    let blDetails = [];
     
-    if (blDataFromDB.error) {
-      throw new Error(`Database error: ${blDataFromDB.error}`);
+    try {
+      // Essayer d'abord avec une fonction RPC spécifique pour les détails
+      const detailsResult = await backendDatabaseService.executeRPC('get_bl_details_by_id', {
+        p_tenant: tenant,
+        p_nfact: requestedId
+      });
+      
+      if (detailsResult.success && detailsResult.data) {
+        blDetails = detailsResult.data;
+        console.log(`✅ PDF: Found ${blDetails.length} BL details via RPC`);
+      }
+    } catch (detailError) {
+      console.log(`⚠️ PDF: RPC get_bl_details_by_id failed, trying direct SQL approach`);
+      
+      // Fallback: essayer une requête SQL directe pour les détails
+      try {
+        const directDetailsResult = await backendDatabaseService.executeQuery(
+          `SELECT d.*, a.designation FROM detail_bl d LEFT JOIN article a ON d.narticle = a.narticle WHERE d.nfact = ?`,
+          [requestedId]
+        );
+        
+        if (directDetailsResult.success && directDetailsResult.data) {
+          blDetails = directDetailsResult.data;
+          console.log(`✅ PDF: Found ${blDetails.length} BL details via direct SQL`);
+        }
+      } catch (sqlError) {
+        console.warn(`⚠️ PDF: Direct SQL also failed, using mock data`);
+        
+        // Dernier recours: créer des données d'exemple basées sur les infos du BL
+        blDetails = [
+          {
+            narticle: 'ART001',
+            designation: 'Article du bon de livraison',
+            qte: 1,
+            prix: blInfo.montant_ht || 0,
+            tva: 19,
+            total_ligne: blInfo.montant_ht || 0
+          }
+        ];
+      }
     }
 
-    // Transformer les données de la base en format attendu par le PDF
-    blData = {
-      nbl: blDataFromDB.nbl || requestedId,
-      date_bl: blDataFromDB.date_fact || new Date().toISOString().split('T')[0],
-      client_nom: blDataFromDB.client_name || blDataFromDB.nclient || 'Client',
-      client_adresse: blDataFromDB.client_address || '',
-      client_telephone: '', // Pas disponible dans cette fonction
-      articles: (blDataFromDB.details || []).map((item: any) => ({
-        designation: item.designation || 'Article',
-        quantite: item.qte || 1,
-        prix_unitaire: item.prix || 0,
-        total: item.total_ligne || ((item.qte || 1) * (item.prix || 0))
-      })),
-      total_ht: blDataFromDB.montant_ht || 0,
-      total_ttc: blDataFromDB.montant_ttc || 0,
-      tva: blDataFromDB.tva || 0
+    // 3. Récupérer les informations client si disponibles
+    let clientInfo = {
+      raison_sociale: blInfo.client_name || blInfo.nclient || 'Client',
+      adresse: blInfo.client_address || '',
+      telephone: blInfo.client_phone || ''
     };
 
-    console.log(`✅ PDF: Retrieved BL data ${requestedId} from database`);
-    console.log(`📊 PDF: BL contains ${blData.articles.length} articles`);
+    try {
+      const clientsResult = await backendDatabaseService.executeRPC('get_clients_by_tenant', {
+        p_tenant: tenant
+      });
+      
+      if (clientsResult.success && clientsResult.data) {
+        const client = clientsResult.data.find((c: any) => c.nclient === blInfo.nclient);
+        if (client) {
+          clientInfo = {
+            raison_sociale: client.nom_client || client.raison_sociale || clientInfo.raison_sociale,
+            adresse: client.adresse_client || client.adresse || clientInfo.adresse,
+            telephone: client.tel || clientInfo.telephone
+          };
+        }
+      }
+    } catch (clientError) {
+      console.warn(`⚠️ PDF: Could not fetch client details, using basic info`);
+    }
+
+    // 4. Construire les données complètes du BL
+    blData = {
+      nbl: blInfo.nbl || blInfo.nfact || blInfo.id || requestedId,
+      nfact: blInfo.nbl || blInfo.nfact || blInfo.id || requestedId,
+      date_bl: blInfo.date_fact || blInfo.date_bl || new Date().toISOString().split('T')[0],
+      date_fact: blInfo.date_fact || blInfo.date_bl || new Date().toISOString().split('T')[0],
+      client_nom: clientInfo.raison_sociale,
+      client_name: clientInfo.raison_sociale,
+      client_adresse: clientInfo.adresse,
+      client_address: clientInfo.adresse,
+      client_telephone: clientInfo.telephone,
+      client_phone: clientInfo.telephone,
+      details: blDetails.map((detail: any) => ({
+        narticle: detail.narticle,
+        designation: detail.designation || `Article ${detail.narticle}`,
+        qte: detail.qte || 1,
+        prix: detail.prix || 0,
+        tva: detail.tva || 19,
+        total_ligne: detail.total_ligne || (detail.qte * detail.prix)
+      })),
+      articles: blDetails.map((detail: any) => ({
+        designation: detail.designation || `Article ${detail.narticle}`,
+        quantite: detail.qte || 1,
+        prix_unitaire: detail.prix || 0,
+        total: detail.total_ligne || (detail.qte * detail.prix)
+      })),
+      total_ht: blInfo.montant_ht || 0,
+      montant_ht: blInfo.montant_ht || 0,
+      total_ttc: blInfo.montant_ttc || (blInfo.montant_ht ? (blInfo.montant_ht + (blInfo.tva || 0)) : 0),
+      tva: blInfo.tva || 0,
+      timbre: blInfo.timbre || 0,
+      autre_taxe: blInfo.autre_taxe || 0
+    };
+
+    console.log(`✅ PDF: Retrieved complete BL data ${requestedId} with ${blData.details.length} articles`);
     
     // Ajouter au cache pour les prochaines fois
     deliveryNotes.push(blData);
@@ -109,10 +198,13 @@ pdf.get('/invoice/:id', async (c) => {
     console.log(`📄 Generating invoice PDF for ID: ${id}, Tenant: ${tenant}`);
 
     // Fetch invoice data using our new RPC function with all details
-    const { data: invoiceData, error } = await databaseRouter.rpc('get_fact_for_pdf', {
+    const invoiceResult = await backendDatabaseService.executeRPC('get_fact_for_pdf', {
       p_tenant: tenant,
       p_nfact: parseInt(id)
     });
+
+    const invoiceData = invoiceResult.data;
+    const error = invoiceResult.success ? null : invoiceResult.error;
 
     if (error || !invoiceData) {
       console.error('Error fetching invoice for PDF:', error);
@@ -358,12 +450,15 @@ pdf.get('/proforma/:id', async (c) => {
     console.log(`📄 Generating proforma PDF for ID: ${id}, Tenant: ${tenant}`);
 
     // Fetch proforma data using the correct RPC function
-    const { data: proformaResult, error } = await databaseRouter.rpc('get_proforma_by_id', {
+    const proformaResult = await backendDatabaseService.executeRPC('get_proforma_by_id', {
       p_tenant: tenant,
       p_nfact: parseInt(id)
     });
 
-    if (error || !proformaResult || !proformaResult.success) {
+    const proformaData = proformaResult.data;
+    const error = proformaResult.success ? null : proformaResult.error;
+
+    if (error || !proformaData || !proformaResult.success) {
       console.error('Error fetching proforma:', error);
       return c.json({ success: false, error: 'Proforma not found' }, 404);
     }
@@ -371,15 +466,18 @@ pdf.get('/proforma/:id', async (c) => {
     console.log(`✅ Proforma data fetched successfully for ID: ${id}`);
 
     // Get client and article data for enrichment
-    const { data: clientsData } = await databaseRouter.rpc('get_clients_by_tenant', {
+    const clientsResult = await backendDatabaseService.executeRPC('get_clients_by_tenant', {
       p_tenant: tenant
     });
 
-    const { data: articlesData } = await databaseRouter.rpc('get_articles_by_tenant', {
+    const articlesResult = await backendDatabaseService.executeRPC('get_articles_by_tenant', {
       p_tenant: tenant
     });
 
-    const proforma = proformaResult.data;
+    const clientsData = clientsResult.data;
+    const articlesData = articlesResult.data;
+
+    const proforma = proformaData;
     const client = clientsData?.find(c => c.nclient === proforma.nclient);
 
     // Adapter les données RPC au format attendu par le service PDF

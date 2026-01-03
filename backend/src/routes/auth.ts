@@ -131,21 +131,28 @@ auth.get('/exercises', async (c) => {
         status: 'active',
         schema_name: '2025_bu01',
         bu_code: 'BU01',
-        nom_entreprise: 'Entreprise Stock Management'
+        nom_entreprise: 'Entreprise Stock Management - Unité Principale'
+      },
+      {
+        year: 2025,
+        status: 'active',
+        schema_name: '2025_bu02',
+        bu_code: 'BU02',
+        nom_entreprise: 'Entreprise Stock Management - Unité Secondaire'
       },
       {
         year: 2024,
         status: 'closed', 
         schema_name: '2024_bu01',
         bu_code: 'BU01',
-        nom_entreprise: 'Entreprise Stock Management'
+        nom_entreprise: 'Entreprise Stock Management - Unité Principale'
       },
       {
         year: 2023,
         status: 'archived',
         schema_name: '2023_bu01', 
         bu_code: 'BU01',
-        nom_entreprise: 'Entreprise Stock Management'
+        nom_entreprise: 'Entreprise Stock Management - Unité Principale'
       }
     ];
 
