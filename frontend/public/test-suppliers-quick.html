@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fournisseurs Rapide</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .supplier { padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 3px; }
+        .success { background-color: #d4edda; }
+        .error { background-color: #f8d7da; }
+        .loading { background-color: #fff3cd; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Fournisseurs Rapide</h1>
+    <div id="result">Chargement...</div>
+
+    <script>
+        async function loadSuppliers() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Chargement des fournisseurs...</div>';
+            
+            try {
+                const response = await fetch('/api/sales/suppliers', {
+                    headers: {
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    const suppliersList = data.data.map(supplier => `
+                        <div class="supplier success">
+                            <strong>${supplier.nom_fournisseur || supplier.nfournisseur}</strong><br>
+                            Responsable: ${supplier.resp_fournisseur || 'N/A'}<br>
+                            Adresse: ${supplier.adresse_fourni || 'N/A'}<br>
+                            Téléphone: ${supplier.tel || 'N/A'}<br>
+                            Email: ${supplier.email || 'N/A'}
+                        </div>
+                    `).join('');
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success" style="padding: 15px; margin-bottom: 20px;">
+                            ✅ ${data.data.length} fournisseurs trouvés !
+                            <br>Source: ${data.source || 'N/A'}
+                            <br>Database: ${data.database_type || 'N/A'}
+                        </div>
+                        ${suppliersList}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error" style="padding: 15px;">
+                            ❌ Aucun fournisseur trouvé
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error" style="padding: 15px;">
+                        ❌ Erreur: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Charger automatiquement
+        loadSuppliers();
+    </script>
+</body>
+</html>

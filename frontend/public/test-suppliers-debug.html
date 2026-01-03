@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fournisseurs Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Fournisseurs Debug</h1>
+    
+    <div class="test-section">
+        <h2>1. Test Backend Direct (Tunnel)</h2>
+        <button onclick="testBackendDirect()">Test Backend Direct</button>
+        <div id="backend-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Test Frontend API</h2>
+        <button onclick="testFrontendAPI()">Test Frontend API</button>
+        <div id="frontend-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Test Dashboard API</h2>
+        <button onclick="testDashboardAPI()">Test Dashboard API</button>
+        <div id="dashboard-result"></div>
+    </div>
+
+    <script>
+        async function testBackendDirect() {
+            const resultDiv = document.getElementById('backend-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Test backend direct...</div>';
+            
+            try {
+                const response = await fetch('https://desktop-bhhs068.tail1d9c54.ts.net/api/suppliers', {
+                    headers: {
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Backend Direct Success!
+                            <p>Fournisseurs trouvés: ${data.data?.length || 0}</p>
+                            <p>Source: ${data.source || 'N/A'}</p>
+                            <p>Database: ${data.database_type || 'N/A'}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Backend Direct Failed
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Backend Direct Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testFrontendAPI() {
+            const resultDiv = document.getElementById('frontend-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Test frontend API...</div>';
+            
+            try {
+                const response = await fetch('/api/sales/suppliers', {
+                    headers: {
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Frontend API Success!
+                            <p>Fournisseurs trouvés: ${data.data?.length || 0}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Frontend API Failed
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Frontend API Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testDashboardAPI() {
+            const resultDiv = document.getElementById('dashboard-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Test dashboard API...</div>';
+            
+            try {
+                // Simuler l'appel du dashboard
+                const response = await fetch('/api/sales/suppliers');
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Dashboard API Success!
+                            <p>Fournisseurs trouvés: ${data.data?.length || 0}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ Dashboard API Failed
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Dashboard API Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
