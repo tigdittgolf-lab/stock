@@ -302,7 +302,7 @@ export default function InvoicesList() {
             <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>Montant HT</th>
             <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>TVA</th>
             <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>Total TTC</th>
-            <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold' }}>Actions</th>
+            <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', minWidth: '180px' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -336,21 +336,54 @@ export default function InvoicesList() {
                 {formatAmount(fact.montant_ttc || (fact.montant_ht + fact.tva))}
               </td>
               <td style={{ padding: '15px', textAlign: 'center' }}>
-                <button
-                  onClick={() => handlePrintPDF(fact.nfact)}
-                  style={{
-                    padding: '6px 12px',
-                    backgroundColor: '#dc3545',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '12px'
-                  }}
-                  title="Imprimer PDF"
-                >
-                  📄 PDF
-                </button>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  alignItems: 'center'
+                }}>
+                  {/* Bouton Impression */}
+                  <button
+                    onClick={() => handlePrintPDF(fact.nfact)}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      width: '100%',
+                      maxWidth: '150px'
+                    }}
+                    title="Imprimer Facture PDF"
+                  >
+                    📄 Imprimer Facture
+                  </button>
+                  
+                  {/* Bouton Détails */}
+                  <button
+                    onClick={() => {
+                      router.push(`/invoices/details/${fact.nfact}`);
+                    }}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#007bff',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      width: '100%',
+                      maxWidth: '150px'
+                    }}
+                    title="Voir tous les détails de la facture"
+                  >
+                    ℹ️ Voir Détails
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
