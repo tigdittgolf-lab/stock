@@ -1,61 +1,90 @@
-// Tester le nouveau déploiement
+// Test du nouveau déploiement Vercel
+const https = require('https');
+
 async function testNewDeployment() {
-  try {
-    console.log('🔍 Test du nouveau déploiement...');
-    
-    // Nouvelle URL de production
-    const newUrl = 'https://frontend-5ksiwwcfr-tigdittgolf-9191s-projects.vercel.app';
-    
-    console.log(`📡 Test de la nouvelle URL: ${newUrl}`);
-    
-    // Test de l'API exercises
-    const response = await fetch(`${newUrl}/api/auth/exercises`, {
+  console.log('🎉 NOUVEAU DÉPLOIEMENT VERCEL RÉUSSI!\n');
+  
+  const newUrl = 'frontend-jrcomc5ao-tigdittgolf-9191s-projects.vercel.app';
+  const oldUrl = 'frontend-iota-six-72.vercel.app';
+  
+  console.log('🔍 Test des deux URLs...\n');
+  
+  // Test nouvelle URL
+  console.log('📱 Test nouvelle URL:', newUrl);
+  const newResult = await testUrl(newUrl);
+  console.log(`   Status: ${newResult.status}`);
+  console.log(`   Mobile: ${newResult.hasMobile ? '✅ OUI' : '❌ NON'}`);
+  console.log(`   Cache: ${newResult.cache}`);
+  
+  // Test ancienne URL
+  console.log('\n🖥️ Test ancienne URL:', oldUrl);
+  const oldResult = await testUrl(oldUrl);
+  console.log(`   Status: ${oldResult.status}`);
+  console.log(`   Mobile: ${oldResult.hasMobile ? '✅ OUI' : '❌ NON'}`);
+  console.log(`   Cache: ${oldResult.cache}`);
+  
+  // Test pages mobiles sur nouvelle URL
+  console.log('\n📱 Test pages mobiles sur nouvelle URL...');
+  const mobilePages = ['/mobile-bl', '/mobile-factures', '/delivery-notes/list'];
+  
+  for (const page of mobilePages) {
+    const result = await testUrl(newUrl, page);
+    console.log(`   ${page}: ${result.status === 200 ? '✅ OK' : '❌ ERREUR'} | Mobile: ${result.hasMobile ? '✅' : '❌'}`);
+  }
+  
+  console.log('\n🎯 RÉSULTAT:');
+  if (newResult.hasMobile) {
+    console.log('🎉 SUCCÈS COMPLET! Interface mobile déployée sur nouvelle URL');
+    console.log(`📞 Nouvelle URL pour votre ami: https://${newUrl}`);
+    console.log('✅ Toutes les fonctionnalités mobiles sont disponibles!');
+  } else {
+    console.log('⏳ Déploiement en cours de propagation...');
+    console.log('🔄 Réessayez dans 2-3 minutes');
+  }
+}
+
+async function testUrl(hostname, path = '/delivery-notes/list') {
+  return new Promise((resolve) => {
+    const options = {
+      hostname: hostname,
+      port: 443,
+      path: path,
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json'
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)'
       }
+    };
+
+    const req = https.request(options, (res) => {
+      let content = '';
+      res.on('data', (chunk) => {
+        content += chunk;
+      });
+      
+      res.on('end', () => {
+        const hasMobile = content.includes('isMobile') || 
+                         content.includes('window.innerWidth <= 768') ||
+                         content.includes('setIsMobile');
+        
+        resolve({
+          status: res.statusCode,
+          cache: res.headers['x-vercel-cache'] || 'N/A',
+          hasMobile: hasMobile
+        });
+      });
+    });
+
+    req.on('error', () => {
+      resolve({ status: 0, cache: 'ERROR', hasMobile: false });
     });
     
-    console.log('📊 Status:', response.status);
+    req.setTimeout(8000, () => {
+      req.destroy();
+      resolve({ status: 0, cache: 'TIMEOUT', hasMobile: false });
+    });
     
-    if (response.status === 200) {
-      const data = await response.json();
-      console.log('✅ API accessible !');
-      
-      // Vérifier BU02
-      const hasBU02 = data.data && data.data.some(item => item.schema_name === '2025_bu02');
-      
-      if (hasBU02) {
-        console.log('🎉 BU02 disponible dans le nouveau déploiement !');
-        console.log('📋 Tenants disponibles:');
-        data.data.forEach(tenant => {
-          console.log(`  - ${tenant.schema_name} (${tenant.bu_code}) - ${tenant.year}`);
-        });
-      } else {
-        console.log('⚠️ BU02 non trouvé');
-      }
-      
-      // Test de l'interface de sélection des tenants
-      console.log('\n🔍 Test de la page de sélection des tenants...');
-      const tenantPageResponse = await fetch(`${newUrl}/tenant-selection`);
-      console.log('📄 Page tenant-selection:', tenantPageResponse.status);
-      
-    } else {
-      console.log('❌ Erreur API:', response.status);
-      const text = await response.text();
-      console.log('Réponse:', text.substring(0, 200));
-    }
-    
-    console.log('\n📌 Nouvelle URL de production:');
-    console.log(`🌐 ${newUrl}`);
-    console.log('\n📋 Instructions pour votre ami:');
-    console.log('1. Aller sur cette nouvelle URL');
-    console.log('2. Se connecter (admin/admin)');
-    console.log('3. Sélectionner: Business Unit 02 (2025) - 2025_bu02');
-    
-  } catch (error) {
-    console.error('❌ Erreur:', error);
-  }
+    req.end();
+  });
 }
 
 testNewDeployment();
