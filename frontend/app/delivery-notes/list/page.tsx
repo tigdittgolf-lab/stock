@@ -97,16 +97,16 @@ export default function DeliveryNotesList() {
       {/* En-tête */}
       <div style={{ 
         display: 'flex', 
-        flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+        flexDirection: 'row',
         justifyContent: 'space-between', 
-        alignItems: window.innerWidth <= 768 ? 'stretch' : 'center', 
+        alignItems: 'center', 
         marginBottom: '20px',
         background: 'white',
         padding: '20px',
         borderRadius: '10px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
       }}>
-        <div style={{ marginBottom: window.innerWidth <= 768 ? '15px' : '0' }}>
+        <div style={{ marginBottom: '0' }}>
           <h1 style={{ 
             margin: 0, 
             color: '#333',
@@ -125,7 +125,7 @@ export default function DeliveryNotesList() {
         <div style={{ 
           display: 'flex', 
           gap: '10px',
-          flexDirection: window.innerWidth <= 768 ? 'column' : 'row'
+          flexDirection: 'row'
         }}>
           <button
             onClick={() => router.push('/delivery-notes')}
@@ -274,7 +274,7 @@ export default function DeliveryNotesList() {
               {/* Informations client */}
               <div style={{ 
                 display: 'grid',
-                gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '1fr 1fr',
+                gridTemplateColumns: '1fr 1fr',
                 gap: '20px',
                 marginBottom: '20px'
               }}>
@@ -350,7 +350,7 @@ export default function DeliveryNotesList() {
                 {/* Première ligne - 3 boutons PDF */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '1fr 1fr 1fr',
+                  gridTemplateColumns: '1fr 1fr 1fr',
                   gap: '10px',
                   marginBottom: '10px'
                 }}>
