@@ -110,6 +110,14 @@ export default function BLDetailsPage() {
   };
 
   const handlePrintPDF = (format: string) => {
+    console.log(`🔍 PDF Request - Format: ${format}, ID: "${id}", Type: ${typeof id}`);
+    
+    if (!id || id === 'undefined' || id === 'null') {
+      console.error('❌ Invalid ID for PDF generation:', id);
+      alert('Erreur: ID du BL non valide');
+      return;
+    }
+    
     let pdfUrl = '';
     switch (format) {
       case 'complet':
@@ -122,6 +130,8 @@ export default function BLDetailsPage() {
         pdfUrl = `/api/pdf/delivery-note-ticket/${id}`;
         break;
     }
+    
+    console.log(`📄 Opening PDF: ${pdfUrl}`);
     window.open(pdfUrl, '_blank');
   };
 
