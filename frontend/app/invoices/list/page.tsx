@@ -90,9 +90,100 @@ export default function InvoicesList() {
     }
   };
 
-  const handlePrintPDF = (factId: number) => {
+  const openInvoicePDFPreview = (factId: number) => {
     const pdfUrl = `/api/pdf/invoice/${factId}`;
-    window.open(pdfUrl, '_blank');
+    console.log(`📄 Opening PDF preview: ${pdfUrl} for Invoice ID: ${factId}`);
+    
+    // Créer une fenêtre de prévisualisation avec options - SANS téléchargement automatique
+    const previewWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes');
+    if (previewWindow) {
+      previewWindow.document.write(`
+        <html>
+          <head>
+            <title>Prévisualisation Facture ${factId}</title>
+            <style>
+              body { margin: 0; font-family: Arial, sans-serif; background: #f5f5f5; }
+              .header { background: #28a745; color: white; padding: 15px; text-align: center; }
+              .controls { background: white; padding: 10px; text-align: center; border-bottom: 2px solid #ddd; }
+              .controls button { 
+                margin: 0 10px; padding: 10px 20px; border: none; border-radius: 5px; 
+                cursor: pointer; font-weight: bold; font-size: 14px;
+              }
+              .download { background: #28a745; color: white; }
+              .close { background: #dc3545; color: white; }
+              .print { background: #17a2b8; color: white; }
+              iframe { width: 100%; height: calc(100vh - 120px); border: none; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h2>🧾 Prévisualisation Facture ${factId}</h2>
+              <p>Vérifiez le document avant de le télécharger</p>
+            </div>
+            <div class="controls">
+              <button class="download" onclick="downloadPDF()">⬇️ Télécharger PDF</button>
+              <button class="print" onclick="printPDF()">🖨️ Imprimer</button>
+              <button class="close" onclick="window.close()">❌ Fermer</button>
+            </div>
+            <iframe id="pdfFrame" src="${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0" type="application/pdf"></iframe>
+            <script>
+              function downloadPDF() {
+                // Téléchargement MANUEL seulement quand l'utilisateur clique
+                const link = document.createElement('a');
+                link.href = '${pdfUrl}';
+                link.download = 'Facture_${factId}.pdf';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }
+              
+              function printPDF() {
+                // Impression améliorée qui fonctionne pour tous les types
+                try {
+                  // Méthode 1: Essayer d'imprimer l'iframe
+                  const iframe = document.getElementById('pdfFrame');
+                  if (iframe && iframe.contentWindow) {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                  } else {
+                    // Méthode 2: Ouvrir dans une nouvelle fenêtre pour impression
+                    const printWindow = window.open('${pdfUrl}', '_blank');
+                    if (printWindow) {
+                      printWindow.onload = function() {
+                        printWindow.print();
+                      };
+                    }
+                  }
+                } catch (error) {
+                  // Méthode 3: Fallback - ouvrir le PDF dans un nouvel onglet
+                  console.log('Fallback print method');
+                  const printWindow = window.open('${pdfUrl}', '_blank');
+                  if (printWindow) {
+                    setTimeout(() => {
+                      printWindow.print();
+                    }, 1000);
+                  }
+                }
+              }
+              
+              // Empêcher le téléchargement automatique
+              window.addEventListener('load', function() {
+                const iframe = document.getElementById('pdfFrame');
+                if (iframe) {
+                  iframe.onload = function() {
+                    console.log('PDF loaded in preview mode - no auto download');
+                  };
+                }
+              });
+            </script>
+          </body>
+        </html>
+      `);
+    }
+  };
+
+  const handlePrintPDF = (factId: number) => {
+    openInvoicePDFPreview(factId);
   };
 
   const formatDate = (dateString: string) => {

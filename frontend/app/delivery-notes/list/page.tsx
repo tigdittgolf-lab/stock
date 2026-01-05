@@ -121,7 +121,7 @@ export default function DeliveryNotesList() {
     const pdfUrl = urls[type];
     console.log(`📄 Opening PDF preview: ${pdfUrl} for BL ID: ${blId}`);
     
-    // Créer une fenêtre de prévisualisation avec options
+    // Créer une fenêtre de prévisualisation avec options - SANS téléchargement automatique
     const previewWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes');
     if (previewWindow) {
       previewWindow.document.write(`
@@ -152,17 +152,56 @@ export default function DeliveryNotesList() {
               <button class="print" onclick="printPDF()">🖨️ Imprimer</button>
               <button class="close" onclick="window.close()">❌ Fermer</button>
             </div>
-            <iframe src="${pdfUrl}" type="application/pdf"></iframe>
+            <iframe id="pdfFrame" src="${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0" type="application/pdf"></iframe>
             <script>
               function downloadPDF() {
+                // Téléchargement MANUEL seulement quand l'utilisateur clique
                 const link = document.createElement('a');
                 link.href = '${pdfUrl}';
                 link.download = 'BL_${blId}_${type}.pdf';
+                document.body.appendChild(link);
                 link.click();
+                document.body.removeChild(link);
               }
+              
               function printPDF() {
-                window.frames[0].print();
+                // Impression améliorée qui fonctionne pour tous les types
+                try {
+                  // Méthode 1: Essayer d'imprimer l'iframe
+                  const iframe = document.getElementById('pdfFrame');
+                  if (iframe && iframe.contentWindow) {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                  } else {
+                    // Méthode 2: Ouvrir dans une nouvelle fenêtre pour impression
+                    const printWindow = window.open('${pdfUrl}', '_blank');
+                    if (printWindow) {
+                      printWindow.onload = function() {
+                        printWindow.print();
+                      };
+                    }
+                  }
+                } catch (error) {
+                  // Méthode 3: Fallback - ouvrir le PDF dans un nouvel onglet
+                  console.log('Fallback print method');
+                  const printWindow = window.open('${pdfUrl}', '_blank');
+                  if (printWindow) {
+                    setTimeout(() => {
+                      printWindow.print();
+                    }, 1000);
+                  }
+                }
               }
+              
+              // Empêcher le téléchargement automatique
+              window.addEventListener('load', function() {
+                const iframe = document.getElementById('pdfFrame');
+                if (iframe) {
+                  iframe.onload = function() {
+                    console.log('PDF loaded in preview mode - no auto download');
+                  };
+                }
+              });
             </script>
           </body>
         </html>
