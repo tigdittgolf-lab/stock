@@ -61,13 +61,44 @@ async function fetchBLData(tenant: string, id: string) {
     let blDetails = [];
     
     try {
-      // Essayer d'abord avec une fonction RPC spécifique pour les détails
-      const detailsResult = await backendDatabaseService.executeRPC('get_bl_details_by_id', {
-        p_tenant: tenant,
-        p_nfact: requestedId
-      });
+      // Essayer plusieurs noms de fonctions RPC pour les détails
+      let detailsResult = null;
       
-      if (detailsResult.success && detailsResult.data) {
+      // Essai 1: get_bl_details_by_id
+      try {
+        detailsResult = await backendDatabaseService.executeRPC('get_bl_details_by_id', {
+          p_tenant: tenant,
+          p_nfact: requestedId
+        });
+        console.log(`✅ PDF: Found BL details via get_bl_details_by_id`);
+      } catch (err1) {
+        console.log(`⚠️ PDF: get_bl_details_by_id failed: ${err1.message}`);
+        
+        // Essai 2: get_bl_details
+        try {
+          detailsResult = await backendDatabaseService.executeRPC('get_bl_details', {
+            p_tenant: tenant,
+            p_nfact: requestedId
+          });
+          console.log(`✅ PDF: Found BL details via get_bl_details`);
+        } catch (err2) {
+          console.log(`⚠️ PDF: get_bl_details failed: ${err2.message}`);
+          
+          // Essai 3: get_detail_bl_by_tenant
+          try {
+            detailsResult = await backendDatabaseService.executeRPC('get_detail_bl_by_tenant', {
+              p_tenant: tenant,
+              p_nfact: requestedId
+            });
+            console.log(`✅ PDF: Found BL details via get_detail_bl_by_tenant`);
+          } catch (err3) {
+            console.log(`⚠️ PDF: get_detail_bl_by_tenant failed: ${err3.message}`);
+            throw new Error('All RPC methods failed');
+          }
+        }
+      }
+      
+      if (detailsResult && detailsResult.success && detailsResult.data) {
         blDetails = detailsResult.data;
         console.log(`✅ PDF: Found ${blDetails.length} BL details via RPC`);
       }
