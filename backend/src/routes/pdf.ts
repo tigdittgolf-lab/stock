@@ -315,8 +315,11 @@ pdf.get('/delivery-note/:id', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
+    if (!id || id === 'undefined' || id === 'null' || id.trim() === '' || id.trim() === 'undefined') {
       console.error('❌ Invalid ID received for delivery note:', id);
+      console.error('❌ ID type:', typeof id, 'ID length:', id?.length);
+      console.error('❌ Request URL:', c.req.url);
+      console.error('❌ Request params:', c.req.param());
       return c.json({ success: false, error: 'Invalid BL ID provided' }, 400);
     }
 
@@ -384,6 +387,9 @@ pdf.get('/delivery-note-small/:id', async (c) => {
 
     if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
       console.error('❌ Invalid ID received for small delivery note:', id);
+      console.error('❌ ID type:', typeof id, 'ID length:', id?.length);
+      console.error('❌ Request URL:', c.req.url);
+      console.error('❌ Request params:', c.req.param());
       return c.json({ success: false, error: 'Invalid BL ID provided' }, 400);
     }
 

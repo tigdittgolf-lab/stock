@@ -112,9 +112,9 @@ export default function BLDetailsPage() {
   const handlePrintPDF = (format: string) => {
     console.log(`🔍 PDF Request - Format: ${format}, ID: "${id}", Type: ${typeof id}`);
     
-    if (!id || id === 'undefined' || id === 'null') {
+    if (!id || id === 'undefined' || id === 'null' || !id.trim()) {
       console.error('❌ Invalid ID for PDF generation:', id);
-      alert('Erreur: ID du BL non valide');
+      alert('Erreur: ID du BL non valide. Veuillez actualiser la page.');
       return;
     }
     
@@ -459,68 +459,70 @@ export default function BLDetailsPage() {
       </div>
 
       {/* Actions d'impression */}
-      <div style={{
-        background: 'white',
-        padding: isMobile ? '15px' : '20px',
-        borderRadius: '10px',
-        boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.1)' : '0 2px 4px rgba(0,0,0,0.1)'
-      }}>
-        <h3 style={{ margin: '0 0 15px 0', color: '#333' }}>🖨️ Impression</h3>
-        
+      {blData && id && id !== 'undefined' && (
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr',
-          gap: '10px'
+          background: 'white',
+          padding: isMobile ? '15px' : '20px',
+          borderRadius: '10px',
+          boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.1)' : '0 2px 4px rgba(0,0,0,0.1)'
         }}>
-          <button
-            onClick={() => handlePrintPDF('complet')}
-            style={{
-              padding: '12px 20px',
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 'bold'
-            }}
-          >
-            📄 BL Complet
-          </button>
+          <h3 style={{ margin: '0 0 15px 0', color: '#333' }}>🖨️ Impression</h3>
           
-          <button
-            onClick={() => handlePrintPDF('reduit')}
-            style={{
-              padding: '12px 20px',
-              backgroundColor: '#17a2b8',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 'bold'
-            }}
-          >
-            📋 BL Réduit
-          </button>
-          
-          <button
-            onClick={() => handlePrintPDF('ticket')}
-            style={{
-              padding: '12px 20px',
-              backgroundColor: '#6f42c1',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 'bold'
-            }}
-          >
-            🎫 Ticket
-          </button>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr',
+            gap: '10px'
+          }}>
+            <button
+              onClick={() => handlePrintPDF('complet')}
+              style={{
+                padding: '12px 20px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}
+            >
+              📄 BL Complet
+            </button>
+            
+            <button
+              onClick={() => handlePrintPDF('reduit')}
+              style={{
+                padding: '12px 20px',
+                backgroundColor: '#17a2b8',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}
+            >
+              📋 BL Réduit
+            </button>
+            
+            <button
+              onClick={() => handlePrintPDF('ticket')}
+              style={{
+                padding: '12px 20px',
+                backgroundColor: '#6f42c1',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}
+            >
+              🎫 Ticket
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <style jsx>{`
         @keyframes spin {
