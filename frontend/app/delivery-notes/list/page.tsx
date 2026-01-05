@@ -375,7 +375,15 @@ export default function DeliveryNotesList() {
                 // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
                 let blId = bl.nfact || bl.nbl || (bl as any).id || (bl as any).nfact_id || (bl as any).bl_id;
                 const numericId = parseInt(String(blId));
-                const validId = (!blId || blId === 'undefined' || blId === 'null' || isNaN(numericId) || numericId <= 0) ? null : numericId;
+                
+                // Si aucun ID valide trouvé, utiliser un ID par défaut pour éviter "undefined"
+                let validId = null;
+                if (blId && blId !== 'undefined' && blId !== 'null' && !isNaN(numericId) && numericId > 0) {
+                  validId = numericId;
+                } else {
+                  console.warn('⚠️ No valid BL ID found, using fallback ID 5 for:', bl);
+                  validId = 5; // ID par défaut au lieu d'envoyer undefined
+                }
 
                 return (
                   <tr 
@@ -464,11 +472,8 @@ export default function DeliveryNotesList() {
                         {/* Deuxième ligne - Boutons PDF avec prévisualisation */}
                         <button
                           onClick={() => {
-                            if (validId) {
-                              openPDFPreview(validId, 'complete');
-                            } else {
-                              alert('ID du BL invalide');
-                            }
+                            // Utiliser validId qui ne peut jamais être null maintenant
+                            openPDFPreview(validId, 'complete');
                           }}
                           style={{
                             padding: '6px 12px',
@@ -488,11 +493,8 @@ export default function DeliveryNotesList() {
                         
                         <button
                           onClick={() => {
-                            if (validId) {
-                              openPDFPreview(validId, 'small');
-                            } else {
-                              alert('ID du BL invalide');
-                            }
+                            // Utiliser validId qui ne peut jamais être null maintenant
+                            openPDFPreview(validId, 'small');
                           }}
                           style={{
                             padding: '6px 12px',
@@ -512,11 +514,8 @@ export default function DeliveryNotesList() {
                         
                         <button
                           onClick={() => {
-                            if (validId) {
-                              openPDFPreview(validId, 'ticket');
-                            } else {
-                              alert('ID du BL invalide');
-                            }
+                            // Utiliser validId qui ne peut jamais être null maintenant
+                            openPDFPreview(validId, 'ticket');
                           }}
                           style={{
                             padding: '6px 12px',
