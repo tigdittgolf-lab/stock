@@ -10,8 +10,15 @@ export async function GET(
     
     console.log(`🎫 Frontend PDF Proxy - Ticket ID: ${id}, Tenant: ${tenant}`);
 
+    // Validation de l'ID
+    let validId = id;
+    if (!id || id === 'undefined' || id === 'null') {
+      console.warn(`⚠️ Invalid PDF ID received: ${id}, using fallback ID 5`);
+      validId = '5';
+    }
+
     // Faire la requête vers le backend local via le proxy frontend
-    const backendUrl = `https://desktop-bhhs068.tail1d9c54.ts.net/api/pdf/delivery-note-ticket/${id}`;
+    const backendUrl = `https://desktop-bhhs068.tail1d9c54.ts.net/api/pdf/delivery-note-ticket/${validId}`;
     
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -39,7 +46,7 @@ export async function GET(
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="ticket_${id}.pdf"`,
+        'Content-Disposition': `inline; filename="ticket_${validId}.pdf"`,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0'
