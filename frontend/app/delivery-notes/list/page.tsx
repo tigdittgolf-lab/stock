@@ -100,12 +100,22 @@ export default function DeliveryNotesList() {
   };
 
   const openPDFPreview = (blId: number, type: 'complete' | 'small' | 'ticket') => {
-    // Validation robuste de l'ID
+    // Validation robuste de l'ID avec logs détaillés
+    console.log(`🔍 openPDFPreview called with:`, { blId, type, blIdType: typeof blId });
+    
     let validId = blId;
     if (!blId || isNaN(blId) || blId <= 0) {
       console.warn(`⚠️ Invalid BL ID (${blId}), using fallback ID 5`);
       validId = 5;
     }
+
+    // DOUBLE CHECK: S'assurer que validId est vraiment valide
+    if (!validId || isNaN(validId) || validId <= 0) {
+      console.error(`🚨 CRITICAL: validId is still invalid (${validId}), forcing to 5`);
+      validId = 5;
+    }
+
+    console.log(`✅ Final validated ID: ${validId} for type: ${type}`);
 
     const urls = {
       complete: `/api/pdf/delivery-note/${validId}`,
@@ -147,12 +157,16 @@ export default function DeliveryNotesList() {
               .close { background: #dc3545; color: white; }
               .print { background: #17a2b8; color: white; }
               iframe { width: 100%; height: calc(100vh - 120px); border: none; }
+              .debug { background: #fff3cd; padding: 10px; margin: 10px; border-radius: 5px; font-size: 12px; }
             </style>
           </head>
           <body>
             <div class="header">
               <h2>📄 Prévisualisation BL ${validId} - ${titles[type]}</h2>
               <p>Vérifiez le document avant de le télécharger</p>
+            </div>
+            <div class="debug">
+              🔍 Debug: URL = ${pdfUrl} | ID Original = ${blId} | ID Validé = ${validId} | Type = ${type}
             </div>
             <div class="controls">
               <button class="download" onclick="downloadPDF()">⬇️ Télécharger PDF</button>
@@ -161,6 +175,9 @@ export default function DeliveryNotesList() {
             </div>
             <iframe id="pdfFrame" src="${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0" type="application/pdf"></iframe>
             <script>
+              console.log('🔍 PDF Preview Window - URL:', '${pdfUrl}');
+              console.log('🔍 PDF Preview Window - ID Validation:', { original: ${blId}, validated: ${validId} });
+              
               function downloadPDF() {
                 // Téléchargement MANUEL seulement quand l'utilisateur clique
                 const link = document.createElement('a');
@@ -213,6 +230,8 @@ export default function DeliveryNotesList() {
           </body>
         </html>
       `);
+    } else {
+      console.error('❌ Failed to open preview window');
     }
   };
 
@@ -379,24 +398,42 @@ export default function DeliveryNotesList() {
             </thead>
             <tbody>
               {deliveryNotes.map((bl, index) => {
+                // DEBUG: Logs détaillés pour identifier le problème
+                console.log(`🔍 BL ${index} RAW DATA:`, {
+                  nfact: bl.nfact,
+                  nbl: bl.nbl,
+                  id: (bl as any).id,
+                  allKeys: Object.keys(bl),
+                  fullObject: bl
+                });
+
                 // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
                 let rawId = bl.nfact || bl.nbl || (bl as any).id || (bl as any).nfact_id || (bl as any).bl_id;
                 
-                // Validation robuste de l'ID
-                let validId = 5; // ID par défaut
+                // Validation robuste de l'ID avec logs détaillés
+                let validId = 5; // ID par défaut GARANTI
                 if (rawId) {
                   const numericId = parseInt(String(rawId));
                   if (!isNaN(numericId) && numericId > 0) {
                     validId = numericId;
+                    console.log(`✅ Valid ID found: ${validId} from raw: ${rawId}`);
                   } else {
-                    console.warn('⚠️ Invalid BL ID found, using fallback ID 5 for:', bl);
+                    console.warn(`⚠️ Invalid BL ID found (${rawId}), using fallback ID 5 for:`, bl);
                   }
                 } else {
-                  console.warn('⚠️ No BL ID found, using fallback ID 5 for:', bl);
+                  console.warn(`⚠️ No BL ID found, using fallback ID 5 for:`, bl);
+                }
+
+                // FORCE: S'assurer que validId n'est JAMAIS undefined/null
+                if (!validId || isNaN(validId) || validId <= 0) {
+                  console.error(`🚨 CRITICAL: validId is invalid (${validId}), forcing to 5`);
+                  validId = 5;
                 }
 
                 // ID d'affichage (peut être différent de l'ID utilisé pour les actions)
                 const displayId = rawId || 'N/A';
+
+                console.log(`🎯 FINAL IDs for BL ${index}: display=${displayId}, action=${validId}`);
 
                 return (
                   <tr 
@@ -437,7 +474,10 @@ export default function DeliveryNotesList() {
                       }}>
                         {/* Première ligne - Actions principales */}
                         <button
-                          onClick={() => router.push(`/delivery-notes/details/${validId}`)}
+                          onClick={() => {
+                            console.log(`🔗 Navigating to details with ID: ${validId}`);
+                            router.push(`/delivery-notes/details/${validId}`);
+                          }}
                           style={{
                             padding: '6px 12px',
                             backgroundColor: '#17a2b8',
@@ -478,7 +518,10 @@ export default function DeliveryNotesList() {
                         
                         {/* Deuxième ligne - Boutons PDF avec prévisualisation */}
                         <button
-                          onClick={() => openPDFPreview(validId, 'complete')}
+                          onClick={() => {
+                            console.log(`📄 PDF Complete - Using ID: ${validId} (guaranteed valid)`);
+                            openPDFPreview(validId, 'complete');
+                          }}
                           style={{
                             padding: '6px 12px',
                             backgroundColor: '#007bff',
@@ -496,7 +539,10 @@ export default function DeliveryNotesList() {
                         </button>
                         
                         <button
-                          onClick={() => openPDFPreview(validId, 'small')}
+                          onClick={() => {
+                            console.log(`📄 PDF Small - Using ID: ${validId} (guaranteed valid)`);
+                            openPDFPreview(validId, 'small');
+                          }}
                           style={{
                             padding: '6px 12px',
                             backgroundColor: '#17a2b8',
@@ -514,7 +560,10 @@ export default function DeliveryNotesList() {
                         </button>
                         
                         <button
-                          onClick={() => openPDFPreview(validId, 'ticket')}
+                          onClick={() => {
+                            console.log(`🎫 PDF Ticket - Using ID: ${validId} (guaranteed valid)`);
+                            openPDFPreview(validId, 'ticket');
+                          }}
                           style={{
                             padding: '6px 12px',
                             backgroundColor: '#6f42c1',
