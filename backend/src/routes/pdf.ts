@@ -63,6 +63,7 @@ async function fetchBLData(tenant: string, id: string) {
     try {
       // Essayer plusieurs noms de fonctions RPC pour les détails
       let detailsResult = null;
+      let successMethod = null;
       
       // Essai 1: get_bl_details_by_id
       try {
@@ -70,7 +71,11 @@ async function fetchBLData(tenant: string, id: string) {
           p_tenant: tenant,
           p_nfact: requestedId
         });
-        console.log(`✅ PDF: Found BL details via get_bl_details_by_id`);
+        if (detailsResult.success && detailsResult.data) {
+          successMethod = 'get_bl_details_by_id';
+        } else {
+          throw new Error(detailsResult.error || 'No data returned');
+        }
       } catch (err1) {
         console.log(`⚠️ PDF: get_bl_details_by_id failed: ${err1.message}`);
         
@@ -80,7 +85,11 @@ async function fetchBLData(tenant: string, id: string) {
             p_tenant: tenant,
             p_nfact: requestedId
           });
-          console.log(`✅ PDF: Found BL details via get_bl_details`);
+          if (detailsResult.success && detailsResult.data) {
+            successMethod = 'get_bl_details';
+          } else {
+            throw new Error(detailsResult.error || 'No data returned');
+          }
         } catch (err2) {
           console.log(`⚠️ PDF: get_bl_details failed: ${err2.message}`);
           
@@ -90,7 +99,11 @@ async function fetchBLData(tenant: string, id: string) {
               p_tenant: tenant,
               p_nfact: requestedId
             });
-            console.log(`✅ PDF: Found BL details via get_detail_bl_by_tenant`);
+            if (detailsResult.success && detailsResult.data) {
+              successMethod = 'get_detail_bl_by_tenant';
+            } else {
+              throw new Error(detailsResult.error || 'No data returned');
+            }
           } catch (err3) {
             console.log(`⚠️ PDF: get_detail_bl_by_tenant failed: ${err3.message}`);
             throw new Error('All RPC methods failed');
@@ -98,12 +111,13 @@ async function fetchBLData(tenant: string, id: string) {
         }
       }
       
-      if (detailsResult && detailsResult.success && detailsResult.data) {
+      if (successMethod && detailsResult && detailsResult.success && detailsResult.data) {
         blDetails = detailsResult.data;
-        console.log(`✅ PDF: Found ${blDetails.length} BL details via RPC`);
+        console.log(`✅ PDF: Found ${blDetails.length} BL details via ${successMethod}`);
         console.log(`🔍 PDF: Sample detail data:`, JSON.stringify(blDetails.slice(0, 2), null, 2));
       } else {
-        console.log(`⚠️ PDF: RPC returned success but no data:`, detailsResult);
+        console.log(`⚠️ PDF: No successful RPC method found`);
+        throw new Error('All RPC methods failed');
       }
     } catch (detailError) {
       console.log(`⚠️ PDF: RPC get_bl_details_by_id failed, trying direct SQL approach`);
@@ -301,6 +315,11 @@ pdf.get('/delivery-note/:id', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
+    if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
+      console.error('❌ Invalid ID received for delivery note:', id);
+      return c.json({ success: false, error: 'Invalid BL ID provided' }, 400);
+    }
+
     console.log(`📄 Generating delivery note PDF for ID: ${id}, Tenant: ${tenant}`);
 
     // Fetch delivery note data using utility function
@@ -361,6 +380,11 @@ pdf.get('/delivery-note-small/:id', async (c) => {
     
     if (!tenant) {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
+      console.error('❌ Invalid ID received for small delivery note:', id);
+      return c.json({ success: false, error: 'Invalid BL ID provided' }, 400);
     }
 
     console.log(`📄 Generating small delivery note PDF for ID: ${id}, Tenant: ${tenant}`);
@@ -424,7 +448,7 @@ pdf.get('/delivery-note-ticket/:id', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    if (!id || id === 'undefined' || id === 'null') {
+    if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
       console.error('❌ Invalid ID received:', id);
       return c.json({ success: false, error: 'Invalid BL ID provided' }, 400);
     }
