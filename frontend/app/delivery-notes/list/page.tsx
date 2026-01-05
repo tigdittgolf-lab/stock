@@ -67,11 +67,15 @@ export default function DeliveryNotesList() {
       if (data.success) {
         console.log('📋 Raw BL data received:', data.data);
         data.data.forEach((bl: any, index: number) => {
-          console.log(`BL ${index}:`, {
+          console.log(`BL ${index} DETAILED:`, {
             nfact: bl.nfact,
             nbl: bl.nbl,
             id: bl.id,
-            allFields: Object.keys(bl)
+            nfact_type: typeof bl.nfact,
+            nbl_type: typeof bl.nbl,
+            id_type: typeof bl.id,
+            allFields: Object.keys(bl),
+            fullObject: bl
           });
         });
         setDeliveryNotes(data.data || []);
@@ -270,7 +274,7 @@ export default function DeliveryNotesList() {
                   fontWeight: 'bold',
                   color: '#007bff'
                 }}>
-                  📋 BL {bl.nfact || bl.nbl}
+                  📋 BL {bl.nfact || bl.nbl || bl.id || bl.nfact_id || bl.bl_id || 'N/A'}
                 </div>
                 <div style={{
                   fontSize: '14px',
@@ -365,13 +369,37 @@ export default function DeliveryNotesList() {
                 }}>
                   <button
                     onClick={() => {
-                      const blId = bl.nfact || bl.nbl || bl.id;
-                      if (!blId) {
-                        alert('Erreur: ID du BL non trouvé');
+                      // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
+                      let blId = bl.nfact || bl.nbl || bl.id || bl.nfact_id || bl.bl_id;
+                      
+                      console.log('🔍 BL ID extraction attempt:', {
+                        nfact: bl.nfact,
+                        nbl: bl.nbl, 
+                        id: bl.id,
+                        nfact_id: bl.nfact_id,
+                        bl_id: bl.bl_id,
+                        extracted: blId,
+                        fullBL: bl
+                      });
+                      
+                      // Convertir en nombre et vérifier
+                      const numericId = parseInt(String(blId));
+                      if (!blId || blId === 'undefined' || blId === 'null' || isNaN(numericId) || numericId <= 0) {
+                        console.error('❌ Invalid BL ID after extraction:', { 
+                          blId, 
+                          numericId,
+                          nfact: bl.nfact, 
+                          nbl: bl.nbl, 
+                          id: bl.id,
+                          allBLFields: Object.keys(bl)
+                        });
+                        alert('Erreur: ID du BL invalide. Vérifiez les données.');
                         return;
                       }
+                      
+                      blId = numericId; // Utiliser l'ID numérique validé
                       const pdfUrl = `/api/pdf/delivery-note/${blId}`;
-                      console.log('📄 Opening complete PDF:', pdfUrl);
+                      console.log('📄 Opening complete PDF:', pdfUrl, 'for BL ID:', blId);
                       window.open(pdfUrl, '_blank');
                     }}
                     style={{
@@ -389,13 +417,27 @@ export default function DeliveryNotesList() {
                   </button>
                   <button
                     onClick={() => {
-                      const blId = bl.nfact || bl.nbl || bl.id;
-                      if (!blId) {
-                        alert('Erreur: ID du BL non trouvé');
+                      // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
+                      let blId = bl.nfact || bl.nbl || bl.id || bl.nfact_id || bl.bl_id;
+                      
+                      // Convertir en nombre et vérifier
+                      const numericId = parseInt(String(blId));
+                      if (!blId || blId === 'undefined' || blId === 'null' || isNaN(numericId) || numericId <= 0) {
+                        console.error('❌ Invalid BL ID for small PDF:', { 
+                          blId, 
+                          numericId,
+                          nfact: bl.nfact, 
+                          nbl: bl.nbl, 
+                          id: bl.id,
+                          allBLFields: Object.keys(bl)
+                        });
+                        alert('Erreur: ID du BL invalide');
                         return;
                       }
+                      
+                      blId = numericId; // Utiliser l'ID numérique validé
                       const pdfUrl = `/api/pdf/delivery-note-small/${blId}`;
-                      console.log('📋 Opening small PDF:', pdfUrl);
+                      console.log('📋 Opening small PDF:', pdfUrl, 'for BL ID:', blId);
                       window.open(pdfUrl, '_blank');
                     }}
                     style={{
@@ -413,13 +455,27 @@ export default function DeliveryNotesList() {
                   </button>
                   <button
                     onClick={() => {
-                      const blId = bl.nfact || bl.nbl || bl.id;
-                      if (!blId) {
-                        alert('Erreur: ID du BL non trouvé');
+                      // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
+                      let blId = bl.nfact || bl.nbl || bl.id || bl.nfact_id || bl.bl_id;
+                      
+                      // Convertir en nombre et vérifier
+                      const numericId = parseInt(String(blId));
+                      if (!blId || blId === 'undefined' || blId === 'null' || isNaN(numericId) || numericId <= 0) {
+                        console.error('❌ Invalid BL ID for ticket:', { 
+                          blId, 
+                          numericId,
+                          nfact: bl.nfact, 
+                          nbl: bl.nbl, 
+                          id: bl.id,
+                          allBLFields: Object.keys(bl)
+                        });
+                        alert('Erreur: ID du BL invalide');
                         return;
                       }
+                      
+                      blId = numericId; // Utiliser l'ID numérique validé
                       const pdfUrl = `/api/pdf/delivery-note-ticket/${blId}`;
-                      console.log('🎫 Opening ticket PDF:', pdfUrl);
+                      console.log('🎫 Opening ticket PDF:', pdfUrl, 'for BL ID:', blId);
                       window.open(pdfUrl, '_blank');
                     }}
                     style={{
@@ -440,11 +496,25 @@ export default function DeliveryNotesList() {
                 {/* Deuxième ligne - Bouton Détails */}
                 <button
                   onClick={() => {
-                    const blId = bl.nfact || bl.nbl || bl.id;
-                    if (!blId) {
-                      alert('Erreur: ID du BL non trouvé');
+                    // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
+                    let blId = bl.nfact || bl.nbl || bl.id || bl.nfact_id || bl.bl_id;
+                    
+                    // Convertir en nombre et vérifier
+                    const numericId = parseInt(String(blId));
+                    if (!blId || blId === 'undefined' || blId === 'null' || isNaN(numericId) || numericId <= 0) {
+                      console.error('❌ Invalid BL ID for details:', { 
+                        blId, 
+                        numericId,
+                        nfact: bl.nfact, 
+                        nbl: bl.nbl, 
+                        id: bl.id,
+                        allBLFields: Object.keys(bl)
+                      });
+                      alert('Erreur: ID du BL invalide');
                       return;
                     }
+                    
+                    blId = numericId; // Utiliser l'ID numérique validé
                     console.log('🔍 Navigating to BL details:', blId);
                     router.push(`/delivery-notes/details/${blId}`);
                   }}
