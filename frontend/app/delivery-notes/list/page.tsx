@@ -138,76 +138,132 @@ export default function DeliveryNotesList() {
     const pdfUrl = urls[type];
     console.log(`📄 Opening PDF preview: ${pdfUrl} for BL ID: ${validId} (original: ${blId})`);
     
-    // Créer une fenêtre de prévisualisation SANS iframe pour éviter le téléchargement automatique
-    const previewWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes');
+    // Solution SIMPLE : Ouvrir le PDF dans un nouvel onglet avec contrôles
+    const previewWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes,toolbar=yes,menubar=yes');
     if (previewWindow) {
       previewWindow.document.write(`
         <html>
           <head>
             <title>Prévisualisation BL ${validId} - ${titles[type]}</title>
             <style>
-              body { margin: 0; font-family: Arial, sans-serif; background: #f5f5f5; }
-              .header { background: ${colors[type]}; color: white; padding: 15px; text-align: center; }
-              .controls { background: white; padding: 15px; text-align: center; border-bottom: 2px solid #ddd; }
+              body { 
+                margin: 0; 
+                font-family: Arial, sans-serif; 
+                background: #f5f5f5;
+                display: flex;
+                flex-direction: column;
+                height: 100vh;
+              }
+              .header { 
+                background: ${colors[type]}; 
+                color: white; 
+                padding: 15px; 
+                text-align: center;
+                flex-shrink: 0;
+              }
+              .controls { 
+                background: white; 
+                padding: 15px; 
+                text-align: center; 
+                border-bottom: 2px solid #ddd;
+                flex-shrink: 0;
+              }
               .controls button { 
-                margin: 0 15px; padding: 12px 25px; border: none; border-radius: 5px; 
-                cursor: pointer; font-weight: bold; font-size: 16px;
+                margin: 0 15px; 
+                padding: 12px 25px; 
+                border: none; 
+                border-radius: 5px; 
+                cursor: pointer; 
+                font-weight: bold; 
+                font-size: 16px;
               }
-              .preview { background: #28a745; color: white; }
               .download { background: #007bff; color: white; }
-              .print { background: #17a2b8; color: white; }
+              .print { background: #28a745; color: white; }
               .close { background: #dc3545; color: white; }
-              .message { 
-                padding: 40px; text-align: center; font-size: 18px; 
-                background: white; margin: 20px; border-radius: 10px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+              .content {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
               }
-              .debug { background: #fff3cd; padding: 10px; margin: 10px; border-radius: 5px; font-size: 12px; }
+              .message {
+                background: white;
+                padding: 40px;
+                border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                text-align: center;
+                max-width: 600px;
+              }
+              .message h3 {
+                color: ${colors[type]};
+                margin-bottom: 20px;
+              }
+              .message p {
+                margin: 10px 0;
+                line-height: 1.6;
+              }
+              .big-button {
+                background: ${colors[type]};
+                color: white;
+                padding: 15px 30px;
+                border: none;
+                border-radius: 8px;
+                font-size: 18px;
+                font-weight: bold;
+                cursor: pointer;
+                margin: 20px 10px;
+                text-decoration: none;
+                display: inline-block;
+              }
+              .big-button:hover {
+                opacity: 0.9;
+              }
             </style>
           </head>
           <body>
             <div class="header">
               <h2>📄 Prévisualisation BL ${validId} - ${titles[type]}</h2>
-              <p>Contrôlez l'affichage et le téléchargement du PDF</p>
+              <p>Choisissez votre action</p>
             </div>
-            <div class="debug">
-              🔍 Debug: URL = ${pdfUrl} | ID Original = ${blId} | ID Validé = ${validId} | Type = ${type}
-            </div>
+            
             <div class="controls">
-              <button class="preview" onclick="showPDF()">👁️ VOIR LE PDF</button>
-              <button class="download" onclick="downloadPDF()">⬇️ Télécharger</button>
+              <button class="download" onclick="downloadPDF()">⬇️ Télécharger PDF</button>
               <button class="print" onclick="printPDF()">🖨️ Imprimer</button>
               <button class="close" onclick="window.close()">❌ Fermer</button>
             </div>
-            <div class="message" id="message">
-              <h3>📋 Instructions</h3>
-              <p>Cliquez sur <strong>"👁️ VOIR LE PDF"</strong> pour afficher le document.</p>
-              <p>Le PDF ne sera PAS téléchargé automatiquement.</p>
-            </div>
-            <div id="pdfContainer" style="display: none; padding: 20px;">
-              <!-- Le PDF sera chargé ici seulement quand l'utilisateur clique -->
+            
+            <div class="content">
+              <div class="message">
+                <h3>📋 Document Prêt</h3>
+                <p><strong>BL ${validId} - ${titles[type]}</strong></p>
+                <p>Le document PDF est généré et prêt à être utilisé.</p>
+                
+                <div style="margin: 30px 0;">
+                  <a href="${pdfUrl}" target="_blank" class="big-button">
+                    👁️ OUVRIR LE PDF
+                  </a>
+                </div>
+                
+                <p style="font-size: 14px; color: #666;">
+                  ⚠️ Le PDF s'ouvrira dans un nouvel onglet.<br>
+                  Votre navigateur peut demander l'autorisation d'ouvrir des pop-ups.
+                </p>
+                
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                  <p><strong>Options disponibles :</strong></p>
+                  <p>• <strong>Ouvrir</strong> : Voir le PDF dans un nouvel onglet</p>
+                  <p>• <strong>Télécharger</strong> : Sauvegarder sur votre ordinateur</p>
+                  <p>• <strong>Imprimer</strong> : Envoyer directement à l'imprimante</p>
+                </div>
+              </div>
             </div>
             
             <script>
               console.log('🔍 PDF Preview Window - URL:', '${pdfUrl}');
               console.log('🔍 PDF Preview Window - ID Validation:', { original: ${blId}, validated: ${validId} });
               
-              function showPDF() {
-                const container = document.getElementById('pdfContainer');
-                const message = document.getElementById('message');
-                
-                // Masquer le message et afficher le conteneur PDF
-                message.style.display = 'none';
-                container.style.display = 'block';
-                
-                // Créer l'iframe SEULEMENT quand l'utilisateur clique
-                container.innerHTML = '<iframe src="${pdfUrl}#toolbar=1&navpanes=1&scrollbar=1" style="width: 100%; height: 600px; border: 1px solid #ddd; border-radius: 5px;"></iframe>';
-                
-                console.log('👁️ PDF affiché - PAS de téléchargement automatique');
-              }
-              
               function downloadPDF() {
-                // Téléchargement MANUEL seulement quand l'utilisateur clique explicitement
                 console.log('⬇️ Téléchargement manuel demandé par l\\'utilisateur');
                 const link = document.createElement('a');
                 link.href = '${pdfUrl}';
@@ -218,11 +274,14 @@ export default function DeliveryNotesList() {
               }
               
               function printPDF() {
+                console.log('🖨️ Impression demandée par l\\'utilisateur');
                 // Ouvrir le PDF dans un nouvel onglet pour impression
                 const printWindow = window.open('${pdfUrl}', '_blank');
                 if (printWindow) {
                   printWindow.onload = function() {
-                    printWindow.print();
+                    setTimeout(() => {
+                      printWindow.print();
+                    }, 1000);
                   };
                 }
               }
@@ -232,6 +291,8 @@ export default function DeliveryNotesList() {
       `);
     } else {
       console.error('❌ Failed to open preview window');
+      // Fallback : ouvrir directement le PDF
+      window.open(pdfUrl, '_blank');
     }
   };
 
