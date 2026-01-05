@@ -81,21 +81,37 @@ export default function BLDetailsPage() {
         }
       });
 
+      console.log(`📊 Debug response status: ${response.status}`);
+
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`❌ HTTP Error ${response.status}: ${errorText}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
       }
 
       const debugData = await response.json();
+      console.log(`📋 Debug data received:`, debugData);
       
       if (debugData.success && debugData.data) {
         setBLData(debugData.data);
         console.log('✅ BL details loaded successfully');
       } else {
-        throw new Error(debugData.error || 'Failed to load BL details');
+        const errorMsg = debugData.error || 'Failed to load BL details';
+        console.error(`❌ Debug data error: ${errorMsg}`);
+        throw new Error(errorMsg);
       }
     } catch (error) {
       console.error('❌ Error loading BL details:', error);
-      setError(error instanceof Error ? error.message : 'Unknown error');
+      // Améliorer la gestion d'erreur pour éviter [object Object]
+      let errorMessage = 'Unknown error';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object') {
+        errorMessage = JSON.stringify(error);
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
