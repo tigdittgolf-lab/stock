@@ -99,6 +99,77 @@ export default function DeliveryNotesList() {
     return amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' DA';
   };
 
+  const openPDFPreview = (blId: number, type: 'complete' | 'small' | 'ticket') => {
+    const urls = {
+      complete: `/api/pdf/delivery-note/${blId}`,
+      small: `/api/pdf/delivery-note-small/${blId}`,
+      ticket: `/api/pdf/delivery-note-ticket/${blId}`
+    };
+
+    const titles = {
+      complete: 'BL Complet',
+      small: 'BL Réduit', 
+      ticket: 'Ticket'
+    };
+
+    const colors = {
+      complete: '#007bff',
+      small: '#17a2b8',
+      ticket: '#6f42c1'
+    };
+
+    const pdfUrl = urls[type];
+    console.log(`📄 Opening PDF preview: ${pdfUrl} for BL ID: ${blId}`);
+    
+    // Créer une fenêtre de prévisualisation avec options
+    const previewWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes');
+    if (previewWindow) {
+      previewWindow.document.write(`
+        <html>
+          <head>
+            <title>Prévisualisation BL ${blId} - ${titles[type]}</title>
+            <style>
+              body { margin: 0; font-family: Arial, sans-serif; background: #f5f5f5; }
+              .header { background: ${colors[type]}; color: white; padding: 15px; text-align: center; }
+              .controls { background: white; padding: 10px; text-align: center; border-bottom: 2px solid #ddd; }
+              .controls button { 
+                margin: 0 10px; padding: 10px 20px; border: none; border-radius: 5px; 
+                cursor: pointer; font-weight: bold; font-size: 14px;
+              }
+              .download { background: #28a745; color: white; }
+              .close { background: #dc3545; color: white; }
+              .print { background: #17a2b8; color: white; }
+              iframe { width: 100%; height: calc(100vh - 120px); border: none; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h2>📄 Prévisualisation BL ${blId} - ${titles[type]}</h2>
+              <p>Vérifiez le document avant de le télécharger</p>
+            </div>
+            <div class="controls">
+              <button class="download" onclick="downloadPDF()">⬇️ Télécharger PDF</button>
+              <button class="print" onclick="printPDF()">🖨️ Imprimer</button>
+              <button class="close" onclick="window.close()">❌ Fermer</button>
+            </div>
+            <iframe src="${pdfUrl}" type="application/pdf"></iframe>
+            <script>
+              function downloadPDF() {
+                const link = document.createElement('a');
+                link.href = '${pdfUrl}';
+                link.download = 'BL_${blId}_${type}.pdf';
+                link.click();
+              }
+              function printPDF() {
+                window.frames[0].print();
+              }
+            </script>
+          </body>
+        </html>
+      `);
+    }
+  };
+
   return (
     <div style={{ 
       padding: '20px', 
@@ -245,437 +316,191 @@ export default function DeliveryNotesList() {
         </div>
       )}
 
-      {/* TOUJOURS afficher la version avec cartes et TOUS les boutons */}
+      {/* Interface tableau classique avec prévisualisation PDF */}
       {!loading && !error && deliveryNotes.length > 0 && (
-        <div>
-          {deliveryNotes.map((bl, index) => (
-            <div 
-              key={bl.nfact || bl.nbl || index}
-              style={{
-                background: 'white',
-                borderRadius: '10px',
-                padding: '20px',
-                marginBottom: '20px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                border: '1px solid #e0e0e0'
-              }}
-            >
-              {/* En-tête BL */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '15px',
-                paddingBottom: '15px',
-                borderBottom: '2px solid #f0f0f0'
-              }}>
-                <div style={{
-                  fontSize: '22px',
-                  fontWeight: 'bold',
-                  color: '#007bff'
-                }}>
-                  📋 BL {bl.nfact || bl.nbl || bl.id || bl.nfact_id || bl.bl_id || 'N/A'}
-                </div>
-                <div style={{
-                  fontSize: '14px',
-                  color: '#666'
-                }}>
-                  📅 {formatDate(bl.date_fact)}
-                </div>
-              </div>
+        <div style={{ background: 'white', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
+                <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>N° BL</th>
+                <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>Client</th>
+                <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>Date</th>
+                <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>Montant HT</th>
+                <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>TVA</th>
+                <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>Total TTC</th>
+                <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', minWidth: '300px' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {deliveryNotes.map((bl, index) => {
+                // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
+                let blId = bl.nfact || bl.nbl || (bl as any).id || (bl as any).nfact_id || (bl as any).bl_id;
+                const numericId = parseInt(String(blId));
+                const validId = (!blId || blId === 'undefined' || blId === 'null' || isNaN(numericId) || numericId <= 0) ? null : numericId;
 
-              {/* Informations client */}
-              <div style={{ 
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '20px',
-                marginBottom: '20px'
-              }}>
-                <div>
-                  <h3 style={{ margin: '0 0 10px 0', color: '#333', fontSize: '18px' }}>👤 Client</h3>
-                  <div style={{
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    color: '#333',
-                    marginBottom: '5px'
-                  }}>
-                    {bl.client_name}
-                  </div>
-                  <div style={{
-                    fontSize: '14px',
-                    color: '#666'
-                  }}>
-                    Code client: {bl.nclient}
-                  </div>
-                </div>
-
-                {/* Montants */}
-                <div style={{
-                  background: '#f8f9fa',
-                  borderRadius: '8px',
-                  padding: '15px'
-                }}>
-                  <h3 style={{ margin: '0 0 10px 0', color: '#333', fontSize: '18px' }}>💰 Montants</h3>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginBottom: '8px'
-                  }}>
-                    <span style={{ fontSize: '14px', color: '#666' }}>Montant HT:</span>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                return (
+                  <tr 
+                    key={bl.nfact || bl.nbl || index}
+                    style={{ 
+                      borderBottom: '1px solid #dee2e6',
+                      backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa'
+                    }}
+                  >
+                    <td style={{ padding: '15px', fontWeight: 'bold', color: '#007bff' }}>
+                      {blId || 'N/A'}
+                    </td>
+                    <td style={{ padding: '15px' }}>
+                      <div>
+                        <div style={{ fontWeight: 'bold' }}>{bl.client_name}</div>
+                        <div style={{ fontSize: '12px', color: '#666' }}>{bl.nclient}</div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '15px' }}>
+                      {formatDate(bl.date_fact)}
+                    </td>
+                    <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>
                       {formatAmount(bl.montant_ht)}
-                    </span>
-                  </div>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginBottom: '8px'
-                  }}>
-                    <span style={{ fontSize: '14px', color: '#666' }}>TVA:</span>
-                    <span style={{ fontSize: '14px' }}>
+                    </td>
+                    <td style={{ padding: '15px', textAlign: 'right' }}>
                       {formatAmount(bl.tva)}
-                    </span>
-                  </div>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    paddingTop: '8px',
-                    borderTop: '1px solid #dee2e6'
-                  }}>
-                    <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#28a745' }}>
-                      Total TTC:
-                    </span>
-                    <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#28a745' }}>
+                    </td>
+                    <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: '#28a745' }}>
                       {formatAmount(bl.montant_ttc || (bl.montant_ht + bl.tva))}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* TOUS LES BOUTONS - Toujours visibles */}
-              <div style={{
-                background: '#f8f9fa',
-                borderRadius: '8px',
-                padding: '15px'
-              }}>
-                <h3 style={{ margin: '0 0 15px 0', color: '#333', fontSize: '18px' }}>🎯 Actions</h3>
-                
-                {/* Première ligne - 3 boutons PDF */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr 1fr',
-                  gap: '10px',
-                  marginBottom: '10px'
-                }}>
-                  <button
-                    onClick={() => {
-                      // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
-                      let blId = bl.nfact || bl.nbl || bl.id || bl.nfact_id || bl.bl_id;
-                      
-                      console.log('🔍 BL ID extraction attempt:', {
-                        nfact: bl.nfact,
-                        nbl: bl.nbl, 
-                        id: bl.id,
-                        nfact_id: bl.nfact_id,
-                        bl_id: bl.bl_id,
-                        extracted: blId,
-                        fullBL: bl
-                      });
-                      
-                      // Convertir en nombre et vérifier
-                      const numericId = parseInt(String(blId));
-                      if (!blId || blId === 'undefined' || blId === 'null' || isNaN(numericId) || numericId <= 0) {
-                        console.error('❌ Invalid BL ID after extraction:', { 
-                          blId, 
-                          numericId,
-                          nfact: bl.nfact, 
-                          nbl: bl.nbl, 
-                          id: bl.id,
-                          allBLFields: Object.keys(bl)
-                        });
-                        alert('Erreur: ID du BL invalide. Vérifiez les données.');
-                        return;
-                      }
-                      
-                      blId = numericId; // Utiliser l'ID numérique validé
-                      const pdfUrl = `/api/pdf/delivery-note/${blId}`;
-                      console.log('📄 Opening PDF preview:', pdfUrl, 'for BL ID:', blId);
-                      
-                      // Créer une fenêtre de prévisualisation avec options
-                      const previewWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes');
-                      if (previewWindow) {
-                        previewWindow.document.write(`
-                          <html>
-                            <head>
-                              <title>Prévisualisation BL ${blId} - Complet</title>
-                              <style>
-                                body { margin: 0; font-family: Arial, sans-serif; background: #f5f5f5; }
-                                .header { background: #007bff; color: white; padding: 15px; text-align: center; }
-                                .controls { background: white; padding: 10px; text-align: center; border-bottom: 2px solid #ddd; }
-                                .controls button { 
-                                  margin: 0 10px; padding: 10px 20px; border: none; border-radius: 5px; 
-                                  cursor: pointer; font-weight: bold; font-size: 14px;
-                                }
-                                .download { background: #28a745; color: white; }
-                                .close { background: #dc3545; color: white; }
-                                .print { background: #17a2b8; color: white; }
-                                iframe { width: 100%; height: calc(100vh - 120px); border: none; }
-                              </style>
-                            </head>
-                            <body>
-                              <div class="header">
-                                <h2>📄 Prévisualisation BL ${blId} - Format Complet</h2>
-                                <p>Vérifiez le document avant de le télécharger</p>
-                              </div>
-                              <div class="controls">
-                                <button class="download" onclick="downloadPDF()">⬇️ Télécharger PDF</button>
-                                <button class="print" onclick="printPDF()">🖨️ Imprimer</button>
-                                <button class="close" onclick="window.close()">❌ Fermer</button>
-                              </div>
-                              <iframe src="${pdfUrl}" type="application/pdf"></iframe>
-                              <script>
-                                function downloadPDF() {
-                                  const link = document.createElement('a');
-                                  link.href = '${pdfUrl}';
-                                  link.download = 'BL_${blId}_complet.pdf';
-                                  link.click();
-                                }
-                                function printPDF() {
-                                  window.frames[0].print();
-                                }
-                              </script>
-                            </body>
-                          </html>
-                        `);
-                      }
-                    }}
-                    style={{
-                      padding: '12px 20px',
-                      backgroundColor: '#007bff',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    📄 BL Complet
-                  </button>
-                  <button
-                    onClick={() => {
-                      // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
-                      let blId = bl.nfact || bl.nbl || bl.id || bl.nfact_id || bl.bl_id;
-                      
-                      // Convertir en nombre et vérifier
-                      const numericId = parseInt(String(blId));
-                      if (!blId || blId === 'undefined' || blId === 'null' || isNaN(numericId) || numericId <= 0) {
-                        console.error('❌ Invalid BL ID for small PDF:', { 
-                          blId, 
-                          numericId,
-                          nfact: bl.nfact, 
-                          nbl: bl.nbl, 
-                          id: bl.id,
-                          allBLFields: Object.keys(bl)
-                        });
-                        alert('Erreur: ID du BL invalide');
-                        return;
-                      }
-                      
-                      blId = numericId; // Utiliser l'ID numérique validé
-                      const pdfUrl = `/api/pdf/delivery-note-small/${blId}`;
-                      console.log('📋 Opening PDF preview:', pdfUrl, 'for BL ID:', blId);
-                      
-                      // Créer une fenêtre de prévisualisation avec options
-                      const previewWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes');
-                      if (previewWindow) {
-                        previewWindow.document.write(`
-                          <html>
-                            <head>
-                              <title>Prévisualisation BL ${blId} - Réduit</title>
-                              <style>
-                                body { margin: 0; font-family: Arial, sans-serif; background: #f5f5f5; }
-                                .header { background: #17a2b8; color: white; padding: 15px; text-align: center; }
-                                .controls { background: white; padding: 10px; text-align: center; border-bottom: 2px solid #ddd; }
-                                .controls button { 
-                                  margin: 0 10px; padding: 10px 20px; border: none; border-radius: 5px; 
-                                  cursor: pointer; font-weight: bold; font-size: 14px;
-                                }
-                                .download { background: #28a745; color: white; }
-                                .close { background: #dc3545; color: white; }
-                                .print { background: #17a2b8; color: white; }
-                                iframe { width: 100%; height: calc(100vh - 120px); border: none; }
-                              </style>
-                            </head>
-                            <body>
-                              <div class="header">
-                                <h2>📋 Prévisualisation BL ${blId} - Format Réduit</h2>
-                                <p>Vérifiez le document avant de le télécharger</p>
-                              </div>
-                              <div class="controls">
-                                <button class="download" onclick="downloadPDF()">⬇️ Télécharger PDF</button>
-                                <button class="print" onclick="printPDF()">🖨️ Imprimer</button>
-                                <button class="close" onclick="window.close()">❌ Fermer</button>
-                              </div>
-                              <iframe src="${pdfUrl}" type="application/pdf"></iframe>
-                              <script>
-                                function downloadPDF() {
-                                  const link = document.createElement('a');
-                                  link.href = '${pdfUrl}';
-                                  link.download = 'BL_${blId}_reduit.pdf';
-                                  link.click();
-                                }
-                                function printPDF() {
-                                  window.frames[0].print();
-                                }
-                              </script>
-                            </body>
-                          </html>
-                        `);
-                      }
-                    }}
-                    style={{
-                      padding: '12px 20px',
-                      backgroundColor: '#17a2b8',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    📋 BL Réduit
-                  </button>
-                  <button
-                    onClick={() => {
-                      // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
-                      let blId = bl.nfact || bl.nbl || bl.id || bl.nfact_id || bl.bl_id;
-                      
-                      // Convertir en nombre et vérifier
-                      const numericId = parseInt(String(blId));
-                      if (!blId || blId === 'undefined' || blId === 'null' || isNaN(numericId) || numericId <= 0) {
-                        console.error('❌ Invalid BL ID for ticket:', { 
-                          blId, 
-                          numericId,
-                          nfact: bl.nfact, 
-                          nbl: bl.nbl, 
-                          id: bl.id,
-                          allBLFields: Object.keys(bl)
-                        });
-                        alert('Erreur: ID du BL invalide');
-                        return;
-                      }
-                      
-                      blId = numericId; // Utiliser l'ID numérique validé
-                      const pdfUrl = `/api/pdf/delivery-note-ticket/${blId}`;
-                      console.log('🎫 Opening PDF preview:', pdfUrl, 'for BL ID:', blId);
-                      
-                      // Créer une fenêtre de prévisualisation avec options
-                      const previewWindow = window.open('', '_blank', 'width=800,height=800,scrollbars=yes,resizable=yes');
-                      if (previewWindow) {
-                        previewWindow.document.write(`
-                          <html>
-                            <head>
-                              <title>Prévisualisation BL ${blId} - Ticket</title>
-                              <style>
-                                body { margin: 0; font-family: Arial, sans-serif; background: #f5f5f5; }
-                                .header { background: #6f42c1; color: white; padding: 15px; text-align: center; }
-                                .controls { background: white; padding: 10px; text-align: center; border-bottom: 2px solid #ddd; }
-                                .controls button { 
-                                  margin: 0 10px; padding: 10px 20px; border: none; border-radius: 5px; 
-                                  cursor: pointer; font-weight: bold; font-size: 14px;
-                                }
-                                .download { background: #28a745; color: white; }
-                                .close { background: #dc3545; color: white; }
-                                .print { background: #17a2b8; color: white; }
-                                iframe { width: 100%; height: calc(100vh - 120px); border: none; }
-                              </style>
-                            </head>
-                            <body>
-                              <div class="header">
-                                <h2>🎫 Prévisualisation BL ${blId} - Format Ticket</h2>
-                                <p>Vérifiez le document avant de le télécharger</p>
-                              </div>
-                              <div class="controls">
-                                <button class="download" onclick="downloadPDF()">⬇️ Télécharger PDF</button>
-                                <button class="print" onclick="printPDF()">🖨️ Imprimer</button>
-                                <button class="close" onclick="window.close()">❌ Fermer</button>
-                              </div>
-                              <iframe src="${pdfUrl}" type="application/pdf"></iframe>
-                              <script>
-                                function downloadPDF() {
-                                  const link = document.createElement('a');
-                                  link.href = '${pdfUrl}';
-                                  link.download = 'BL_${blId}_ticket.pdf';
-                                  link.click();
-                                }
-                                function printPDF() {
-                                  window.frames[0].print();
-                                }
-                              </script>
-                            </body>
-                          </html>
-                        `);
-                      }
-                    }}
-                    style={{
-                      padding: '12px 20px',
-                      backgroundColor: '#6f42c1',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    🎫 Ticket
-                  </button>
-                </div>
-                
-                {/* Deuxième ligne - Bouton Détails */}
-                <button
-                  onClick={() => {
-                    // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
-                    let blId = bl.nfact || bl.nbl || bl.id || bl.nfact_id || bl.bl_id;
-                    
-                    // Convertir en nombre et vérifier
-                    const numericId = parseInt(String(blId));
-                    if (!blId || blId === 'undefined' || blId === 'null' || isNaN(numericId) || numericId <= 0) {
-                      console.error('❌ Invalid BL ID for details:', { 
-                        blId, 
-                        numericId,
-                        nfact: bl.nfact, 
-                        nbl: bl.nbl, 
-                        id: bl.id,
-                        allBLFields: Object.keys(bl)
-                      });
-                      alert('Erreur: ID du BL invalide');
-                      return;
-                    }
-                    
-                    blId = numericId; // Utiliser l'ID numérique validé
-                    console.log('🔍 Navigating to BL details:', blId);
-                    router.push(`/delivery-notes/details/${blId}`);
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '15px',
-                    backgroundColor: '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '16px',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  ℹ️ Voir Détails du BL (Articles, Quantités, Prix)
-                </button>
-              </div>
-            </div>
-          ))}
+                    </td>
+                    <td style={{ padding: '15px', textAlign: 'center' }}>
+                      <div style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '5px',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                      }}>
+                        {/* Première ligne - Actions principales */}
+                        <button
+                          onClick={() => {
+                            if (validId) {
+                              router.push(`/delivery-notes/details/${validId}`);
+                            } else {
+                              alert('ID du BL invalide');
+                            }
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#17a2b8',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            minWidth: '70px'
+                          }}
+                          title="Voir les détails du BL"
+                        >
+                          👁️ Voir
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            if (confirm('Êtes-vous sûr de vouloir supprimer ce BL ?')) {
+                              alert('Fonction de suppression à implémenter');
+                            }
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            minWidth: '70px'
+                          }}
+                          title="Supprimer le BL"
+                        >
+                          🗑️ Supprimer
+                        </button>
+                        
+                        {/* Deuxième ligne - Boutons PDF avec prévisualisation */}
+                        <button
+                          onClick={() => {
+                            if (validId) {
+                              openPDFPreview(validId, 'complete');
+                            } else {
+                              alert('ID du BL invalide');
+                            }
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#007bff',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            minWidth: '90px'
+                          }}
+                          title="Prévisualiser BL Complet"
+                        >
+                          📄 BL Complet
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            if (validId) {
+                              openPDFPreview(validId, 'small');
+                            } else {
+                              alert('ID du BL invalide');
+                            }
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#17a2b8',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            minWidth: '90px'
+                          }}
+                          title="Prévisualiser BL Réduit"
+                        >
+                          📄 BL Réduit
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            if (validId) {
+                              openPDFPreview(validId, 'ticket');
+                            } else {
+                              alert('ID du BL invalide');
+                            }
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#6f42c1',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            minWidth: '70px'
+                          }}
+                          title="Prévisualiser Ticket"
+                        >
+                          🎫 Ticket
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
