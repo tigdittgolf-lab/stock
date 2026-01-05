@@ -399,8 +399,55 @@ export default function DeliveryNotesList() {
                       
                       blId = numericId; // Utiliser l'ID numérique validé
                       const pdfUrl = `/api/pdf/delivery-note/${blId}`;
-                      console.log('📄 Opening complete PDF:', pdfUrl, 'for BL ID:', blId);
-                      window.open(pdfUrl, '_blank');
+                      console.log('📄 Opening PDF preview:', pdfUrl, 'for BL ID:', blId);
+                      
+                      // Créer une fenêtre de prévisualisation avec options
+                      const previewWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes');
+                      if (previewWindow) {
+                        previewWindow.document.write(`
+                          <html>
+                            <head>
+                              <title>Prévisualisation BL ${blId} - Complet</title>
+                              <style>
+                                body { margin: 0; font-family: Arial, sans-serif; background: #f5f5f5; }
+                                .header { background: #007bff; color: white; padding: 15px; text-align: center; }
+                                .controls { background: white; padding: 10px; text-align: center; border-bottom: 2px solid #ddd; }
+                                .controls button { 
+                                  margin: 0 10px; padding: 10px 20px; border: none; border-radius: 5px; 
+                                  cursor: pointer; font-weight: bold; font-size: 14px;
+                                }
+                                .download { background: #28a745; color: white; }
+                                .close { background: #dc3545; color: white; }
+                                .print { background: #17a2b8; color: white; }
+                                iframe { width: 100%; height: calc(100vh - 120px); border: none; }
+                              </style>
+                            </head>
+                            <body>
+                              <div class="header">
+                                <h2>📄 Prévisualisation BL ${blId} - Format Complet</h2>
+                                <p>Vérifiez le document avant de le télécharger</p>
+                              </div>
+                              <div class="controls">
+                                <button class="download" onclick="downloadPDF()">⬇️ Télécharger PDF</button>
+                                <button class="print" onclick="printPDF()">🖨️ Imprimer</button>
+                                <button class="close" onclick="window.close()">❌ Fermer</button>
+                              </div>
+                              <iframe src="${pdfUrl}" type="application/pdf"></iframe>
+                              <script>
+                                function downloadPDF() {
+                                  const link = document.createElement('a');
+                                  link.href = '${pdfUrl}';
+                                  link.download = 'BL_${blId}_complet.pdf';
+                                  link.click();
+                                }
+                                function printPDF() {
+                                  window.frames[0].print();
+                                }
+                              </script>
+                            </body>
+                          </html>
+                        `);
+                      }
                     }}
                     style={{
                       padding: '12px 20px',
@@ -437,8 +484,55 @@ export default function DeliveryNotesList() {
                       
                       blId = numericId; // Utiliser l'ID numérique validé
                       const pdfUrl = `/api/pdf/delivery-note-small/${blId}`;
-                      console.log('📋 Opening small PDF:', pdfUrl, 'for BL ID:', blId);
-                      window.open(pdfUrl, '_blank');
+                      console.log('📋 Opening PDF preview:', pdfUrl, 'for BL ID:', blId);
+                      
+                      // Créer une fenêtre de prévisualisation avec options
+                      const previewWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes');
+                      if (previewWindow) {
+                        previewWindow.document.write(`
+                          <html>
+                            <head>
+                              <title>Prévisualisation BL ${blId} - Réduit</title>
+                              <style>
+                                body { margin: 0; font-family: Arial, sans-serif; background: #f5f5f5; }
+                                .header { background: #17a2b8; color: white; padding: 15px; text-align: center; }
+                                .controls { background: white; padding: 10px; text-align: center; border-bottom: 2px solid #ddd; }
+                                .controls button { 
+                                  margin: 0 10px; padding: 10px 20px; border: none; border-radius: 5px; 
+                                  cursor: pointer; font-weight: bold; font-size: 14px;
+                                }
+                                .download { background: #28a745; color: white; }
+                                .close { background: #dc3545; color: white; }
+                                .print { background: #17a2b8; color: white; }
+                                iframe { width: 100%; height: calc(100vh - 120px); border: none; }
+                              </style>
+                            </head>
+                            <body>
+                              <div class="header">
+                                <h2>📋 Prévisualisation BL ${blId} - Format Réduit</h2>
+                                <p>Vérifiez le document avant de le télécharger</p>
+                              </div>
+                              <div class="controls">
+                                <button class="download" onclick="downloadPDF()">⬇️ Télécharger PDF</button>
+                                <button class="print" onclick="printPDF()">🖨️ Imprimer</button>
+                                <button class="close" onclick="window.close()">❌ Fermer</button>
+                              </div>
+                              <iframe src="${pdfUrl}" type="application/pdf"></iframe>
+                              <script>
+                                function downloadPDF() {
+                                  const link = document.createElement('a');
+                                  link.href = '${pdfUrl}';
+                                  link.download = 'BL_${blId}_reduit.pdf';
+                                  link.click();
+                                }
+                                function printPDF() {
+                                  window.frames[0].print();
+                                }
+                              </script>
+                            </body>
+                          </html>
+                        `);
+                      }
                     }}
                     style={{
                       padding: '12px 20px',
@@ -475,8 +569,55 @@ export default function DeliveryNotesList() {
                       
                       blId = numericId; // Utiliser l'ID numérique validé
                       const pdfUrl = `/api/pdf/delivery-note-ticket/${blId}`;
-                      console.log('🎫 Opening ticket PDF:', pdfUrl, 'for BL ID:', blId);
-                      window.open(pdfUrl, '_blank');
+                      console.log('🎫 Opening PDF preview:', pdfUrl, 'for BL ID:', blId);
+                      
+                      // Créer une fenêtre de prévisualisation avec options
+                      const previewWindow = window.open('', '_blank', 'width=800,height=800,scrollbars=yes,resizable=yes');
+                      if (previewWindow) {
+                        previewWindow.document.write(`
+                          <html>
+                            <head>
+                              <title>Prévisualisation BL ${blId} - Ticket</title>
+                              <style>
+                                body { margin: 0; font-family: Arial, sans-serif; background: #f5f5f5; }
+                                .header { background: #6f42c1; color: white; padding: 15px; text-align: center; }
+                                .controls { background: white; padding: 10px; text-align: center; border-bottom: 2px solid #ddd; }
+                                .controls button { 
+                                  margin: 0 10px; padding: 10px 20px; border: none; border-radius: 5px; 
+                                  cursor: pointer; font-weight: bold; font-size: 14px;
+                                }
+                                .download { background: #28a745; color: white; }
+                                .close { background: #dc3545; color: white; }
+                                .print { background: #17a2b8; color: white; }
+                                iframe { width: 100%; height: calc(100vh - 120px); border: none; }
+                              </style>
+                            </head>
+                            <body>
+                              <div class="header">
+                                <h2>🎫 Prévisualisation BL ${blId} - Format Ticket</h2>
+                                <p>Vérifiez le document avant de le télécharger</p>
+                              </div>
+                              <div class="controls">
+                                <button class="download" onclick="downloadPDF()">⬇️ Télécharger PDF</button>
+                                <button class="print" onclick="printPDF()">🖨️ Imprimer</button>
+                                <button class="close" onclick="window.close()">❌ Fermer</button>
+                              </div>
+                              <iframe src="${pdfUrl}" type="application/pdf"></iframe>
+                              <script>
+                                function downloadPDF() {
+                                  const link = document.createElement('a');
+                                  link.href = '${pdfUrl}';
+                                  link.download = 'BL_${blId}_ticket.pdf';
+                                  link.click();
+                                }
+                                function printPDF() {
+                                  window.frames[0].print();
+                                }
+                              </script>
+                            </body>
+                          </html>
+                        `);
+                      }
                     }}
                     style={{
                       padding: '12px 20px',

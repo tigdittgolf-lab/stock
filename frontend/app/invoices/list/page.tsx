@@ -135,7 +135,58 @@ export default function InvoicesList() {
               🧾 Facture {fact.nfact}
             </div>
             <button
-              onClick={() => handlePrintPDF(fact.nfact)}
+              onClick={() => {
+                const pdfUrl = `/api/pdf/invoice/${fact.nfact}`;
+                console.log('📄 Opening PDF preview:', pdfUrl, 'for Invoice ID:', fact.nfact);
+                
+                // Créer une fenêtre de prévisualisation avec options
+                const previewWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes');
+                if (previewWindow) {
+                  previewWindow.document.write(`
+                    <html>
+                      <head>
+                        <title>Prévisualisation Facture ${fact.nfact}</title>
+                        <style>
+                          body { margin: 0; font-family: Arial, sans-serif; background: #f5f5f5; }
+                          .header { background: #28a745; color: white; padding: 15px; text-align: center; }
+                          .controls { background: white; padding: 10px; text-align: center; border-bottom: 2px solid #ddd; }
+                          .controls button { 
+                            margin: 0 10px; padding: 10px 20px; border: none; border-radius: 5px; 
+                            cursor: pointer; font-weight: bold; font-size: 14px;
+                          }
+                          .download { background: #28a745; color: white; }
+                          .close { background: #dc3545; color: white; }
+                          .print { background: #17a2b8; color: white; }
+                          iframe { width: 100%; height: calc(100vh - 120px); border: none; }
+                        </style>
+                      </head>
+                      <body>
+                        <div class="header">
+                          <h2>🧾 Prévisualisation Facture ${fact.nfact}</h2>
+                          <p>Vérifiez le document avant de le télécharger</p>
+                        </div>
+                        <div class="controls">
+                          <button class="download" onclick="downloadPDF()">⬇️ Télécharger PDF</button>
+                          <button class="print" onclick="printPDF()">🖨️ Imprimer</button>
+                          <button class="close" onclick="window.close()">❌ Fermer</button>
+                        </div>
+                        <iframe src="${pdfUrl}" type="application/pdf"></iframe>
+                        <script>
+                          function downloadPDF() {
+                            const link = document.createElement('a');
+                            link.href = '${pdfUrl}';
+                            link.download = 'Facture_${fact.nfact}.pdf';
+                            link.click();
+                          }
+                          function printPDF() {
+                            window.frames[0].print();
+                          }
+                        </script>
+                      </body>
+                    </html>
+                  `);
+                }
+              }}
               style={{
                 padding: '8px 15px',
                 backgroundColor: '#dc3545',
@@ -240,7 +291,55 @@ export default function InvoicesList() {
             <button
               onClick={() => {
                 const pdfUrl = `/api/pdf/invoice/${fact.nfact}`;
-                window.open(pdfUrl, '_blank');
+                console.log('📄 Opening PDF preview:', pdfUrl, 'for Invoice ID:', fact.nfact);
+                
+                // Créer une fenêtre de prévisualisation avec options
+                const previewWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes');
+                if (previewWindow) {
+                  previewWindow.document.write(`
+                    <html>
+                      <head>
+                        <title>Prévisualisation Facture ${fact.nfact}</title>
+                        <style>
+                          body { margin: 0; font-family: Arial, sans-serif; background: #f5f5f5; }
+                          .header { background: #28a745; color: white; padding: 15px; text-align: center; }
+                          .controls { background: white; padding: 10px; text-align: center; border-bottom: 2px solid #ddd; }
+                          .controls button { 
+                            margin: 0 10px; padding: 10px 20px; border: none; border-radius: 5px; 
+                            cursor: pointer; font-weight: bold; font-size: 14px;
+                          }
+                          .download { background: #28a745; color: white; }
+                          .close { background: #dc3545; color: white; }
+                          .print { background: #17a2b8; color: white; }
+                          iframe { width: 100%; height: calc(100vh - 120px); border: none; }
+                        </style>
+                      </head>
+                      <body>
+                        <div class="header">
+                          <h2>🧾 Prévisualisation Facture ${fact.nfact}</h2>
+                          <p>Vérifiez le document avant de le télécharger</p>
+                        </div>
+                        <div class="controls">
+                          <button class="download" onclick="downloadPDF()">⬇️ Télécharger PDF</button>
+                          <button class="print" onclick="printPDF()">🖨️ Imprimer</button>
+                          <button class="close" onclick="window.close()">❌ Fermer</button>
+                        </div>
+                        <iframe src="${pdfUrl}" type="application/pdf"></iframe>
+                        <script>
+                          function downloadPDF() {
+                            const link = document.createElement('a');
+                            link.href = '${pdfUrl}';
+                            link.download = 'Facture_${fact.nfact}.pdf';
+                            link.click();
+                          }
+                          function printPDF() {
+                            window.frames[0].print();
+                          }
+                        </script>
+                      </body>
+                    </html>
+                  `);
+                }
               }}
               style={{
                 flex: 1,
@@ -344,7 +443,58 @@ export default function InvoicesList() {
                 }}>
                   {/* Bouton Impression */}
                   <button
-                    onClick={() => handlePrintPDF(fact.nfact)}
+                    onClick={() => {
+                      const pdfUrl = `/api/pdf/invoice/${fact.nfact}`;
+                      console.log('📄 Opening PDF preview:', pdfUrl, 'for Invoice ID:', fact.nfact);
+                      
+                      // Créer une fenêtre de prévisualisation avec options
+                      const previewWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes');
+                      if (previewWindow) {
+                        previewWindow.document.write(`
+                          <html>
+                            <head>
+                              <title>Prévisualisation Facture ${fact.nfact}</title>
+                              <style>
+                                body { margin: 0; font-family: Arial, sans-serif; background: #f5f5f5; }
+                                .header { background: #28a745; color: white; padding: 15px; text-align: center; }
+                                .controls { background: white; padding: 10px; text-align: center; border-bottom: 2px solid #ddd; }
+                                .controls button { 
+                                  margin: 0 10px; padding: 10px 20px; border: none; border-radius: 5px; 
+                                  cursor: pointer; font-weight: bold; font-size: 14px;
+                                }
+                                .download { background: #28a745; color: white; }
+                                .close { background: #dc3545; color: white; }
+                                .print { background: #17a2b8; color: white; }
+                                iframe { width: 100%; height: calc(100vh - 120px); border: none; }
+                              </style>
+                            </head>
+                            <body>
+                              <div class="header">
+                                <h2>🧾 Prévisualisation Facture ${fact.nfact}</h2>
+                                <p>Vérifiez le document avant de le télécharger</p>
+                              </div>
+                              <div class="controls">
+                                <button class="download" onclick="downloadPDF()">⬇️ Télécharger PDF</button>
+                                <button class="print" onclick="printPDF()">🖨️ Imprimer</button>
+                                <button class="close" onclick="window.close()">❌ Fermer</button>
+                              </div>
+                              <iframe src="${pdfUrl}" type="application/pdf"></iframe>
+                              <script>
+                                function downloadPDF() {
+                                  const link = document.createElement('a');
+                                  link.href = '${pdfUrl}';
+                                  link.download = 'Facture_${fact.nfact}.pdf';
+                                  link.click();
+                                }
+                                function printPDF() {
+                                  window.frames[0].print();
+                                }
+                              </script>
+                            </body>
+                          </html>
+                        `);
+                      }
+                    }}
                     style={{
                       padding: '8px 16px',
                       backgroundColor: '#28a745',
