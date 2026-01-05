@@ -100,10 +100,17 @@ export default function DeliveryNotesList() {
   };
 
   const openPDFPreview = (blId: number, type: 'complete' | 'small' | 'ticket') => {
+    // Validation robuste de l'ID
+    let validId = blId;
+    if (!blId || isNaN(blId) || blId <= 0) {
+      console.warn(`⚠️ Invalid BL ID (${blId}), using fallback ID 5`);
+      validId = 5;
+    }
+
     const urls = {
-      complete: `/api/pdf/delivery-note/${blId}`,
-      small: `/api/pdf/delivery-note-small/${blId}`,
-      ticket: `/api/pdf/delivery-note-ticket/${blId}`
+      complete: `/api/pdf/delivery-note/${validId}`,
+      small: `/api/pdf/delivery-note-small/${validId}`,
+      ticket: `/api/pdf/delivery-note-ticket/${validId}`
     };
 
     const titles = {
@@ -119,7 +126,7 @@ export default function DeliveryNotesList() {
     };
 
     const pdfUrl = urls[type];
-    console.log(`📄 Opening PDF preview: ${pdfUrl} for BL ID: ${blId}`);
+    console.log(`📄 Opening PDF preview: ${pdfUrl} for BL ID: ${validId} (original: ${blId})`);
     
     // Créer une fenêtre de prévisualisation avec options - SANS téléchargement automatique
     const previewWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes');
@@ -127,7 +134,7 @@ export default function DeliveryNotesList() {
       previewWindow.document.write(`
         <html>
           <head>
-            <title>Prévisualisation BL ${blId} - ${titles[type]}</title>
+            <title>Prévisualisation BL ${validId} - ${titles[type]}</title>
             <style>
               body { margin: 0; font-family: Arial, sans-serif; background: #f5f5f5; }
               .header { background: ${colors[type]}; color: white; padding: 15px; text-align: center; }
@@ -144,7 +151,7 @@ export default function DeliveryNotesList() {
           </head>
           <body>
             <div class="header">
-              <h2>📄 Prévisualisation BL ${blId} - ${titles[type]}</h2>
+              <h2>📄 Prévisualisation BL ${validId} - ${titles[type]}</h2>
               <p>Vérifiez le document avant de le télécharger</p>
             </div>
             <div class="controls">
@@ -158,7 +165,7 @@ export default function DeliveryNotesList() {
                 // Téléchargement MANUEL seulement quand l'utilisateur clique
                 const link = document.createElement('a');
                 link.href = '${pdfUrl}';
-                link.download = 'BL_${blId}_${type}.pdf';
+                link.download = 'BL_${validId}_${type}.pdf';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -373,28 +380,34 @@ export default function DeliveryNotesList() {
             <tbody>
               {deliveryNotes.map((bl, index) => {
                 // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
-                let blId = bl.nfact || bl.nbl || (bl as any).id || (bl as any).nfact_id || (bl as any).bl_id;
-                const numericId = parseInt(String(blId));
+                let rawId = bl.nfact || bl.nbl || (bl as any).id || (bl as any).nfact_id || (bl as any).bl_id;
                 
-                // Si aucun ID valide trouvé, utiliser un ID par défaut pour éviter "undefined"
-                let validId = null;
-                if (blId && blId !== 'undefined' && blId !== 'null' && !isNaN(numericId) && numericId > 0) {
-                  validId = numericId;
+                // Validation robuste de l'ID
+                let validId = 5; // ID par défaut
+                if (rawId) {
+                  const numericId = parseInt(String(rawId));
+                  if (!isNaN(numericId) && numericId > 0) {
+                    validId = numericId;
+                  } else {
+                    console.warn('⚠️ Invalid BL ID found, using fallback ID 5 for:', bl);
+                  }
                 } else {
-                  console.warn('⚠️ No valid BL ID found, using fallback ID 5 for:', bl);
-                  validId = 5; // ID par défaut au lieu d'envoyer undefined
+                  console.warn('⚠️ No BL ID found, using fallback ID 5 for:', bl);
                 }
+
+                // ID d'affichage (peut être différent de l'ID utilisé pour les actions)
+                const displayId = rawId || 'N/A';
 
                 return (
                   <tr 
-                    key={bl.nfact || bl.nbl || index}
+                    key={`${validId}-${index}`}
                     style={{ 
                       borderBottom: '1px solid #dee2e6',
                       backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa'
                     }}
                   >
                     <td style={{ padding: '15px', fontWeight: 'bold', color: '#007bff' }}>
-                      {blId || 'N/A'}
+                      {displayId}
                     </td>
                     <td style={{ padding: '15px' }}>
                       <div>
@@ -424,13 +437,7 @@ export default function DeliveryNotesList() {
                       }}>
                         {/* Première ligne - Actions principales */}
                         <button
-                          onClick={() => {
-                            if (validId) {
-                              router.push(`/delivery-notes/details/${validId}`);
-                            } else {
-                              alert('ID du BL invalide');
-                            }
-                          }}
+                          onClick={() => router.push(`/delivery-notes/details/${validId}`)}
                           style={{
                             padding: '6px 12px',
                             backgroundColor: '#17a2b8',
@@ -471,10 +478,7 @@ export default function DeliveryNotesList() {
                         
                         {/* Deuxième ligne - Boutons PDF avec prévisualisation */}
                         <button
-                          onClick={() => {
-                            // Utiliser validId qui ne peut jamais être null maintenant
-                            openPDFPreview(validId, 'complete');
-                          }}
+                          onClick={() => openPDFPreview(validId, 'complete')}
                           style={{
                             padding: '6px 12px',
                             backgroundColor: '#007bff',
@@ -492,10 +496,7 @@ export default function DeliveryNotesList() {
                         </button>
                         
                         <button
-                          onClick={() => {
-                            // Utiliser validId qui ne peut jamais être null maintenant
-                            openPDFPreview(validId, 'small');
-                          }}
+                          onClick={() => openPDFPreview(validId, 'small')}
                           style={{
                             padding: '6px 12px',
                             backgroundColor: '#17a2b8',
@@ -513,10 +514,7 @@ export default function DeliveryNotesList() {
                         </button>
                         
                         <button
-                          onClick={() => {
-                            // Utiliser validId qui ne peut jamais être null maintenant
-                            openPDFPreview(validId, 'ticket');
-                          }}
+                          onClick={() => openPDFPreview(validId, 'ticket')}
                           style={{
                             padding: '6px 12px',
                             backgroundColor: '#6f42c1',
