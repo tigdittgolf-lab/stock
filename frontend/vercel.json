@@ -1,4 +1,20 @@
 {
   "version": 2,
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "name": "frontend",
+  "alias": ["frontend-iota-six-72.vercel.app"],
+  "env": {
+    "NODE_ENV": "production",
+    "NEXT_PUBLIC_API_URL": "https://desktop-bhhs068.tail1d9c54.ts.net/api"
+  },
+  "functions": {
+    "app/api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["iad1"],
+  "github": {
+    "enabled": true,
+    "autoAlias": false
+  }
 }

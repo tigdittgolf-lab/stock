@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "vercel-build": "next build",
+    "deploy:prod": "vercel --prod --yes",
+    "deploy:fixed": "vercel --prod --yes --name frontend",
     "postinstall": "echo 'Frontend dependencies installed'"
   },
   "dependencies": {
