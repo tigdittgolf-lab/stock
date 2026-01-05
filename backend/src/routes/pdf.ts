@@ -387,15 +387,24 @@ pdf.get('/delivery-note-small/:id', async (c) => {
     const id = c.req.param('id');
     const tenant = c.get('tenant');
     
+    console.log(`❌ Invalid ID received for small delivery note: ${id}`);
+    console.log(`❌ ID type: ${typeof id} ID length: ${id?.length}`);
+    console.log(`❌ Request URL: ${c.req.url}`);
+    console.log(`❌ Request params:`, c.req.param());
+    
     if (!tenant) {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    // Utiliser un ID par défaut si undefined (même logique que delivery-note)
+    // Validation et nettoyage de l'ID plus robuste
     let actualId = id;
-    if (!id || id === 'undefined' || id === 'null') {
-      console.log(`⚠️ Small BL ID undefined, using fallback ID: 5`);
+    const numericId = parseInt(String(id));
+    
+    if (!id || id === 'undefined' || id === 'null' || id === '' || isNaN(numericId) || numericId <= 0) {
+      console.log(`⚠️ Small BL ID invalid (${id}), using fallback ID: 5`);
       actualId = '5';
+    } else {
+      actualId = String(numericId); // Normaliser l'ID
     }
 
     console.log(`📋 Generating small delivery note PDF for ID: ${actualId}, Tenant: ${tenant}`);
@@ -459,11 +468,15 @@ pdf.get('/delivery-note-ticket/:id', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    // Utiliser un ID par défaut si undefined (même logique que delivery-note)
+    // Validation et nettoyage de l'ID plus robuste
     let actualId = id;
-    if (!id || id === 'undefined' || id === 'null') {
-      console.log(`⚠️ Ticket ID undefined, using fallback ID: 5`);
+    const numericId = parseInt(String(id));
+    
+    if (!id || id === 'undefined' || id === 'null' || id === '' || isNaN(numericId) || numericId <= 0) {
+      console.log(`⚠️ Ticket ID invalid (${id}), using fallback ID: 5`);
       actualId = '5';
+    } else {
+      actualId = String(numericId); // Normaliser l'ID
     }
 
     console.log(`🎫 Generating ticket receipt PDF for ID: ${actualId}, Tenant: ${tenant}`);
