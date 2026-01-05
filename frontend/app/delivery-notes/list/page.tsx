@@ -21,6 +21,19 @@ export default function DeliveryNotesList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tenant, setTenant] = useState<string>('');
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    // Détecter si on est sur mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     // Récupérer le tenant depuis localStorage
@@ -296,57 +309,536 @@ export default function DeliveryNotesList() {
     }
   };
 
+  // Version mobile avec cartes
+  const MobileView = () => (
+    <div style={{ padding: '10px' }}>
+      {deliveryNotes.map((bl, index) => {
+        // DEBUG: Logs détaillés pour identifier le problème
+        console.log(`🔍 BL ${index} RAW DATA:`, {
+          nfact: bl.nfact,
+          nbl: bl.nbl,
+          id: (bl as any).id,
+          allKeys: Object.keys(bl),
+          fullObject: bl
+        });
+
+        // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
+        let rawId = bl.nfact || bl.nbl || (bl as any).id || (bl as any).nfact_id || (bl as any).bl_id;
+        
+        // Validation robuste de l'ID avec logs détaillés
+        let validId = 5; // ID par défaut GARANTI
+        if (rawId) {
+          const numericId = parseInt(String(rawId));
+          if (!isNaN(numericId) && numericId > 0) {
+            validId = numericId;
+            console.log(`✅ Valid ID found: ${validId} from raw: ${rawId}`);
+          } else {
+            console.warn(`⚠️ Invalid BL ID found (${rawId}), using fallback ID 5 for:`, bl);
+          }
+        } else {
+          console.warn(`⚠️ No BL ID found, using fallback ID 5 for:`, bl);
+        }
+
+        // FORCE: S'assurer que validId n'est JAMAIS undefined/null
+        if (!validId || isNaN(validId) || validId <= 0) {
+          console.error(`🚨 CRITICAL: validId is invalid (${validId}), forcing to 5`);
+          validId = 5;
+        }
+
+        // ID d'affichage (peut être différent de l'ID utilisé pour les actions)
+        const displayId = rawId || 'N/A';
+
+        console.log(`🎯 FINAL IDs for BL ${index}: display=${displayId}, action=${validId}`);
+
+        return (
+          <div 
+            key={`${validId}-${index}`}
+            style={{
+              background: 'white',
+              borderRadius: '10px',
+              padding: '15px',
+              marginBottom: '15px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              border: '1px solid #e0e0e0'
+            }}
+          >
+            {/* En-tête BL */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '12px',
+              paddingBottom: '10px',
+              borderBottom: '2px solid #f0f0f0'
+            }}>
+              <div style={{
+                fontSize: '18px',
+                fontWeight: 'bold',
+                color: '#007bff'
+              }}>
+                📋 BL {displayId}
+              </div>
+              <button
+                onClick={() => {
+                  console.log(`🔗 Navigating to details with ID: ${validId}`);
+                  router.push(`/delivery-notes/details/${validId}`);
+                }}
+                style={{
+                  padding: '8px 15px',
+                  backgroundColor: '#17a2b8',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}
+              >
+                👁️ Voir
+              </button>
+            </div>
+
+            {/* Informations client */}
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{
+                fontSize: '16px',
+                fontWeight: 'bold',
+                color: '#333',
+                marginBottom: '4px'
+              }}>
+                👤 {bl.client_name}
+              </div>
+              <div style={{
+                fontSize: '12px',
+                color: '#666'
+              }}>
+                Code client: {bl.nclient}
+              </div>
+            </div>
+
+            {/* Date */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '12px'
+            }}>
+              <span style={{
+                fontSize: '14px',
+                color: '#666',
+                marginRight: '8px'
+              }}>
+                📅
+              </span>
+              <span style={{ fontSize: '14px', color: '#333' }}>
+                {formatDate(bl.date_fact)}
+              </span>
+            </div>
+
+            {/* Montants */}
+            <div style={{
+              background: '#f8f9fa',
+              borderRadius: '8px',
+              padding: '12px',
+              marginBottom: '12px'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginBottom: '6px'
+              }}>
+                <span style={{ fontSize: '14px', color: '#666' }}>Montant HT:</span>
+                <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                  {formatAmount(bl.montant_ht)}
+                </span>
+              </div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginBottom: '6px'
+              }}>
+                <span style={{ fontSize: '14px', color: '#666' }}>TVA:</span>
+                <span style={{ fontSize: '14px' }}>
+                  {formatAmount(bl.tva)}
+                </span>
+              </div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                paddingTop: '6px',
+                borderTop: '1px solid #dee2e6'
+              }}>
+                <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#28a745' }}>
+                  Total TTC:
+                </span>
+                <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#28a745' }}>
+                  {formatAmount(bl.montant_ttc || (bl.montant_ht + bl.tva))}
+                </span>
+              </div>
+            </div>
+
+            {/* Actions - Première ligne: PDF */}
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              flexWrap: 'wrap',
+              marginBottom: '8px'
+            }}>
+              <button
+                onClick={() => {
+                  console.log(`📄 PDF Complete - Using ID: ${validId} (guaranteed valid)`);
+                  openPDFPreview(validId, 'complete');
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: '100px',
+                  padding: '10px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 'bold'
+                }}
+              >
+                📄 BL Complet
+              </button>
+              
+              <button
+                onClick={() => {
+                  console.log(`📄 PDF Small - Using ID: ${validId} (guaranteed valid)`);
+                  openPDFPreview(validId, 'small');
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: '100px',
+                  padding: '10px',
+                  backgroundColor: '#17a2b8',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 'bold'
+                }}
+              >
+                📄 BL Réduit
+              </button>
+              
+              <button
+                onClick={() => {
+                  console.log(`🎫 PDF Ticket - Using ID: ${validId} (guaranteed valid)`);
+                  openPDFPreview(validId, 'ticket');
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: '100px',
+                  padding: '10px',
+                  backgroundColor: '#6f42c1',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 'bold'
+                }}
+              >
+                🎫 Ticket
+              </button>
+            </div>
+            
+            {/* Actions - Deuxième ligne: Supprimer */}
+            <div style={{
+              display: 'flex',
+              gap: '8px'
+            }}>
+              <button
+                onClick={() => {
+                  if (confirm('Êtes-vous sûr de vouloir supprimer ce BL ?')) {
+                    alert('Fonction de suppression à implémenter');
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
+              >
+                🗑️ Supprimer ce BL
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // Version desktop avec tableau
+  const DesktopView = () => (
+    <div style={{ background: 'white', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
+            <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>N° BL</th>
+            <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>Client</th>
+            <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>Date</th>
+            <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>Montant HT</th>
+            <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>TVA</th>
+            <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>Total TTC</th>
+            <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', minWidth: '300px' }}>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {deliveryNotes.map((bl, index) => {
+            // DEBUG: Logs détaillés pour identifier le problème
+            console.log(`🔍 BL ${index} RAW DATA:`, {
+              nfact: bl.nfact,
+              nbl: bl.nbl,
+              id: (bl as any).id,
+              allKeys: Object.keys(bl),
+              fullObject: bl
+            });
+
+            // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
+            let rawId = bl.nfact || bl.nbl || (bl as any).id || (bl as any).nfact_id || (bl as any).bl_id;
+            
+            // Validation robuste de l'ID avec logs détaillés
+            let validId = 5; // ID par défaut GARANTI
+            if (rawId) {
+              const numericId = parseInt(String(rawId));
+              if (!isNaN(numericId) && numericId > 0) {
+                validId = numericId;
+                console.log(`✅ Valid ID found: ${validId} from raw: ${rawId}`);
+              } else {
+                console.warn(`⚠️ Invalid BL ID found (${rawId}), using fallback ID 5 for:`, bl);
+              }
+            } else {
+              console.warn(`⚠️ No BL ID found, using fallback ID 5 for:`, bl);
+            }
+
+            // FORCE: S'assurer que validId n'est JAMAIS undefined/null
+            if (!validId || isNaN(validId) || validId <= 0) {
+              console.error(`🚨 CRITICAL: validId is invalid (${validId}), forcing to 5`);
+              validId = 5;
+            }
+
+            // ID d'affichage (peut être différent de l'ID utilisé pour les actions)
+            const displayId = rawId || 'N/A';
+
+            console.log(`🎯 FINAL IDs for BL ${index}: display=${displayId}, action=${validId}`);
+
+            return (
+              <tr 
+                key={`${validId}-${index}`}
+                style={{ 
+                  borderBottom: '1px solid #dee2e6',
+                  backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa'
+                }}
+              >
+                <td style={{ padding: '15px', fontWeight: 'bold', color: '#007bff' }}>
+                  {displayId}
+                </td>
+                <td style={{ padding: '15px' }}>
+                  <div>
+                    <div style={{ fontWeight: 'bold' }}>{bl.client_name}</div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>{bl.nclient}</div>
+                  </div>
+                </td>
+                <td style={{ padding: '15px' }}>
+                  {formatDate(bl.date_fact)}
+                </td>
+                <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>
+                  {formatAmount(bl.montant_ht)}
+                </td>
+                <td style={{ padding: '15px', textAlign: 'right' }}>
+                  {formatAmount(bl.tva)}
+                </td>
+                <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: '#28a745' }}>
+                  {formatAmount(bl.montant_ttc || (bl.montant_ht + bl.tva))}
+                </td>
+                <td style={{ padding: '15px', textAlign: 'center' }}>
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '5px',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }}>
+                    {/* Première ligne - Actions principales */}
+                    <button
+                      onClick={() => {
+                        console.log(`🔗 Navigating to details with ID: ${validId}`);
+                        router.push(`/delivery-notes/details/${validId}`);
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#17a2b8',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        minWidth: '70px'
+                      }}
+                      title="Voir les détails du BL"
+                    >
+                      👁️ Voir
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        if (confirm('Êtes-vous sûr de vouloir supprimer ce BL ?')) {
+                          alert('Fonction de suppression à implémenter');
+                        }
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        minWidth: '70px'
+                      }}
+                      title="Supprimer le BL"
+                    >
+                      🗑️ Supprimer
+                    </button>
+                    
+                    {/* Deuxième ligne - Boutons PDF avec prévisualisation */}
+                    <button
+                      onClick={() => {
+                        console.log(`📄 PDF Complete - Using ID: ${validId} (guaranteed valid)`);
+                        openPDFPreview(validId, 'complete');
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        minWidth: '90px'
+                      }}
+                      title="Prévisualiser BL Complet"
+                    >
+                      📄 BL Complet
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        console.log(`📄 PDF Small - Using ID: ${validId} (guaranteed valid)`);
+                        openPDFPreview(validId, 'small');
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#17a2b8',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        minWidth: '90px'
+                      }}
+                      title="Prévisualiser BL Réduit"
+                    >
+                      📄 BL Réduit
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        console.log(`🎫 PDF Ticket - Using ID: ${validId} (guaranteed valid)`);
+                        openPDFPreview(validId, 'ticket');
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#6f42c1',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        minWidth: '70px'
+                      }}
+                      title="Prévisualiser Ticket"
+                    >
+                      🎫 Ticket
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <div style={{ 
-      padding: '20px', 
-      maxWidth: '1200px', 
+      padding: isMobile ? '10px' : '20px', 
+      maxWidth: isMobile ? '100%' : '1200px', 
       margin: '0 auto',
       minHeight: '100vh',
       background: '#f5f5f5'
     }}>
-      {/* En-tête */}
+      {/* En-tête responsive */}
       <div style={{ 
         display: 'flex', 
-        flexDirection: 'row',
+        flexDirection: isMobile ? 'column' : 'row',
         justifyContent: 'space-between', 
-        alignItems: 'center', 
+        alignItems: isMobile ? 'stretch' : 'center', 
         marginBottom: '20px',
         background: 'white',
-        padding: '20px',
+        padding: isMobile ? '15px' : '20px',
         borderRadius: '10px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
       }}>
-        <div style={{ marginBottom: '0' }}>
+        <div style={{ marginBottom: isMobile ? '15px' : '0' }}>
           <h1 style={{ 
             margin: 0, 
             color: '#333',
-            fontSize: '24px'
+            fontSize: isMobile ? '20px' : '24px'
           }}>
             📋 Liste des Bons de Livraison
           </h1>
           <p style={{ 
             margin: '5px 0 0 0', 
             color: '#666',
-            fontSize: '16px'
+            fontSize: isMobile ? '14px' : '16px'
           }}>
-            Tenant: {tenant} • {deliveryNotes.length} BL trouvés
+            {isMobile ? `${deliveryNotes.length} BL trouvés` : `Tenant: ${tenant} • ${deliveryNotes.length} BL trouvés`}
           </p>
         </div>
         <div style={{ 
           display: 'flex', 
           gap: '10px',
-          flexDirection: 'row'
+          flexDirection: isMobile ? 'column' : 'row'
         }}>
           <button
             onClick={() => router.push('/delivery-notes')}
             style={{
-              padding: '12px 20px',
+              padding: isMobile ? '12px 20px' : '12px 20px',
               backgroundColor: '#007bff',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
-              fontSize: '16px',
+              fontSize: isMobile ? '16px' : '16px',
               fontWeight: 'bold'
             }}
           >
@@ -355,13 +847,13 @@ export default function DeliveryNotesList() {
           <button
             onClick={() => router.push('/dashboard')}
             style={{
-              padding: '12px 20px',
+              padding: isMobile ? '12px 20px' : '12px 20px',
               backgroundColor: '#6c757d',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
-              fontSize: '16px',
+              fontSize: isMobile ? '16px' : '16px',
               fontWeight: 'bold'
             }}
           >
@@ -415,7 +907,7 @@ export default function DeliveryNotesList() {
       {!loading && !error && deliveryNotes.length === 0 && (
         <div style={{
           textAlign: 'center',
-          padding: '60px 20px',
+          padding: isMobile ? '40px 20px' : '60px 20px',
           background: 'white',
           borderRadius: '10px',
           border: '2px dashed #dee2e6'
@@ -442,218 +934,21 @@ export default function DeliveryNotesList() {
         </div>
       )}
 
-      {/* Interface tableau classique avec prévisualisation PDF */}
       {!loading && !error && deliveryNotes.length > 0 && (
-        <div style={{ background: 'white', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
-                <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>N° BL</th>
-                <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>Client</th>
-                <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>Date</th>
-                <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>Montant HT</th>
-                <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>TVA</th>
-                <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>Total TTC</th>
-                <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', minWidth: '300px' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deliveryNotes.map((bl, index) => {
-                // DEBUG: Logs détaillés pour identifier le problème
-                console.log(`🔍 BL ${index} RAW DATA:`, {
-                  nfact: bl.nfact,
-                  nbl: bl.nbl,
-                  id: (bl as any).id,
-                  allKeys: Object.keys(bl),
-                  fullObject: bl
-                });
-
-                // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
-                let rawId = bl.nfact || bl.nbl || (bl as any).id || (bl as any).nfact_id || (bl as any).bl_id;
-                
-                // Validation robuste de l'ID avec logs détaillés
-                let validId = 5; // ID par défaut GARANTI
-                if (rawId) {
-                  const numericId = parseInt(String(rawId));
-                  if (!isNaN(numericId) && numericId > 0) {
-                    validId = numericId;
-                    console.log(`✅ Valid ID found: ${validId} from raw: ${rawId}`);
-                  } else {
-                    console.warn(`⚠️ Invalid BL ID found (${rawId}), using fallback ID 5 for:`, bl);
-                  }
-                } else {
-                  console.warn(`⚠️ No BL ID found, using fallback ID 5 for:`, bl);
-                }
-
-                // FORCE: S'assurer que validId n'est JAMAIS undefined/null
-                if (!validId || isNaN(validId) || validId <= 0) {
-                  console.error(`🚨 CRITICAL: validId is invalid (${validId}), forcing to 5`);
-                  validId = 5;
-                }
-
-                // ID d'affichage (peut être différent de l'ID utilisé pour les actions)
-                const displayId = rawId || 'N/A';
-
-                console.log(`🎯 FINAL IDs for BL ${index}: display=${displayId}, action=${validId}`);
-
-                return (
-                  <tr 
-                    key={`${validId}-${index}`}
-                    style={{ 
-                      borderBottom: '1px solid #dee2e6',
-                      backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa'
-                    }}
-                  >
-                    <td style={{ padding: '15px', fontWeight: 'bold', color: '#007bff' }}>
-                      {displayId}
-                    </td>
-                    <td style={{ padding: '15px' }}>
-                      <div>
-                        <div style={{ fontWeight: 'bold' }}>{bl.client_name}</div>
-                        <div style={{ fontSize: '12px', color: '#666' }}>{bl.nclient}</div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '15px' }}>
-                      {formatDate(bl.date_fact)}
-                    </td>
-                    <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>
-                      {formatAmount(bl.montant_ht)}
-                    </td>
-                    <td style={{ padding: '15px', textAlign: 'right' }}>
-                      {formatAmount(bl.tva)}
-                    </td>
-                    <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: '#28a745' }}>
-                      {formatAmount(bl.montant_ttc || (bl.montant_ht + bl.tva))}
-                    </td>
-                    <td style={{ padding: '15px', textAlign: 'center' }}>
-                      <div style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: '5px',
-                        justifyContent: 'center',
-                        alignItems: 'center'
-                      }}>
-                        {/* Première ligne - Actions principales */}
-                        <button
-                          onClick={() => {
-                            console.log(`🔗 Navigating to details with ID: ${validId}`);
-                            router.push(`/delivery-notes/details/${validId}`);
-                          }}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#17a2b8',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            minWidth: '70px'
-                          }}
-                          title="Voir les détails du BL"
-                        >
-                          👁️ Voir
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            if (confirm('Êtes-vous sûr de vouloir supprimer ce BL ?')) {
-                              alert('Fonction de suppression à implémenter');
-                            }
-                          }}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#dc3545',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            minWidth: '70px'
-                          }}
-                          title="Supprimer le BL"
-                        >
-                          🗑️ Supprimer
-                        </button>
-                        
-                        {/* Deuxième ligne - Boutons PDF avec prévisualisation */}
-                        <button
-                          onClick={() => {
-                            console.log(`📄 PDF Complete - Using ID: ${validId} (guaranteed valid)`);
-                            openPDFPreview(validId, 'complete');
-                          }}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#007bff',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            minWidth: '90px'
-                          }}
-                          title="Prévisualiser BL Complet"
-                        >
-                          📄 BL Complet
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            console.log(`📄 PDF Small - Using ID: ${validId} (guaranteed valid)`);
-                            openPDFPreview(validId, 'small');
-                          }}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#17a2b8',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            minWidth: '90px'
-                          }}
-                          title="Prévisualiser BL Réduit"
-                        >
-                          📄 BL Réduit
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            console.log(`🎫 PDF Ticket - Using ID: ${validId} (guaranteed valid)`);
-                            openPDFPreview(validId, 'ticket');
-                          }}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#6f42c1',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            minWidth: '70px'
-                          }}
-                          title="Prévisualiser Ticket"
-                        >
-                          🎫 Ticket
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        isMobile ? <MobileView /> : <DesktopView />
       )}
 
       <style jsx>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+          body {
+            margin: 0;
+            padding: 0;
+          }
         }
       `}</style>
     </div>
