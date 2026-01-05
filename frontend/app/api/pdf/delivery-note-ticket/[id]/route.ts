@@ -8,10 +8,10 @@ export async function GET(
     const { id } = params;
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     
-    console.log(`🔄 Frontend PDF API: Forwarding ticket delivery note PDF request for ID ${id}, tenant ${tenant}`);
-    
-    // Utiliser Tailscale tunnel pour accéder au backend local
-    const backendUrl = 'https://desktop-bhhs068.tail1d9c54.ts.net/api/pdf/delivery-note-ticket/' + id;
+    console.log(`🎫 Frontend PDF Proxy - Ticket ID: ${id}, Tenant: ${tenant}`);
+
+    // Faire la requête vers le backend local via le proxy frontend
+    const backendUrl = `https://desktop-bhhs068.tail1d9c54.ts.net/api/pdf/delivery-note-ticket/${id}`;
     
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -22,44 +22,35 @@ export async function GET(
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ Backend PDF error: ${response.status} - ${errorText}`);
-      
-      return NextResponse.json({
-        success: false,
-        error: `Backend PDF error: ${response.status} - ${errorText}`
-      }, { status: response.status });
+      console.error(`❌ Backend PDF error: ${response.status} - ${await response.text()}`);
+      return NextResponse.json(
+        { success: false, error: `Backend PDF error: ${response.status} - ${await response.text()}` },
+        { status: response.status }
+      );
     }
 
-    // Vérifier si c'est un PDF ou une erreur JSON
-    const contentType = response.headers.get('content-type');
+    // Récupérer le PDF comme buffer
+    const pdfBuffer = await response.arrayBuffer();
     
-    if (contentType?.includes('application/pdf')) {
-      // C'est un PDF, le transférer directement
-      const pdfBuffer = await response.arrayBuffer();
-      
-      console.log(`✅ Frontend PDF API: Successfully forwarded ticket PDF for delivery note ${id}`);
-      
-      return new NextResponse(pdfBuffer, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="bon_livraison_ticket_${id}.pdf"`
-        }
-      });
-    } else {
-      // C'est probablement une erreur JSON
-      const errorData = await response.json();
-      console.error(`❌ Backend returned error:`, errorData);
-      
-      return NextResponse.json(errorData, { status: response.status });
-    }
+    console.log(`✅ PDF ticket généré avec succès pour BL ${id}, taille: ${pdfBuffer.byteLength} bytes`);
+
+    // Retourner le PDF avec les bons headers
+    return new NextResponse(pdfBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="ticket_${id}.pdf"`,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
 
   } catch (error) {
-    console.error('❌ Frontend PDF API error:', error);
-    return NextResponse.json({
-      success: false,
-      error: `Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
-    }, { status: 500 });
+    console.error('❌ Error in PDF ticket proxy:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to generate ticket PDF' },
+      { status: 500 }
+    );
   }
 }
