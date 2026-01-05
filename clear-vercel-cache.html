@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vider le Cache Vercel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .danger {
+            background: #dc3545;
+        }
+        .danger:hover {
+            background: #c82333;
+        }
+        .success {
+            background: #28a745;
+        }
+        .success:hover {
+            background: #218838;
+        }
+        .info {
+            background: #17a2b8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Vider le Cache Vercel</h1>
+        
+        <div class="info">
+            <h3>📋 Problème Identifié</h3>
+            <p>Le frontend envoie encore "undefined" comme ID malgré les corrections. Cela indique un problème de cache.</p>
+        </div>
+
+        <h2>🛠️ Solutions</h2>
+        
+        <h3>1. Vider le Cache du Navigateur</h3>
+        <button class="button danger" onclick="clearBrowserCache()">
+            🗑️ Vider Cache Navigateur
+        </button>
+        
+        <h3>2. Forcer Rechargement Sans Cache</h3>
+        <button class="button" onclick="forceReload()">
+            🔄 Rechargement Forcé (Ctrl+F5)
+        </button>
+        
+        <h3>3. Ouvrir en Mode Incognito</h3>
+        <button class="button success" onclick="openIncognito()">
+            🕵️ Mode Incognito
+        </button>
+        
+        <h3>4. Tester l'URL Principale</h3>
+        <a href="https://frontend-iota-six-72.vercel.app" target="_blank" class="button">
+            🌐 Ouvrir URL Principale
+        </a>
+        
+        <h3>5. Tester avec Paramètre Anti-Cache</h3>
+        <button class="button" onclick="openWithCacheBuster()">
+            ⚡ Ouvrir avec Anti-Cache
+        </button>
+
+        <div class="info">
+            <h3>📝 Instructions</h3>
+            <ol>
+                <li>Cliquez sur "Vider Cache Navigateur"</li>
+                <li>Fermez tous les onglets de l'application</li>
+                <li>Ouvrez l'application en mode incognito</li>
+                <li>Testez les boutons PDF</li>
+            </ol>
+        </div>
+
+        <div id="status" style="margin-top: 20px; padding: 15px; border-radius: 5px; display: none;"></div>
+    </div>
+
+    <script>
+        function clearBrowserCache() {
+            // Vider le localStorage
+            localStorage.clear();
+            
+            // Vider le sessionStorage
+            sessionStorage.clear();
+            
+            // Forcer le rechargement sans cache
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    for (let name of names) {
+                        caches.delete(name);
+                    }
+                });
+            }
+            
+            showStatus('✅ Cache vidé ! Fermez tous les onglets et rouvrez l\'application.', 'success');
+        }
+        
+        function forceReload() {
+            // Recharger sans cache
+            window.location.reload(true);
+        }
+        
+        function openIncognito() {
+            showStatus('🕵️ Ouvrez une fenêtre de navigation privée/incognito et allez sur l\'URL principale.', 'info');
+        }
+        
+        function openWithCacheBuster() {
+            const url = 'https://frontend-iota-six-72.vercel.app?v=' + Date.now();
+            window.open(url, '_blank');
+        }
+        
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.display = 'block';
+            status.className = type;
+            
+            if (type === 'success') {
+                status.style.background = '#d4edda';
+                status.style.color = '#155724';
+                status.style.border = '1px solid #c3e6cb';
+            } else if (type === 'info') {
+                status.style.background = '#d1ecf1';
+                status.style.color = '#0c5460';
+                status.style.border = '1px solid #bee5eb';
+            }
+        }
+        
+        // Vérifier la version du cache
+        console.log('🔍 Cache Check:', {
+            localStorage: Object.keys(localStorage).length + ' items',
+            sessionStorage: Object.keys(sessionStorage).length + ' items',
+            timestamp: new Date().toISOString()
+        });
+    </script>
+</body>
+</html>

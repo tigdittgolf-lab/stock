@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fix ID Undefined</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .success {
+            background: #28a745;
+        }
+        .success:hover {
+            background: #218838;
+        }
+        .warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        .warning:hover {
+            background: #e0a800;
+        }
+        .info {
+            background: #17a2b8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            color: white;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            display: none;
+        }
+        .logs {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Test Fix ID Undefined</h1>
+        
+        <div class="info">
+            <h3>📋 Objectif</h3>
+            <p>Tester que les corrections pour les IDs "undefined" fonctionnent correctement.</p>
+        </div>
+
+        <h2>🌐 URLs de Test</h2>
+        
+        <h3>1. URL Principale (Recommandée)</h3>
+        <a href="https://frontend-iota-six-72.vercel.app" target="_blank" class="button success">
+            🌐 Ouvrir URL Principale
+        </a>
+        
+        <h3>2. Dernière URL de Déploiement</h3>
+        <a href="https://frontend-hz2x382d1-tigdittgolf-9191s-projects.vercel.app" target="_blank" class="button">
+            🚀 Ouvrir Dernière Version
+        </a>
+        
+        <h3>3. Test avec Cache Buster</h3>
+        <button class="button warning" onclick="openWithCacheBuster()">
+            ⚡ Ouvrir avec Anti-Cache
+        </button>
+
+        <h2>🧪 Tests à Effectuer</h2>
+        
+        <div style="background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h4>📝 Checklist de Test</h4>
+            <ol>
+                <li>✅ Ouvrir l'application (URL principale)</li>
+                <li>✅ Se connecter avec vos identifiants</li>
+                <li>✅ Aller sur "Liste des BL"</li>
+                <li>✅ Ouvrir la console du navigateur (F12)</li>
+                <li>✅ Cliquer sur un bouton PDF (BL Complet, BL Réduit, ou Ticket)</li>
+                <li>✅ Vérifier les logs dans la console</li>
+                <li>✅ Vérifier qu'aucune erreur "undefined" n'apparaît</li>
+                <li>✅ Vérifier que le PDF s'ouvre en prévisualisation</li>
+            </ol>
+        </div>
+
+        <h2>🔍 Logs Attendus</h2>
+        
+        <div class="logs">
+            <strong>✅ Logs Corrects (ce que vous devriez voir) :</strong><br>
+            🔍 BL 0 RAW DATA: { nfact: 5, nbl: 5, ... }<br>
+            ✅ Valid ID found: 5 from raw: 5<br>
+            🎯 FINAL IDs for BL 0: display=5, action=5<br>
+            📄 PDF Complete - Using ID: 5 (guaranteed valid)<br>
+            🔍 openPDFPreview called with: { blId: 5, type: "complete", blIdType: "number" }<br>
+            ✅ Final validated ID: 5 for type: complete<br>
+            📄 Opening PDF preview: /api/pdf/delivery-note/5 for BL ID: 5<br>
+            <br>
+            <strong>❌ Logs Incorrects (ce qui ne devrait PLUS apparaître) :</strong><br>
+            🎫 Ticket PDF Request - ID: "undefined", Type: string, Tenant: 2025_bu01<br>
+            ❌ Invalid ID received for ticket: undefined<br>
+            ❌ ID type: string ID length: 9 Parsed: NaN
+        </div>
+
+        <h2>🛠️ Actions de Dépannage</h2>
+        
+        <button class="button" onclick="clearAllCache()">
+            🗑️ Vider Tout le Cache
+        </button>
+        
+        <button class="button" onclick="checkDeploymentStatus()">
+            📊 Vérifier Statut Déploiement
+        </button>
+        
+        <button class="button warning" onclick="openDevTools()">
+            🔧 Instructions Console
+        </button>
+
+        <div id="status" class="status"></div>
+        
+        <h2>📞 Support</h2>
+        <div style="background: #e7f3ff; padding: 15px; border-radius: 5px;">
+            <p><strong>Si le problème persiste :</strong></p>
+            <ol>
+                <li>Copiez les logs de la console</li>
+                <li>Indiquez quelle URL vous utilisez</li>
+                <li>Précisez quel bouton PDF ne fonctionne pas</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function openWithCacheBuster() {
+            const timestamp = Date.now();
+            const url = `https://frontend-iota-six-72.vercel.app?v=${timestamp}&cache=false`;
+            window.open(url, '_blank');
+            showStatus(`🚀 Ouverture avec anti-cache: ${url}`, 'info');
+        }
+        
+        function clearAllCache() {
+            // Vider le localStorage
+            localStorage.clear();
+            
+            // Vider le sessionStorage
+            sessionStorage.clear();
+            
+            // Vider les caches du service worker
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    for (let name of names) {
+                        caches.delete(name);
+                    }
+                });
+            }
+            
+            showStatus('✅ Cache vidé ! Fermez tous les onglets et rouvrez l\'application.', 'success');
+        }
+        
+        function checkDeploymentStatus() {
+            showStatus('🔍 Vérification du statut de déploiement...', 'info');
+            
+            // Test de l'URL principale
+            fetch('https://frontend-iota-six-72.vercel.app', { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        showStatus('✅ URL principale accessible. Déploiement OK.', 'success');
+                    } else {
+                        showStatus(`⚠️ URL principale retourne: ${response.status}`, 'warning');
+                    }
+                })
+                .catch(error => {
+                    showStatus(`❌ Erreur d'accès à l'URL principale: ${error.message}`, 'error');
+                });
+        }
+        
+        function openDevTools() {
+            showStatus(`
+                🔧 Instructions pour ouvrir la console :
+                • Chrome/Edge: F12 ou Ctrl+Shift+I
+                • Firefox: F12 ou Ctrl+Shift+K
+                • Safari: Cmd+Option+I
+                
+                Puis allez dans l'onglet "Console" pour voir les logs.
+            `, 'info');
+        }
+        
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.innerHTML = message.replace(/\n/g, '<br>');
+            status.style.display = 'block';
+            
+            // Reset classes
+            status.className = 'status';
+            
+            if (type === 'success') {
+                status.style.background = '#d4edda';
+                status.style.color = '#155724';
+                status.style.border = '1px solid #c3e6cb';
+            } else if (type === 'info') {
+                status.style.background = '#d1ecf1';
+                status.style.color = '#0c5460';
+                status.style.border = '1px solid #bee5eb';
+            } else if (type === 'warning') {
+                status.style.background = '#fff3cd';
+                status.style.color = '#856404';
+                status.style.border = '1px solid #ffeaa7';
+            } else if (type === 'error') {
+                status.style.background = '#f8d7da';
+                status.style.color = '#721c24';
+                status.style.border = '1px solid #f5c6cb';
+            }
+        }
+        
+        // Auto-check au chargement
+        window.addEventListener('load', function() {
+            console.log('🔍 Test Page Loaded - Checking deployment status...');
+            setTimeout(checkDeploymentStatus, 1000);
+        });
+    </script>
+</body>
+</html>
