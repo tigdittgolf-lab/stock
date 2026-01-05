@@ -315,9 +315,11 @@ pdf.get('/delivery-note/:id', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    if (!id || id === 'undefined' || id === 'null' || id.trim() === '' || id.trim() === 'undefined') {
+    // Validation plus permissive - accepter les nombres et chaînes numériques
+    const numericId = parseInt(id);
+    if (!id || id === 'undefined' || id === 'null' || id.trim() === 'undefined' || isNaN(numericId) || numericId <= 0) {
       console.error('❌ Invalid ID received for delivery note:', id);
-      console.error('❌ ID type:', typeof id, 'ID length:', id?.length);
+      console.error('❌ ID type:', typeof id, 'ID length:', id?.length, 'Parsed:', numericId);
       console.error('❌ Request URL:', c.req.url);
       console.error('❌ Request params:', c.req.param());
       return c.json({ success: false, error: 'Invalid BL ID provided' }, 400);
@@ -454,8 +456,11 @@ pdf.get('/delivery-note-ticket/:id', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
-      console.error('❌ Invalid ID received:', id);
+    // Validation plus permissive - accepter les nombres et chaînes numériques
+    const numericId = parseInt(id);
+    if (!id || id === 'undefined' || id === 'null' || id.trim() === 'undefined' || isNaN(numericId) || numericId <= 0) {
+      console.error('❌ Invalid ID received for ticket:', id);
+      console.error('❌ ID type:', typeof id, 'ID length:', id?.length, 'Parsed:', numericId);
       return c.json({ success: false, error: 'Invalid BL ID provided' }, 400);
     }
 

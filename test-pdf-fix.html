@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test PDF Fix</title>
+</head>
+<body>
+    <h1>🧪 Test PDF avec ID Correct</h1>
+    
+    <div style="margin: 20px; padding: 20px; border: 1px solid #ccc;">
+        <h2>Test BL 5</h2>
+        <button onclick="testPDF(5, 'complet')" style="margin: 5px; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px;">
+            📄 BL Complet (ID: 5)
+        </button>
+        <button onclick="testPDF(5, 'reduit')" style="margin: 5px; padding: 10px; background: #17a2b8; color: white; border: none; border-radius: 5px;">
+            📋 BL Réduit (ID: 5)
+        </button>
+        <button onclick="testPDF(5, 'ticket')" style="margin: 5px; padding: 10px; background: #6f42c1; color: white; border: none; border-radius: 5px;">
+            🎫 Ticket (ID: 5)
+        </button>
+    </div>
+
+    <div style="margin: 20px; padding: 20px; border: 1px solid #ccc;">
+        <h2>Test BL 1</h2>
+        <button onclick="testPDF(1, 'complet')" style="margin: 5px; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px;">
+            📄 BL Complet (ID: 1)
+        </button>
+        <button onclick="testPDF(1, 'reduit')" style="margin: 5px; padding: 10px; background: #17a2b8; color: white; border: none; border-radius: 5px;">
+            📋 BL Réduit (ID: 1)
+        </button>
+        <button onclick="testPDF(1, 'ticket')" style="margin: 5px; padding: 10px; background: #6f42c1; color: white; border: none; border-radius: 5px;">
+            🎫 Ticket (ID: 1)
+        </button>
+    </div>
+
+    <div id="logs" style="margin: 20px; padding: 20px; background: #f5f5f5; border-radius: 5px;">
+        <h3>📋 Logs</h3>
+        <div id="logContent"></div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logContent = document.getElementById('logContent');
+            const timestamp = new Date().toLocaleTimeString();
+            logContent.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+        }
+
+        function testPDF(id, format) {
+            log(`🔍 Testing PDF - ID: ${id}, Format: ${format}, Type: ${typeof id}`);
+            
+            if (!id || id === 'undefined' || id === 'null') {
+                log(`❌ Invalid ID: ${id}`);
+                alert('Erreur: ID invalide');
+                return;
+            }
+
+            let endpoint = '';
+            switch (format) {
+                case 'complet':
+                    endpoint = 'delivery-note';
+                    break;
+                case 'reduit':
+                    endpoint = 'delivery-note-small';
+                    break;
+                case 'ticket':
+                    endpoint = 'delivery-note-ticket';
+                    break;
+            }
+
+            const url = `https://desktop-bhhs068.tail1d9c54.ts.net/api/pdf/${endpoint}/${id}`;
+            log(`📄 Opening URL: ${url}`);
+            
+            // Test avec fetch d'abord
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Tenant': '2025_bu01'
+                }
+            })
+            .then(response => {
+                log(`📊 Response status: ${response.status}`);
+                if (response.ok) {
+                    log(`✅ PDF généré avec succès !`);
+                    window.open(url, '_blank');
+                } else {
+                    return response.json().then(data => {
+                        log(`❌ Erreur: ${JSON.stringify(data)}`);
+                    });
+                }
+            })
+            .catch(error => {
+                log(`❌ Erreur réseau: ${error.message}`);
+            });
+        }
+
+        log('🚀 Page de test chargée');
+    </script>
+</body>
+</html>
