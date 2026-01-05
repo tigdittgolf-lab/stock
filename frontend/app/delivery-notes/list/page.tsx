@@ -138,7 +138,7 @@ export default function DeliveryNotesList() {
     const pdfUrl = urls[type];
     console.log(`📄 Opening PDF preview: ${pdfUrl} for BL ID: ${validId} (original: ${blId})`);
     
-    // Créer une fenêtre de prévisualisation avec options - SANS téléchargement automatique
+    // Créer une fenêtre de prévisualisation SANS iframe pour éviter le téléchargement automatique
     const previewWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes');
     if (previewWindow) {
       previewWindow.document.write(`
@@ -148,38 +148,67 @@ export default function DeliveryNotesList() {
             <style>
               body { margin: 0; font-family: Arial, sans-serif; background: #f5f5f5; }
               .header { background: ${colors[type]}; color: white; padding: 15px; text-align: center; }
-              .controls { background: white; padding: 10px; text-align: center; border-bottom: 2px solid #ddd; }
+              .controls { background: white; padding: 15px; text-align: center; border-bottom: 2px solid #ddd; }
               .controls button { 
-                margin: 0 10px; padding: 10px 20px; border: none; border-radius: 5px; 
-                cursor: pointer; font-weight: bold; font-size: 14px;
+                margin: 0 15px; padding: 12px 25px; border: none; border-radius: 5px; 
+                cursor: pointer; font-weight: bold; font-size: 16px;
               }
-              .download { background: #28a745; color: white; }
-              .close { background: #dc3545; color: white; }
+              .preview { background: #28a745; color: white; }
+              .download { background: #007bff; color: white; }
               .print { background: #17a2b8; color: white; }
-              iframe { width: 100%; height: calc(100vh - 120px); border: none; }
+              .close { background: #dc3545; color: white; }
+              .message { 
+                padding: 40px; text-align: center; font-size: 18px; 
+                background: white; margin: 20px; border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+              }
               .debug { background: #fff3cd; padding: 10px; margin: 10px; border-radius: 5px; font-size: 12px; }
             </style>
           </head>
           <body>
             <div class="header">
               <h2>📄 Prévisualisation BL ${validId} - ${titles[type]}</h2>
-              <p>Vérifiez le document avant de le télécharger</p>
+              <p>Contrôlez l'affichage et le téléchargement du PDF</p>
             </div>
             <div class="debug">
               🔍 Debug: URL = ${pdfUrl} | ID Original = ${blId} | ID Validé = ${validId} | Type = ${type}
             </div>
             <div class="controls">
-              <button class="download" onclick="downloadPDF()">⬇️ Télécharger PDF</button>
+              <button class="preview" onclick="showPDF()">👁️ VOIR LE PDF</button>
+              <button class="download" onclick="downloadPDF()">⬇️ Télécharger</button>
               <button class="print" onclick="printPDF()">🖨️ Imprimer</button>
               <button class="close" onclick="window.close()">❌ Fermer</button>
             </div>
-            <iframe id="pdfFrame" src="${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0" type="application/pdf"></iframe>
+            <div class="message" id="message">
+              <h3>📋 Instructions</h3>
+              <p>Cliquez sur <strong>"👁️ VOIR LE PDF"</strong> pour afficher le document.</p>
+              <p>Le PDF ne sera PAS téléchargé automatiquement.</p>
+            </div>
+            <div id="pdfContainer" style="display: none; padding: 20px;">
+              <!-- Le PDF sera chargé ici seulement quand l'utilisateur clique -->
+            </div>
+            
             <script>
               console.log('🔍 PDF Preview Window - URL:', '${pdfUrl}');
               console.log('🔍 PDF Preview Window - ID Validation:', { original: ${blId}, validated: ${validId} });
               
+              function showPDF() {
+                const container = document.getElementById('pdfContainer');
+                const message = document.getElementById('message');
+                
+                // Masquer le message et afficher le conteneur PDF
+                message.style.display = 'none';
+                container.style.display = 'block';
+                
+                // Créer l'iframe SEULEMENT quand l'utilisateur clique
+                container.innerHTML = '<iframe src="${pdfUrl}#toolbar=1&navpanes=1&scrollbar=1" style="width: 100%; height: 600px; border: 1px solid #ddd; border-radius: 5px;"></iframe>';
+                
+                console.log('👁️ PDF affiché - PAS de téléchargement automatique');
+              }
+              
               function downloadPDF() {
-                // Téléchargement MANUEL seulement quand l'utilisateur clique
+                // Téléchargement MANUEL seulement quand l'utilisateur clique explicitement
+                console.log('⬇️ Téléchargement manuel demandé par l\\'utilisateur');
                 const link = document.createElement('a');
                 link.href = '${pdfUrl}';
                 link.download = 'BL_${validId}_${type}.pdf';
@@ -189,43 +218,14 @@ export default function DeliveryNotesList() {
               }
               
               function printPDF() {
-                // Impression améliorée qui fonctionne pour tous les types
-                try {
-                  // Méthode 1: Essayer d'imprimer l'iframe
-                  const iframe = document.getElementById('pdfFrame');
-                  if (iframe && iframe.contentWindow) {
-                    iframe.contentWindow.focus();
-                    iframe.contentWindow.print();
-                  } else {
-                    // Méthode 2: Ouvrir dans une nouvelle fenêtre pour impression
-                    const printWindow = window.open('${pdfUrl}', '_blank');
-                    if (printWindow) {
-                      printWindow.onload = function() {
-                        printWindow.print();
-                      };
-                    }
-                  }
-                } catch (error) {
-                  // Méthode 3: Fallback - ouvrir le PDF dans un nouvel onglet
-                  console.log('Fallback print method');
-                  const printWindow = window.open('${pdfUrl}', '_blank');
-                  if (printWindow) {
-                    setTimeout(() => {
-                      printWindow.print();
-                    }, 1000);
-                  }
-                }
-              }
-              
-              // Empêcher le téléchargement automatique
-              window.addEventListener('load', function() {
-                const iframe = document.getElementById('pdfFrame');
-                if (iframe) {
-                  iframe.onload = function() {
-                    console.log('PDF loaded in preview mode - no auto download');
+                // Ouvrir le PDF dans un nouvel onglet pour impression
+                const printWindow = window.open('${pdfUrl}', '_blank');
+                if (printWindow) {
+                  printWindow.onload = function() {
+                    printWindow.print();
                   };
                 }
-              });
+              }
             </script>
           </body>
         </html>
