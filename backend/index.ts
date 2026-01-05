@@ -56,6 +56,17 @@ app.use('/*', cors({
   credentials: false // Important pour les requêtes cross-origin
 }));
 
+// Add special headers to bypass local address space restrictions
+app.use('/*', async (c, next) => {
+  // Add headers to bypass CORS private network restrictions
+  c.header('Access-Control-Allow-Private-Network', 'true');
+  c.header('Access-Control-Allow-Credentials', 'true');
+  c.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  c.header('Cross-Origin-Opener-Policy', 'unsafe-none');
+  
+  await next();
+});
+
 // API Routes
 app.route('/api/articles', articles);
 app.route('/api/clients', clients);
