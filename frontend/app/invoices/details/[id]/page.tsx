@@ -74,8 +74,8 @@ export default function InvoiceDetailsPage() {
 
       console.log(`🔍 Loading invoice details for ID: ${factId}, Tenant: ${tenantSchema}`);
 
-      // Utiliser l'endpoint RPC pour récupérer les détails complets de la facture
-      const response = await fetch(`https://desktop-bhhs068.tail1d9c54.ts.net/api/rpc/get_fact_for_pdf`, {
+      // Utiliser l'endpoint RPC via le proxy frontend pour éviter CORS
+      const response = await fetch(`/api/rpc/get_fact_for_pdf`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

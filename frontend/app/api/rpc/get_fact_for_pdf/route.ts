@@ -1,0 +1,44 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    
+    console.log(`🔍 Frontend RPC Proxy - get_fact_for_pdf, Tenant: ${tenant}`);
+
+    // Faire la requête vers le backend local via le proxy frontend
+    const backendUrl = `https://desktop-bhhs068.tail1d9c54.ts.net/api/rpc/get_fact_for_pdf`;
+    
+    const response = await fetch(backendUrl, {
+      method: 'POST',
+      headers: {
+        'X-Tenant': tenant,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      console.error(`❌ Backend RPC error: ${response.status} - ${await response.text()}`);
+      return NextResponse.json(
+        { success: false, error: `Backend RPC error: ${response.status}` },
+        { status: response.status }
+      );
+    }
+
+    // Récupérer les données RPC
+    const rpcData = await response.json();
+    
+    console.log(`✅ RPC data retrieved successfully`);
+
+    return NextResponse.json(rpcData);
+
+  } catch (error) {
+    console.error('❌ Error in RPC proxy:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to execute RPC' },
+      { status: 500 }
+    );
+  }
+}

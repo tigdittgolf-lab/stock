@@ -72,8 +72,8 @@ export default function BLDetailsPage() {
 
       console.log(`🔍 Loading BL details for ID: ${blId}, Tenant: ${tenantSchema}`);
 
-      // Utiliser l'endpoint de debug pour récupérer les détails complets
-      const response = await fetch(`https://desktop-bhhs068.tail1d9c54.ts.net/api/pdf/debug-bl/${blId}`, {
+      // Utiliser l'endpoint de debug via le proxy frontend pour éviter CORS
+      const response = await fetch(`/api/pdf/debug-bl/${blId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
