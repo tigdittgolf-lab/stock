@@ -65,6 +65,15 @@ export default function DeliveryNotesList() {
       console.log('📋 Delivery notes data:', data);
 
       if (data.success) {
+        console.log('📋 Raw BL data received:', data.data);
+        data.data.forEach((bl: any, index: number) => {
+          console.log(`BL ${index}:`, {
+            nfact: bl.nfact,
+            nbl: bl.nbl,
+            id: bl.id,
+            allFields: Object.keys(bl)
+          });
+        });
         setDeliveryNotes(data.data || []);
         console.log('✅ Loaded', data.data?.length || 0, 'delivery notes');
       } else {
@@ -356,7 +365,13 @@ export default function DeliveryNotesList() {
                 }}>
                   <button
                     onClick={() => {
-                      const pdfUrl = `/api/pdf/delivery-note/${bl.nfact || bl.nbl}`;
+                      const blId = bl.nfact || bl.nbl || bl.id;
+                      if (!blId) {
+                        alert('Erreur: ID du BL non trouvé');
+                        return;
+                      }
+                      const pdfUrl = `/api/pdf/delivery-note/${blId}`;
+                      console.log('📄 Opening complete PDF:', pdfUrl);
                       window.open(pdfUrl, '_blank');
                     }}
                     style={{
@@ -374,7 +389,13 @@ export default function DeliveryNotesList() {
                   </button>
                   <button
                     onClick={() => {
-                      const pdfUrl = `/api/pdf/delivery-note-small/${bl.nfact || bl.nbl}`;
+                      const blId = bl.nfact || bl.nbl || bl.id;
+                      if (!blId) {
+                        alert('Erreur: ID du BL non trouvé');
+                        return;
+                      }
+                      const pdfUrl = `/api/pdf/delivery-note-small/${blId}`;
+                      console.log('📋 Opening small PDF:', pdfUrl);
                       window.open(pdfUrl, '_blank');
                     }}
                     style={{
@@ -392,7 +413,13 @@ export default function DeliveryNotesList() {
                   </button>
                   <button
                     onClick={() => {
-                      const pdfUrl = `/api/pdf/delivery-note-ticket/${bl.nfact || bl.nbl}`;
+                      const blId = bl.nfact || bl.nbl || bl.id;
+                      if (!blId) {
+                        alert('Erreur: ID du BL non trouvé');
+                        return;
+                      }
+                      const pdfUrl = `/api/pdf/delivery-note-ticket/${blId}`;
+                      console.log('🎫 Opening ticket PDF:', pdfUrl);
                       window.open(pdfUrl, '_blank');
                     }}
                     style={{
@@ -413,7 +440,13 @@ export default function DeliveryNotesList() {
                 {/* Deuxième ligne - Bouton Détails */}
                 <button
                   onClick={() => {
-                    router.push(`/delivery-notes/details/${bl.nfact || bl.nbl}`);
+                    const blId = bl.nfact || bl.nbl || bl.id;
+                    if (!blId) {
+                      alert('Erreur: ID du BL non trouvé');
+                      return;
+                    }
+                    console.log('🔍 Navigating to BL details:', blId);
+                    router.push(`/delivery-notes/details/${blId}`);
                   }}
                   style={{
                     width: '100%',

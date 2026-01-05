@@ -384,8 +384,15 @@ pdf.get('/delivery-note-ticket/:id', async (c) => {
     const id = c.req.param('id');
     const tenant = c.get('tenant');
     
+    console.log(`🎫 Ticket PDF Request - ID: "${id}", Type: ${typeof id}, Tenant: ${tenant}`);
+    
     if (!tenant) {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    if (!id || id === 'undefined' || id === 'null') {
+      console.error('❌ Invalid ID received:', id);
+      return c.json({ success: false, error: 'Invalid BL ID provided' }, 400);
     }
 
     console.log(`🎫 Generating ticket receipt PDF for ID: ${id}, Tenant: ${tenant}`);
