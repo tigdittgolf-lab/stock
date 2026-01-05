@@ -101,6 +101,9 @@ async function fetchBLData(tenant: string, id: string) {
       if (detailsResult && detailsResult.success && detailsResult.data) {
         blDetails = detailsResult.data;
         console.log(`✅ PDF: Found ${blDetails.length} BL details via RPC`);
+        console.log(`🔍 PDF: Sample detail data:`, JSON.stringify(blDetails.slice(0, 2), null, 2));
+      } else {
+        console.log(`⚠️ PDF: RPC returned success but no data:`, detailsResult);
       }
     } catch (detailError) {
       console.log(`⚠️ PDF: RPC get_bl_details_by_id failed, trying direct SQL approach`);
