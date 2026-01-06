@@ -436,7 +436,7 @@ pdf.get('/delivery-note/:id', async (c) => {
 
     // Set response headers and return PDF
     c.header('Content-Type', 'application/pdf');
-    c.header('Content-Disposition', `inline; filename="bl_${actualId}.pdf"`);
+    c.header('Content-Disposition', `inline; filename="bl_${id}.pdf"`);
 
     return c.body(pdfBuffer as any);
   } catch (error) {
