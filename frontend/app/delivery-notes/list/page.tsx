@@ -115,18 +115,38 @@ export default function DeliveryNotesList() {
     }
   };
 
-  // Fonction de filtrage
+  // Fonction de filtrage améliorée
   const applyFilters = () => {
     let filtered = [...deliveryNotes];
 
-    // Filtre par terme de recherche (numéro BL, client)
+    // Filtre par terme de recherche (numéro BL, client) - CORRIGÉ
     if (searchTerm) {
-      filtered = filtered.filter(bl => 
-        bl.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        bl.nclient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        String(bl.nfact || bl.nbl || '').includes(searchTerm) ||
-        String(bl.nbl || bl.nfact || '').includes(searchTerm)
-      );
+      const searchLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(bl => {
+        // Recherche dans le nom du client
+        const clientMatch = bl.client_name?.toLowerCase().includes(searchLower);
+        // Recherche dans le code client
+        const clientCodeMatch = bl.nclient?.toLowerCase().includes(searchLower);
+        
+        // Recherche par numéro de BL - CORRECTION MAJEURE
+        const blNumber = String(bl.nfact || bl.nbl || '').trim();
+        const blMatch = blNumber === searchTerm.trim() || // Correspondance exacte
+                       blNumber.includes(searchTerm.trim()) || // Correspondance partielle
+                       blNumber.startsWith(searchTerm.trim()); // Commence par
+        
+        console.log(`🔍 Filtering BL:`, {
+          searchTerm: searchTerm.trim(),
+          blNumber,
+          clientName: bl.client_name,
+          clientCode: bl.nclient,
+          blMatch,
+          clientMatch,
+          clientCodeMatch,
+          finalMatch: clientMatch || clientCodeMatch || blMatch
+        });
+        
+        return clientMatch || clientCodeMatch || blMatch;
+      });
     }
 
     // Filtre par client spécifique
@@ -144,13 +164,42 @@ export default function DeliveryNotesList() {
 
     // Filtre par montant
     if (minAmount) {
-      filtered = filtered.filter(bl => bl.montant_ttc >= parseFloat(minAmount));
+      filtered = filtered.filter(bl => (bl.montant_ttc || (bl.montant_ht + bl.tva)) >= parseFloat(minAmount));
     }
     if (maxAmount) {
-      filtered = filtered.filter(bl => bl.montant_ttc <= parseFloat(maxAmount));
+      filtered = filtered.filter(bl => (bl.montant_ttc || (bl.montant_ht + bl.tva)) <= parseFloat(maxAmount));
     }
 
+    console.log(`📊 Filtering results:`, {
+      original: deliveryNotes.length,
+      filtered: filtered.length,
+      searchTerm,
+      selectedClient,
+      dateFrom,
+      dateTo,
+      minAmount,
+      maxAmount
+    });
+
     setFilteredDeliveryNotes(filtered);
+  };
+
+  // Fonction pour calculer les totaux
+  const calculateTotals = () => {
+    const totals = filteredDeliveryNotes.reduce((acc, bl) => {
+      acc.totalHT += bl.montant_ht || 0;
+      acc.totalTVA += bl.tva || 0;
+      acc.totalTTC += bl.montant_ttc || (bl.montant_ht + bl.tva) || 0;
+      acc.count += 1;
+      return acc;
+    }, {
+      totalHT: 0,
+      totalTVA: 0,
+      totalTTC: 0,
+      count: 0
+    });
+
+    return totals;
   };
 
   // Effet pour appliquer les filtres quand ils changent
@@ -979,7 +1028,7 @@ export default function DeliveryNotesList() {
             }}>
               <input
                 type="text"
-                placeholder="🔍 Rechercher par N° BL, client..."
+                placeholder="🔍 Rechercher par N° BL exact (ex: 5) ou client..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
@@ -1174,6 +1223,145 @@ export default function DeliveryNotesList() {
           </div>
         )}
       </div>
+
+      {/* Résumé des totaux */}
+      {!loading && !error && filteredDeliveryNotes.length > 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '10px',
+          padding: isMobile ? '15px' : '20px',
+          marginBottom: '20px',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+          color: 'white'
+        }}>
+          <h3 style={{
+            margin: '0 0 15px 0',
+            color: 'white',
+            fontSize: isMobile ? '16px' : '18px',
+            textAlign: 'center'
+          }}>
+            📊 Résumé des Totaux
+          </h3>
+          
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
+            gap: isMobile ? '10px' : '20px',
+            textAlign: 'center'
+          }}>
+            {/* Nombre de BL */}
+            <div style={{
+              background: 'rgba(255,255,255,0.2)',
+              borderRadius: '8px',
+              padding: isMobile ? '10px' : '15px',
+              backdropFilter: 'blur(10px)'
+            }}>
+              <div style={{
+                fontSize: isMobile ? '20px' : '24px',
+                fontWeight: 'bold',
+                marginBottom: '5px'
+              }}>
+                {calculateTotals().count}
+              </div>
+              <div style={{
+                fontSize: isMobile ? '12px' : '14px',
+                opacity: 0.9
+              }}>
+                📋 BL Affichés
+              </div>
+            </div>
+
+            {/* Total HT */}
+            <div style={{
+              background: 'rgba(255,255,255,0.2)',
+              borderRadius: '8px',
+              padding: isMobile ? '10px' : '15px',
+              backdropFilter: 'blur(10px)'
+            }}>
+              <div style={{
+                fontSize: isMobile ? '16px' : '20px',
+                fontWeight: 'bold',
+                marginBottom: '5px'
+              }}>
+                {formatAmount(calculateTotals().totalHT)}
+              </div>
+              <div style={{
+                fontSize: isMobile ? '12px' : '14px',
+                opacity: 0.9
+              }}>
+                💰 Total HT
+              </div>
+            </div>
+
+            {/* Total TVA */}
+            <div style={{
+              background: 'rgba(255,255,255,0.2)',
+              borderRadius: '8px',
+              padding: isMobile ? '10px' : '15px',
+              backdropFilter: 'blur(10px)'
+            }}>
+              <div style={{
+                fontSize: isMobile ? '16px' : '20px',
+                fontWeight: 'bold',
+                marginBottom: '5px'
+              }}>
+                {formatAmount(calculateTotals().totalTVA)}
+              </div>
+              <div style={{
+                fontSize: isMobile ? '12px' : '14px',
+                opacity: 0.9
+              }}>
+                🏛️ Total TVA
+              </div>
+            </div>
+
+            {/* Total TTC */}
+            <div style={{
+              background: 'rgba(255,255,255,0.3)',
+              borderRadius: '8px',
+              padding: isMobile ? '10px' : '15px',
+              backdropFilter: 'blur(10px)',
+              border: '2px solid rgba(255,255,255,0.3)',
+              gridColumn: isMobile ? '1 / -1' : 'auto'
+            }}>
+              <div style={{
+                fontSize: isMobile ? '20px' : '24px',
+                fontWeight: 'bold',
+                marginBottom: '5px',
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+              }}>
+                {formatAmount(calculateTotals().totalTTC)}
+              </div>
+              <div style={{
+                fontSize: isMobile ? '14px' : '16px',
+                opacity: 0.9,
+                fontWeight: 'bold'
+              }}>
+                💎 TOTAL TTC
+              </div>
+            </div>
+          </div>
+
+          {/* Statistiques supplémentaires */}
+          {filteredDeliveryNotes.length !== deliveryNotes.length && (
+            <div style={{
+              marginTop: '15px',
+              padding: '10px',
+              background: 'rgba(255,255,255,0.1)',
+              borderRadius: '6px',
+              textAlign: 'center',
+              fontSize: isMobile ? '12px' : '14px'
+            }}>
+              📈 Affichage de {filteredDeliveryNotes.length} sur {deliveryNotes.length} BL au total
+              {calculateTotals().count > 0 && (
+                <span style={{ marginLeft: '10px' }}>
+                  • Moyenne TTC: {formatAmount(calculateTotals().totalTTC / calculateTotals().count)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {loading && (
         <div style={{ textAlign: 'center', padding: '40px' }}>
