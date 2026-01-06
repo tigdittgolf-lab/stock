@@ -70,7 +70,13 @@ export default function BLDetailsPage() {
       setLoading(true);
       setError(null);
 
-      console.log(`🔍 Loading BL details for ID: ${blId}, Tenant: ${tenantSchema}`);
+      console.log(`🔍 Loading BL details for REAL ID: ${blId}, Tenant: ${tenantSchema}`);
+
+      // Validation stricte de l'ID côté frontend
+      const numericId = parseInt(blId);
+      if (!blId || blId === 'undefined' || blId === 'null' || isNaN(numericId) || numericId <= 0) {
+        throw new Error(`ID BL invalide: ${blId}. Veuillez vérifier l'URL.`);
+      }
 
       // Utiliser l'endpoint de debug via le proxy frontend pour éviter CORS
       const response = await fetch(`/api/pdf/debug-bl/${blId}`, {
@@ -86,22 +92,36 @@ export default function BLDetailsPage() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`❌ HTTP Error ${response.status}: ${errorText}`);
-        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+        
+        if (response.status === 400) {
+          throw new Error(`BL ${blId} invalide ou inexistant. Vérifiez que ce BL existe.`);
+        } else if (response.status === 404) {
+          throw new Error(`BL ${blId} non trouvé. Ce BL n'existe pas dans la base de données.`);
+        } else {
+          throw new Error(`Erreur serveur (${response.status}): ${response.statusText}`);
+        }
       }
 
       const debugData = await response.json();
-      console.log(`📋 Debug data received:`, debugData);
+      console.log(`📋 Debug data received for ID ${blId}:`, debugData);
       
       if (debugData.success && debugData.data) {
+        // Vérifier que les données correspondent bien à l'ID demandé
+        const receivedId = debugData.data.nbl || debugData.data.nfact;
+        if (receivedId && receivedId != numericId) {
+          console.error(`🚨 ERREUR: ID demandé (${numericId}) != ID reçu (${receivedId})`);
+          throw new Error(`Erreur de données: BL ${numericId} demandé mais BL ${receivedId} reçu. Problème de synchronisation.`);
+        }
+        
         setBLData(debugData.data);
-        console.log('✅ BL details loaded successfully');
+        console.log(`✅ BL details loaded successfully for REAL ID: ${blId}`);
       } else {
-        const errorMsg = debugData.error || 'Failed to load BL details';
+        const errorMsg = debugData.error || `BL ${blId} non trouvé ou données invalides`;
         console.error(`❌ Debug data error: ${errorMsg}`);
         throw new Error(errorMsg);
       }
     } catch (error) {
-      console.error('❌ Error loading BL details:', error);
+      console.error(`❌ Error loading BL details for ID ${blId}:`, error);
       // Améliorer la gestion d'erreur pour éviter [object Object]
       let errorMessage = 'Unknown error';
       if (error instanceof Error) {
@@ -126,11 +146,13 @@ export default function BLDetailsPage() {
   };
 
   const handlePrintPDF = (format: string) => {
-    console.log(`🔍 PDF Request - Format: ${format}, ID: "${id}", Type: ${typeof id}`);
+    console.log(`🔍 PDF Request - Format: ${format}, REAL ID: "${id}", Type: ${typeof id}`);
     
-    if (!id || id === 'undefined' || id === 'null' || !id.trim()) {
-      console.error('❌ Invalid ID for PDF generation:', id);
-      alert('Erreur: ID du BL non valide. Veuillez actualiser la page.');
+    // Validation stricte de l'ID
+    const numericId = parseInt(id);
+    if (!id || id === 'undefined' || id === 'null' || !id.trim() || isNaN(numericId) || numericId <= 0) {
+      console.error(`❌ Invalid ID for PDF generation: ${id}`);
+      alert(`Erreur: ID du BL invalide (${id}). Veuillez actualiser la page.`);
       return;
     }
     
@@ -147,8 +169,13 @@ export default function BLDetailsPage() {
         break;
     }
     
-    console.log(`📄 Opening PDF: ${pdfUrl}`);
-    window.open(pdfUrl, '_blank');
+    console.log(`📄 Opening PDF for REAL ID ${id}: ${pdfUrl}`);
+    
+    // Ouvrir dans une nouvelle fenêtre avec gestion d'erreur
+    const pdfWindow = window.open(pdfUrl, '_blank');
+    if (!pdfWindow) {
+      alert('Impossible d\'ouvrir le PDF. Vérifiez que les pop-ups sont autorisés.');
+    }
   };
 
   if (loading) {
