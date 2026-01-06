@@ -513,7 +513,7 @@ pdf.get('/delivery-note-small/:id', async (c) => {
 
     // Set response headers and return PDF
     c.header('Content-Type', 'application/pdf');
-    c.header('Content-Disposition', `inline; filename="bl_reduit_${actualId}.pdf"`);
+    c.header('Content-Disposition', `inline; filename="bl_reduit_${id}.pdf"`);
 
     return c.body(pdfBuffer as any);
   } catch (error) {
@@ -587,7 +587,7 @@ pdf.get('/delivery-note-ticket/:id', async (c) => {
 
     // Set response headers and return PDF
     c.header('Content-Type', 'application/pdf');
-    c.header('Content-Disposition', `inline; filename="ticket_${actualId}.pdf"`);
+    c.header('Content-Disposition', `inline; filename="ticket_${id}.pdf"`);
 
     return c.body(pdfBuffer as any);
   } catch (error) {

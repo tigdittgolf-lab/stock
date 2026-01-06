@@ -98,8 +98,8 @@ export default function BLDetailsPage() {
 
       console.log(`📊 Debug response status: ${response.status}`);
 
-      // Si le proxy échoue (401, 403, etc.), essayer directement le backend
-      if (!response.ok && (response.status === 401 || response.status === 403)) {
+      // Si le proxy échoue (400, 401, 403, etc.), essayer directement le backend
+      if (!response.ok) {
         console.log(`⚠️ Proxy failed with ${response.status}, trying direct backend access...`);
         
         try {
