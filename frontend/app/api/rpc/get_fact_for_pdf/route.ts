@@ -12,9 +12,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     
-    console.log(`🔍 Frontend RPC Proxy - get_fact_for_pdf, Tenant: ${tenant}`);
+    console.log(`🔍 Frontend RPC Proxy - get_fact_for_pdf, Tenant: ${tenant}, Body:`, body);
 
-    // Faire la requête vers le backend local via le proxy frontend
+    // Utiliser Tailscale tunnel pour accéder au backend local
     const backendUrl = `https://desktop-bhhs068.tail1d9c54.ts.net/api/rpc/get_fact_for_pdf`;
     
     const response = await fetch(backendUrl, {
@@ -27,9 +27,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      console.error(`❌ Backend RPC error: ${response.status} - ${await response.text()}`);
+      const errorText = await response.text();
+      console.error(`❌ Backend RPC error: ${response.status} - ${errorText}`);
       return NextResponse.json(
-        { success: false, error: `Backend RPC error: ${response.status}` },
+        { success: false, error: `Backend RPC error: ${response.status} - ${errorText}` },
         { status: response.status }
       );
     }
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     // Récupérer les données RPC
     const rpcData = await response.json();
     
-    console.log(`✅ RPC data retrieved successfully`);
+    console.log(`✅ RPC data retrieved successfully from backend`);
 
     return NextResponse.json(rpcData);
 

@@ -74,17 +74,13 @@ export default function InvoiceDetailsPage() {
 
       console.log(`🔍 Loading invoice details for ID: ${factId}, Tenant: ${tenantSchema}`);
 
-      // Utiliser l'endpoint RPC via le proxy frontend pour éviter CORS
-      const response = await fetch(`/api/rpc/get_fact_for_pdf`, {
-        method: 'POST',
+      // Utiliser l'endpoint backend via le proxy frontend pour éviter CORS
+      const response = await fetch(`/api/sales/invoices/${factId}`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'X-Tenant': tenantSchema
-        },
-        body: JSON.stringify({
-          p_tenant: tenantSchema,
-          p_nfact: parseInt(factId)
-        })
+        }
       });
 
       if (!response.ok) {
@@ -94,17 +90,17 @@ export default function InvoiceDetailsPage() {
       const result = await response.json();
       
       if (result.success && result.data) {
-        // Adapter les données RPC au format attendu
+        // Adapter les données backend au format attendu
         const adaptedData = {
           nfact: result.data.nfact,
           date_fact: result.data.date_fact,
-          client_name: result.data.raison_sociale || 'Client',
-          client_address: result.data.adresse || '',
-          client_nif: result.data.nif || '',
-          client_rc: result.data.rc || '',
+          client_name: result.data.client_name || 'Client',
+          client_address: result.data.client_address || '',
+          client_nif: result.data.client_nif || '',
+          client_rc: result.data.client_rc || '',
           montant_ht: result.data.montant_ht || 0,
           tva: result.data.tva || 0,
-          montant_ttc: result.data.montant_ttc || (result.data.montant_ht + result.data.tva),
+          montant_ttc: result.data.total_ttc || result.data.montant_ttc || (result.data.montant_ht + result.data.tva),
           timbre: result.data.timbre || 0,
           autre_taxe: result.data.autre_taxe || 0,
           details: (result.data.details || []).map((detail: any) => ({
@@ -118,7 +114,7 @@ export default function InvoiceDetailsPage() {
         };
         
         setInvoiceData(adaptedData);
-        console.log('✅ Invoice details loaded successfully');
+        console.log('✅ Invoice details loaded successfully from backend');
       } else {
         throw new Error(result.error || 'Failed to load invoice details');
       }
