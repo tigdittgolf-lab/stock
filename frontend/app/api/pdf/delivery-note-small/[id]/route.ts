@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    // Attendre la résolution de la Promise params
+    const { id } = await params;
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     
     console.log(`📄 Frontend PDF Proxy - BL Réduit ID: ${id}, Tenant: ${tenant}`);

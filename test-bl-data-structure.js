@@ -3,8 +3,24 @@ async function testBLDataStructure() {
   try {
     console.log('🔍 Testing BL data structure...');
     
+    // Test de l'API debug-bl CORRIGÉE avec la nouvelle URL
+    const debugResponse = await fetch('https://frontend-ldvmodi49-tigdittgolf-9191s-projects.vercel.app/api/pdf/debug-bl/4', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Tenant': '2025_bu01'
+      }
+    });
+    
+    if (debugResponse.ok) {
+      const debugData = await debugResponse.json();
+      console.log('✅ Debug API Response:', JSON.stringify(debugData, null, 2));
+    } else {
+      console.error('❌ Debug API Error:', debugResponse.status, await debugResponse.text());
+    }
+    
     // Test de l'API frontend CORRIGÉE
-    const frontendResponse = await fetch('https://frontend-pzdyr2e1m-tigdittgolf-9191s-projects.vercel.app/api/sales/delivery-notes', {
+    const frontendResponse = await fetch('https://frontend-ldvmodi49-tigdittgolf-9191s-projects.vercel.app/api/sales/delivery-notes', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

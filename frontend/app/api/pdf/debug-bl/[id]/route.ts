@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    // Attendre la résolution de la Promise params
+    const { id } = await params;
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     
     console.log(`🔍 Frontend Debug Proxy - BL ID: "${id}", Tenant: ${tenant}`);
     console.log(`🔍 Proxy Debug - ID Type: ${typeof id}, Length: ${id?.length}`);
-    console.log(`🔍 Proxy Debug - Params object:`, params);
 
     // Validation stricte de l'ID - PAS DE FALLBACK
     const numericId = parseInt(id);
