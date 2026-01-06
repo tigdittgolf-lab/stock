@@ -28,13 +28,25 @@ async function fetchBLData(tenant: string, id: string) {
   const deliveryNotes = createdDocumentsCache.get(`${tenant}_bl`) || [];
   
   console.log(`📊 Cache contains ${deliveryNotes.length} delivery notes`);
-  console.log(`📊 Available cache IDs:`, deliveryNotes.map(bl => bl.nbl));
+  console.log(`📊 Available cache IDs:`, deliveryNotes.map(bl => bl.nbl || bl.nfact));
   
-  let blData = deliveryNotes.find(bl => bl.nbl === actualId);
+  // Recherche améliorée dans le cache - essayer plusieurs champs d'ID
+  let blData = deliveryNotes.find(bl => 
+    bl.nbl === actualId || 
+    bl.nfact === actualId || 
+    (bl as any).id === actualId
+  );
   
   if (blData && blData.details && blData.details.length > 0) {
     console.log(`✅ PDF: Found complete BL data ${actualId} in cache with ${blData.details.length} articles`);
-    return blData;
+    // Vérifier que c'est bien le bon BL
+    const foundId = blData.nbl || blData.nfact || (blData as any).id;
+    if (foundId !== actualId) {
+      console.error(`🚨 CACHE ERROR: Requested ID ${actualId} but found ID ${foundId}`);
+      // Ne pas utiliser ce BL du cache, aller chercher en base
+    } else {
+      return blData;
+    }
   }
 
   // Si pas dans le cache ou pas de détails, récupérer depuis la base de données
