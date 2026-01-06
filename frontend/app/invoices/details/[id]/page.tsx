@@ -135,7 +135,11 @@ export default function InvoiceDetailsPage() {
   };
 
   const handlePrintPDF = () => {
+    console.log(`📄 PDF Invoice - ID: ${id}`);
     const pdfUrl = `/api/pdf/invoice/${id}`;
+    console.log(`📄 Opening PDF URL: ${pdfUrl}`);
+    
+    // Solution SIMPLE: Ouvrir directement l'URL dans un nouvel onglet (comme les BL)
     window.open(pdfUrl, '_blank');
   };
 

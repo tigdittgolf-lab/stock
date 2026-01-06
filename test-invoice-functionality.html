@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Invoice Functionality</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧾 Test Invoice Functionality</h1>
+    <p>Testing the new invoice functionality with backend integration</p>
+    
+    <div class="test-section">
+        <h3>🔗 URLs de test</h3>
+        <p><strong>Production:</strong> <a href="https://frontend-pkyw4v21r-tigdittgolf-9191s-projects.vercel.app/invoices/list" target="_blank">https://frontend-pkyw4v21r-tigdittgolf-9191s-projects.vercel.app/invoices/list</a></p>
+        <p><strong>Backend:</strong> <a href="https://desktop-bhhs068.tail1d9c54.ts.net/api/sales/invoices" target="_blank">https://desktop-bhhs068.tail1d9c54.ts.net/api/sales/invoices</a></p>
+    </div>
+
+    <div class="test-section">
+        <h3>🧪 Test 1: Frontend Invoice API</h3>
+        <button onclick="testFrontendInvoiceAPI()">Test Frontend Invoice API</button>
+        <div id="test1-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🧪 Test 2: Backend Invoice API Direct</h3>
+        <button onclick="testBackendInvoiceAPI()">Test Backend Invoice API</button>
+        <div id="test2-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🧪 Test 3: Invoice Details API</h3>
+        <button onclick="testInvoiceDetailsAPI()">Test Invoice Details API</button>
+        <div id="test3-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🧪 Test 4: PDF Generation</h3>
+        <button onclick="testPDFGeneration()">Test PDF Generation</button>
+        <div id="test4-result"></div>
+    </div>
+
+    <script>
+        const PRODUCTION_URL = 'https://frontend-pkyw4v21r-tigdittgolf-9191s-projects.vercel.app';
+        const BACKEND_URL = 'https://desktop-bhhs068.tail1d9c54.ts.net';
+        const TENANT = '2025_bu01';
+
+        async function testFrontendInvoiceAPI() {
+            const resultDiv = document.getElementById('test1-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Testing frontend invoice API...</div>';
+            
+            try {
+                const response = await fetch(`${PRODUCTION_URL}/api/sales/invoices`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Tenant': TENANT,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Frontend Invoice API Success</h4>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Invoices found:</strong> ${data.data?.length || 0}</p>
+                            <p><strong>Source:</strong> ${data.source || 'unknown'}</p>
+                            <p><strong>Database:</strong> ${data.database_type || 'unknown'}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Frontend Invoice API Failed</h4>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Error:</strong> ${data.error || 'Unknown error'}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Frontend Invoice API Error</h4>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testBackendInvoiceAPI() {
+            const resultDiv = document.getElementById('test2-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Testing backend invoice API...</div>';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/sales/invoices`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Tenant': TENANT,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Backend Invoice API Success</h4>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Invoices found:</strong> ${data.data?.length || 0}</p>
+                            <p><strong>Source:</strong> ${data.source || 'unknown'}</p>
+                            <p><strong>Database:</strong> ${data.database_type || 'unknown'}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Backend Invoice API Failed</h4>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Error:</strong> ${data.error || 'Unknown error'}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Backend Invoice API Error</h4>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testInvoiceDetailsAPI() {
+            const resultDiv = document.getElementById('test3-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Testing invoice details API...</div>';
+            
+            try {
+                // First get the list to find an invoice ID
+                const listResponse = await fetch(`${PRODUCTION_URL}/api/sales/invoices`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Tenant': TENANT,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const listData = await listResponse.json();
+                
+                if (!listData.success || !listData.data || listData.data.length === 0) {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ No invoices found to test details</h4>
+                            <p>Cannot test invoice details without existing invoices</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const firstInvoice = listData.data[0];
+                const invoiceId = firstInvoice.nfact || firstInvoice.id;
+                
+                // Now test the details endpoint
+                const response = await fetch(`${PRODUCTION_URL}/api/sales/invoices/${invoiceId}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Tenant': TENANT,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Invoice Details API Success</h4>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Invoice ID:</strong> ${invoiceId}</p>
+                            <p><strong>Client:</strong> ${data.data?.client_name || 'Unknown'}</p>
+                            <p><strong>Details count:</strong> ${data.data?.details?.length || 0}</p>
+                            <p><strong>Source:</strong> ${data.source || 'unknown'}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Invoice Details API Failed</h4>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Invoice ID:</strong> ${invoiceId}</p>
+                            <p><strong>Error:</strong> ${data.error || 'Unknown error'}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Invoice Details API Error</h4>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testPDFGeneration() {
+            const resultDiv = document.getElementById('test4-result');
+            resultDiv.innerHTML = '<div class="loading">🔄 Testing PDF generation...</div>';
+            
+            try {
+                // First get the list to find an invoice ID
+                const listResponse = await fetch(`${PRODUCTION_URL}/api/sales/invoices`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Tenant': TENANT,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const listData = await listResponse.json();
+                
+                if (!listData.success || !listData.data || listData.data.length === 0) {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ No invoices found to test PDF</h4>
+                            <p>Cannot test PDF generation without existing invoices</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const firstInvoice = listData.data[0];
+                const invoiceId = firstInvoice.nfact || firstInvoice.id;
+                
+                // Test PDF generation
+                const response = await fetch(`${PRODUCTION_URL}/api/pdf/invoice/${invoiceId}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Tenant': TENANT
+                    }
+                });
+                
+                if (response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/pdf')) {
+                        resultDiv.innerHTML = `
+                            <div class="success">
+                                <h4>✅ PDF Generation Success</h4>
+                                <p><strong>Status:</strong> ${response.status}</p>
+                                <p><strong>Invoice ID:</strong> ${invoiceId}</p>
+                                <p><strong>Content-Type:</strong> ${contentType}</p>
+                                <p><strong>PDF Size:</strong> ${response.headers.get('content-length') || 'Unknown'} bytes</p>
+                                <button onclick="window.open('${PRODUCTION_URL}/api/pdf/invoice/${invoiceId}', '_blank')">🔍 Open PDF</button>
+                            </div>
+                        `;
+                    } else {
+                        const errorData = await response.json();
+                        resultDiv.innerHTML = `
+                            <div class="error">
+                                <h4>❌ PDF Generation Failed (Not PDF)</h4>
+                                <p><strong>Status:</strong> ${response.status}</p>
+                                <p><strong>Invoice ID:</strong> ${invoiceId}</p>
+                                <p><strong>Content-Type:</strong> ${contentType}</p>
+                                <pre>${JSON.stringify(errorData, null, 2)}</pre>
+                            </div>
+                        `;
+                    }
+                } else {
+                    const errorData = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ PDF Generation Failed</h4>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Invoice ID:</strong> ${invoiceId}</p>
+                            <p><strong>Error:</strong> ${errorData.error || 'Unknown error'}</p>
+                            <pre>${JSON.stringify(errorData, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ PDF Generation Error</h4>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-run tests on page load
+        window.onload = function() {
+            console.log('🧪 Invoice functionality test page loaded');
+            console.log('Production URL:', PRODUCTION_URL);
+            console.log('Backend URL:', BACKEND_URL);
+            console.log('Tenant:', TENANT);
+        };
+    </script>
+</body>
+</html>
