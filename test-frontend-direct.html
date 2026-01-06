@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Direct Frontend PDF</title>
+</head>
+<body>
+    <h1>Test Direct PDF Generation</h1>
+    
+    <div>
+        <h2>Test avec ID fixe</h2>
+        <button onclick="testPDF(4)">Test PDF BL 4</button>
+        <button onclick="testPDF(3)">Test PDF BL 3</button>
+        <button onclick="testPDF(5)">Test PDF BL 5</button>
+    </div>
+    
+    <div id="results"></div>
+    
+    <script>
+        async function testPDF(blId) {
+            console.log(`🧪 Test PDF pour BL ${blId}`);
+            
+            const results = document.getElementById('results');
+            results.innerHTML += `<p>🧪 Test PDF BL ${blId}...</p>`;
+            
+            try {
+                // Test 1: API Debug
+                const debugUrl = `/api/pdf/debug-bl/${blId}`;
+                console.log(`🔍 Test Debug: ${debugUrl}`);
+                
+                const debugResponse = await fetch(debugUrl, {
+                    headers: {
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+                
+                const debugData = await debugResponse.json();
+                console.log(`📊 Debug Response:`, debugData);
+                results.innerHTML += `<p>📊 Debug BL ${blId}: ${debugResponse.status} - ${JSON.stringify(debugData).substring(0, 100)}...</p>`;
+                
+                // Test 2: PDF Generation
+                const pdfUrl = `/api/pdf/delivery-note/${blId}`;
+                console.log(`📄 Test PDF: ${pdfUrl}`);
+                
+                const pdfResponse = await fetch(pdfUrl, {
+                    headers: {
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+                
+                console.log(`📄 PDF Response:`, pdfResponse.status);
+                results.innerHTML += `<p>📄 PDF BL ${blId}: ${pdfResponse.status}</p>`;
+                
+                if (pdfResponse.ok) {
+                    // Ouvrir le PDF
+                    const blob = await pdfResponse.blob();
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                    results.innerHTML += `<p>✅ PDF BL ${blId} ouvert avec succès!</p>`;
+                } else {
+                    const errorText = await pdfResponse.text();
+                    console.error(`❌ PDF Error:`, errorText);
+                    results.innerHTML += `<p>❌ PDF BL ${blId} erreur: ${errorText}</p>`;
+                }
+                
+            } catch (error) {
+                console.error(`❌ Test Error:`, error);
+                results.innerHTML += `<p>❌ Test BL ${blId} erreur: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
