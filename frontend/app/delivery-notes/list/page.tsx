@@ -115,37 +115,40 @@ export default function DeliveryNotesList() {
     }
   };
 
-  // Fonction de filtrage améliorée
+  // Fonction de filtrage améliorée - CORRECTION MAJEURE
   const applyFilters = () => {
     let filtered = [...deliveryNotes];
 
-    // Filtre par terme de recherche (numéro BL, client) - CORRIGÉ
+    // Filtre par terme de recherche - LOGIQUE CORRIGÉE
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(bl => {
-        // Recherche dans le nom du client
-        const clientMatch = bl.client_name?.toLowerCase().includes(searchLower);
-        // Recherche dans le code client
-        const clientCodeMatch = bl.nclient?.toLowerCase().includes(searchLower);
-        
-        // Recherche par numéro de BL - CORRECTION MAJEURE
-        const blNumber = String(bl.nfact || bl.nbl || '').trim();
-        const blMatch = blNumber === searchTerm.trim() || // Correspondance exacte
-                       blNumber.includes(searchTerm.trim()) || // Correspondance partielle
-                       blNumber.startsWith(searchTerm.trim()); // Commence par
-        
-        console.log(`🔍 Filtering BL:`, {
-          searchTerm: searchTerm.trim(),
-          blNumber,
-          clientName: bl.client_name,
-          clientCode: bl.nclient,
-          blMatch,
-          clientMatch,
-          clientCodeMatch,
-          finalMatch: clientMatch || clientCodeMatch || blMatch
-        });
-        
-        return clientMatch || clientCodeMatch || blMatch;
+        // Si le terme de recherche est un nombre, chercher SEULEMENT dans les numéros de BL
+        if (/^\d+$/.test(searchTerm.trim())) {
+          const blNumber = String(bl.nfact || bl.nbl || '').trim();
+          const exactMatch = blNumber === searchTerm.trim();
+          
+          console.log(`🔍 Numeric search for "${searchTerm.trim()}":`, {
+            blNumber,
+            searchTerm: searchTerm.trim(),
+            exactMatch
+          });
+          
+          return exactMatch;
+        } else {
+          // Si ce n'est pas un nombre, chercher dans client et code client
+          const clientMatch = bl.client_name?.toLowerCase().includes(searchLower);
+          const clientCodeMatch = bl.nclient?.toLowerCase().includes(searchLower);
+          
+          console.log(`🔍 Text search for "${searchLower}":`, {
+            clientName: bl.client_name,
+            clientCode: bl.nclient,
+            clientMatch,
+            clientCodeMatch
+          });
+          
+          return clientMatch || clientCodeMatch;
+        }
       });
     }
 
@@ -174,6 +177,7 @@ export default function DeliveryNotesList() {
       original: deliveryNotes.length,
       filtered: filtered.length,
       searchTerm,
+      isNumericSearch: /^\d+$/.test(searchTerm.trim()),
       selectedClient,
       dateFrom,
       dateTo,
@@ -1028,7 +1032,7 @@ export default function DeliveryNotesList() {
             }}>
               <input
                 type="text"
-                placeholder="🔍 Rechercher par N° BL exact (ex: 5) ou client..."
+                placeholder="🔍 N° BL exact (ex: 1, 5) ou nom client (ex: Kaddour)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
