@@ -42,65 +42,43 @@ export default function PrintOptions({
     }
   };
 
-  const handlePrint = async (format: string) => {
-    const baseUrl = 'http://localhost:3005/api/pdf';
-    let url = '';
+  const openPDFPreview = (format: string) => {
+    console.log(`🔍 PDF Preview - ID: ${documentId}, Type: ${format}, Document: ${documentType}`);
+    
+    if (!documentId || isNaN(documentId) || documentId <= 0) {
+      console.error(`🚨 Invalid Document ID: ${documentId}`);
+      alert(`Erreur: ID Document invalide: ${documentId}`);
+      return;
+    }
+
+    let pdfUrl = '';
     
     switch (documentType) {
       case 'bl':
-        switch (format) {
-          case 'complet':
-            url = `${baseUrl}/delivery-note/${documentId}`;
-            break;
-          case 'reduit':
-            url = `${baseUrl}/delivery-note-small/${documentId}`;
-            break;
-          case 'ticket':
-            url = `${baseUrl}/delivery-note-ticket/${documentId}`;
-            break;
-        }
+        const blUrls = {
+          complet: `/api/pdf/delivery-note/${documentId}`,
+          reduit: `/api/pdf/delivery-note-small/${documentId}`,
+          ticket: `/api/pdf/delivery-note-ticket/${documentId}`
+        };
+        pdfUrl = blUrls[format as keyof typeof blUrls];
         break;
       case 'invoice':
-        url = `${baseUrl}/invoice/${documentId}`;
+        pdfUrl = `/api/pdf/invoice/${documentId}`;
         break;
       case 'proforma':
-        url = `${baseUrl}/proforma/${documentId}`;
+        pdfUrl = `/api/pdf/proforma/${documentId}`;
         break;
     }
 
-    if (url) {
-      try {
-        // Faire la requête avec les headers appropriés
-        const response = await fetch(url, {
-          headers: {
-            'X-Tenant': tenant
-          }
-        });
-
-        if (response.ok) {
-          // Créer un blob à partir de la réponse
-          const blob = await response.blob();
-          const pdfUrl = URL.createObjectURL(blob);
-          
-          // Ouvrir le PDF dans un nouvel onglet
-          const printWindow = window.open(pdfUrl, '_blank');
-          if (printWindow) {
-            printWindow.focus();
-            // Nettoyer l'URL après un délai
-            setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
-          } else {
-            alert('❌ Popup bloqué ! Veuillez autoriser les popups pour ce site.');
-          }
-        } else {
-          const errorData = await response.json();
-          console.error('❌ PDF Error:', errorData);
-          alert(`❌ Erreur lors de la génération du PDF: ${errorData.error || 'Erreur inconnue'}`);
-        }
-      } catch (error) {
-        console.error('❌ Print Error:', error);
-        alert('❌ Erreur lors de l\'impression. Vérifiez que le serveur backend est démarré.');
-      }
+    if (pdfUrl) {
+      console.log(`📄 Opening PDF URL: ${pdfUrl}`);
+      // Solution SIMPLE: Ouvrir directement l'URL dans un nouvel onglet
+      window.open(pdfUrl, '_blank');
     }
+  };
+
+  const handlePrint = (format: string) => {
+    openPDFPreview(format);
   };
 
   const printOptions = () => {

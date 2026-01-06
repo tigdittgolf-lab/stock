@@ -57,7 +57,10 @@ export async function GET(
         status: 200,
         headers: {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="proforma_${validId}.pdf"`
+          'Content-Disposition': `inline; filename="proforma_${validId}.pdf"`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
       });
     } else {
