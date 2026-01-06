@@ -270,7 +270,7 @@ export default function DeliveryNotesList() {
         });
         
         // Récupération de l'ID réel du BL - CORRECTION MAJEURE
-        let validId = bl.nfact || bl.nbl || (bl as any).id;
+        let validId = bl.nbl || bl.id || bl.nfact;
         
         console.log(`🔍 MOBILE BL ${index} VALID ID:`, {
           validId: validId,
@@ -547,7 +547,7 @@ export default function DeliveryNotesList() {
             });
             
             // Récupération de l'ID réel du BL - CORRECTION MAJEURE
-            let validId = bl.nfact || bl.nbl || (bl as any).id;
+            let validId = bl.nbl || bl.id || bl.nfact;
             
             console.log(`🔍 DESKTOP BL ${index} VALID ID:`, {
               validId: validId,

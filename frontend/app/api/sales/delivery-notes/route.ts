@@ -1,44 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 export async function GET(request: NextRequest) {
   try {
-    if (!supabase) {
-      return NextResponse.json({
-        success: false,
-        error: 'Configuration Supabase manquante'
-      }, { status: 503 });
-    }
-    
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     
-    console.log(`🔍 API: Fetching delivery notes for tenant ${tenant}`);
+    console.log(`🔍 Frontend API: Proxying to backend for tenant ${tenant}`);
     
-    const { data, error } = await supabase.rpc('get_bl_list_by_tenant', {
-      p_tenant: tenant
+    // Faire la requête vers le backend local via Tailscale
+    const backendUrl = `https://desktop-bhhs068.tail1d9c54.ts.net/api/sales/delivery-notes`;
+    
+    const response = await fetch(backendUrl, {
+      method: 'GET',
+      headers: {
+        'X-Tenant': tenant,
+        'Content-Type': 'application/json'
+      }
     });
 
-    if (error) {
-      console.error('❌ Supabase error:', error);
+    if (!response.ok) {
+      console.error(`❌ Backend error: ${response.status} - ${await response.text()}`);
       return NextResponse.json({
         success: false,
-        error: error.message
-      }, { status: 500 });
+        error: `Backend error: ${response.status}`
+      }, { status: response.status });
     }
 
-    console.log(`✅ API: Found ${data?.length || 0} delivery notes`);
+    const data = await response.json();
+    console.log(`✅ Frontend API: Proxied ${data.data?.length || 0} delivery notes from backend`);
 
-    return NextResponse.json({
-      success: true,
-      data: data || []
-    });
+    return NextResponse.json(data);
 
   } catch (error) {
-    console.error('❌ API error:', error);
+    console.error('❌ Frontend API error:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erreur serveur'
@@ -48,53 +41,38 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    if (!supabase) {
-      return NextResponse.json({
-        success: false,
-        error: 'Configuration Supabase manquante'
-      }, { status: 503 });
-    }
-    
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     const body = await request.json();
     
-    console.log(`📝 API: Creating delivery note for tenant ${tenant}`);
+    console.log(`📝 Frontend API: Proxying POST to backend for tenant ${tenant}`);
     
-    // Créer le BL
-    const { data: blData, error: blError } = await supabase.rpc('insert_bl_to_tenant', {
-      p_tenant: tenant,
-      ...body.bl
+    // Faire la requête vers le backend local via Tailscale
+    const backendUrl = `https://desktop-bhhs068.tail1d9c54.ts.net/api/sales/delivery-notes`;
+    
+    const response = await fetch(backendUrl, {
+      method: 'POST',
+      headers: {
+        'X-Tenant': tenant,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
     });
 
-    if (blError) {
-      console.error('❌ Supabase BL error:', blError);
+    if (!response.ok) {
+      console.error(`❌ Backend POST error: ${response.status} - ${await response.text()}`);
       return NextResponse.json({
         success: false,
-        error: blError.message
-      }, { status: 500 });
+        error: `Backend error: ${response.status}`
+      }, { status: response.status });
     }
 
-    // Créer les détails si fournis
-    if (body.details && body.details.length > 0) {
-      for (const detail of body.details) {
-        const { error: detailError } = await supabase.rpc('insert_detail_bl_to_tenant', {
-          p_tenant: tenant,
-          ...detail
-        });
-        
-        if (detailError) {
-          console.warn('⚠️ Detail insertion error:', detailError);
-        }
-      }
-    }
+    const data = await response.json();
+    console.log(`✅ Frontend API: POST proxied successfully`);
 
-    return NextResponse.json({
-      success: true,
-      data: blData
-    });
+    return NextResponse.json(data);
 
   } catch (error) {
-    console.error('❌ API error:', error);
+    console.error('❌ Frontend API POST error:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Erreur serveur'
