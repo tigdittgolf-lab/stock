@@ -10,12 +10,17 @@ export async function GET(
     
     console.log(`📄 Frontend PDF Proxy - BL Réduit ID: ${id}, Tenant: ${tenant}`);
 
-    // Validation de l'ID
-    let validId = id;
-    if (!id || id === 'undefined' || id === 'null') {
-      console.warn(`⚠️ Invalid PDF ID received: ${id}, using fallback ID 5`);
-      validId = '5';
+    // Validation stricte de l'ID - PAS DE FALLBACK
+    const numericId = parseInt(id);
+    if (!id || id === 'undefined' || id === 'null' || isNaN(numericId) || numericId <= 0) {
+      console.error(`🚨 ERREUR: ID BL réduit invalide reçu par le proxy: ${id}`);
+      return NextResponse.json(
+        { success: false, error: `ID BL invalide: ${id}. Veuillez fournir un ID valide.` },
+        { status: 400 }
+      );
     }
+    
+    const validId = String(numericId); // Normaliser l'ID
 
     // Faire la requête vers le backend local via le proxy frontend
     const backendUrl = `https://desktop-bhhs068.tail1d9c54.ts.net/api/pdf/delivery-note-small/${validId}`;

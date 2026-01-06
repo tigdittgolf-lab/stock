@@ -10,37 +10,20 @@ export async function GET(
     
     console.log(`🔍 Frontend Debug Proxy - BL ID: ${id}, Tenant: ${tenant}`);
 
-    // Validation de l'ID
-    if (!id || id === 'undefined' || id === 'null') {
-      console.warn(`⚠️ Invalid ID received: ${id}, using fallback ID 5`);
-      const fallbackId = '5';
-      
-      // Faire la requête vers le backend local avec l'ID de fallback
-      const backendUrl = `https://desktop-bhhs068.tail1d9c54.ts.net/api/pdf/debug-bl/${fallbackId}`;
-      
-      const response = await fetch(backendUrl, {
-        method: 'GET',
-        headers: {
-          'X-Tenant': tenant,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        console.error(`❌ Backend debug error: ${response.status} - ${await response.text()}`);
-        return NextResponse.json(
-          { success: false, error: `Backend debug error: ${response.status}` },
-          { status: response.status }
-        );
-      }
-
-      const debugData = await response.json();
-      console.log(`✅ Debug data retrieved for fallback BL ${fallbackId}`);
-      return NextResponse.json(debugData);
+    // Validation stricte de l'ID - PAS DE FALLBACK
+    const numericId = parseInt(id);
+    if (!id || id === 'undefined' || id === 'null' || isNaN(numericId) || numericId <= 0) {
+      console.error(`🚨 ERREUR: ID debug invalide reçu par le proxy: ${id}`);
+      return NextResponse.json(
+        { success: false, error: `ID BL invalide: ${id}. Veuillez fournir un ID valide.` },
+        { status: 400 }
+      );
     }
+    
+    const validId = String(numericId); // Normaliser l'ID
 
     // Faire la requête vers le backend local avec l'ID valide
-    const backendUrl = `https://desktop-bhhs068.tail1d9c54.ts.net/api/pdf/debug-bl/${id}`;
+    const backendUrl = `https://desktop-bhhs068.tail1d9c54.ts.net/api/pdf/debug-bl/${validId}`;
     
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -61,7 +44,7 @@ export async function GET(
     // Récupérer les données de debug
     const debugData = await response.json();
     
-    console.log(`✅ Debug data retrieved for BL ${id}`);
+    console.log(`✅ Debug data retrieved for BL ${validId}`);
 
     return NextResponse.json(debugData);
 

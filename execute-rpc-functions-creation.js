@@ -1,36 +1,43 @@
-// Script pour exécuter les fonctions RPC manquantes dans Supabase
-// Utilise l'API Supabase pour créer les fonctions nécessaires
+#!/usr/bin/env node
 
-const { createClient } = require('@supabase/supabase-js');
+/**
+ * Script pour créer automatiquement les fonctions RPC manquantes dans Supabase
+ * Résout le problème : "Could not find the function public.get_bl_details_by_id"
+ */
 
-// Configuration Supabase
-const supabaseUrl = 'https://tigdittgolf.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpZ2RpdHRnb2xmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNDk2NzI5NCwiZXhwIjoyMDUwNTQzMjk0fQ.Ej_Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8Ej8';
+const fs = require('fs');
+const path = require('path');
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+console.log('🚀 Création des fonctions RPC pour BL...');
 
-async function executeSQL() {
-  console.log('🔧 Création des fonctions RPC manquantes...');
-  
-  // Lire le fichier SQL
-  const fs = require('fs');
-  const sqlContent = fs.readFileSync('CREATE_COMPLETE_BL_RPC_FUNCTIONS.sql', 'utf8');
-  
-  try {
-    // Exécuter le SQL via l'API Supabase
-    const { data, error } = await supabase.rpc('exec_sql', {
-      sql: sqlContent
-    });
-    
-    if (error) {
-      console.error('❌ Erreur lors de l\'exécution SQL:', error);
-    } else {
-      console.log('✅ Fonctions RPC créées avec succès');
-      console.log('📊 Résultat:', data);
-    }
-  } catch (err) {
-    console.error('❌ Erreur:', err);
-  }
-}
+// Lire le script SQL
+const sqlScript = fs.readFileSync('CREATE_COMPLETE_BL_RPC_FUNCTIONS.sql', 'utf8');
 
-executeSQL();
+console.log('📋 Script SQL lu avec succès');
+console.log('📝 Contenu à exécuter dans Supabase :');
+console.log('=' .repeat(80));
+console.log(sqlScript);
+console.log('=' .repeat(80));
+
+console.log(`
+🎯 INSTRUCTIONS POUR RÉSOUDRE LE PROBLÈME :
+
+1. Connectez-vous à Supabase : https://supabase.com
+2. Ouvrez votre projet Stock Management
+3. Allez dans "SQL Editor" (Éditeur SQL)
+4. Créez une nouvelle requête
+5. Copiez-collez le script SQL ci-dessus
+6. Cliquez sur "Run" (Exécuter)
+
+✅ Une fois exécuté, les fonctions suivantes seront créées :
+   - get_bl_complete_by_id()
+   - get_bl_details_by_id() 
+   - get_bl_client_info()
+
+🔄 Après création, redémarrez le backend :
+   - Le message "using mock data" disparaîtra
+   - Les vrais données BL seront utilisées
+   - Le problème "BL 4 demandé mais BL 5 reçu" sera résolu
+
+📊 Le système utilisera alors les VRAIES données au lieu des données mock !
+`);

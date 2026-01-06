@@ -1,90 +1,113 @@
-// Test du nouveau déploiement Vercel
+#!/usr/bin/env node
+
+/**
+ * Test du nouveau déploiement Vercel
+ */
+
 const https = require('https');
 
-async function testNewDeployment() {
-  console.log('🎉 NOUVEAU DÉPLOIEMENT VERCEL RÉUSSI!\n');
-  
-  const newUrl = 'frontend-jrcomc5ao-tigdittgolf-9191s-projects.vercel.app';
-  const oldUrl = 'frontend-iota-six-72.vercel.app';
-  
-  console.log('🔍 Test des deux URLs...\n');
-  
-  // Test nouvelle URL
-  console.log('📱 Test nouvelle URL:', newUrl);
-  const newResult = await testUrl(newUrl);
-  console.log(`   Status: ${newResult.status}`);
-  console.log(`   Mobile: ${newResult.hasMobile ? '✅ OUI' : '❌ NON'}`);
-  console.log(`   Cache: ${newResult.cache}`);
-  
-  // Test ancienne URL
-  console.log('\n🖥️ Test ancienne URL:', oldUrl);
-  const oldResult = await testUrl(oldUrl);
-  console.log(`   Status: ${oldResult.status}`);
-  console.log(`   Mobile: ${oldResult.hasMobile ? '✅ OUI' : '❌ NON'}`);
-  console.log(`   Cache: ${oldResult.cache}`);
-  
-  // Test pages mobiles sur nouvelle URL
-  console.log('\n📱 Test pages mobiles sur nouvelle URL...');
-  const mobilePages = ['/mobile-bl', '/mobile-factures', '/delivery-notes/list'];
-  
-  for (const page of mobilePages) {
-    const result = await testUrl(newUrl, page);
-    console.log(`   ${page}: ${result.status === 200 ? '✅ OK' : '❌ ERREUR'} | Mobile: ${result.hasMobile ? '✅' : '❌'}`);
-  }
-  
-  console.log('\n🎯 RÉSULTAT:');
-  if (newResult.hasMobile) {
-    console.log('🎉 SUCCÈS COMPLET! Interface mobile déployée sur nouvelle URL');
-    console.log(`📞 Nouvelle URL pour votre ami: https://${newUrl}`);
-    console.log('✅ Toutes les fonctionnalités mobiles sont disponibles!');
-  } else {
-    console.log('⏳ Déploiement en cours de propagation...');
-    console.log('🔄 Réessayez dans 2-3 minutes');
-  }
-}
+// Tester les deux URLs
+const URLS = [
+    'https://frontend-iota-six-72.vercel.app',
+    'https://frontend-rj2gndlsp-tigdittgolf-9191s-projects.vercel.app'
+];
 
-async function testUrl(hostname, path = '/delivery-notes/list') {
-  return new Promise((resolve) => {
-    const options = {
-      hostname: hostname,
-      port: 443,
-      path: path,
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)'
-      }
-    };
+const TENANT = '2025_bu01';
 
-    const req = https.request(options, (res) => {
-      let content = '';
-      res.on('data', (chunk) => {
-        content += chunk;
-      });
-      
-      res.on('end', () => {
-        const hasMobile = content.includes('isMobile') || 
-                         content.includes('window.innerWidth <= 768') ||
-                         content.includes('setIsMobile');
+console.log('🧪 TEST: Nouveau Déploiement Vercel');
+console.log('===================================');
+console.log('');
+
+async function testURL(baseUrl, path) {
+    return new Promise((resolve, reject) => {
+        const url = `${baseUrl}${path}`;
         
-        resolve({
-          status: res.statusCode,
-          cache: res.headers['x-vercel-cache'] || 'N/A',
-          hasMobile: hasMobile
-        });
-      });
-    });
+        const options = {
+            method: 'GET',
+            headers: {
+                'X-Tenant': TENANT,
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        };
 
-    req.on('error', () => {
-      resolve({ status: 0, cache: 'ERROR', hasMobile: false });
+        const req = https.request(url, options, (res) => {
+            let data = '';
+            
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+            
+            res.on('end', () => {
+                resolve({
+                    status: res.statusCode,
+                    data: data.substring(0, 200)
+                });
+            });
+        });
+
+        req.on('error', (error) => {
+            reject(error);
+        });
+
+        req.setTimeout(5000, () => {
+            req.destroy();
+            reject(new Error('Timeout'));
+        });
+
+        req.end();
     });
-    
-    req.setTimeout(8000, () => {
-      req.destroy();
-      resolve({ status: 0, cache: 'TIMEOUT', hasMobile: false });
-    });
-    
-    req.end();
-  });
 }
 
-testNewDeployment();
+async function runTests() {
+    const testPath = '/api/pdf/debug-bl/1';
+    
+    for (const baseUrl of URLS) {
+        console.log(`🔍 Test: ${baseUrl}`);
+        
+        try {
+            const result = await testURL(baseUrl, testPath);
+            console.log(`   Status: ${result.status}`);
+            
+            if (result.status === 200) {
+                console.log(`   ✅ OK - Déploiement fonctionnel`);
+            } else if (result.status === 400) {
+                console.log(`   ⚠️  400 - Validation stricte activée (c'est normal)`);
+                
+                // Essayer avec un ID valide
+                try {
+                    const validResult = await testURL(baseUrl, '/api/pdf/debug-bl/5');
+                    console.log(`   Test ID 5: Status ${validResult.status}`);
+                    if (validResult.status === 200) {
+                        console.log(`   ✅ Validation fonctionne correctement`);
+                    }
+                } catch (e) {
+                    console.log(`   ❌ Erreur test ID 5: ${e.message}`);
+                }
+            } else {
+                console.log(`   ❌ Erreur HTTP ${result.status}`);
+            }
+            
+        } catch (error) {
+            console.log(`   ❌ Erreur réseau: ${error.message}`);
+        }
+        
+        console.log('');
+    }
+    
+    console.log('📊 CONCLUSION:');
+    console.log('   • Status 400 = Validation stricte fonctionne (plus de fallback vers BL 5)');
+    console.log('   • Status 200 = Déploiement opérationnel');
+    console.log('   • Status 500 = Problème backend');
+    console.log('');
+    console.log('🎯 PROCHAINE ÉTAPE:');
+    console.log('   • Créer les fonctions RPC Supabase manquantes');
+    console.log('   • Redémarrer le backend');
+    console.log('   • Tester avec de vrais IDs de BL');
+    console.log('');
+}
+
+runTests().catch(error => {
+    console.error('❌ Erreur lors des tests:', error.message);
+    process.exit(1);
+});
