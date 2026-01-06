@@ -18,10 +18,20 @@ interface DeliveryNote {
 export default function DeliveryNotesList() {
   const router = useRouter();
   const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>([]);
+  const [filteredDeliveryNotes, setFilteredDeliveryNotes] = useState<DeliveryNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tenant, setTenant] = useState<string>('');
   const [isMobile, setIsMobile] = useState(false);
+
+  // États pour les filtres
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [minAmount, setMinAmount] = useState('');
+  const [maxAmount, setMaxAmount] = useState('');
+  const [selectedClient, setSelectedClient] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     // Détecter si on est sur mobile
@@ -92,6 +102,7 @@ export default function DeliveryNotesList() {
           });
         });
         setDeliveryNotes(data.data || []);
+        setFilteredDeliveryNotes(data.data || []);
         console.log('✅ Loaded', data.data?.length || 0, 'delivery notes');
       } else {
         throw new Error(data.error || 'Failed to load delivery notes');
@@ -103,6 +114,62 @@ export default function DeliveryNotesList() {
       setLoading(false);
     }
   };
+
+  // Fonction de filtrage
+  const applyFilters = () => {
+    let filtered = [...deliveryNotes];
+
+    // Filtre par terme de recherche (numéro BL, client)
+    if (searchTerm) {
+      filtered = filtered.filter(bl => 
+        bl.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        bl.nclient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(bl.nfact || bl.nbl || '').includes(searchTerm) ||
+        String(bl.nbl || bl.nfact || '').includes(searchTerm)
+      );
+    }
+
+    // Filtre par client spécifique
+    if (selectedClient) {
+      filtered = filtered.filter(bl => bl.client_name === selectedClient);
+    }
+
+    // Filtre par date
+    if (dateFrom) {
+      filtered = filtered.filter(bl => new Date(bl.date_fact) >= new Date(dateFrom));
+    }
+    if (dateTo) {
+      filtered = filtered.filter(bl => new Date(bl.date_fact) <= new Date(dateTo));
+    }
+
+    // Filtre par montant
+    if (minAmount) {
+      filtered = filtered.filter(bl => bl.montant_ttc >= parseFloat(minAmount));
+    }
+    if (maxAmount) {
+      filtered = filtered.filter(bl => bl.montant_ttc <= parseFloat(maxAmount));
+    }
+
+    setFilteredDeliveryNotes(filtered);
+  };
+
+  // Effet pour appliquer les filtres quand ils changent
+  useEffect(() => {
+    applyFilters();
+  }, [searchTerm, dateFrom, dateTo, minAmount, maxAmount, selectedClient, deliveryNotes]);
+
+  // Fonction pour réinitialiser les filtres
+  const resetFilters = () => {
+    setSearchTerm('');
+    setDateFrom('');
+    setDateTo('');
+    setMinAmount('');
+    setMaxAmount('');
+    setSelectedClient('');
+  };
+
+  // Obtenir la liste unique des clients pour le filtre
+  const uniqueClients = [...new Set(deliveryNotes.map(bl => bl.client_name))].filter(Boolean).sort();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR');
@@ -312,7 +379,7 @@ export default function DeliveryNotesList() {
   // Version mobile avec cartes
   const MobileView = () => (
     <div style={{ padding: '10px' }}>
-      {deliveryNotes.map((bl, index) => {
+      {filteredDeliveryNotes.map((bl, index) => {
         // DEBUG: Logs détaillés pour identifier le problème
         console.log(`🔍 BL ${index} RAW DATA:`, {
           nfact: bl.nfact,
@@ -596,7 +663,7 @@ export default function DeliveryNotesList() {
           </tr>
         </thead>
         <tbody>
-          {deliveryNotes.map((bl, index) => {
+          {filteredDeliveryNotes.map((bl, index) => {
             // DEBUG: Logs détaillés pour identifier le problème
             console.log(`🔍 BL ${index} RAW DATA:`, {
               nfact: bl.nfact,
@@ -821,7 +888,7 @@ export default function DeliveryNotesList() {
             color: '#666',
             fontSize: isMobile ? '14px' : '16px'
           }}>
-            {isMobile ? `${deliveryNotes.length} BL trouvés` : `Tenant: ${tenant} • ${deliveryNotes.length} BL trouvés`}
+            {isMobile ? `${filteredDeliveryNotes.length} BL trouvés` : `Tenant: ${tenant} • ${filteredDeliveryNotes.length} BL trouvés`}
           </p>
         </div>
         <div style={{ 
@@ -860,6 +927,252 @@ export default function DeliveryNotesList() {
             ← Retour Dashboard
           </button>
         </div>
+      </div>
+
+      {/* Interface de filtres */}
+      <div style={{
+        background: 'white',
+        borderRadius: '10px',
+        padding: isMobile ? '15px' : '20px',
+        marginBottom: '20px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+      }}>
+        {/* Bouton pour afficher/masquer les filtres */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: showFilters ? '20px' : '0'
+        }}>
+          <h3 style={{
+            margin: 0,
+            color: '#333',
+            fontSize: isMobile ? '16px' : '18px'
+          }}>
+            🔍 Filtres de recherche
+          </h3>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: showFilters ? '#dc3545' : '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold'
+            }}
+          >
+            {showFilters ? '🔼 Masquer' : '🔽 Afficher'}
+          </button>
+        </div>
+
+        {showFilters && (
+          <div>
+            {/* Barre de recherche principale */}
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              marginBottom: '15px',
+              flexDirection: isMobile ? 'column' : 'row'
+            }}>
+              <input
+                type="text"
+                placeholder="🔍 Rechercher par N° BL, client..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  border: '2px solid #e0e0e0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none'
+                }}
+              />
+              <button
+                onClick={resetFilters}
+                style={{
+                  padding: '12px 20px',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  minWidth: isMobile ? 'auto' : '120px'
+                }}
+              >
+                🔄 Réinitialiser
+              </button>
+            </div>
+
+            {/* Filtres avancés */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '15px',
+              marginBottom: '15px'
+            }}>
+              {/* Filtre par client */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '5px',
+                  fontWeight: 'bold',
+                  color: '#333',
+                  fontSize: '14px'
+                }}>
+                  👤 Client
+                </label>
+                <select
+                  value={selectedClient}
+                  onChange={(e) => setSelectedClient(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '2px solid #e0e0e0',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="">Tous les clients</option>
+                  {uniqueClients.map(client => (
+                    <option key={client} value={client}>{client}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filtre par date de début */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '5px',
+                  fontWeight: 'bold',
+                  color: '#333',
+                  fontSize: '14px'
+                }}>
+                  📅 Date de début
+                </label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '2px solid #e0e0e0',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Filtre par date de fin */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '5px',
+                  fontWeight: 'bold',
+                  color: '#333',
+                  fontSize: '14px'
+                }}>
+                  📅 Date de fin
+                </label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '2px solid #e0e0e0',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Filtre par montant minimum */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '5px',
+                  fontWeight: 'bold',
+                  color: '#333',
+                  fontSize: '14px'
+                }}>
+                  💰 Montant min (DA)
+                </label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={minAmount}
+                  onChange={(e) => setMinAmount(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '2px solid #e0e0e0',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Filtre par montant maximum */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '5px',
+                  fontWeight: 'bold',
+                  color: '#333',
+                  fontSize: '14px'
+                }}>
+                  💰 Montant max (DA)
+                </label>
+                <input
+                  type="number"
+                  placeholder="∞"
+                  value={maxAmount}
+                  onChange={(e) => setMaxAmount(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '2px solid #e0e0e0',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Résumé des filtres actifs */}
+            {(searchTerm || selectedClient || dateFrom || dateTo || minAmount || maxAmount) && (
+              <div style={{
+                background: '#e7f3ff',
+                border: '1px solid #b3d9ff',
+                borderRadius: '6px',
+                padding: '10px',
+                fontSize: '14px'
+              }}>
+                <strong>🎯 Filtres actifs :</strong>
+                {searchTerm && <span style={{ marginLeft: '10px', background: '#007bff', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Recherche: "{searchTerm}"</span>}
+                {selectedClient && <span style={{ marginLeft: '10px', background: '#28a745', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Client: {selectedClient}</span>}
+                {dateFrom && <span style={{ marginLeft: '10px', background: '#17a2b8', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Depuis: {dateFrom}</span>}
+                {dateTo && <span style={{ marginLeft: '10px', background: '#17a2b8', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Jusqu'à: {dateTo}</span>}
+                {minAmount && <span style={{ marginLeft: '10px', background: '#ffc107', color: 'black', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Min: {minAmount} DA</span>}
+                {maxAmount && <span style={{ marginLeft: '10px', background: '#ffc107', color: 'black', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Max: {maxAmount} DA</span>}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {loading && (
@@ -904,6 +1217,36 @@ export default function DeliveryNotesList() {
         </div>
       )}
 
+      {!loading && !error && filteredDeliveryNotes.length === 0 && deliveryNotes.length > 0 && (
+        <div style={{
+          textAlign: 'center',
+          padding: isMobile ? '40px 20px' : '60px 20px',
+          background: 'white',
+          borderRadius: '10px',
+          border: '2px dashed #ffc107'
+        }}>
+          <h3 style={{ color: '#856404', marginBottom: '15px' }}>🔍 Aucun résultat trouvé</h3>
+          <p style={{ color: '#856404', marginBottom: '20px' }}>
+            Aucun bon de livraison ne correspond aux critères de recherche.
+          </p>
+          <button
+            onClick={resetFilters}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#ffc107',
+              color: '#212529',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold'
+            }}
+          >
+            🔄 Réinitialiser les filtres
+          </button>
+        </div>
+      )}
+
       {!loading && !error && deliveryNotes.length === 0 && (
         <div style={{
           textAlign: 'center',
@@ -934,7 +1277,7 @@ export default function DeliveryNotesList() {
         </div>
       )}
 
-      {!loading && !error && deliveryNotes.length > 0 && (
+      {!loading && !error && filteredDeliveryNotes.length > 0 && (
         isMobile ? <MobileView /> : <DesktopView />
       )}
 

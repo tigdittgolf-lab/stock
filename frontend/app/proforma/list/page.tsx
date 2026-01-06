@@ -18,7 +18,30 @@ interface Proforma {
 export default function ProformaList() {
   const router = useRouter();
   const [proformas, setProformas] = useState<Proforma[]>([]);
+  const [filteredProformas, setFilteredProformas] = useState<Proforma[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // États pour les filtres
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [minAmount, setMinAmount] = useState('');
+  const [maxAmount, setMaxAmount] = useState('');
+  const [selectedClient, setSelectedClient] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    // Détecter si on est sur mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     fetchProformas();
@@ -35,12 +58,75 @@ export default function ProformaList() {
       const data = await response.json();
       if (data.success) {
         setProformas(data.data || []);
+        setFilteredProformas(data.data || []);
       }
     } catch (error) {
       console.error('Error fetching proformas:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fonction de filtrage
+  const applyFilters = () => {
+    let filtered = [...proformas];
+
+    // Filtre par terme de recherche (numéro proforma, client)
+    if (searchTerm) {
+      filtered = filtered.filter(proforma => 
+        proforma.nclient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(proforma.nfprof || '').includes(searchTerm)
+      );
+    }
+
+    // Filtre par client spécifique
+    if (selectedClient) {
+      filtered = filtered.filter(proforma => proforma.nclient === selectedClient);
+    }
+
+    // Filtre par date
+    if (dateFrom) {
+      filtered = filtered.filter(proforma => new Date(proforma.date_fact) >= new Date(dateFrom));
+    }
+    if (dateTo) {
+      filtered = filtered.filter(proforma => new Date(proforma.date_fact) <= new Date(dateTo));
+    }
+
+    // Filtre par montant
+    if (minAmount) {
+      filtered = filtered.filter(proforma => proforma.montant_ttc >= parseFloat(minAmount));
+    }
+    if (maxAmount) {
+      filtered = filtered.filter(proforma => proforma.montant_ttc <= parseFloat(maxAmount));
+    }
+
+    setFilteredProformas(filtered);
+  };
+
+  // Effet pour appliquer les filtres quand ils changent
+  useEffect(() => {
+    applyFilters();
+  }, [searchTerm, dateFrom, dateTo, minAmount, maxAmount, selectedClient, proformas]);
+
+  // Fonction pour réinitialiser les filtres
+  const resetFilters = () => {
+    setSearchTerm('');
+    setDateFrom('');
+    setDateTo('');
+    setMinAmount('');
+    setMaxAmount('');
+    setSelectedClient('');
+  };
+
+  // Obtenir la liste unique des clients pour le filtre
+  const uniqueClients = [...new Set(proformas.map(proforma => proforma.nclient))].filter(Boolean).sort();
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR');
+  };
+
+  const formatAmount = (amount: number) => {
+    return amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' DA';
   };
 
   return (
