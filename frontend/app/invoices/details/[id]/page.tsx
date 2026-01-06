@@ -134,13 +134,29 @@ export default function InvoiceDetailsPage() {
     return amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' DA';
   };
 
-  const handlePrintPDF = () => {
-    console.log(`📄 PDF Invoice - ID: ${id}`);
-    const pdfUrl = `/api/pdf/invoice/${id}`;
+  const openPDFPreview = (factId: string, type: 'invoice') => {
+    console.log(`🔍 PDF Preview - ID: ${factId}, Type: ${type}`);
+    
+    const numericId = parseInt(factId);
+    if (!factId || isNaN(numericId) || numericId <= 0) {
+      console.error(`🚨 Invalid Invoice ID: ${factId}`);
+      alert(`Erreur: ID Facture invalide: ${factId}`);
+      return;
+    }
+
+    const urls = {
+      invoice: `/api/pdf/invoice/${factId}`
+    };
+
+    const pdfUrl = urls[type];
     console.log(`📄 Opening PDF URL: ${pdfUrl}`);
     
-    // Solution SIMPLE: Ouvrir directement l'URL dans un nouvel onglet (comme les BL)
+    // Solution SIMPLE: Ouvrir directement l'URL dans un nouvel onglet
     window.open(pdfUrl, '_blank');
+  };
+
+  const handlePrintPDF = () => {
+    openPDFPreview(id, 'invoice');
   };
 
   if (loading) {

@@ -156,8 +156,8 @@ export default function InvoicesList() {
   // Obtenir la liste unique des clients pour le filtre
   const uniqueClients = [...new Set(invoices.map(invoice => invoice.client_name))].filter(Boolean).sort();
 
-  const openInvoicePDFPreview = (factId: number) => {
-    console.log(`🔍 PDF Preview - Invoice ID: ${factId}`);
+  const openPDFPreview = (factId: number, type: 'invoice') => {
+    console.log(`🔍 PDF Preview - ID: ${factId}, Type: ${type}`);
     
     if (!factId || isNaN(factId) || factId <= 0) {
       console.error(`🚨 Invalid Invoice ID: ${factId}`);
@@ -165,15 +165,19 @@ export default function InvoicesList() {
       return;
     }
 
-    const pdfUrl = `/api/pdf/invoice/${factId}`;
+    const urls = {
+      invoice: `/api/pdf/invoice/${factId}`
+    };
+
+    const pdfUrl = urls[type];
     console.log(`📄 Opening PDF URL: ${pdfUrl}`);
     
-    // Solution SIMPLE: Ouvrir directement l'URL dans un nouvel onglet (comme les BL)
+    // Solution SIMPLE: Ouvrir directement l'URL dans un nouvel onglet
     window.open(pdfUrl, '_blank');
   };
 
   const handlePrintPDF = (factId: number) => {
-    openInvoicePDFPreview(factId);
+    openPDFPreview(factId, 'invoice');
   };
 
   const formatDate = (dateString: string) => {
@@ -218,7 +222,7 @@ export default function InvoicesList() {
             <button
               onClick={() => {
                 console.log(`📄 PDF Invoice - ID: ${fact.nfact}`);
-                openInvoicePDFPreview(fact.nfact);
+                openPDFPreview(fact.nfact, 'invoice');
               }}
               style={{
                 padding: '8px 15px',
@@ -324,7 +328,7 @@ export default function InvoicesList() {
             <button
               onClick={() => {
                 console.log(`📄 PDF Invoice - ID: ${fact.nfact}`);
-                openInvoicePDFPreview(fact.nfact);
+                openPDFPreview(fact.nfact, 'invoice');
               }}
               style={{
                 flex: 1,
@@ -430,7 +434,7 @@ export default function InvoicesList() {
                   <button
                     onClick={() => {
                       console.log(`📄 PDF Invoice - ID: ${fact.nfact}`);
-                      openInvoicePDFPreview(fact.nfact);
+                      openPDFPreview(fact.nfact, 'invoice');
                     }}
                     style={{
                       padding: '8px 16px',

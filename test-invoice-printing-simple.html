@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Invoice Printing - Simple Mode</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .comparison-item { padding: 15px; border: 2px solid #ddd; border-radius: 8px; }
+        .bl-style { border-color: #28a745; }
+        .invoice-style { border-color: #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>🧾 Test Invoice Printing - Mode Simple</h1>
+    <p>Vérification que l'impression des factures fonctionne exactement comme celle des BL</p>
+    
+    <div class="test-section info">
+        <h3>🔗 URLs de test</h3>
+        <p><strong>Production Factures:</strong> <a href="https://frontend-r9dthlwh4-tigdittgolf-9191s-projects.vercel.app/invoices/list" target="_blank">Liste des Factures</a></p>
+        <p><strong>Production BL:</strong> <a href="https://frontend-r9dthlwh4-tigdittgolf-9191s-projects.vercel.app/delivery-notes/list" target="_blank">Liste des BL</a></p>
+    </div>
+
+    <div class="test-section">
+        <h3>🔄 Comparaison du comportement d'impression</h3>
+        <div class="comparison">
+            <div class="comparison-item bl-style">
+                <h4>📋 BL (Référence - Comportement attendu)</h4>
+                <p><strong>Comportement actuel des BL :</strong></p>
+                <ul>
+                    <li>✅ Clic sur bouton PDF → Ouvre directement dans nouvel onglet</li>
+                    <li>✅ Pas de téléchargement automatique</li>
+                    <li>✅ Utilisateur contrôle impression/téléchargement depuis navigateur</li>
+                    <li>✅ Simple et efficace</li>
+                </ul>
+                <button onclick="testBLPrinting()">🧪 Tester BL</button>
+            </div>
+            
+            <div class="comparison-item invoice-style">
+                <h4>🧾 Factures (Nouveau comportement)</h4>
+                <p><strong>Comportement modifié des factures :</strong></p>
+                <ul>
+                    <li>✅ Clic sur bouton PDF → Ouvre directement dans nouvel onglet</li>
+                    <li>✅ Pas de téléchargement automatique</li>
+                    <li>✅ Utilisateur contrôle impression/téléchargement depuis navigateur</li>
+                    <li>✅ Identique aux BL</li>
+                </ul>
+                <button onclick="testInvoicePrinting()">🧪 Tester Factures</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>📋 Instructions de test</h3>
+        <ol>
+            <li><strong>Tester les BL :</strong> Cliquez sur "Tester BL" pour ouvrir la liste des BL</li>
+            <li><strong>Tester les Factures :</strong> Cliquez sur "Tester Factures" pour ouvrir la liste des factures</li>
+            <li><strong>Comparer :</strong> Vérifiez que les boutons PDF se comportent de la même manière</li>
+            <li><strong>Vérifier :</strong> 
+                <ul>
+                    <li>Pas de téléchargement automatique</li>
+                    <li>PDF s'ouvre dans nouvel onglet</li>
+                    <li>Contrôles d'impression/téléchargement dans le navigateur</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h3>✅ Critères de réussite</h3>
+        <div id="test-results">
+            <p><strong>Le test est réussi si :</strong></p>
+            <ul>
+                <li>🎯 Les factures et BL ont le même comportement d'impression</li>
+                <li>🎯 Aucun téléchargement automatique ne se déclenche</li>
+                <li>🎯 Le PDF s'ouvre dans un nouvel onglet du navigateur</li>
+                <li>🎯 L'utilisateur peut choisir d'imprimer ou télécharger depuis le navigateur</li>
+                <li>🎯 Comportement cohérent sur mobile et desktop</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔧 Tests directs PDF</h3>
+        <p>Tests directs des endpoints PDF (nécessite des IDs valides) :</p>
+        <button onclick="testDirectBLPDF()">📋 Test BL PDF Direct</button>
+        <button onclick="testDirectInvoicePDF()">🧾 Test Facture PDF Direct</button>
+        <div id="direct-test-results"></div>
+    </div>
+
+    <script>
+        const PRODUCTION_URL = 'https://frontend-r9dthlwh4-tigdittgolf-9191s-projects.vercel.app';
+
+        function testBLPrinting() {
+            console.log('🧪 Testing BL printing behavior');
+            window.open(`${PRODUCTION_URL}/delivery-notes/list`, '_blank');
+        }
+
+        function testInvoicePrinting() {
+            console.log('🧪 Testing Invoice printing behavior');
+            window.open(`${PRODUCTION_URL}/invoices/list`, '_blank');
+        }
+
+        function testDirectBLPDF() {
+            console.log('🧪 Testing direct BL PDF');
+            const resultDiv = document.getElementById('direct-test-results');
+            resultDiv.innerHTML = '<p>🔄 Test BL PDF avec ID 5...</p>';
+            
+            // Test avec ID 5 (ID de fallback connu)
+            const blPdfUrl = `${PRODUCTION_URL}/api/pdf/delivery-note/5`;
+            console.log('📄 Opening BL PDF:', blPdfUrl);
+            
+            window.open(blPdfUrl, '_blank');
+            resultDiv.innerHTML = '<p>✅ BL PDF ouvert dans nouvel onglet</p>';
+        }
+
+        function testDirectInvoicePDF() {
+            console.log('🧪 Testing direct Invoice PDF');
+            const resultDiv = document.getElementById('direct-test-results');
+            resultDiv.innerHTML = '<p>🔄 Test Facture PDF avec ID 2...</p>';
+            
+            // Test avec ID 2 (basé sur les données backend vues précédemment)
+            const invoicePdfUrl = `${PRODUCTION_URL}/api/pdf/invoice/2`;
+            console.log('📄 Opening Invoice PDF:', invoicePdfUrl);
+            
+            window.open(invoicePdfUrl, '_blank');
+            resultDiv.innerHTML = '<p>✅ Facture PDF ouvert dans nouvel onglet</p>';
+        }
+
+        // Auto-log au chargement
+        window.onload = function() {
+            console.log('🧪 Invoice printing test page loaded');
+            console.log('Production URL:', PRODUCTION_URL);
+            console.log('Ready to test invoice printing behavior');
+        };
+    </script>
+</body>
+</html>
