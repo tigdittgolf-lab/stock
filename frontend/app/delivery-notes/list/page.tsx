@@ -433,42 +433,19 @@ export default function DeliveryNotesList() {
   const MobileView = () => (
     <div style={{ padding: '10px' }}>
       {filteredDeliveryNotes.map((bl, index) => {
-        // DEBUG: Logs détaillés pour identifier le problème
-        console.log(`🔍 BL ${index} RAW DATA:`, {
-          nfact: bl.nfact,
-          nbl: bl.nbl,
-          id: (bl as any).id,
-          allKeys: Object.keys(bl),
-          fullObject: bl
-        });
-
-        // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
-        let rawId = bl.nfact || bl.nbl || (bl as any).id || (bl as any).nfact_id || (bl as any).bl_id;
+        // Récupération de l'ID réel du BL - CORRECTION MAJEURE
+        let validId = bl.nfact || bl.nbl || (bl as any).id;
         
-        // Validation robuste de l'ID avec logs détaillés
-        let validId = 5; // ID par défaut GARANTI
-        if (rawId) {
-          const numericId = parseInt(String(rawId));
-          if (!isNaN(numericId) && numericId > 0) {
-            validId = numericId;
-            console.log(`✅ Valid ID found: ${validId} from raw: ${rawId}`);
-          } else {
-            console.warn(`⚠️ Invalid BL ID found (${rawId}), using fallback ID 5 for:`, bl);
-          }
-        } else {
-          console.warn(`⚠️ No BL ID found, using fallback ID 5 for:`, bl);
-        }
-
-        // FORCE: S'assurer que validId n'est JAMAIS undefined/null
+        // Validation simple mais correcte
         if (!validId || isNaN(validId) || validId <= 0) {
-          console.error(`🚨 CRITICAL: validId is invalid (${validId}), forcing to 5`);
-          validId = 5;
+          console.error(`🚨 CRITICAL: No valid ID found for BL:`, bl);
+          return null; // Ne pas afficher ce BL s'il n'a pas d'ID valide
         }
 
-        // ID d'affichage (peut être différent de l'ID utilisé pour les actions)
-        const displayId = rawId || 'N/A';
+        // ID d'affichage
+        const displayId = validId;
 
-        console.log(`🎯 FINAL IDs for BL ${index}: display=${displayId}, action=${validId}`);
+        console.log(`🎯 BL ${index}: Using ID ${validId} for display ${displayId}`);
 
         return (
           <div 
@@ -500,7 +477,7 @@ export default function DeliveryNotesList() {
               </div>
               <button
                 onClick={() => {
-                  console.log(`🔗 Navigating to details with ID: ${validId}`);
+                  console.log(`🔗 Navigating to details with REAL ID: ${validId}`);
                   router.push(`/delivery-notes/details/${validId}`);
                 }}
                 style={{
@@ -606,7 +583,7 @@ export default function DeliveryNotesList() {
             }}>
               <button
                 onClick={() => {
-                  console.log(`📄 PDF Complete - Using ID: ${validId} (guaranteed valid)`);
+                  console.log(`📄 PDF Complete - Using REAL ID: ${validId} for BL ${displayId}`);
                   openPDFPreview(validId, 'complete');
                 }}
                 style={{
@@ -627,7 +604,7 @@ export default function DeliveryNotesList() {
               
               <button
                 onClick={() => {
-                  console.log(`📄 PDF Small - Using ID: ${validId} (guaranteed valid)`);
+                  console.log(`📄 PDF Small - Using REAL ID: ${validId} for BL ${displayId}`);
                   openPDFPreview(validId, 'small');
                 }}
                 style={{
@@ -648,7 +625,7 @@ export default function DeliveryNotesList() {
               
               <button
                 onClick={() => {
-                  console.log(`🎫 PDF Ticket - Using ID: ${validId} (guaranteed valid)`);
+                  console.log(`🎫 PDF Ticket - Using REAL ID: ${validId} for BL ${displayId}`);
                   openPDFPreview(validId, 'ticket');
                 }}
                 style={{
@@ -675,7 +652,7 @@ export default function DeliveryNotesList() {
             }}>
               <button
                 onClick={() => {
-                  if (confirm('Êtes-vous sûr de vouloir supprimer ce BL ?')) {
+                  if (confirm(`Êtes-vous sûr de vouloir supprimer le BL ${displayId} ?`)) {
                     alert('Fonction de suppression à implémenter');
                   }
                 }}
@@ -717,42 +694,19 @@ export default function DeliveryNotesList() {
         </thead>
         <tbody>
           {filteredDeliveryNotes.map((bl, index) => {
-            // DEBUG: Logs détaillés pour identifier le problème
-            console.log(`🔍 BL ${index} RAW DATA:`, {
-              nfact: bl.nfact,
-              nbl: bl.nbl,
-              id: (bl as any).id,
-              allKeys: Object.keys(bl),
-              fullObject: bl
-            });
-
-            // Nettoyer et valider l'ID du BL - essayer plusieurs champs possibles
-            let rawId = bl.nfact || bl.nbl || (bl as any).id || (bl as any).nfact_id || (bl as any).bl_id;
+            // Récupération de l'ID réel du BL - CORRECTION MAJEURE
+            let validId = bl.nfact || bl.nbl || (bl as any).id;
             
-            // Validation robuste de l'ID avec logs détaillés
-            let validId = 5; // ID par défaut GARANTI
-            if (rawId) {
-              const numericId = parseInt(String(rawId));
-              if (!isNaN(numericId) && numericId > 0) {
-                validId = numericId;
-                console.log(`✅ Valid ID found: ${validId} from raw: ${rawId}`);
-              } else {
-                console.warn(`⚠️ Invalid BL ID found (${rawId}), using fallback ID 5 for:`, bl);
-              }
-            } else {
-              console.warn(`⚠️ No BL ID found, using fallback ID 5 for:`, bl);
-            }
-
-            // FORCE: S'assurer que validId n'est JAMAIS undefined/null
+            // Validation simple mais correcte
             if (!validId || isNaN(validId) || validId <= 0) {
-              console.error(`🚨 CRITICAL: validId is invalid (${validId}), forcing to 5`);
-              validId = 5;
+              console.error(`🚨 CRITICAL: No valid ID found for BL:`, bl);
+              return null; // Ne pas afficher ce BL s'il n'a pas d'ID valide
             }
 
-            // ID d'affichage (peut être différent de l'ID utilisé pour les actions)
-            const displayId = rawId || 'N/A';
+            // ID d'affichage
+            const displayId = validId;
 
-            console.log(`🎯 FINAL IDs for BL ${index}: display=${displayId}, action=${validId}`);
+            console.log(`🎯 Desktop BL ${index}: Using REAL ID ${validId} for display ${displayId}`);
 
             return (
               <tr 
@@ -794,7 +748,7 @@ export default function DeliveryNotesList() {
                     {/* Première ligne - Actions principales */}
                     <button
                       onClick={() => {
-                        console.log(`🔗 Navigating to details with ID: ${validId}`);
+                        console.log(`🔗 Navigating to details with REAL ID: ${validId} for BL ${displayId}`);
                         router.push(`/delivery-notes/details/${validId}`);
                       }}
                       style={{
@@ -808,14 +762,14 @@ export default function DeliveryNotesList() {
                         fontWeight: 'bold',
                         minWidth: '70px'
                       }}
-                      title="Voir les détails du BL"
+                      title={`Voir les détails du BL ${displayId}`}
                     >
                       👁️ Voir
                     </button>
                     
                     <button
                       onClick={() => {
-                        if (confirm('Êtes-vous sûr de vouloir supprimer ce BL ?')) {
+                        if (confirm(`Êtes-vous sûr de vouloir supprimer le BL ${displayId} ?`)) {
                           alert('Fonction de suppression à implémenter');
                         }
                       }}
@@ -830,7 +784,7 @@ export default function DeliveryNotesList() {
                         fontWeight: 'bold',
                         minWidth: '70px'
                       }}
-                      title="Supprimer le BL"
+                      title={`Supprimer le BL ${displayId}`}
                     >
                       🗑️ Supprimer
                     </button>
@@ -838,7 +792,7 @@ export default function DeliveryNotesList() {
                     {/* Deuxième ligne - Boutons PDF avec prévisualisation */}
                     <button
                       onClick={() => {
-                        console.log(`📄 PDF Complete - Using ID: ${validId} (guaranteed valid)`);
+                        console.log(`📄 PDF Complete - Using REAL ID: ${validId} for BL ${displayId}`);
                         openPDFPreview(validId, 'complete');
                       }}
                       style={{
@@ -852,14 +806,14 @@ export default function DeliveryNotesList() {
                         fontWeight: 'bold',
                         minWidth: '90px'
                       }}
-                      title="Prévisualiser BL Complet"
+                      title={`Prévisualiser BL Complet ${displayId}`}
                     >
                       📄 BL Complet
                     </button>
                     
                     <button
                       onClick={() => {
-                        console.log(`📄 PDF Small - Using ID: ${validId} (guaranteed valid)`);
+                        console.log(`📄 PDF Small - Using REAL ID: ${validId} for BL ${displayId}`);
                         openPDFPreview(validId, 'small');
                       }}
                       style={{
@@ -873,14 +827,14 @@ export default function DeliveryNotesList() {
                         fontWeight: 'bold',
                         minWidth: '90px'
                       }}
-                      title="Prévisualiser BL Réduit"
+                      title={`Prévisualiser BL Réduit ${displayId}`}
                     >
                       📄 BL Réduit
                     </button>
                     
                     <button
                       onClick={() => {
-                        console.log(`🎫 PDF Ticket - Using ID: ${validId} (guaranteed valid)`);
+                        console.log(`🎫 PDF Ticket - Using REAL ID: ${validId} for BL ${displayId}`);
                         openPDFPreview(validId, 'ticket');
                       }}
                       style={{
@@ -894,7 +848,7 @@ export default function DeliveryNotesList() {
                         fontWeight: 'bold',
                         minWidth: '70px'
                       }}
-                      title="Prévisualiser Ticket"
+                      title={`Prévisualiser Ticket ${displayId}`}
                     >
                       🎫 Ticket
                     </button>
