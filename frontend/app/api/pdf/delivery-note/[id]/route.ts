@@ -5,15 +5,22 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log(`🔍 PDF Proxy - Full request URL: ${request.url}`);
+    console.log(`🔍 PDF Proxy - Params object:`, params);
+    console.log(`🔍 PDF Proxy - Params keys:`, Object.keys(params));
+    console.log(`🔍 PDF Proxy - Raw params:`, JSON.stringify(params));
+    
     const { id } = params;
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     
-    console.log(`📄 Frontend PDF Proxy - BL Complet ID: ${id}, Tenant: ${tenant}`);
+    console.log(`📄 Frontend PDF Proxy - BL Complet ID: "${id}", Type: ${typeof id}, Tenant: ${tenant}`);
+    console.log(`📄 Frontend PDF Proxy - ID length: ${id?.length}, ID value: ${JSON.stringify(id)}`);
 
     // Validation stricte de l'ID - PAS DE FALLBACK
     const numericId = parseInt(id);
     if (!id || id === 'undefined' || id === 'null' || isNaN(numericId) || numericId <= 0) {
-      console.error(`🚨 ERREUR: ID BL invalide reçu par le proxy: ${id}`);
+      console.error(`🚨 ERREUR: ID BL invalide reçu par le proxy: "${id}"`);
+      console.error(`🚨 ERREUR: ID details - Value: ${JSON.stringify(id)}, Type: ${typeof id}, Length: ${id?.length}`);
       return NextResponse.json(
         { success: false, error: `ID BL invalide: ${id}. Veuillez fournir un ID valide.` },
         { status: 400 }
