@@ -16,12 +16,13 @@ async function fetchBLData(tenant: string, id: string) {
   
   console.log(`📋 PDF: Fetching BL data ${requestedId} for tenant: ${tenant}`);
 
-  // Validation de l'ID avec fallback
-  let actualId = requestedId;
+  // Validation stricte de l'ID - PAS DE FALLBACK
   if (isNaN(requestedId) || requestedId <= 0) {
-    console.log(`⚠️ Invalid ID ${id}, using fallback ID 5`);
-    actualId = 5;
+    console.error(`🚨 ERREUR: ID BL invalide ${id} - Aucun fallback utilisé`);
+    throw new Error(`ID BL invalide: ${id}. Veuillez fournir un ID valide.`);
   }
+
+  const actualId = requestedId; // Utiliser l'ID réel demandé
 
   // Essayer d'abord le cache
   const deliveryNotes = createdDocumentsCache.get(`${tenant}_bl`) || [];
@@ -46,9 +47,8 @@ async function fetchBLData(tenant: string, id: string) {
     });
 
     if (!blListResult.success || !blListResult.data || blListResult.data.length === 0) {
-      console.log(`⚠️ No BL found for tenant ${tenant}, creating mock data for ID ${actualId}`);
-      // Créer des données mock au lieu de lancer une erreur
-      return createMockBLData(actualId, tenant);
+      console.error(`🚨 ERREUR: Aucun BL trouvé pour le tenant ${tenant}`);
+      throw new Error(`Aucun BL trouvé pour le tenant ${tenant}`);
     }
 
     // Chercher le BL spécifique dans la liste
@@ -57,12 +57,8 @@ async function fetchBLData(tenant: string, id: string) {
     );
 
     if (!blInfo) {
-      console.log(`⚠️ BL ${actualId} not found in BL list, using first available or creating mock`);
-      // Utiliser le premier BL disponible ou créer des données mock
-      blInfo = blListResult.data[0] || null;
-      if (!blInfo) {
-        return createMockBLData(actualId, tenant);
-      }
+      console.error(`🚨 ERREUR: BL ${actualId} introuvable dans la base de données`);
+      throw new Error(`BL ${actualId} introuvable. Vérifiez que ce BL existe.`);
     }
 
     console.log(`✅ PDF: Found BL ${actualId} basic info`);
@@ -376,22 +372,24 @@ pdf.get('/delivery-note/:id', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    // Utiliser un ID par défaut si undefined
-    let actualId = id;
+    // Validation stricte de l'ID - PAS DE FALLBACK
     if (!id || id === 'undefined' || id === 'null') {
-      console.log(`⚠️ ID undefined, using fallback ID: 5`);
-      actualId = '5';
+      console.error(`🚨 ERREUR: ID BL invalide ou manquant: ${id}`);
+      return c.json({ 
+        success: false, 
+        error: `ID BL invalide: ${id}. Veuillez fournir un ID valide.` 
+      }, 400);
     }
 
-    console.log(`📄 Generating delivery note PDF for ID: ${actualId}, Tenant: ${tenant}`);
+    console.log(`📄 Generating delivery note PDF for REAL ID: ${id}, Tenant: ${tenant}`);
 
     // Fetch delivery note data using utility function
     try {
-      var blData = await fetchBLData(tenant, actualId);
-      console.log(`✅ Delivery note data fetched successfully for ID: ${actualId}`);
+      var blData = await fetchBLData(tenant, id);
+      console.log(`✅ Delivery note data fetched successfully for REAL ID: ${id}`);
     } catch (error) {
       console.error('Error fetching delivery note:', error);
-      return c.json({ success: false, error: 'Delivery note not found' }, 404);
+      return c.json({ success: false, error: error.message || 'Delivery note not found' }, 404);
     }
 
     // Adapter les données RPC au format attendu par le service PDF
@@ -450,25 +448,27 @@ pdf.get('/delivery-note-small/:id', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    // Validation et nettoyage de l'ID plus robuste
-    let actualId = id;
+    // Validation stricte de l'ID - PAS DE FALLBACK
     const numericId = parseInt(String(id));
     
     if (!id || id === 'undefined' || id === 'null' || id === '' || isNaN(numericId) || numericId <= 0) {
-      console.log(`⚠️ Small BL ID invalid (${id}), using fallback ID: 5`);
-      actualId = '5';
-    } else {
-      actualId = String(numericId); // Normaliser l'ID
+      console.error(`🚨 ERREUR: ID BL réduit invalide: ${id}`);
+      return c.json({ 
+        success: false, 
+        error: `ID BL invalide: ${id}. Veuillez fournir un ID valide.` 
+      }, 400);
     }
 
-    console.log(`📋 Generating small delivery note PDF for ID: ${actualId}, Tenant: ${tenant}`);
+    const actualId = String(numericId); // Normaliser l'ID
+
+    console.log(`📋 Generating small delivery note PDF for REAL ID: ${actualId}, Tenant: ${tenant}`);
 
     // Fetch delivery note data using utility function
     try {
       var blData = await fetchBLData(tenant, actualId);
     } catch (error) {
       console.error('Error fetching delivery note:', error);
-      return c.json({ success: false, error: 'Delivery note not found' }, 404);
+      return c.json({ success: false, error: error.message || 'Delivery note not found' }, 404);
     }
 
     // Adapter les données RPC au format attendu par le service PDF
@@ -522,18 +522,20 @@ pdf.get('/delivery-note-ticket/:id', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    // Validation et nettoyage de l'ID plus robuste
-    let actualId = id;
+    // Validation stricte de l'ID - PAS DE FALLBACK
     const numericId = parseInt(String(id));
     
     if (!id || id === 'undefined' || id === 'null' || id === '' || isNaN(numericId) || numericId <= 0) {
-      console.log(`⚠️ Ticket ID invalid (${id}), using fallback ID: 5`);
-      actualId = '5';
-    } else {
-      actualId = String(numericId); // Normaliser l'ID
+      console.error(`🚨 ERREUR: ID ticket invalide: ${id}`);
+      return c.json({ 
+        success: false, 
+        error: `ID BL invalide: ${id}. Veuillez fournir un ID valide.` 
+      }, 400);
     }
 
-    console.log(`🎫 Generating ticket receipt PDF for ID: ${actualId}, Tenant: ${tenant}`);
+    const actualId = String(numericId); // Normaliser l'ID
+
+    console.log(`🎫 Generating ticket receipt PDF for REAL ID: ${actualId}, Tenant: ${tenant}`);
 
     // Fetch delivery note data using utility function
     try {

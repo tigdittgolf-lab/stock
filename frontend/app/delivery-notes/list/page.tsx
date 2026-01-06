@@ -233,27 +233,22 @@ export default function DeliveryNotesList() {
   };
 
   const openPDFPreview = (blId: number, type: 'complete' | 'small' | 'ticket') => {
-    // Validation robuste de l'ID avec logs détaillés
-    console.log(`🔍 openPDFPreview called with:`, { blId, type, blIdType: typeof blId });
+    // CORRECTION MAJEURE: Utiliser l'ID réel sans fallback vers 5
+    console.log(`🔍 openPDFPreview called with REAL ID:`, { blId, type, blIdType: typeof blId });
     
-    let validId = blId;
+    // Validation simple: si l'ID est invalide, afficher une erreur
     if (!blId || isNaN(blId) || blId <= 0) {
-      console.warn(`⚠️ Invalid BL ID (${blId}), using fallback ID 5`);
-      validId = 5;
+      console.error(`🚨 ERREUR: ID BL invalide (${blId})`);
+      alert(`Erreur: Impossible d'ouvrir le PDF - ID BL invalide: ${blId}`);
+      return;
     }
 
-    // DOUBLE CHECK: S'assurer que validId est vraiment valide
-    if (!validId || isNaN(validId) || validId <= 0) {
-      console.error(`🚨 CRITICAL: validId is still invalid (${validId}), forcing to 5`);
-      validId = 5;
-    }
-
-    console.log(`✅ Final validated ID: ${validId} for type: ${type}`);
+    console.log(`✅ Using REAL BL ID: ${blId} for PDF type: ${type}`);
 
     const urls = {
-      complete: `/api/pdf/delivery-note/${validId}`,
-      small: `/api/pdf/delivery-note-small/${validId}`,
-      ticket: `/api/pdf/delivery-note-ticket/${validId}`
+      complete: `/api/pdf/delivery-note/${blId}`,
+      small: `/api/pdf/delivery-note-small/${blId}`,
+      ticket: `/api/pdf/delivery-note-ticket/${blId}`
     };
 
     const titles = {
@@ -269,7 +264,7 @@ export default function DeliveryNotesList() {
     };
 
     const pdfUrl = urls[type];
-    console.log(`📄 Opening PDF preview: ${pdfUrl} for BL ID: ${validId} (original: ${blId})`);
+    console.log(`📄 Opening PDF preview: ${pdfUrl} for REAL BL ID: ${blId}`);
     
     // Solution SIMPLE : Ouvrir le PDF dans un nouvel onglet avec contrôles
     const previewWindow = window.open('', '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes,toolbar=yes,menubar=yes');
@@ -277,7 +272,7 @@ export default function DeliveryNotesList() {
       previewWindow.document.write(`
         <html>
           <head>
-            <title>Prévisualisation BL ${validId} - ${titles[type]}</title>
+            <title>Prévisualisation BL ${blId} - ${titles[type]}</title>
             <style>
               body { 
                 margin: 0; 
@@ -356,7 +351,7 @@ export default function DeliveryNotesList() {
           </head>
           <body>
             <div class="header">
-              <h2>📄 Prévisualisation BL ${validId} - ${titles[type]}</h2>
+              <h2>📄 Prévisualisation BL ${blId} - ${titles[type]}</h2>
               <p>Choisissez votre action</p>
             </div>
             
@@ -369,7 +364,7 @@ export default function DeliveryNotesList() {
             <div class="content">
               <div class="message">
                 <h3>📋 Document Prêt</h3>
-                <p><strong>BL ${validId} - ${titles[type]}</strong></p>
+                <p><strong>BL ${blId} - ${titles[type]}</strong></p>
                 <p>Le document PDF est généré et prêt à être utilisé.</p>
                 
                 <div style="margin: 30px 0;">
@@ -394,20 +389,20 @@ export default function DeliveryNotesList() {
             
             <script>
               console.log('🔍 PDF Preview Window - URL:', '${pdfUrl}');
-              console.log('🔍 PDF Preview Window - ID Validation:', { original: ${blId}, validated: ${validId} });
+              console.log('🔍 PDF Preview Window - REAL BL ID:', ${blId});
               
               function downloadPDF() {
-                console.log('⬇️ Téléchargement manuel demandé par l\\'utilisateur');
+                console.log('⬇️ Téléchargement manuel demandé par l\\'utilisateur pour BL ${blId}');
                 const link = document.createElement('a');
                 link.href = '${pdfUrl}';
-                link.download = 'BL_${validId}_${type}.pdf';
+                link.download = 'BL_${blId}_${type}.pdf';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
               }
               
               function printPDF() {
-                console.log('🖨️ Impression demandée par l\\'utilisateur');
+                console.log('🖨️ Impression demandée par l\\'utilisateur pour BL ${blId}');
                 // Ouvrir le PDF dans un nouvel onglet pour impression
                 const printWindow = window.open('${pdfUrl}', '_blank');
                 if (printWindow) {
