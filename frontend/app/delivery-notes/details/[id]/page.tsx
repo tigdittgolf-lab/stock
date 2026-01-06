@@ -30,6 +30,11 @@ export default function BLDetailsPage() {
   const params = useParams();
   const id = params.id as string;
   
+  // Debug pour comprendre le problème d'ID
+  console.log('🔍 Page Details - Params:', params);
+  console.log('🔍 Page Details - ID extracted:', id);
+  console.log('🔍 Page Details - ID type:', typeof id);
+  
   const [blData, setBLData] = useState<BLData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,11 +75,15 @@ export default function BLDetailsPage() {
       setLoading(true);
       setError(null);
 
-      console.log(`🔍 Loading BL details for REAL ID: ${blId}, Tenant: ${tenantSchema}`);
+      console.log(`🔍 Loading BL details for REAL ID: "${blId}", Tenant: ${tenantSchema}`);
+      console.log(`🔍 BL ID Debug - Value: "${blId}", Type: ${typeof blId}, Length: ${blId?.length}`);
 
       // Validation stricte de l'ID côté frontend
       const numericId = parseInt(blId);
+      console.log(`🔍 Parsed ID: ${numericId}, isNaN: ${isNaN(numericId)}`);
+      
       if (!blId || blId === 'undefined' || blId === 'null' || isNaN(numericId) || numericId <= 0) {
+        console.error(`🚨 ERREUR: ID BL invalide - Original: "${blId}", Parsed: ${numericId}`);
         throw new Error(`ID BL invalide: ${blId}. Veuillez vérifier l'URL.`);
       }
 

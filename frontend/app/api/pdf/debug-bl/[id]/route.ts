@@ -8,12 +8,16 @@ export async function GET(
     const { id } = params;
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     
-    console.log(`🔍 Frontend Debug Proxy - BL ID: ${id}, Tenant: ${tenant}`);
+    console.log(`🔍 Frontend Debug Proxy - BL ID: "${id}", Tenant: ${tenant}`);
+    console.log(`🔍 Proxy Debug - ID Type: ${typeof id}, Length: ${id?.length}`);
+    console.log(`🔍 Proxy Debug - Params object:`, params);
 
     // Validation stricte de l'ID - PAS DE FALLBACK
     const numericId = parseInt(id);
+    console.log(`🔍 Proxy Debug - Parsed ID: ${numericId}, isNaN: ${isNaN(numericId)}`);
+    
     if (!id || id === 'undefined' || id === 'null' || isNaN(numericId) || numericId <= 0) {
-      console.error(`🚨 ERREUR: ID debug invalide reçu par le proxy: ${id}`);
+      console.error(`🚨 ERREUR: ID debug invalide reçu par le proxy: "${id}"`);
       return NextResponse.json(
         { success: false, error: `ID BL invalide: ${id}. Veuillez fournir un ID valide.` },
         { status: 400 }
