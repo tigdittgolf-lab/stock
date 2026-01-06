@@ -428,8 +428,24 @@ export default function DeliveryNotesList() {
   const MobileView = () => (
     <div style={{ padding: '10px' }}>
       {filteredDeliveryNotes.map((bl, index) => {
+        // DEBUG: Logs détaillés pour diagnostiquer le problème
+        console.log(`🔍 MOBILE BL ${index} RAW DATA:`, {
+          bl: bl,
+          nfact: bl.nfact,
+          nbl: bl.nbl,
+          id: (bl as any).id,
+          nfact_type: typeof bl.nfact,
+          nbl_type: typeof bl.nbl,
+          id_type: typeof (bl as any).id
+        });
+        
         // Récupération de l'ID réel du BL - CORRECTION MAJEURE
         let validId = bl.nfact || bl.nbl || (bl as any).id;
+        
+        console.log(`🔍 MOBILE BL ${index} VALID ID:`, {
+          validId: validId,
+          validId_type: typeof validId
+        });
         
         // Validation simple mais correcte
         if (!validId || isNaN(validId) || validId <= 0) {
@@ -689,8 +705,24 @@ export default function DeliveryNotesList() {
         </thead>
         <tbody>
           {filteredDeliveryNotes.map((bl, index) => {
+            // DEBUG: Logs détaillés pour diagnostiquer le problème
+            console.log(`🔍 DESKTOP BL ${index} RAW DATA:`, {
+              bl: bl,
+              nfact: bl.nfact,
+              nbl: bl.nbl,
+              id: (bl as any).id,
+              nfact_type: typeof bl.nfact,
+              nbl_type: typeof bl.nbl,
+              id_type: typeof (bl as any).id
+            });
+            
             // Récupération de l'ID réel du BL - CORRECTION MAJEURE
             let validId = bl.nfact || bl.nbl || (bl as any).id;
+            
+            console.log(`🔍 DESKTOP BL ${index} VALID ID:`, {
+              validId: validId,
+              validId_type: typeof validId
+            });
             
             // Validation simple mais correcte
             if (!validId || isNaN(validId) || validId <= 0) {
