@@ -2,16 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    // Attendre la résolution de la Promise params
+    const { id } = await params;
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     
     console.log(`🔄 Frontend PDF API: Forwarding invoice PDF request for ID ${id}, tenant ${tenant}`);
     
+    // Validation stricte de l'ID
+    const numericId = parseInt(id);
+    if (!id || id === 'undefined' || id === 'null' || isNaN(numericId) || numericId <= 0) {
+      console.error(`🚨 ERREUR: ID facture invalide reçu par le proxy: "${id}"`);
+      return NextResponse.json(
+        { success: false, error: `ID facture invalide: ${id}. Veuillez fournir un ID valide.` },
+        { status: 400 }
+      );
+    }
+    
+    const validId = String(numericId);
+    
     // Utiliser Tailscale tunnel pour accéder au backend local
-    const backendUrl = 'https://desktop-bhhs068.tail1d9c54.ts.net/api/pdf/invoice/' + id;
+    const backendUrl = 'https://desktop-bhhs068.tail1d9c54.ts.net/api/pdf/invoice/' + validId;
     
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -44,7 +57,7 @@ export async function GET(
         status: 200,
         headers: {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="facture_${id}.pdf"`
+          'Content-Disposition': `attachment; filename="facture_${validId}.pdf"`
         }
       });
     } else {
