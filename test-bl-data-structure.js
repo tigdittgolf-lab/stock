@@ -3,8 +3,8 @@ async function testBLDataStructure() {
   try {
     console.log('🔍 Testing BL data structure...');
     
-    // Test de l'API frontend
-    const frontendResponse = await fetch('https://frontend-6kb8x9obr-tigdittgolf-9191s-projects.vercel.app/api/sales/delivery-notes', {
+    // Test de l'API frontend CORRIGÉE
+    const frontendResponse = await fetch('https://frontend-pzdyr2e1m-tigdittgolf-9191s-projects.vercel.app/api/sales/delivery-notes', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -23,36 +23,15 @@ async function testBLDataStructure() {
         console.log('- nfact:', firstBL.nfact, typeof firstBL.nfact);
         console.log('- nbl:', firstBL.nbl, typeof firstBL.nbl);
         console.log('- id:', firstBL.id, typeof firstBL.id);
+        
+        // Test de la logique de validId
+        let validId = firstBL.nbl || firstBL.id || firstBL.nfact;
+        console.log('✅ CORRECTED validId logic result:', validId, typeof validId);
+        
         console.log('- Full object:', JSON.stringify(firstBL, null, 2));
       }
     } else {
       console.error('❌ Frontend API Error:', frontendResponse.status, await frontendResponse.text());
-    }
-    
-    // Test du backend direct
-    console.log('\n🔍 Testing backend direct...');
-    const backendResponse = await fetch('https://desktop-bhhs068.tail1d9c54.ts.net/api/sales/delivery-notes', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Tenant': '2025_bu01'
-      }
-    });
-    
-    if (backendResponse.ok) {
-      const backendData = await backendResponse.json();
-      console.log('✅ Backend API Response:', JSON.stringify(backendData, null, 2));
-      
-      if (backendData.success && backendData.data && backendData.data.length > 0) {
-        console.log('📊 Backend First BL structure:');
-        const firstBL = backendData.data[0];
-        console.log('- Keys:', Object.keys(firstBL));
-        console.log('- nfact:', firstBL.nfact, typeof firstBL.nfact);
-        console.log('- nbl:', firstBL.nbl, typeof firstBL.nbl);
-        console.log('- id:', firstBL.id, typeof firstBL.id);
-      }
-    } else {
-      console.error('❌ Backend API Error:', backendResponse.status, await backendResponse.text());
     }
     
   } catch (error) {
