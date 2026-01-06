@@ -233,6 +233,26 @@ export default function DeliveryNotesList() {
   };
 
   const openPDFPreview = (blId: number, type: 'complete' | 'small' | 'ticket') => {
+    console.log(`🔍 SIMPLE PDF Preview - ID: ${blId}, Type: ${type}`);
+    
+    if (!blId || isNaN(blId) || blId <= 0) {
+      console.error(`🚨 Invalid BL ID: ${blId}`);
+      alert(`Erreur: ID BL invalide: ${blId}`);
+      return;
+    }
+
+    const urls = {
+      complete: `/api/pdf/delivery-note/${blId}`,
+      small: `/api/pdf/delivery-note-small/${blId}`,
+      ticket: `/api/pdf/delivery-note-ticket/${blId}`
+    };
+
+    const pdfUrl = urls[type];
+    console.log(`📄 Opening PDF URL: ${pdfUrl}`);
+    
+    // Solution ULTRA SIMPLE: Ouvrir directement l'URL
+    window.open(pdfUrl, '_blank');
+  };
     // CORRECTION MAJEURE: Utiliser l'ID réel sans fallback vers 5
     console.log(`🔍 openPDFPreview called with REAL ID:`, { blId, type, blIdType: typeof blId });
     
