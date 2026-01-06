@@ -78,8 +78,8 @@ export default function BLDetailsPage() {
         throw new Error(`ID BL invalide: ${blId}. Veuillez vérifier l'URL.`);
       }
 
-      // Utiliser l'endpoint de debug via le proxy frontend pour éviter CORS
-      const response = await fetch(`/api/pdf/debug-bl/${blId}`, {
+      // Essayer d'abord l'endpoint de debug via le proxy frontend
+      let response = await fetch(`/api/pdf/debug-bl/${blId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -89,12 +89,45 @@ export default function BLDetailsPage() {
 
       console.log(`📊 Debug response status: ${response.status}`);
 
+      // Si le proxy échoue (401, 403, etc.), essayer directement le backend
+      if (!response.ok && (response.status === 401 || response.status === 403)) {
+        console.log(`⚠️ Proxy failed with ${response.status}, trying direct backend access...`);
+        
+        try {
+          response = await fetch(`https://desktop-bhhs068.tail1d9c54.ts.net/api/pdf/debug-bl/${blId}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Tenant': tenantSchema
+            }
+          });
+          console.log(`📊 Direct backend response status: ${response.status}`);
+        } catch (directError) {
+          console.log(`❌ Direct backend also failed: ${directError.message}`);
+          // Continuer avec la réponse du proxy pour afficher l'erreur appropriée
+        }
+      }
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`❌ HTTP Error ${response.status}: ${errorText}`);
         
+        // Essayer de parser la réponse JSON pour obtenir le vrai message d'erreur
+        let errorMessage = `Erreur HTTP ${response.status}`;
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          // Si on ne peut pas parser, utiliser le texte brut
+          errorMessage = errorText || `Erreur HTTP ${response.status}`;
+        }
+        
         if (response.status === 400) {
-          throw new Error(`BL ${blId} invalide ou inexistant. Vérifiez que ce BL existe.`);
+          throw new Error(errorMessage);
+        } else if (response.status === 401 || response.status === 403) {
+          throw new Error(`Problème d'authentification. Essayez de vous reconnecter ou utilisez l'application en mode local.`);
         } else if (response.status === 404) {
           throw new Error(`BL ${blId} non trouvé. Ce BL n'existe pas dans la base de données.`);
         } else {
@@ -122,6 +155,7 @@ export default function BLDetailsPage() {
       }
     } catch (error) {
       console.error(`❌ Error loading BL details for ID ${blId}:`, error);
+      
       // Améliorer la gestion d'erreur pour éviter [object Object]
       let errorMessage = 'Unknown error';
       if (error instanceof Error) {
@@ -131,6 +165,12 @@ export default function BLDetailsPage() {
       } else if (error && typeof error === 'object') {
         errorMessage = JSON.stringify(error);
       }
+      
+      // Si c'est un problème d'authentification, proposer une solution
+      if (errorMessage.includes('authentification') || errorMessage.includes('401') || errorMessage.includes('403')) {
+        errorMessage += '\n\n💡 Solutions possibles:\n• Actualisez la page (F5)\n• Reconnectez-vous à l\'application\n• Utilisez l\'application en mode local';
+      }
+      
       setError(errorMessage);
     } finally {
       setLoading(false);
