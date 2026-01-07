@@ -40,6 +40,9 @@ app.use('/*', cors({
     'https://frontend-jv1h2b1wf-tigdittgolf-9191s-projects.vercel.app',
     'https://frontend-80xymdp0o-tigdittgolf-9191s-projects.vercel.app',
     'https://frontend-8e5ekyvfr-tigdittgolf-9191s-projects.vercel.app',
+    'https://frontend-3xv2gh1l9-tigdittgolf-9191s-projects.vercel.app',
+    'https://frontend-5lm8ks73w-tigdittgolf-9191s-projects.vercel.app',
+    'https://frontend-o0yduwmki-tigdittgolf-9191s-projects.vercel.app',
     // Permettre toutes les URLs Vercel pour ce projet
     /^https:\/\/frontend-.*-tigdittgolf-9191s-projects\.vercel\.app$/,
     /^https:\/\/st-article-1-.*-tigdittgolf-9191s-projects\.vercel\.app$/,

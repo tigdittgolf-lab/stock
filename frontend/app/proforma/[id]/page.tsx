@@ -54,7 +54,7 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       console.log('🏢 Fetching company info for tenant:', tenant);
       
-      const response = await fetch(`http://localhost:3005/api/settings/activities`, {
+      const response = await fetch(`/api/settings/activities`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -185,7 +185,7 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
       }
       
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`http://localhost:3005/api/sales/proforma/${resolvedParams.id}`, {
+      const response = await fetch(`/api/sales/proforma/${resolvedParams.id}`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -271,7 +271,7 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
             onClick={async () => {
               try {
                 const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-                const response = await fetch(`http://localhost:3005/api/pdf/proforma/${resolvedParams.id}`, {
+                const response = await fetch(`/api/pdf/proforma/${resolvedParams.id}`, {
                   headers: {
                     'X-Tenant': tenant
                   }
