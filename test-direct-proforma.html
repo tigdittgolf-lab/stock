@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Direct Proforma</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .url-test { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .url { font-family: monospace; background: #f8f9fa; padding: 5px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Direct des URLs Proforma</h1>
+    
+    <div class="url-test">
+        <h3>📋 URLs à tester:</h3>
+        
+        <div style="margin: 10px 0;">
+            <strong>1. URL Fixe (ancienne):</strong><br>
+            <span class="url">https://frontend-iota-six-72.vercel.app/proforma/list</span><br>
+            <button onclick="testURL('https://frontend-iota-six-72.vercel.app/proforma/list')">Tester URL Fixe</button>
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <strong>2. Nouveau déploiement:</strong><br>
+            <span class="url">https://frontend-5lm8ks73w-tigdittgolf-9191s-projects.vercel.app/proforma/list</span><br>
+            <button onclick="testURL('https://frontend-5lm8ks73w-tigdittgolf-9191s-projects.vercel.app/proforma/list')">Tester Nouveau</button>
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <strong>3. Avec cache-busting:</strong><br>
+            <span class="url">https://frontend-iota-six-72.vercel.app/proforma/list?v=20250107</span><br>
+            <button onclick="testURL('https://frontend-iota-six-72.vercel.app/proforma/list?v=20250107')">Tester avec Cache-Busting</button>
+        </div>
+    </div>
+
+    <div id="results"></div>
+
+    <div class="url-test">
+        <h3>🔧 Actions de diagnostic:</h3>
+        <button onclick="clearAllCache()">🗑️ Vider tout le cache</button>
+        <button onclick="testAllURLs()">🧪 Tester toutes les URLs</button>
+        <button onclick="openIncognito()">🕵️ Instructions mode incognito</button>
+    </div>
+
+    <script>
+        function testURL(url) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML += `
+                <div class="url-test">
+                    <h4>🔍 Test de: ${url}</h4>
+                    <p>Ouverture dans un nouvel onglet...</p>
+                    <p><strong>Instructions:</strong> Vérifiez si vous voyez une section bleue "FILTRES DE RECHERCHE (Version Test)" sur la nouvelle page.</p>
+                </div>
+            `;
+            window.open(url, '_blank');
+        }
+
+        function clearAllCache() {
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    for (let name of names) {
+                        caches.delete(name);
+                    }
+                });
+            }
+            
+            document.getElementById('results').innerHTML = `
+                <div class="url-test success">
+                    <h4>✅ Cache vidé</h4>
+                    <p>Le cache local a été vidé. Essayez maintenant de recharger la page proforma.</p>
+                </div>
+            `;
+        }
+
+        function testAllURLs() {
+            const urls = [
+                'https://frontend-iota-six-72.vercel.app/proforma/list',
+                'https://frontend-5lm8ks73w-tigdittgolf-9191s-projects.vercel.app/proforma/list',
+                'https://frontend-iota-six-72.vercel.app/proforma/list?v=' + Date.now()
+            ];
+            
+            urls.forEach((url, index) => {
+                setTimeout(() => {
+                    testURL(url);
+                }, index * 1000);
+            });
+        }
+
+        function openIncognito() {
+            document.getElementById('results').innerHTML = `
+                <div class="url-test">
+                    <h4>🕵️ Mode Navigation Privée</h4>
+                    <p><strong>Instructions:</strong></p>
+                    <ol>
+                        <li>Ouvrez une fenêtre de navigation privée/incognito</li>
+                        <li>Allez sur: <code>https://frontend-iota-six-72.vercel.app/proforma/list</code></li>
+                        <li>Vérifiez si les filtres apparaissent</li>
+                    </ol>
+                    <p>Si les filtres apparaissent en mode incognito, le problème est le cache de votre navigateur.</p>
+                </div>
+            `;
+        }
+
+        // Test automatique au chargement
+        window.onload = function() {
+            document.getElementById('results').innerHTML = `
+                <div class="url-test">
+                    <h4>📊 État actuel</h4>
+                    <p><strong>Timestamp:</strong> ${new Date().toLocaleString('fr-FR')}</p>
+                    <p><strong>User Agent:</strong> ${navigator.userAgent.substring(0, 80)}...</p>
+                    <p><strong>Dernière action:</strong> Test des URLs de déploiement</p>
+                </div>
+            `;
+        };
+    </script>
+</body>
+</html>
