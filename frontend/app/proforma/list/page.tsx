@@ -9,9 +9,9 @@ interface Proforma {
   nfprof: number;
   nclient: string;
   date_fact: string;
-  montant_ht: number;
-  tva: number;
-  montant_ttc: number;
+  montant_ht: number | string;
+  tva: number | string;
+  montant_ttc: number | string;
   created_at: string;
 }
 
@@ -102,10 +102,10 @@ export default function ProformaList() {
 
     // Filtre par montant
     if (minAmount) {
-      filtered = filtered.filter(proforma => proforma.montant_ttc >= parseFloat(minAmount));
+      filtered = filtered.filter(proforma => parseFloat(proforma.montant_ttc || 0) >= parseFloat(minAmount));
     }
     if (maxAmount) {
-      filtered = filtered.filter(proforma => proforma.montant_ttc <= parseFloat(maxAmount));
+      filtered = filtered.filter(proforma => parseFloat(proforma.montant_ttc || 0) <= parseFloat(maxAmount));
     }
 
     setFilteredProformas(filtered);
@@ -186,9 +186,9 @@ export default function ProformaList() {
                     <td><strong>{proforma.nfprof}</strong></td>
                     <td>{proforma.nclient}</td>
                     <td>{new Date(proforma.date_fact).toLocaleDateString('fr-FR')}</td>
-                    <td style={{ textAlign: 'right' }}>{proforma.montant_ht?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
-                    <td style={{ textAlign: 'right' }}>{proforma.tva?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
-                    <td style={{ textAlign: 'right' }}><strong>{proforma.montant_ttc?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</strong></td>
+                    <td style={{ textAlign: 'right' }}>{parseFloat(proforma.montant_ht || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
+                    <td style={{ textAlign: 'right' }}>{parseFloat(proforma.tva || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
+                    <td style={{ textAlign: 'right' }}><strong>{parseFloat(proforma.montant_ttc || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</strong></td>
                     <td>
                       <button 
                         onClick={() => router.push(`/proforma/${proforma.nfprof}`)}
