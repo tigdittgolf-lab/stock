@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Filtres Proforma</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        input, select { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; }
+        .result { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test des Filtres Proforma</h1>
+    
+    <div class="test-section">
+        <h3>📋 Test de l'API Proforma</h3>
+        <button onclick="testProformaAPI()">Tester l'API Proforma</button>
+        <div id="api-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔍 Test des Filtres</h3>
+        <div>
+            <label>Recherche par numéro (exact): </label>
+            <input type="text" id="search-number" placeholder="1" />
+            <button onclick="testNumericFilter()">Test Numéro</button>
+        </div>
+        <div>
+            <label>Recherche par nom client: </label>
+            <input type="text" id="search-client" placeholder="SECTEUR" />
+            <button onclick="testClientFilter()">Test Client</button>
+        </div>
+        <div>
+            <label>Filtre par montant min: </label>
+            <input type="number" id="min-amount" placeholder="20000" />
+            <button onclick="testAmountFilter()">Test Montant</button>
+        </div>
+        <div id="filter-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>📊 Données de Test</h3>
+        <div id="test-data" class="result"></div>
+    </div>
+
+    <script>
+        let proformaData = [];
+
+        async function testProformaAPI() {
+            const resultDiv = document.getElementById('api-result');
+            resultDiv.innerHTML = '🔄 Test en cours...';
+
+            try {
+                // Simuler les données de l'API (comme dans le fallback)
+                const mockData = [
+                    {
+                        nfact: 1,
+                        nclient: "C001",
+                        client_name: "SECTEUR SANITAIRE AINT TEDELES",
+                        date_fact: "2025-01-06",
+                        montant_ht: "15000.00",
+                        tva: "2850.00",
+                        montant_ttc: "17850.00"
+                    },
+                    {
+                        nfact: 2,
+                        nclient: "C002", 
+                        client_name: "A P C MOSTAGANEM",
+                        date_fact: "2025-01-05",
+                        montant_ht: "25000.00",
+                        tva: "4750.00",
+                        montant_ttc: "29750.00"
+                    },
+                    {
+                        nfact: 3,
+                        nclient: "C003",
+                        client_name: "ALGERIE TELECOM", 
+                        date_fact: "2025-01-04",
+                        montant_ht: "35000.00",
+                        tva: "6650.00",
+                        montant_ttc: "41650.00"
+                    }
+                ];
+
+                proformaData = mockData;
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ API Test Réussi<br>
+                        📊 ${mockData.length} proformas chargées<br>
+                        💰 Total TTC: ${mockData.reduce((sum, p) => sum + parseFloat(p.montant_ht) + parseFloat(p.tva), 0).toLocaleString('fr-FR', {minimumFractionDigits: 2})} DA
+                    </div>
+                `;
+
+                // Afficher les données
+                document.getElementById('test-data').innerHTML = `
+                    <h4>Données disponibles:</h4>
+                    ${mockData.map(p => `
+                        <div style="margin: 5px 0; padding: 8px; background: white; border-radius: 4px;">
+                            📋 Proforma ${p.nfact} - ${p.client_name} (${p.nclient}) - ${parseFloat(p.montant_ht) + parseFloat(p.tva)} DA TTC
+                        </div>
+                    `).join('')}
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur: ${error.message}</div>`;
+            }
+        }
+
+        function testNumericFilter() {
+            const searchTerm = document.getElementById('search-number').value.trim();
+            const resultDiv = document.getElementById('filter-result');
+
+            if (!proformaData.length) {
+                resultDiv.innerHTML = '<div class="error">❌ Veuillez d\'abord tester l\'API</div>';
+                return;
+            }
+
+            // Logique de filtrage numérique (même que dans le code React)
+            const filtered = proformaData.filter(proforma => {
+                if (/^\d+$/.test(searchTerm)) {
+                    const proformaNumber = String(proforma.nfact || '').trim();
+                    return proformaNumber === searchTerm;
+                }
+                return false;
+            });
+
+            resultDiv.innerHTML = `
+                <div class="${filtered.length > 0 ? 'success' : 'error'}">
+                    🔍 Recherche numérique "${searchTerm}":<br>
+                    📊 ${filtered.length} résultat(s) trouvé(s)<br>
+                    ${filtered.map(p => `📋 Proforma ${p.nfact} - ${p.client_name}`).join('<br>')}
+                </div>
+            `;
+        }
+
+        function testClientFilter() {
+            const searchTerm = document.getElementById('search-client').value.toLowerCase().trim();
+            const resultDiv = document.getElementById('filter-result');
+
+            if (!proformaData.length) {
+                resultDiv.innerHTML = '<div class="error">❌ Veuillez d\'abord tester l\'API</div>';
+                return;
+            }
+
+            // Logique de filtrage par client (même que dans le code React)
+            const filtered = proformaData.filter(proforma => {
+                const clientMatch = proforma.client_name?.toLowerCase().includes(searchTerm);
+                const clientCodeMatch = proforma.nclient?.toLowerCase().includes(searchTerm);
+                return clientMatch || clientCodeMatch;
+            });
+
+            resultDiv.innerHTML = `
+                <div class="${filtered.length > 0 ? 'success' : 'error'}">
+                    🔍 Recherche client "${searchTerm}":<br>
+                    📊 ${filtered.length} résultat(s) trouvé(s)<br>
+                    ${filtered.map(p => `📋 Proforma ${p.nfact} - ${p.client_name}`).join('<br>')}
+                </div>
+            `;
+        }
+
+        function testAmountFilter() {
+            const minAmount = parseFloat(document.getElementById('min-amount').value);
+            const resultDiv = document.getElementById('filter-result');
+
+            if (!proformaData.length) {
+                resultDiv.innerHTML = '<div class="error">❌ Veuillez d\'abord tester l\'API</div>';
+                return;
+            }
+
+            if (isNaN(minAmount)) {
+                resultDiv.innerHTML = '<div class="error">❌ Veuillez entrer un montant valide</div>';
+                return;
+            }
+
+            // Logique de filtrage par montant (même que dans le code React)
+            const filtered = proformaData.filter(proforma => {
+                const totalTTC = parseFloat(proforma.montant_ht) + parseFloat(proforma.tva);
+                return totalTTC >= minAmount;
+            });
+
+            resultDiv.innerHTML = `
+                <div class="${filtered.length > 0 ? 'success' : 'error'}">
+                    💰 Filtre montant min ${minAmount.toLocaleString('fr-FR')} DA:<br>
+                    📊 ${filtered.length} résultat(s) trouvé(s)<br>
+                    ${filtered.map(p => {
+                        const total = parseFloat(p.montant_ht) + parseFloat(p.tva);
+                        return `📋 Proforma ${p.nfact} - ${p.client_name} - ${total.toLocaleString('fr-FR')} DA`;
+                    }).join('<br>')}
+                </div>
+            `;
+        }
+
+        // Auto-test au chargement
+        window.onload = function() {
+            testProformaAPI();
+        };
+    </script>
+</body>
+</html>
