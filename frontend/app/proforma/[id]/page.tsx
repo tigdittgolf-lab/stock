@@ -5,15 +5,16 @@ import { useRouter } from 'next/navigation';
 import styles from '../../page.module.css';
 
 interface Proforma {
-  nfprof: number;
+  nfact?: number;
+  nfprof?: number;
   nclient: string;
   date_fact: string;
-  montant_ht: number;
-  tva: number;
-  total_ttc: number;
-  montant_ttc: number;
+  montant_ht: number | string;
+  tva: number | string;
+  total_ttc?: number | string;
+  montant_ttc?: number | string;
   created_at: string;
-  client_name: string;
+  client_name?: string;
   details?: ProformaDetail[];
 }
 
@@ -197,7 +198,10 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
 
       const data = await response.json();
       if (data.success) {
-        setProforma(data.data);
+        // Les données arrivent dans un tableau, prendre le premier élément
+        const proformaData = Array.isArray(data.data) ? data.data[0] : data.data;
+        console.log('📋 Proforma data received:', proformaData);
+        setProforma(proformaData);
       } else {
         setError(data.error || 'Erreur lors du chargement');
       }
@@ -258,7 +262,7 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1>Facture Proforma N° {proforma.nfprof}</h1>
+        <h1>Facture Proforma N° {proforma.nfact || proforma.nfprof}</h1>
         <div>
           <button onClick={() => router.push('/proforma/list')} className={styles.secondaryButton}>
             Retour à la liste
@@ -306,7 +310,7 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
               </div>
               <div style={{ textAlign: 'right' }}>
                 <h2 style={{ color: '#17a2b8', fontSize: '1.8rem' }}>FACTURE PROFORMA</h2>
-                <p><strong>N° :</strong> {proforma.nfprof}</p>
+                <p><strong>N° :</strong> {proforma.nfact || proforma.nfprof}</p>
                 <p><strong>Date :</strong> {new Date(proforma.date_fact).toLocaleDateString('fr-FR')}</p>
               </div>
             </div>
@@ -363,15 +367,15 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
             <div className={styles.totalsGrid}>
               <div className={styles.totalRow}>
                 <span>Montant HT :</span>
-                <span>{proforma.montant_ht?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</span>
+                <span>{parseFloat(proforma.montant_ht?.toString() || '0').toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</span>
               </div>
               <div className={styles.totalRow}>
                 <span>TVA :</span>
-                <span>{proforma.tva?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</span>
+                <span>{parseFloat(proforma.tva?.toString() || '0').toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</span>
               </div>
               <div className={styles.totalRow}>
                 <strong>Total TTC :</strong>
-                <strong>{(proforma.montant_ttc || proforma.total_ttc || (proforma.montant_ht + proforma.tva))?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</strong>
+                <strong>{(parseFloat(proforma.montant_ht?.toString() || '0') + parseFloat(proforma.tva?.toString() || '0')).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</strong>
               </div>
             </div>
           </div>
@@ -380,7 +384,7 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
           <div className={styles.formSection} style={{ background: '#f8f9fa', border: '2px solid #17a2b8', borderRadius: '8px' }}>
             <h3 style={{ color: '#17a2b8', marginBottom: '10px' }}>Montant en lettres :</h3>
             <p style={{ fontSize: '1.1rem', fontWeight: 'bold', fontStyle: 'italic', color: '#333' }}>
-              {numberToWords(proforma.montant_ttc || proforma.total_ttc || (proforma.montant_ht + proforma.tva))}
+              {numberToWords(parseFloat(proforma.montant_ht?.toString() || '0') + parseFloat(proforma.tva?.toString() || '0'))}
             </p>
           </div>
 
