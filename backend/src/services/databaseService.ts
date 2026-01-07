@@ -235,20 +235,28 @@ export class BackendDatabaseService {
 
   private async executeMySQLQuery(sql: string, params: any[]): Promise<any> {
     try {
-      if (!this.mysqlConnection) {
-        this.mysqlConnection = await mysql.createConnection({
-          host: this.activeConfig?.host || 'localhost',
-          port: this.activeConfig?.port || 3307,  // CORRECTION: WAMP utilise 3307
-          user: this.activeConfig?.username || 'root',
-          password: this.activeConfig?.password || '',
-          database: this.activeConfig?.database || 'stock_management'
-        });
+      // Forcer une nouvelle connexion avec la bonne configuration
+      if (this.mysqlConnection) {
+        await this.mysqlConnection.end();
+        this.mysqlConnection = null;
       }
       
+      this.mysqlConnection = await mysql.createConnection({
+        host: this.activeConfig?.host || 'localhost',
+        port: this.activeConfig?.port || 3306,  // CORRECTION: MySQL standard utilise 3306
+        user: this.activeConfig?.username || 'root',
+        password: this.activeConfig?.password || '',
+        database: this.activeConfig?.database || '2025_bu01'  // CORRECTION: utiliser 2025_bu01 par défaut
+      });
+      
+      console.log(`🐬 MySQL: Connecting to database: ${this.activeConfig?.database || '2025_bu01'}`);
+      console.log(`🐬 MySQL: Executing query: ${sql.substring(0, 100)}...`);
+      
       const [rows] = await this.mysqlConnection.execute(sql, params);
+      console.log(`✅ MySQL: Query successful, ${Array.isArray(rows) ? rows.length : 0} rows returned`);
       return { success: true, data: rows };
     } catch (error) {
-      console.error('MySQL query failed:', error);
+      console.error('❌ MySQL query failed:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
@@ -526,7 +534,8 @@ export class BackendDatabaseService {
   private async getArticlesByTenant(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
     let sql;
     if (dbType === 'mysql') {
-      sql = `SELECT * FROM \`${tenant}\`.article ORDER BY narticle`;
+      // Pour MySQL, la base de données est déjà sélectionnée dans la connexion
+      sql = `SELECT * FROM article ORDER BY narticle`;
     } else {
       // PostgreSQL: utiliser des guillemets pour les schémas
       sql = `SELECT * FROM "${tenant}".article ORDER BY narticle`;
@@ -1049,7 +1058,8 @@ export class BackendDatabaseService {
   private async getProformaList(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
     let sql;
     if (dbType === 'mysql') {
-      sql = `SELECT * FROM \`${tenant}\`.fprof ORDER BY nfact DESC`;
+      // Table fprof en minuscules, port 3306
+      sql = `SELECT * FROM fprof ORDER BY nfact DESC`;
     } else {
       sql = `SELECT * FROM "${tenant}".fprof ORDER BY nfact DESC`;
     }
@@ -1059,7 +1069,8 @@ export class BackendDatabaseService {
   private async getProformaById(dbType: 'mysql' | 'postgresql', tenant: string, nfact: string): Promise<any> {
     let sql;
     if (dbType === 'mysql') {
-      sql = `SELECT * FROM \`${tenant}\`.fprof WHERE nfact = ?`;
+      // Pour MySQL, la base de données est déjà sélectionnée dans la connexion
+      sql = `SELECT * FROM fprof WHERE nfact = ?`;
     } else {
       sql = `SELECT * FROM "${tenant}".fprof WHERE nfact = $1`;
     }
@@ -1070,9 +1081,9 @@ export class BackendDatabaseService {
     const { p_tenant, p_nfact, p_nclient, p_date_fact, p_total_ht, p_total_ttc } = params;
     let sql;
     if (dbType === 'mysql') {
-      sql = `INSERT INTO \`${p_tenant}\`.fprof (nfact, nclient, date_fact, total_ht, total_ttc) VALUES (?, ?, ?, ?, ?)`;
+      sql = `INSERT INTO \`${p_tenant}\`.fprof (nfprof, nclient, date_fact, montant_ht, montant_ttc) VALUES (?, ?, ?, ?, ?)`;
     } else {
-      sql = `INSERT INTO "${p_tenant}".fprof (nfact, nclient, date_fact, total_ht, total_ttc) VALUES ($1, $2, $3, $4, $5)`;
+      sql = `INSERT INTO "${p_tenant}".fprof (nfprof, nclient, date_fact, montant_ht, montant_ttc) VALUES ($1, $2, $3, $4, $5)`;
     }
     const values = [p_nfact, p_nclient, p_date_fact, p_total_ht, p_total_ttc];
     return dbType === 'mysql' ? this.executeMySQLQuery(sql, values) : this.executePostgreSQLQuery(sql, values);
@@ -1082,9 +1093,9 @@ export class BackendDatabaseService {
     const { p_tenant, p_nfact, p_narticle, p_qte, p_prix, p_total_ligne } = params;
     let sql;
     if (dbType === 'mysql') {
-      sql = `INSERT INTO \`${p_tenant}\`.detail_fprof (nfact, narticle, qte, prix, total_ligne) VALUES (?, ?, ?, ?, ?)`;
+      sql = `INSERT INTO \`${p_tenant}\`.detail_fprof (nfprof, narticle, qte, prix, total_ligne) VALUES (?, ?, ?, ?, ?)`;
     } else {
-      sql = `INSERT INTO "${p_tenant}".detail_fprof (nfact, narticle, qte, prix, total_ligne) VALUES ($1, $2, $3, $4, $5)`;
+      sql = `INSERT INTO "${p_tenant}".detail_fprof (nfprof, narticle, qte, prix, total_ligne) VALUES ($1, $2, $3, $4, $5)`;
     }
     const values = [p_nfact, p_narticle, p_qte, p_prix, p_total_ligne];
     return dbType === 'mysql' ? this.executeMySQLQuery(sql, values) : this.executePostgreSQLQuery(sql, values);
