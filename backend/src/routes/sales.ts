@@ -2947,7 +2947,7 @@ sales.get('/proforma/:id', async (c) => {
 
     try {
       // Récupérer la proforma depuis la base de données via RPC
-      const { data: proformaRaw, error: fetchError } = await databaseRouter.rpc('get_fprof_by_id', {
+      const { data: proformaRaw, error: fetchError } = await backendDatabaseService.executeRPC('get_proforma_by_id', {
         p_tenant: tenant,
         p_nfact: id
       });

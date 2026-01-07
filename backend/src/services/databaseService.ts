@@ -460,6 +460,7 @@ export class BackendDatabaseService {
           return this.getProformaList(dbType, params.p_tenant);
         case 'get_proforma_by_id':
         case 'get_proforma_by_id_from_tenant':
+        case 'get_fprof_by_id':
           return this.getProformaById(dbType, params.p_tenant, params.p_nfact);
         case 'insert_bl_simple':
         case 'insert_bl':
