@@ -1068,10 +1068,9 @@ export class BackendDatabaseService {
   }
 
   private async getProformaById(dbType: 'mysql' | 'postgresql', tenant: string, nfact: string): Promise<any> {
-    let sql;
     if (dbType === 'mysql') {
       // Pour MySQL, récupérer la proforma avec ses détails via JOIN
-      sql = `
+      const sql = `
         SELECT 
           f.*,
           JSON_ARRAYAGG(
@@ -1089,10 +1088,31 @@ export class BackendDatabaseService {
         WHERE f.nfact = ?
         GROUP BY f.nfact
       `;
+      
+      const result = await this.executeMySQLQuery(sql, [nfact]);
+      
+      // Parser le JSON des détails si c'est une chaîne
+      if (result.success && result.data && result.data.length > 0) {
+        const proforma = result.data[0];
+        if (typeof proforma.details === 'string') {
+          try {
+            proforma.details = JSON.parse(proforma.details);
+          } catch (e) {
+            console.warn('Failed to parse details JSON:', e);
+            proforma.details = [];
+          }
+        }
+        // Filtrer les détails null (quand il n'y a pas de LEFT JOIN match)
+        if (Array.isArray(proforma.details)) {
+          proforma.details = proforma.details.filter(detail => detail.narticle !== null);
+        }
+      }
+      
+      return result;
     } else {
-      sql = `SELECT * FROM "${tenant}".fprof WHERE nfact = $1`;
+      const sql = `SELECT * FROM "${tenant}".fprof WHERE nfact = $1`;
+      return this.executePostgreSQLQuery(sql, [nfact]);
     }
-    return dbType === 'mysql' ? this.executeMySQLQuery(sql, [nfact]) : this.executePostgreSQLQuery(sql, [nfact]);
   }
 
   private async insertProforma(dbType: 'mysql' | 'postgresql', params: any): Promise<any> {

@@ -342,12 +342,12 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
                   {proforma.details && proforma.details.length > 0 ? (
                     proforma.details.map((detail, index) => (
                       <tr key={index}>
-                        <td>{detail.narticle}</td>
-                        <td>{detail.designation}</td>
-                        <td style={{ textAlign: 'right' }}>{Math.round(detail.qte).toLocaleString('fr-FR')}</td>
-                        <td style={{ textAlign: 'right' }}>{parseFloat(detail.prix.toString()).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</td>
-                        <td style={{ textAlign: 'right' }}>{parseFloat(detail.tva.toString()).toFixed(0)}%</td>
-                        <td style={{ textAlign: 'right' }}>{parseFloat(detail.total_ligne.toString()).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</td>
+                        <td>{detail.narticle || 'N/A'}</td>
+                        <td>{detail.designation || 'N/A'}</td>
+                        <td style={{ textAlign: 'right' }}>{Math.round(detail.qte || 0).toLocaleString('fr-FR')}</td>
+                        <td style={{ textAlign: 'right' }}>{parseFloat((detail.prix || 0).toString()).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</td>
+                        <td style={{ textAlign: 'right' }}>{parseFloat((detail.tva || 19).toString()).toFixed(0)}%</td>
+                        <td style={{ textAlign: 'right' }}>{parseFloat((detail.total_ligne || 0).toString()).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</td>
                       </tr>
                     ))
                   ) : (
