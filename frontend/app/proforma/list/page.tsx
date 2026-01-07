@@ -6,7 +6,8 @@ import PrintOptions from '../../../components/PrintOptions';
 import styles from '../../page.module.css';
 
 interface Proforma {
-  nfprof: number;
+  nfact?: number;
+  nfprof?: number;
   nclient: string;
   date_fact: string;
   montant_ht: number | string;
@@ -83,7 +84,7 @@ export default function ProformaList() {
     if (searchTerm) {
       filtered = filtered.filter(proforma => 
         proforma.nclient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        String(proforma.nfprof || '').includes(searchTerm)
+        String(proforma.nfact || proforma.nfprof || '').includes(searchTerm)
       );
     }
 
@@ -182,16 +183,16 @@ export default function ProformaList() {
               </thead>
               <tbody>
                 {proformas.map((proforma) => (
-                  <tr key={proforma.nfprof}>
-                    <td><strong>{proforma.nfprof}</strong></td>
+                  <tr key={proforma.nfact || proforma.nfprof}>
+                    <td><strong>{proforma.nfact || proforma.nfprof}</strong></td>
                     <td>{proforma.nclient}</td>
                     <td>{new Date(proforma.date_fact).toLocaleDateString('fr-FR')}</td>
                     <td style={{ textAlign: 'right' }}>{parseFloat(proforma.montant_ht || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
                     <td style={{ textAlign: 'right' }}>{parseFloat(proforma.tva || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
-                    <td style={{ textAlign: 'right' }}><strong>{parseFloat(proforma.montant_ttc || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</strong></td>
+                    <td style={{ textAlign: 'right' }}><strong>{(parseFloat(proforma.montant_ht || 0) + parseFloat(proforma.tva || 0)).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</strong></td>
                     <td>
                       <button 
-                        onClick={() => router.push(`/proforma/${proforma.nfprof}`)}
+                        onClick={() => router.push(`/proforma/${proforma.nfact || proforma.nfprof}`)}
                         className={styles.viewButton}
                       >
                         Voir
@@ -200,8 +201,8 @@ export default function ProformaList() {
                     <td>
                       <PrintOptions
                         documentType="proforma"
-                        documentId={proforma.nfprof}
-                        documentNumber={proforma.nfprof}
+                        documentId={proforma.nfact || proforma.nfprof}
+                        documentNumber={proforma.nfact || proforma.nfprof}
                         clientName={(proforma as any).client_name || (proforma as any).clientName || 'Client'}
                         isModal={false}
                       />
