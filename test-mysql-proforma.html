@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test MySQL Proforma</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .result { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 4px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test MySQL Proforma Data</h1>
+    
+    <div class="test-section">
+        <h3>📊 Test de l'API Backend Local</h3>
+        <p>Backend URL: <code>https://desktop-bhhs068.tail1d9c54.ts.net/api</code></p>
+        <button onclick="testBackendAPI()">Tester API Backend</button>
+        <div id="backend-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔍 Test des URLs de Déploiement</h3>
+        <div>
+            <strong>URL 1 (Ancienne):</strong><br>
+            <button onclick="testURL('https://frontend-iota-six-72.vercel.app/proforma/list')">
+                Test frontend-iota-six-72
+            </button>
+        </div>
+        <div>
+            <strong>URL 2 (Nouvelle):</strong><br>
+            <button onclick="testURL('https://frontend-3xv2gh1l9-tigdittgolf-9191s-projects.vercel.app/proforma/list')">
+                Test frontend-3xv2gh1l9
+            </button>
+        </div>
+        <div id="url-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🛠️ Actions de Diagnostic</h3>
+        <button onclick="clearCache()">🗑️ Vider Cache</button>
+        <button onclick="testIncognito()">🕵️ Mode Incognito</button>
+        <button onclick="testMobile()">📱 Test Mobile</button>
+    </div>
+
+    <script>
+        async function testBackendAPI() {
+            const resultDiv = document.getElementById('backend-result');
+            resultDiv.innerHTML = '🔄 Test de l\'API backend...';
+
+            try {
+                // Test direct de l'API backend via le tunnel
+                const response = await fetch('https://desktop-bhhs068.tail1d9c54.ts.net/api/sales/proforma', {
+                    headers: {
+                        'X-Tenant': '2025_bu01',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ API Backend Test Réussi<br>
+                        📊 Status: ${response.status}<br>
+                        📋 Success: ${data.success}<br>
+                        📦 Data Count: ${data.data ? data.data.length : 0}<br>
+                        🗄️ Database Type: ${data.database_type || 'Unknown'}<br>
+                        📄 Source: ${data.source || 'Database'}<br>
+                        <br>
+                        <strong>Données reçues:</strong><br>
+                        ${JSON.stringify(data, null, 2)}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Erreur API Backend: ${error.message}<br>
+                        🔗 Vérifiez que le backend est démarré et accessible
+                    </div>
+                `;
+            }
+        }
+
+        function testURL(url) {
+            const resultDiv = document.getElementById('url-result');
+            resultDiv.innerHTML += `
+                <div style="margin: 10px 0; padding: 10px; border: 1px solid #007bff; border-radius: 4px;">
+                    🔍 Test de: ${url}<br>
+                    📝 Ouverture dans un nouvel onglet...<br>
+                    <strong>À vérifier:</strong> Présence des filtres de recherche
+                </div>
+            `;
+            window.open(url, '_blank');
+        }
+
+        function clearCache() {
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    for (let name of names) {
+                        caches.delete(name);
+                    }
+                });
+            }
+            
+            alert('✅ Cache vidé ! Essayez maintenant de recharger la page proforma.');
+        }
+
+        function testIncognito() {
+            alert(`🕵️ Instructions Mode Incognito:
+            
+1. Ouvrez une fenêtre de navigation privée
+2. Allez sur: https://frontend-iota-six-72.vercel.app/proforma/list
+3. Vérifiez si les filtres apparaissent
+4. Si oui, le problème est le cache de votre navigateur`);
+        }
+
+        function testMobile() {
+            alert(`📱 Instructions Test Mobile:
+            
+1. Ouvrez les outils de développement (F12)
+2. Activez le mode responsive/mobile
+3. Rechargez la page proforma
+4. Vérifiez si les filtres s'affichent en mode mobile`);
+        }
+
+        // Test automatique au chargement
+        window.onload = function() {
+            document.getElementById('backend-result').innerHTML = `
+                <div style="background: #e7f3ff; padding: 10px; border-radius: 4px;">
+                    📊 Prêt pour les tests<br>
+                    🕐 ${new Date().toLocaleString('fr-FR')}<br>
+                    🌐 User Agent: ${navigator.userAgent.substring(0, 60)}...
+                </div>
+            `;
+        };
+    </script>
+</body>
+</html>
