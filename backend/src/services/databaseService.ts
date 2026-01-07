@@ -1049,9 +1049,9 @@ export class BackendDatabaseService {
   private async getProformaList(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
     let sql;
     if (dbType === 'mysql') {
-      sql = `SELECT * FROM \`${tenant}\`.proforma ORDER BY nfact DESC`;
+      sql = `SELECT * FROM \`${tenant}\`.fprof ORDER BY nfact DESC`;
     } else {
-      sql = `SELECT * FROM "${tenant}".proforma ORDER BY nfact DESC`;
+      sql = `SELECT * FROM "${tenant}".fprof ORDER BY nfact DESC`;
     }
     return dbType === 'mysql' ? this.executeMySQLQuery(sql, []) : this.executePostgreSQLQuery(sql, []);
   }
@@ -1059,9 +1059,9 @@ export class BackendDatabaseService {
   private async getProformaById(dbType: 'mysql' | 'postgresql', tenant: string, nfact: string): Promise<any> {
     let sql;
     if (dbType === 'mysql') {
-      sql = `SELECT * FROM \`${tenant}\`.proforma WHERE nfact = ?`;
+      sql = `SELECT * FROM \`${tenant}\`.fprof WHERE nfact = ?`;
     } else {
-      sql = `SELECT * FROM "${tenant}".proforma WHERE nfact = $1`;
+      sql = `SELECT * FROM "${tenant}".fprof WHERE nfact = $1`;
     }
     return dbType === 'mysql' ? this.executeMySQLQuery(sql, [nfact]) : this.executePostgreSQLQuery(sql, [nfact]);
   }
