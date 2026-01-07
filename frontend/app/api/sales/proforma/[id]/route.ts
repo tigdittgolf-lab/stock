@@ -18,9 +18,9 @@ export async function GET(
       );
     }
 
-    console.log(`📄 Generating PDF for proforma ${params.id}, tenant: ${tenant}`);
+    console.log(`🔍 Fetching proforma ${params.id} for tenant: ${tenant}`);
 
-    const response = await fetch(`${API_BASE_URL}/pdf/proforma/${params.id}`, {
+    const response = await fetch(`${API_BASE_URL}/sales/proforma/${params.id}`, {
       headers: {
         'X-Tenant': tenant,
         'Content-Type': 'application/json'
@@ -28,34 +28,21 @@ export async function GET(
     });
 
     if (!response.ok) {
-      console.error(`❌ Backend PDF error: ${response.status} ${response.statusText}`);
+      console.error(`❌ Backend error: ${response.status} ${response.statusText}`);
       return NextResponse.json(
         { success: false, error: `Backend error: ${response.status}` },
         { status: response.status }
       );
     }
 
-    // Si c'est un PDF, retourner le stream
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/pdf')) {
-      const pdfBuffer = await response.arrayBuffer();
-      return new NextResponse(pdfBuffer, {
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `inline; filename="proforma_${params.id}.pdf"`
-        }
-      });
-    }
-
-    // Sinon retourner la réponse JSON
     const data = await response.json();
-    console.log(`✅ PDF generated successfully for proforma ${params.id}`);
+    console.log(`✅ Proforma ${params.id} fetched successfully`);
     
     return NextResponse.json(data);
   } catch (error) {
-    console.error('❌ Error generating PDF:', error);
+    console.error('❌ Error fetching proforma:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to generate PDF' },
+      { success: false, error: 'Failed to fetch proforma' },
       { status: 500 }
     );
   }
