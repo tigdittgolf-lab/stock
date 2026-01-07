@@ -1070,8 +1070,25 @@ export class BackendDatabaseService {
   private async getProformaById(dbType: 'mysql' | 'postgresql', tenant: string, nfact: string): Promise<any> {
     let sql;
     if (dbType === 'mysql') {
-      // Pour MySQL, la base de données est déjà sélectionnée dans la connexion
-      sql = `SELECT * FROM fprof WHERE nfact = ?`;
+      // Pour MySQL, récupérer la proforma avec ses détails via JOIN
+      sql = `
+        SELECT 
+          f.*,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'narticle', d.narticle,
+              'designation', COALESCE(a.designation, CONCAT('Article ', d.narticle)),
+              'qte', d.qte,
+              'prix', d.prix,
+              'total_ligne', d.total_ligne
+            )
+          ) as details
+        FROM fprof f
+        LEFT JOIN detail_fprof d ON f.nfact = d.nfact
+        LEFT JOIN article a ON d.narticle = a.narticle
+        WHERE f.nfact = ?
+        GROUP BY f.nfact
+      `;
     } else {
       sql = `SELECT * FROM "${tenant}".fprof WHERE nfact = $1`;
     }
