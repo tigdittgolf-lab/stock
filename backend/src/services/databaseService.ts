@@ -1070,9 +1070,9 @@ export class BackendDatabaseService {
     const { p_tenant, p_nfact, p_nclient, p_date_fact, p_total_ht, p_total_ttc } = params;
     let sql;
     if (dbType === 'mysql') {
-      sql = `INSERT INTO \`${p_tenant}\`.proforma (nfact, nclient, date_fact, total_ht, total_ttc) VALUES (?, ?, ?, ?, ?)`;
+      sql = `INSERT INTO \`${p_tenant}\`.fprof (nfact, nclient, date_fact, total_ht, total_ttc) VALUES (?, ?, ?, ?, ?)`;
     } else {
-      sql = `INSERT INTO "${p_tenant}".proforma (nfact, nclient, date_fact, total_ht, total_ttc) VALUES ($1, $2, $3, $4, $5)`;
+      sql = `INSERT INTO "${p_tenant}".fprof (nfact, nclient, date_fact, total_ht, total_ttc) VALUES ($1, $2, $3, $4, $5)`;
     }
     const values = [p_nfact, p_nclient, p_date_fact, p_total_ht, p_total_ttc];
     return dbType === 'mysql' ? this.executeMySQLQuery(sql, values) : this.executePostgreSQLQuery(sql, values);
@@ -1082,9 +1082,9 @@ export class BackendDatabaseService {
     const { p_tenant, p_nfact, p_narticle, p_qte, p_prix, p_total_ligne } = params;
     let sql;
     if (dbType === 'mysql') {
-      sql = `INSERT INTO \`${p_tenant}\`.detail_proforma (nfact, narticle, qte, prix, total_ligne) VALUES (?, ?, ?, ?, ?)`;
+      sql = `INSERT INTO \`${p_tenant}\`.detail_fprof (nfact, narticle, qte, prix, total_ligne) VALUES (?, ?, ?, ?, ?)`;
     } else {
-      sql = `INSERT INTO "${p_tenant}".detail_proforma (nfact, narticle, qte, prix, total_ligne) VALUES ($1, $2, $3, $4, $5)`;
+      sql = `INSERT INTO "${p_tenant}".detail_fprof (nfact, narticle, qte, prix, total_ligne) VALUES ($1, $2, $3, $4, $5)`;
     }
     const values = [p_nfact, p_narticle, p_qte, p_prix, p_total_ligne];
     return dbType === 'mysql' ? this.executeMySQLQuery(sql, values) : this.executePostgreSQLQuery(sql, values);
@@ -1093,9 +1093,9 @@ export class BackendDatabaseService {
   private async getNextProformaNumber(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
     let sql;
     if (dbType === 'mysql') {
-      sql = `SELECT COALESCE(MAX(nfact), 0) + 1 as next_number FROM \`${tenant}\`.proforma`;
+      sql = `SELECT COALESCE(MAX(nfact), 0) + 1 as next_number FROM \`${tenant}\`.fprof`;
     } else {
-      sql = `SELECT COALESCE(MAX(nfact), 0) + 1 as next_number FROM "${tenant}".proforma`;
+      sql = `SELECT COALESCE(MAX(nfact), 0) + 1 as next_number FROM "${tenant}".fprof`;
     }
     return dbType === 'mysql' ? this.executeMySQLQuery(sql, []) : this.executePostgreSQLQuery(sql, []);
   }
