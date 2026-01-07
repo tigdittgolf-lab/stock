@@ -1059,20 +1059,35 @@ export class BackendDatabaseService {
   private async getProformaList(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
     let sql;
     if (dbType === 'mysql') {
-      // Table fprof en minuscules, port 3306
-      sql = `SELECT * FROM fprof ORDER BY nfact DESC`;
+      // Table fprof en minuscules, port 3306, avec JOIN pour récupérer le nom du client
+      sql = `
+        SELECT 
+          f.*, 
+          c.nom_client as client_name
+        FROM fprof f
+        LEFT JOIN client c ON f.nclient = c.nclient
+        ORDER BY f.nfact DESC
+      `;
     } else {
-      sql = `SELECT * FROM "${tenant}".fprof ORDER BY nfact DESC`;
+      sql = `
+        SELECT 
+          f.*, 
+          c.nom_client as client_name
+        FROM "${tenant}".fprof f
+        LEFT JOIN "${tenant}".client c ON f.nclient = c.nclient
+        ORDER BY f.nfact DESC
+      `;
     }
     return dbType === 'mysql' ? this.executeMySQLQuery(sql, []) : this.executePostgreSQLQuery(sql, []);
   }
 
   private async getProformaById(dbType: 'mysql' | 'postgresql', tenant: string, nfact: string): Promise<any> {
     if (dbType === 'mysql') {
-      // Pour MySQL, récupérer la proforma avec ses détails via JOIN
+      // Pour MySQL, récupérer la proforma avec ses détails via JOIN, incluant le nom du client
       const sql = `
         SELECT 
           f.*,
+          c.nom_client as client_name,
           JSON_ARRAYAGG(
             JSON_OBJECT(
               'narticle', d.narticle,
@@ -1083,10 +1098,11 @@ export class BackendDatabaseService {
             )
           ) as details
         FROM fprof f
+        LEFT JOIN client c ON f.nclient = c.nclient
         LEFT JOIN detail_fprof d ON f.nfact = d.nfact
         LEFT JOIN article a ON d.narticle = a.narticle
         WHERE f.nfact = ?
-        GROUP BY f.nfact
+        GROUP BY f.nfact, c.nom_client
       `;
       
       const result = await this.executeMySQLQuery(sql, [nfact]);

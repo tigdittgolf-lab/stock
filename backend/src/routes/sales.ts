@@ -2865,7 +2865,7 @@ sales.get('/proforma', async (c) => {
       // Fallback avec des données réelles de proformas
       const realProformaData = [
         {
-          nfprof: 1,
+          nfact: 1,
           nclient: "C001",
           client_name: "SECTEUR SANITAIRE AINT TEDELES",
           date_fact: "2025-01-06",
@@ -2875,7 +2875,7 @@ sales.get('/proforma', async (c) => {
           created_at: "2025-01-06T10:00:00.000Z"
         },
         {
-          nfprof: 2,
+          nfact: 2,
           nclient: "C002", 
           client_name: "A P C MOSTAGANEM",
           date_fact: "2025-01-05",
@@ -2885,7 +2885,7 @@ sales.get('/proforma', async (c) => {
           created_at: "2025-01-05T14:30:00.000Z"
         },
         {
-          nfprof: 3,
+          nfact: 3,
           nclient: "C003",
           client_name: "ALGERIE TELECOM", 
           date_fact: "2025-01-04",
@@ -2902,13 +2902,13 @@ sales.get('/proforma', async (c) => {
       const deletedProformas = createdDocumentsCache.get(`${tenant}_proformas_deleted`) || new Set();
       
       let modifiedData = realProformaData
-        .filter(proforma => !deletedProformas.has(proforma.nfprof))
+        .filter(proforma => !deletedProformas.has(proforma.nfact))
         .map(proforma => {
-          const modification = modifications.get(proforma.nfprof);
+          const modification = modifications.get(proforma.nfact);
           return modification || proforma;
         });
       
-      const filteredCachedProformas = cachedProformas.filter(proforma => !deletedProformas.has(proforma.nfprof));
+      const filteredCachedProformas = cachedProformas.filter(proforma => !deletedProformas.has(proforma.nfact));
       const allProformas = [...modifiedData, ...filteredCachedProformas];
       
       console.log(`✅ Using fallback data: ${allProformas.length} proformas from ${backendDatabaseService.getActiveDatabaseType()} fallback`);
