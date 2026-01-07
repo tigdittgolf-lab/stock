@@ -637,7 +637,15 @@ pdf.get('/proforma/:id', async (c) => {
       return c.json({ success: false, error: 'Proforma not found' }, 404);
     }
 
-    console.log(`✅ Proforma data fetched successfully for ID: ${id}`);
+    // Les données arrivent dans un tableau, prendre le premier élément
+    const proforma = Array.isArray(proformaData) ? proformaData[0] : proformaData;
+    
+    if (!proforma) {
+      console.error('No proforma data found in result');
+      return c.json({ success: false, error: 'Proforma not found' }, 404);
+    }
+
+    console.log(`✅ Proforma data fetched successfully for ID: ${id}`, proforma);
 
     // Get client and article data for enrichment
     const clientsResult = await backendDatabaseService.executeRPC('get_clients_by_tenant', {
@@ -651,7 +659,6 @@ pdf.get('/proforma/:id', async (c) => {
     const clientsData = clientsResult.data;
     const articlesData = articlesResult.data;
 
-    const proforma = proformaData;
     const client = clientsData?.find(c => c.nclient === proforma.nclient);
 
     // Adapter les données RPC au format attendu par le service PDF
@@ -673,12 +680,12 @@ pdf.get('/proforma/:id', async (c) => {
           },
           qte: detail.qte,
           prix: detail.prix,
-          tva: detail.tva,
+          tva: detail.tva || 19,
           total_ligne: detail.total_ligne
         };
       }),
-      montant_ht: proforma.montant_ht || 0,
-      tva: proforma.tva || 0,
+      montant_ht: parseFloat(proforma.montant_ht?.toString() || '0'),
+      tva: parseFloat(proforma.tva?.toString() || '0'),
       timbre: 0,
       autre_taxe: 0
     };
