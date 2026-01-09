@@ -261,6 +261,13 @@ export class BackendDatabaseService {
         case 'get_bl_list_by_tenant':
           return this.getSupabaseBLList(tenant);
           
+        case 'get_bl_by_id':
+        case 'get_bl_by_id_from_tenant':
+          return this.getSupabaseBLById(tenant, params.p_nfact);
+          
+        case 'discover_bl_tables':
+          return this.discoverBLTables(tenant);
+          
         case 'get_fact_list':
         case 'get_fact_list_by_tenant':
           return this.getSupabaseFactList(tenant);
@@ -331,28 +338,107 @@ export class BackendDatabaseService {
 
   private async getSupabaseBLList(tenant: string): Promise<any> {
     try {
-      // Essayer avec différentes variantes de noms de tables
-      const tableVariants = [`${tenant}.bl`, `${tenant}.bon_livraison`, 'bl', 'bon_livraison'];
+      console.log(`🔍 Searching for BL tables in Supabase for tenant: ${tenant}`);
+      
+      // ÉTAPE 1: Essayer de découvrir les tables disponibles avec SQL direct
+      try {
+        const { data: tablesData, error: tablesError } = await supabaseAdmin.rpc('exec_sql', {
+          sql: `
+            SELECT schemaname, tablename 
+            FROM pg_tables 
+            WHERE (tablename LIKE '%bl%' OR tablename LIKE '%bon%' OR tablename LIKE '%livraison%' OR tablename LIKE '%delivery%' OR tablename LIKE '%fact%')
+              AND schemaname NOT IN ('information_schema', 'pg_catalog', 'pg_toast')
+            ORDER BY schemaname, tablename;
+          `
+        });
+        
+        if (!tablesError && tablesData) {
+          console.log(`📋 Available BL-related tables:`, tablesData);
+        }
+      } catch (discoveryError) {
+        console.log(`⚠️ Could not discover tables: ${discoveryError instanceof Error ? discoveryError.message : 'Unknown error'}`);
+      }
+      
+      // ÉTAPE 2: Essayer avec différentes variantes de noms de tables BL
+      const tableVariants = [
+        // Avec schéma tenant
+        `${tenant}.bl`, 
+        `${tenant}.bon_livraison`, 
+        `${tenant}.delivery_notes`,
+        `${tenant}.bons_livraison`,
+        `${tenant}.facture`,
+        `${tenant}.fact`,
+        // Sans schéma (public)
+        'bl', 
+        'bon_livraison',
+        'delivery_notes',
+        'bons_livraison',
+        'facture',
+        'fact'
+      ];
       
       for (const table of tableVariants) {
         try {
+          console.log(`🔍 Trying table: ${table}`);
+          
           const { data, error } = await supabaseAdmin
             .from(table)
             .select(`
               *,
-              client:client(nom)
+              client:client(nom, raison_sociale)
             `)
-            .order('nfact', { ascending: false });
+            .order('nfact', { ascending: false })
+            .limit(10);
 
-          if (!error && data) {
+          if (!error && data && Array.isArray(data)) {
+            console.log(`✅ SUCCESS! Found ${data.length} BL records in table: ${table}`);
+            
             const formattedData = data.map(item => ({
               ...item,
-              client_name: item.client?.nom || null
+              client_name: item.client?.raison_sociale || item.client?.nom || item.nclient || 'Client inconnu',
+              nbl: item.nbl || item.nfact || item.id,
+              montant_ttc: item.montant_ttc || (item.montant_ht + item.tva) || item.total_ttc
             }));
-            console.log(`📋 Found ${formattedData.length} real BL records in table: ${table}`);
+            
             return { success: true, data: formattedData };
+          } else if (error) {
+            console.log(`⚠️ Table ${table} error: ${error.message}`);
           }
         } catch (e) {
+          console.log(`⚠️ Table ${table} not accessible: ${e instanceof Error ? e.message : 'Unknown error'}`);
+          continue;
+        }
+      }
+      
+      // ÉTAPE 3: Si aucune table n'est trouvée, essayer sans JOIN client
+      console.log(`🔍 Trying tables without client JOIN...`);
+      
+      for (const table of tableVariants) {
+        try {
+          console.log(`🔍 Trying table without JOIN: ${table}`);
+          
+          const { data, error } = await supabaseAdmin
+            .from(table)
+            .select('*')
+            .order('nfact', { ascending: false })
+            .limit(10);
+
+          if (!error && data && Array.isArray(data)) {
+            console.log(`✅ SUCCESS! Found ${data.length} BL records in table: ${table} (without JOIN)`);
+            
+            const formattedData = data.map(item => ({
+              ...item,
+              client_name: item.raison_sociale || item.nom_client || item.nclient || 'Client inconnu',
+              nbl: item.nbl || item.nfact || item.id,
+              montant_ttc: item.montant_ttc || (item.montant_ht + item.tva) || item.total_ttc
+            }));
+            
+            return { success: true, data: formattedData };
+          } else if (error) {
+            console.log(`⚠️ Table ${table} (no JOIN) error: ${error.message}`);
+          }
+        } catch (e) {
+          console.log(`⚠️ Table ${table} (no JOIN) not accessible: ${e instanceof Error ? e.message : 'Unknown error'}`);
           continue;
         }
       }
@@ -360,6 +446,7 @@ export class BackendDatabaseService {
       throw new Error('No BL table found');
     } catch (error) {
       console.log(`📋 No BL table found in Supabase for tenant: ${tenant}, returning empty data`);
+      console.log(`📋 Error details: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return { success: true, data: [] };
     }
   }
@@ -394,6 +481,56 @@ export class BackendDatabaseService {
     } catch (error) {
       console.log(`📋 Using mock facture data for tenant: ${tenant}`);
       return { success: true, data: [] };
+    }
+  }
+
+  private async discoverBLTables(tenant: string): Promise<any> {
+    try {
+      console.log(`🔍 Discovering BL tables for tenant: ${tenant}`);
+      
+      // Essayer de lister toutes les tables qui pourraient contenir des BL
+      const possibleTables = [
+        'bl', 'bon_livraison', 'delivery_notes', 'bons_livraison',
+        'facture', 'fact', 'invoice', 'invoices',
+        'vente', 'ventes', 'sale', 'sales'
+      ];
+      
+      const foundTables = [];
+      
+      for (const tableName of possibleTables) {
+        try {
+          // Essayer avec le schéma tenant
+          const { data, error } = await supabaseAdmin
+            .from(`${tenant}.${tableName}`)
+            .select('*')
+            .limit(1);
+            
+          if (!error) {
+            foundTables.push(`${tenant}.${tableName}`);
+            console.log(`✅ Found table: ${tenant}.${tableName}`);
+          }
+        } catch (e) {
+          // Essayer sans schéma
+          try {
+            const { data, error } = await supabaseAdmin
+              .from(tableName)
+              .select('*')
+              .limit(1);
+              
+            if (!error) {
+              foundTables.push(tableName);
+              console.log(`✅ Found table: ${tableName}`);
+            }
+          } catch (e2) {
+            // Table n'existe pas
+          }
+        }
+      }
+      
+      return { success: true, data: foundTables };
+    } catch (error) {
+      console.error(`❌ Error discovering tables:`, error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
