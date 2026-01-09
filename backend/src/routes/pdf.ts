@@ -136,7 +136,8 @@ pdf.get('/invoice/:id', async (c) => {
     }
 
     // Generate PDF
-    const pdfBuffer = await pdfService.generateInvoicePDF(invoiceData);
+    const pdfDoc = await pdfService.generateInvoice(invoiceData, tenant);
+    const pdfBuffer = Buffer.from(pdfDoc.output('arraybuffer'));
 
     return new Response(pdfBuffer, {
       headers: {
@@ -267,7 +268,8 @@ pdf.get('/proforma/:id', async (c) => {
     }
 
     // Generate PDF
-    const pdfBuffer = await pdfService.generateProformaPDF(proformaData);
+    const pdfDoc = await pdfService.generateProforma(proformaData, tenant);
+    const pdfBuffer = Buffer.from(pdfDoc.output('arraybuffer'));
 
     return new Response(pdfBuffer, {
       headers: {
