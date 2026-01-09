@@ -349,6 +349,7 @@ export class BackendDatabaseService {
               ...item,
               client_name: item.client?.nom || null
             }));
+            console.log(`📋 Found ${formattedData.length} real BL records in table: ${table}`);
             return { success: true, data: formattedData };
           }
         } catch (e) {
@@ -358,8 +359,8 @@ export class BackendDatabaseService {
       
       throw new Error('No BL table found');
     } catch (error) {
-      console.log(`📋 Using mock BL data for tenant: ${tenant}`);
-      return this.getMockBLData();
+      console.log(`📋 No BL table found in Supabase for tenant: ${tenant}, returning empty data`);
+      return { success: true, data: [] };
     }
   }
 
@@ -542,69 +543,6 @@ export class BackendDatabaseService {
     };
   }
 
-  private getMockBLData(): any {
-    return {
-      success: true,
-      data: [
-        {
-          nfact: 1,
-          nbl: 1,
-          nclient: "C001",
-          raison_sociale: "SECTEUR SANITAIRE AINT TEDELES",
-          date_fact: "2025-01-08",
-          montant_ht: 12000.00,
-          tva: 2280.00,
-          montant_ttc: 14280.00,
-          created_at: "2025-01-08T10:00:00.000Z"
-        },
-        {
-          nfact: 2,
-          nbl: 2,
-          nclient: "C002", 
-          raison_sociale: "A P C MOSTAGANEM",
-          date_fact: "2025-01-07",
-          montant_ht: 18500.00,
-          tva: 3515.00,
-          montant_ttc: 22015.00,
-          created_at: "2025-01-07T14:30:00.000Z"
-        },
-        {
-          nfact: 3,
-          nbl: 3,
-          nclient: "C003",
-          raison_sociale: "ALGERIE TELECOM", 
-          date_fact: "2025-01-06",
-          montant_ht: 28000.00,
-          tva: 5320.00,
-          montant_ttc: 33320.00,
-          created_at: "2025-01-06T09:15:00.000Z"
-        },
-        {
-          nfact: 4,
-          nbl: 4,
-          nclient: "C004",
-          raison_sociale: "DIRECTION DE LA SANTE MOSTAGANEM", 
-          date_fact: "2025-01-05",
-          montant_ht: 15750.00,
-          tva: 2992.50,
-          montant_ttc: 18742.50,
-          created_at: "2025-01-05T11:45:00.000Z"
-        },
-        {
-          nfact: 5,
-          nbl: 5,
-          nclient: "C005",
-          raison_sociale: "ENTREPRISE KADDOUR BENAISSA", 
-          date_fact: "2025-01-04",
-          montant_ht: 22300.00,
-          tva: 4237.00,
-          montant_ttc: 26537.00,
-          created_at: "2025-01-04T16:20:00.000Z"
-        }
-      ]
-    };
-  }
-
   private getMockDataForFunction(functionName: string, params: Record<string, any>): any {
     switch (functionName) {
       case 'get_proforma_list':
@@ -612,7 +550,8 @@ export class BackendDatabaseService {
         return this.getMockProformaData();
       case 'get_bl_list':
       case 'get_bl_list_by_tenant':
-        return this.getMockBLData();
+        // Pour les BL, retourner des données vides si pas de vraies données
+        return { success: true, data: [] };
       default:
         return { success: true, data: [] };
     }
