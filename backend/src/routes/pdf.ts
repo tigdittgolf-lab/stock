@@ -82,7 +82,18 @@ async function fetchBLData(tenant: string, id: string) {
       montant_ht: blInfo.montant_ht || 0,
       tva: blInfo.tva || 0,
       montant_ttc: blInfo.montant_ttc || (blInfo.montant_ht + blInfo.tva) || 0,
-      details: blInfo.details || [],
+      // CORRECTION: Formater les détails pour correspondre à l'interface DeliveryNoteData
+      detail_bl: blInfo.details?.map((detail: any) => ({
+        article: {
+          designation: detail.designation || `Article ${detail.narticle}`,
+          narticle: detail.narticle
+        },
+        qte: detail.qte || 0,
+        prix: detail.prix || 0,
+        tva: detail.tva || 0,
+        total_ligne: detail.total_ligne || 0
+      })) || [],
+      details: blInfo.details || [], // Garder aussi l'ancien format pour compatibilité
       // Garder les champs originaux pour compatibilité
       ...blInfo
     };
@@ -156,8 +167,9 @@ pdf.get('/delivery-note/:id', async (c) => {
       return c.json({ success: false, error: error.message }, 404);
     }
 
-    // Generate PDF
-    const pdfBuffer = await pdfService.generateDeliveryNotePDF(blData);
+    // Generate PDF using the correct method name
+    const pdfDoc = await pdfService.generateDeliveryNote(blData, tenant);
+    const pdfBuffer = Buffer.from(pdfDoc.output('arraybuffer'));
 
     return new Response(pdfBuffer, {
       headers: {
@@ -187,8 +199,9 @@ pdf.get('/delivery-note-small/:id', async (c) => {
       return c.json({ success: false, error: error.message }, 404);
     }
 
-    // Generate PDF
-    const pdfBuffer = await pdfService.generateSmallDeliveryNotePDF(blData);
+    // Generate PDF using the correct method name
+    const pdfDoc = await pdfService.generateSmallDeliveryNote(blData, tenant);
+    const pdfBuffer = Buffer.from(pdfDoc.output('arraybuffer'));
 
     return new Response(pdfBuffer, {
       headers: {
@@ -218,8 +231,9 @@ pdf.get('/delivery-note-ticket/:id', async (c) => {
       return c.json({ success: false, error: error.message }, 404);
     }
 
-    // Generate PDF
-    const pdfBuffer = await pdfService.generateTicketPDF(blData);
+    // Generate PDF using the correct method name
+    const pdfDoc = await pdfService.generateTicketReceipt(blData, tenant);
+    const pdfBuffer = Buffer.from(pdfDoc.output('arraybuffer'));
 
     return new Response(pdfBuffer, {
       headers: {
