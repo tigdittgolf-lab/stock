@@ -338,51 +338,55 @@ export class BackendDatabaseService {
 
   private async getSupabaseBLList(tenant: string): Promise<any> {
     try {
-      console.log(`🔍 Searching for BL tables in Supabase for tenant: ${tenant}`);
+      console.log(`🔍 Searching for BL tables for tenant: ${tenant} in public schema`);
       
-      // ÉTAPE 1: Essayer de découvrir les tables disponibles avec SQL direct
+      // ÉTAPE 1: Essayer de découvrir les tables disponibles dans le schéma public avec le préfixe tenant
       try {
         const { data: tablesData, error: tablesError } = await supabaseAdmin.rpc('exec_sql', {
           sql: `
-            SELECT schemaname, tablename 
+            SELECT tablename 
             FROM pg_tables 
-            WHERE (tablename LIKE '%bl%' OR tablename LIKE '%bon%' OR tablename LIKE '%livraison%' OR tablename LIKE '%delivery%' OR tablename LIKE '%fact%')
-              AND schemaname NOT IN ('information_schema', 'pg_catalog', 'pg_toast')
-            ORDER BY schemaname, tablename;
+            WHERE schemaname = 'public'
+              AND (tablename LIKE '${tenant}_%' OR tablename LIKE '%bl%' OR tablename LIKE '%bon%' OR tablename LIKE '%livraison%' OR tablename LIKE '%delivery%' OR tablename LIKE '%fact%')
+            ORDER BY tablename;
           `
         });
         
         if (!tablesError && tablesData) {
-          console.log(`📋 Available BL-related tables:`, tablesData);
+          console.log(`📋 Available tables for tenant ${tenant} in public schema:`, tablesData);
         }
       } catch (discoveryError) {
-        console.log(`⚠️ Could not discover tables: ${discoveryError instanceof Error ? discoveryError.message : 'Unknown error'}`);
+        console.log(`⚠️ Could not discover tables for tenant ${tenant}: ${discoveryError instanceof Error ? discoveryError.message : 'Unknown error'}`);
       }
       
-      // ÉTAPE 2: Essayer avec différentes variantes de noms de tables BL
+      // ÉTAPE 2: Essayer les tables avec préfixe tenant dans le schéma public
       const tableVariants = [
-        // Avec schéma tenant
-        `${tenant}.bl`, 
-        `${tenant}.bon_livraison`, 
-        `${tenant}.delivery_notes`,
-        `${tenant}.bons_livraison`,
-        `${tenant}.facture`,
-        `${tenant}.fact`,
-        // Sans schéma (public)
+        // Tables avec préfixe tenant
+        `${tenant}_bl`, 
+        `${tenant}_bon_livraison`, 
+        `${tenant}_delivery_notes`,
+        `${tenant}_bons_livraison`,
+        `${tenant}_facture`,
+        `${tenant}_fact`,
+        `${tenant}_vente`,
+        `${tenant}_ventes`,
+        // Tables génériques
         'bl', 
         'bon_livraison',
         'delivery_notes',
         'bons_livraison',
         'facture',
-        'fact'
+        'fact',
+        'vente',
+        'ventes'
       ];
       
-      for (const table of tableVariants) {
+      for (const tableName of tableVariants) {
         try {
-          console.log(`🔍 Trying table: ${table}`);
+          console.log(`🔍 Trying table: ${tableName} in public schema`);
           
           const { data, error } = await supabaseAdmin
-            .from(table)
+            .from(tableName)
             .select(`
               *,
               client:client(nom, raison_sociale)
@@ -391,7 +395,7 @@ export class BackendDatabaseService {
             .limit(10);
 
           if (!error && data && Array.isArray(data)) {
-            console.log(`✅ SUCCESS! Found ${data.length} BL records in table: ${table}`);
+            console.log(`✅ SUCCESS! Found ${data.length} BL records in table: ${tableName}`);
             
             const formattedData = data.map(item => ({
               ...item,
@@ -402,29 +406,29 @@ export class BackendDatabaseService {
             
             return { success: true, data: formattedData };
           } else if (error) {
-            console.log(`⚠️ Table ${table} error: ${error.message}`);
+            console.log(`⚠️ Table ${tableName} error: ${error.message}`);
           }
         } catch (e) {
-          console.log(`⚠️ Table ${table} not accessible: ${e instanceof Error ? e.message : 'Unknown error'}`);
+          console.log(`⚠️ Table ${tableName} not accessible: ${e instanceof Error ? e.message : 'Unknown error'}`);
           continue;
         }
       }
       
-      // ÉTAPE 3: Si aucune table n'est trouvée, essayer sans JOIN client
-      console.log(`🔍 Trying tables without client JOIN...`);
+      // ÉTAPE 3: Si aucune table n'est trouvée avec JOIN, essayer sans JOIN client
+      console.log(`🔍 Trying tables for tenant ${tenant} without client JOIN...`);
       
-      for (const table of tableVariants) {
+      for (const tableName of tableVariants) {
         try {
-          console.log(`🔍 Trying table without JOIN: ${table}`);
+          console.log(`🔍 Trying table without JOIN: ${tableName}`);
           
           const { data, error } = await supabaseAdmin
-            .from(table)
+            .from(tableName)
             .select('*')
             .order('nfact', { ascending: false })
             .limit(10);
 
           if (!error && data && Array.isArray(data)) {
-            console.log(`✅ SUCCESS! Found ${data.length} BL records in table: ${table} (without JOIN)`);
+            console.log(`✅ SUCCESS! Found ${data.length} BL records in table: ${tableName} (without JOIN)`);
             
             const formattedData = data.map(item => ({
               ...item,
@@ -435,17 +439,17 @@ export class BackendDatabaseService {
             
             return { success: true, data: formattedData };
           } else if (error) {
-            console.log(`⚠️ Table ${table} (no JOIN) error: ${error.message}`);
+            console.log(`⚠️ Table ${tableName} (no JOIN) error: ${error.message}`);
           }
         } catch (e) {
-          console.log(`⚠️ Table ${table} (no JOIN) not accessible: ${e instanceof Error ? e.message : 'Unknown error'}`);
+          console.log(`⚠️ Table ${tableName} (no JOIN) not accessible: ${e instanceof Error ? e.message : 'Unknown error'}`);
           continue;
         }
       }
       
-      throw new Error('No BL table found');
+      throw new Error(`No BL table found for tenant ${tenant} in public schema`);
     } catch (error) {
-      console.log(`📋 No BL table found in Supabase for tenant: ${tenant}, returning empty data`);
+      console.log(`📋 No BL table found for tenant ${tenant}, returning empty data`);
       console.log(`📋 Error details: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return { success: true, data: [] };
     }
