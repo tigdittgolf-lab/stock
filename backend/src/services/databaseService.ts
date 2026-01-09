@@ -259,7 +259,8 @@ export class BackendDatabaseService {
           
         case 'get_bl_list':
         case 'get_bl_list_by_tenant':
-          return this.getSupabaseBLList(tenant);
+          // Utiliser la vraie fonction RPC qui existe dans Supabase
+          return this.executeSupabaseRPC('get_bl_list_by_tenant', params);
           
         case 'get_bl_by_id':
         case 'get_bl_by_id_from_tenant':
