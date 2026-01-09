@@ -338,73 +338,46 @@ export class BackendDatabaseService {
 
   private async getSupabaseBLList(tenant: string): Promise<any> {
     try {
-      console.log(`🔍 Accessing BL table in schema: ${tenant}`);
-      
-      // Utiliser une fonction RPC pour accéder au schéma personnalisé
-      try {
-        const { data, error } = await supabaseAdmin.rpc('exec_sql', {
-          sql: `
-            SELECT 
-              bl.*,
-              c.raison_sociale as client_name
-            FROM "${tenant}".bl bl
-            LEFT JOIN "${tenant}".client c ON bl.nclient = c.nclient
-            ORDER BY bl.nfact DESC
-            LIMIT 50;
-          `
-        });
-        
-        if (!error && data && Array.isArray(data)) {
-          console.log(`✅ SUCCESS! Found ${data.length} BL records in schema ${tenant}`);
-          
-          const formattedData = data.map(item => ({
-            ...item,
-            client_name: item.client_name || item.nclient || 'Client inconnu',
-            nbl: item.nbl || item.nfact || item.id,
-            montant_ttc: item.montant_ttc || (item.montant_ht + item.tva) || item.total_ttc
-          }));
-          
-          return { success: true, data: formattedData };
-        } else if (error) {
-          console.log(`⚠️ SQL error accessing ${tenant}.bl: ${error.message}`);
-        }
-      } catch (sqlError) {
-        console.log(`⚠️ SQL execution failed: ${sqlError instanceof Error ? sqlError.message : 'Unknown error'}`);
+      // Essayer d'abord avec la table bl du schéma tenant (même approche que proformas)
+      const { data, error } = await supabaseAdmin
+        .from(`${tenant}.bl`)
+        .select(`
+          *,
+          client:${tenant}.client(nom, raison_sociale)
+        `)
+        .order('nfact', { ascending: false });
+
+      if (!error && data) {
+        const formattedData = data.map(item => ({
+          ...item,
+          client_name: item.client?.raison_sociale || item.client?.nom || null
+        }));
+        console.log(`✅ Found ${formattedData.length} BL records in table: ${tenant}.bl`);
+        return { success: true, data: formattedData };
       }
-      
-      // Fallback: essayer sans JOIN client
-      try {
-        const { data, error } = await supabaseAdmin.rpc('exec_sql', {
-          sql: `
-            SELECT * 
-            FROM "${tenant}".bl 
-            ORDER BY nfact DESC 
-            LIMIT 50;
-          `
-        });
-        
-        if (!error && data && Array.isArray(data)) {
-          console.log(`✅ SUCCESS! Found ${data.length} BL records in schema ${tenant} (no JOIN)`);
-          
-          const formattedData = data.map(item => ({
-            ...item,
-            client_name: item.raison_sociale || item.nom_client || item.nclient || 'Client inconnu',
-            nbl: item.nbl || item.nfact || item.id,
-            montant_ttc: item.montant_ttc || (item.montant_ht + item.tva) || item.total_ttc
-          }));
-          
-          return { success: true, data: formattedData };
-        } else if (error) {
-          console.log(`⚠️ SQL error accessing ${tenant}.bl (no JOIN): ${error.message}`);
-        }
-      } catch (sqlError2) {
-        console.log(`⚠️ SQL execution failed (no JOIN): ${sqlError2 instanceof Error ? sqlError2.message : 'Unknown error'}`);
+
+      // Si ça échoue, essayer sans le schéma
+      const { data: data2, error: error2 } = await supabaseAdmin
+        .from('bl')
+        .select(`
+          *,
+          client:client(nom, raison_sociale)
+        `)
+        .order('nfact', { ascending: false });
+
+      if (!error2 && data2) {
+        const formattedData = data2.map(item => ({
+          ...item,
+          client_name: item.client?.raison_sociale || item.client?.nom || null
+        }));
+        console.log(`✅ Found ${formattedData.length} BL records in table: bl`);
+        return { success: true, data: formattedData };
       }
-      
-      throw new Error(`Cannot access table bl in schema ${tenant}`);
+
+      // Si tout échoue, retourner vide
+      throw new Error('No BL table found');
     } catch (error) {
-      console.log(`📋 Cannot access BL table in schema ${tenant}, returning empty data`);
-      console.log(`📋 Error details: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.log(`📋 No BL table found for tenant: ${tenant}, returning empty data`);
       return { success: true, data: [] };
     }
   }
