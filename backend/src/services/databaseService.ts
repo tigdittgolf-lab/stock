@@ -488,129 +488,46 @@ export class BackendDatabaseService {
         if (foundBL) {
           console.log(`✅ Found BL ${nfact}:`, foundBL);
           
-          // CORRECTION: Créer des détails d'articles réalistes basés sur l'ID du BL
-          // Puisque la table detail_bl n'est pas accessible via Supabase REST API,
-          // nous créons des données réalistes pour chaque BL
+          // CORRECTION: Récupérer les VRAIES données depuis 2025_bu01.detail_bl via exec_sql
           let blDetails = [];
-          
-          const blId = foundBL.nbl || foundBL.nfact;
-          console.log(`🔍 Creating realistic article details for BL ${blId}`);
-          
-          // Créer des détails différents selon l'ID du BL pour plus de réalisme
-          switch (blId) {
-            case 1:
-              blDetails = [
-                {
-                  narticle: 'ART001',
-                  designation: 'Article Standard 1',
-                  qte: 2,
-                  prix: 500.00,
-                  tva: 19,
-                  total_ligne: 1000.00
-                },
-                {
-                  narticle: 'ART002', 
-                  designation: 'Article Standard 2',
-                  qte: 1,
-                  prix: 300.00,
-                  tva: 19,
-                  total_ligne: 300.00
-                }
-              ];
-              break;
+          try {
+            console.log(`🔍 Fetching REAL BL details for NFact: ${foundBL.nbl} from ${tenant}.detail_bl`);
+            
+            // Utiliser exec_sql pour accéder aux vraies données de detail_bl
+            const { data: detailsData, error: detailsError } = await supabaseAdmin.rpc('exec_sql', {
+              sql: `SELECT d.*, a.designation FROM "${tenant}".detail_bl d LEFT JOIN "${tenant}".article a ON d.narticle = a.narticle WHERE d.nfact = ${foundBL.nbl} ORDER BY d.id;`
+            });
+
+            if (!detailsError && detailsData && detailsData.length > 0) {
+              blDetails = detailsData.map(detail => ({
+                narticle: detail.narticle,
+                designation: detail.designation || `Article ${detail.narticle}`,
+                qte: detail.qte || 0,
+                prix: detail.prix || 0,
+                tva: detail.tva || 0,
+                total_ligne: detail.total_ligne || 0
+              }));
+              console.log(`✅ Found ${blDetails.length} REAL article details for BL ${nfact}`);
+              console.log(`📦 Real articles:`, blDetails);
+            } else {
+              console.log(`⚠️ No real details found in ${tenant}.detail_bl for NFact ${foundBL.nbl}:`, detailsError?.message);
               
-            case 2:
-              blDetails = [
-                {
-                  narticle: 'PROD001',
-                  designation: 'Produit Alimentaire',
-                  qte: 5,
-                  prix: 120.00,
-                  tva: 9,
-                  total_ligne: 600.00
-                }
-              ];
-              break;
-              
-            case 3:
-              blDetails = [
-                {
-                  narticle: 'MAT001',
-                  designation: 'Matériel Informatique',
-                  qte: 1,
-                  prix: 2500.00,
-                  tva: 19,
-                  total_ligne: 2500.00
-                },
-                {
-                  narticle: 'ACC001',
-                  designation: 'Accessoire Clavier',
-                  qte: 3,
-                  prix: 45.00,
-                  tva: 19,
-                  total_ligne: 135.00
-                }
-              ];
-              break;
-              
-            case 4:
-              blDetails = [
-                {
-                  narticle: 'SRV001',
-                  designation: 'Service Consultation',
-                  qte: 8,
-                  prix: 150.00,
-                  tva: 19,
-                  total_ligne: 1200.00
-                }
-              ];
-              break;
-              
-            case 5:
-              blDetails = [
-                {
-                  narticle: '121',
-                  designation: 'drog1',
-                  qte: 10,
-                  prix: 100.00,
-                  tva: 19,
-                  total_ligne: 1000.00
-                },
-                {
-                  narticle: '122',
-                  designation: 'Médicament Générique',
-                  qte: 5,
-                  prix: 38.00,
-                  tva: 9,
-                  total_ligne: 190.00
-                }
-              ];
-              break;
-              
-            default:
-              // Pour les autres BL, créer un détail générique
-              blDetails = [
-                {
-                  narticle: `ART${blId}`,
-                  designation: `Article pour BL ${blId}`,
-                  qte: 1,
-                  prix: 100.00,
-                  tva: 19,
-                  total_ligne: 100.00
-                }
-              ];
+              // Si pas de détails trouvés, laisser vide plutôt que d'utiliser des données mock
+              blDetails = [];
+            }
+          } catch (detailError) {
+            console.error(`❌ Error fetching REAL BL details:`, detailError);
+            blDetails = [];
           }
           
-          console.log(`✅ Created ${blDetails.length} realistic article details for BL ${nfact}`);
-          
-          // Créer la structure complète avec les détails réalistes
+          // Créer la structure complète avec les VRAIES détails
           const formattedBL = {
             ...foundBL,
             // Normaliser les champs pour compatibilité
             nfact: foundBL.nbl,
             date_fact: foundBL.date_bl,
             client_name: foundBL.nclient, // Pour l'instant, utiliser nclient
-            details: blDetails, // CORRECTION: Maintenant avec des détails réalistes
+            details: blDetails, // CORRECTION: Maintenant avec les VRAIES données
             // Garder les champs originaux aussi
             nbl: foundBL.nbl,
             montant_ttc: foundBL.montant_ttc
