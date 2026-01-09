@@ -338,118 +338,72 @@ export class BackendDatabaseService {
 
   private async getSupabaseBLList(tenant: string): Promise<any> {
     try {
-      console.log(`🔍 Searching for BL tables for tenant: ${tenant} in public schema`);
+      console.log(`🔍 Accessing BL table in schema: ${tenant}`);
       
-      // ÉTAPE 1: Essayer de découvrir les tables disponibles dans le schéma public avec le préfixe tenant
+      // Utiliser une fonction RPC pour accéder au schéma personnalisé
       try {
-        const { data: tablesData, error: tablesError } = await supabaseAdmin.rpc('exec_sql', {
+        const { data, error } = await supabaseAdmin.rpc('exec_sql', {
           sql: `
-            SELECT tablename 
-            FROM pg_tables 
-            WHERE schemaname = 'public'
-              AND (tablename LIKE '${tenant}_%' OR tablename LIKE '%bl%' OR tablename LIKE '%bon%' OR tablename LIKE '%livraison%' OR tablename LIKE '%delivery%' OR tablename LIKE '%fact%')
-            ORDER BY tablename;
+            SELECT 
+              bl.*,
+              c.raison_sociale as client_name
+            FROM "${tenant}".bl bl
+            LEFT JOIN "${tenant}".client c ON bl.nclient = c.nclient
+            ORDER BY bl.nfact DESC
+            LIMIT 50;
           `
         });
         
-        if (!tablesError && tablesData) {
-          console.log(`📋 Available tables for tenant ${tenant} in public schema:`, tablesData);
-        }
-      } catch (discoveryError) {
-        console.log(`⚠️ Could not discover tables for tenant ${tenant}: ${discoveryError instanceof Error ? discoveryError.message : 'Unknown error'}`);
-      }
-      
-      // ÉTAPE 2: Essayer les tables avec préfixe tenant dans le schéma public
-      const tableVariants = [
-        // Tables avec préfixe tenant
-        `${tenant}_bl`, 
-        `${tenant}_bon_livraison`, 
-        `${tenant}_delivery_notes`,
-        `${tenant}_bons_livraison`,
-        `${tenant}_facture`,
-        `${tenant}_fact`,
-        `${tenant}_vente`,
-        `${tenant}_ventes`,
-        // Tables génériques
-        'bl', 
-        'bon_livraison',
-        'delivery_notes',
-        'bons_livraison',
-        'facture',
-        'fact',
-        'vente',
-        'ventes'
-      ];
-      
-      for (const tableName of tableVariants) {
-        try {
-          console.log(`🔍 Trying table: ${tableName} in public schema`);
+        if (!error && data && Array.isArray(data)) {
+          console.log(`✅ SUCCESS! Found ${data.length} BL records in schema ${tenant}`);
           
-          const { data, error } = await supabaseAdmin
-            .from(tableName)
-            .select(`
-              *,
-              client:client(nom, raison_sociale)
-            `)
-            .order('nfact', { ascending: false })
-            .limit(10);
-
-          if (!error && data && Array.isArray(data)) {
-            console.log(`✅ SUCCESS! Found ${data.length} BL records in table: ${tableName}`);
-            
-            const formattedData = data.map(item => ({
-              ...item,
-              client_name: item.client?.raison_sociale || item.client?.nom || item.nclient || 'Client inconnu',
-              nbl: item.nbl || item.nfact || item.id,
-              montant_ttc: item.montant_ttc || (item.montant_ht + item.tva) || item.total_ttc
-            }));
-            
-            return { success: true, data: formattedData };
-          } else if (error) {
-            console.log(`⚠️ Table ${tableName} error: ${error.message}`);
-          }
-        } catch (e) {
-          console.log(`⚠️ Table ${tableName} not accessible: ${e instanceof Error ? e.message : 'Unknown error'}`);
-          continue;
-        }
-      }
-      
-      // ÉTAPE 3: Si aucune table n'est trouvée avec JOIN, essayer sans JOIN client
-      console.log(`🔍 Trying tables for tenant ${tenant} without client JOIN...`);
-      
-      for (const tableName of tableVariants) {
-        try {
-          console.log(`🔍 Trying table without JOIN: ${tableName}`);
+          const formattedData = data.map(item => ({
+            ...item,
+            client_name: item.client_name || item.nclient || 'Client inconnu',
+            nbl: item.nbl || item.nfact || item.id,
+            montant_ttc: item.montant_ttc || (item.montant_ht + item.tva) || item.total_ttc
+          }));
           
-          const { data, error } = await supabaseAdmin
-            .from(tableName)
-            .select('*')
-            .order('nfact', { ascending: false })
-            .limit(10);
-
-          if (!error && data && Array.isArray(data)) {
-            console.log(`✅ SUCCESS! Found ${data.length} BL records in table: ${tableName} (without JOIN)`);
-            
-            const formattedData = data.map(item => ({
-              ...item,
-              client_name: item.raison_sociale || item.nom_client || item.nclient || 'Client inconnu',
-              nbl: item.nbl || item.nfact || item.id,
-              montant_ttc: item.montant_ttc || (item.montant_ht + item.tva) || item.total_ttc
-            }));
-            
-            return { success: true, data: formattedData };
-          } else if (error) {
-            console.log(`⚠️ Table ${tableName} (no JOIN) error: ${error.message}`);
-          }
-        } catch (e) {
-          console.log(`⚠️ Table ${tableName} (no JOIN) not accessible: ${e instanceof Error ? e.message : 'Unknown error'}`);
-          continue;
+          return { success: true, data: formattedData };
+        } else if (error) {
+          console.log(`⚠️ SQL error accessing ${tenant}.bl: ${error.message}`);
         }
+      } catch (sqlError) {
+        console.log(`⚠️ SQL execution failed: ${sqlError instanceof Error ? sqlError.message : 'Unknown error'}`);
       }
       
-      throw new Error(`No BL table found for tenant ${tenant} in public schema`);
+      // Fallback: essayer sans JOIN client
+      try {
+        const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+          sql: `
+            SELECT * 
+            FROM "${tenant}".bl 
+            ORDER BY nfact DESC 
+            LIMIT 50;
+          `
+        });
+        
+        if (!error && data && Array.isArray(data)) {
+          console.log(`✅ SUCCESS! Found ${data.length} BL records in schema ${tenant} (no JOIN)`);
+          
+          const formattedData = data.map(item => ({
+            ...item,
+            client_name: item.raison_sociale || item.nom_client || item.nclient || 'Client inconnu',
+            nbl: item.nbl || item.nfact || item.id,
+            montant_ttc: item.montant_ttc || (item.montant_ht + item.tva) || item.total_ttc
+          }));
+          
+          return { success: true, data: formattedData };
+        } else if (error) {
+          console.log(`⚠️ SQL error accessing ${tenant}.bl (no JOIN): ${error.message}`);
+        }
+      } catch (sqlError2) {
+        console.log(`⚠️ SQL execution failed (no JOIN): ${sqlError2 instanceof Error ? sqlError2.message : 'Unknown error'}`);
+      }
+      
+      throw new Error(`Cannot access table bl in schema ${tenant}`);
     } catch (error) {
-      console.log(`📋 No BL table found for tenant ${tenant}, returning empty data`);
+      console.log(`📋 Cannot access BL table in schema ${tenant}, returning empty data`);
       console.log(`📋 Error details: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return { success: true, data: [] };
     }
