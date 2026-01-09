@@ -1,6 +1,6 @@
 {
   "type": "supabase",
-  "name": "Supabase Production",
+  "name": "supabase database",
   "supabaseUrl": "https://szgodrjglbpzkrksnroi.supabase.co",
   "supabaseKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTY0ODA0MywiZXhwIjoyMDgxMjI0MDQzfQ.QXWudNf09Ly0BwZHac2vweYkr-ea_iufIVzcP98zZFU"
 }
