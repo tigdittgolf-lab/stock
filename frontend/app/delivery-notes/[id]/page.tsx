@@ -278,6 +278,13 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           >
             🖨️ Imprimer
           </button>
+          <button 
+            onClick={() => router.push(`/delivery-notes/${resolvedParams.id}/edit`)} 
+            className={styles.primaryButton}
+            style={{ marginLeft: '10px' }}
+          >
+            ✏️ Modifier
+          </button>
         </div>
       </header>
 

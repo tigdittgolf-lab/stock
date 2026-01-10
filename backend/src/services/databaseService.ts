@@ -933,6 +933,16 @@ export class BackendDatabaseService {
           procedureParams = [params.p_tenant];
           break;
         
+        // NOUVELLES PROCÉDURES DE MODIFICATION BL
+        case 'update_bl':
+          return this.executeMySQLUpdateBL(params);
+          
+        case 'delete_bl_details':
+          return this.executeMySQLDeleteBLDetails(params);
+          
+        case 'insert_bl_detail':
+          return this.executeMySQLInsertBLDetail(params);
+        
         default:
           // Si la procédure stockée n'est pas supportée, utiliser la conversion SQL
           console.log(`🐬 MySQL: No stored procedure for ${functionName}, using SQL conversion`);
@@ -1893,6 +1903,144 @@ export class BackendDatabaseService {
       return this.executePostgreSQLQuery(sql, []);
     }
   }
+
+  // =====================================================
+  // MÉTHODES SPÉCIFIQUES MYSQL POUR MODIFICATION BL
+  // =====================================================
+
+  private async executeMySQLUpdateBL(params: Record<string, any>): Promise<any> {
+    try {
+      if (!this.mysqlConnection) {
+        throw new Error('MySQL connection not established');
+      }
+
+      console.log(`🐬 MySQL: Executing update_bl procedure with params:`, params);
+
+      // Appeler la procédure stockée update_bl avec paramètres OUT
+      const [rows] = await this.mysqlConnection.execute(
+        'CALL update_bl(?, ?, ?, ?, ?, ?, ?, @success, @message, @error)',
+        [
+          params.p_tenant,
+          params.p_nfact,
+          params.p_nclient,
+          params.p_date_fact,
+          params.p_montant_ht,
+          params.p_tva,
+          params.p_montant_ttc
+        ]
+      );
+
+      // Récupérer les variables de sortie
+      const [resultRows] = await this.mysqlConnection.execute(
+        'SELECT @success as success, @message as message, @error as error'
+      );
+
+      const result = Array.isArray(resultRows) ? resultRows[0] : resultRows;
+      
+      console.log(`✅ MySQL update_bl result:`, result);
+
+      return {
+        success: Boolean(result.success),
+        message: result.message,
+        error: result.error,
+        data: result.success ? { nfact: params.p_nfact } : null
+      };
+
+    } catch (error) {
+      console.error('❌ MySQL update_bl failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  private async executeMySQLDeleteBLDetails(params: Record<string, any>): Promise<any> {
+    try {
+      if (!this.mysqlConnection) {
+        throw new Error('MySQL connection not established');
+      }
+
+      console.log(`🐬 MySQL: Executing delete_bl_details procedure with params:`, params);
+
+      // Appeler la procédure stockée delete_bl_details avec paramètres OUT
+      const [rows] = await this.mysqlConnection.execute(
+        'CALL delete_bl_details(?, ?, @success, @message, @error, @deleted_count)',
+        [params.p_tenant, params.p_nfact]
+      );
+
+      // Récupérer les variables de sortie
+      const [resultRows] = await this.mysqlConnection.execute(
+        'SELECT @success as success, @message as message, @error as error, @deleted_count as deleted_count'
+      );
+
+      const result = Array.isArray(resultRows) ? resultRows[0] : resultRows;
+      
+      console.log(`✅ MySQL delete_bl_details result:`, result);
+
+      return {
+        success: Boolean(result.success),
+        message: result.message,
+        error: result.error,
+        data: result.success ? { deleted_count: result.deleted_count } : null
+      };
+
+    } catch (error) {
+      console.error('❌ MySQL delete_bl_details failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  private async executeMySQLInsertBLDetail(params: Record<string, any>): Promise<any> {
+    try {
+      if (!this.mysqlConnection) {
+        throw new Error('MySQL connection not established');
+      }
+
+      console.log(`🐬 MySQL: Executing insert_bl_detail procedure with params:`, params);
+
+      // Appeler la procédure stockée insert_bl_detail avec paramètres OUT
+      const [rows] = await this.mysqlConnection.execute(
+        'CALL insert_bl_detail(?, ?, ?, ?, ?, ?, ?, @success, @message, @error)',
+        [
+          params.p_tenant,
+          params.p_nfact,
+          params.p_narticle,
+          params.p_qte,
+          params.p_prix,
+          params.p_tva,
+          params.p_total_ligne
+        ]
+      );
+
+      // Récupérer les variables de sortie
+      const [resultRows] = await this.mysqlConnection.execute(
+        'SELECT @success as success, @message as message, @error as error'
+      );
+
+      const result = Array.isArray(resultRows) ? resultRows[0] : resultRows;
+      
+      console.log(`✅ MySQL insert_bl_detail result:`, result);
+
+      return {
+        success: Boolean(result.success),
+        message: result.message,
+        error: result.error,
+        data: result.success ? { inserted: true } : null
+      };
+
+    } catch (error) {
+      console.error('❌ MySQL insert_bl_detail failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
 }
 
 // Export singleton instance
