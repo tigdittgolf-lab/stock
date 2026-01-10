@@ -6,9 +6,11 @@ const API_BASE_URL = process.env.NODE_ENV === 'production'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Next.js 15: params est maintenant une Promise
+    const resolvedParams = await params;
     const tenant = request.headers.get('X-Tenant');
     
     if (!tenant) {
@@ -18,9 +20,9 @@ export async function GET(
       );
     }
 
-    console.log(`📄 Generating PDF for proforma ${params.id}, tenant: ${tenant}`);
+    console.log(`📄 Generating PDF for proforma ${resolvedParams.id}, tenant: ${tenant}`);
 
-    const response = await fetch(`${API_BASE_URL}/pdf/proforma/${params.id}`, {
+    const response = await fetch(`${API_BASE_URL}/pdf/proforma/${resolvedParams.id}`, {
       headers: {
         'X-Tenant': tenant,
         'Content-Type': 'application/json'
@@ -42,14 +44,14 @@ export async function GET(
       return new NextResponse(pdfBuffer, {
         headers: {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': `inline; filename="proforma_${params.id}.pdf"`
+          'Content-Disposition': `inline; filename="proforma_${resolvedParams.id}.pdf"`
         }
       });
     }
 
     // Sinon retourner la réponse JSON
     const data = await response.json();
-    console.log(`✅ PDF generated successfully for proforma ${params.id}`);
+    console.log(`✅ PDF generated successfully for proforma ${resolvedParams.id}`);
     
     return NextResponse.json(data);
   } catch (error) {

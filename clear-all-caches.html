@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vider Tous les Caches - Fix Proforma</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            display: block;
+            width: 100%;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .success {
+            background: #28a745;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+        .info {
+            background: #17a2b8;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .url-box {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-family: monospace;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Vider Tous les Caches - Fix Proforma ID</h1>
+        
+        <div class="info">
+            <h3>📍 Nouvelles URLs de Production (après fix)</h3>
+            <div class="url-box">
+                <strong>Dernière URL:</strong><br>
+                https://st-article-1-5vs6zpp65-tigdittgolf-9191s-projects.vercel.app
+            </div>
+            <div class="url-box">
+                <strong>URL précédente:</strong><br>
+                https://st-article-1-h16jdfjdi-tigdittgolf-9191s-projects.vercel.app
+            </div>
+        </div>
+
+        <h2>🔄 Actions de Nettoyage</h2>
+        
+        <button class="button" onclick="clearBrowserCache()">
+            🗑️ Vider Cache Navigateur
+        </button>
+        
+        <button class="button" onclick="clearLocalStorage()">
+            📦 Vider LocalStorage
+        </button>
+        
+        <button class="button" onclick="clearSessionStorage()">
+            🔒 Vider SessionStorage
+        </button>
+        
+        <button class="button" onclick="forceReload()">
+            🔄 Rechargement Forcé (Ctrl+F5)
+        </button>
+        
+        <button class="button" onclick="clearAllAndReload()">
+            🧹 TOUT VIDER + Recharger
+        </button>
+
+        <div id="success" class="success">
+            ✅ Cache vidé avec succès!
+        </div>
+
+        <div class="info">
+            <h3>📋 Instructions Manuelles</h3>
+            <ol>
+                <li><strong>Chrome/Edge:</strong> Ctrl+Shift+Delete → Vider cache et cookies</li>
+                <li><strong>Firefox:</strong> Ctrl+Shift+Delete → Vider cache</li>
+                <li><strong>Safari:</strong> Cmd+Option+E → Vider cache</li>
+                <li><strong>Mode Incognito:</strong> Ouvrir un nouvel onglet privé</li>
+                <li><strong>Hard Refresh:</strong> Ctrl+F5 ou Ctrl+Shift+R</li>
+            </ol>
+        </div>
+
+        <div class="info">
+            <h3>🧪 Test du Fix</h3>
+            <p>Après avoir vidé le cache, testez:</p>
+            <ol>
+                <li>Aller sur <code>/proforma/list</code></li>
+                <li>Cliquer sur "Voir" pour un proforma</li>
+                <li>Vérifier que l'ID n'est plus "undefined"</li>
+                <li>Tester la génération PDF</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function showSuccess() {
+            document.getElementById('success').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('success').style.display = 'none';
+            }, 3000);
+        }
+
+        function clearBrowserCache() {
+            // Forcer le rechargement sans cache
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => {
+                        caches.delete(name);
+                    });
+                });
+            }
+            showSuccess();
+        }
+
+        function clearLocalStorage() {
+            try {
+                localStorage.clear();
+                showSuccess();
+                console.log('✅ LocalStorage vidé');
+            } catch (e) {
+                console.error('❌ Erreur localStorage:', e);
+            }
+        }
+
+        function clearSessionStorage() {
+            try {
+                sessionStorage.clear();
+                showSuccess();
+                console.log('✅ SessionStorage vidé');
+            } catch (e) {
+                console.error('❌ Erreur sessionStorage:', e);
+            }
+        }
+
+        function forceReload() {
+            // Rechargement forcé sans cache
+            window.location.reload(true);
+        }
+
+        function clearAllAndReload() {
+            clearBrowserCache();
+            clearLocalStorage();
+            clearSessionStorage();
+            
+            // Attendre un peu puis recharger
+            setTimeout(() => {
+                window.location.reload(true);
+            }, 1000);
+        }
+
+        // Log des informations de debug
+        console.log('🔍 Debug Info:');
+        console.log('User Agent:', navigator.userAgent);
+        console.log('URL actuelle:', window.location.href);
+        console.log('LocalStorage keys:', Object.keys(localStorage));
+        console.log('SessionStorage keys:', Object.keys(sessionStorage));
+    </script>
+</body>
+</html>

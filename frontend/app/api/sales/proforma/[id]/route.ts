@@ -6,9 +6,11 @@ const API_BASE_URL = process.env.NODE_ENV === 'production'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Next.js 15: params est maintenant une Promise
+    const resolvedParams = await params;
     const tenant = request.headers.get('X-Tenant');
     
     if (!tenant) {
@@ -18,9 +20,9 @@ export async function GET(
       );
     }
 
-    console.log(`🔍 Fetching proforma ${params.id} for tenant: ${tenant}`);
+    console.log(`🔍 Fetching proforma ${resolvedParams.id} for tenant: ${tenant}`);
 
-    const response = await fetch(`${API_BASE_URL}/sales/proforma/${params.id}`, {
+    const response = await fetch(`${API_BASE_URL}/sales/proforma/${resolvedParams.id}`, {
       headers: {
         'X-Tenant': tenant,
         'Content-Type': 'application/json'
@@ -36,7 +38,7 @@ export async function GET(
     }
 
     const data = await response.json();
-    console.log(`✅ Proforma ${params.id} fetched successfully`);
+    console.log(`✅ Proforma ${resolvedParams.id} fetched successfully`);
     
     return NextResponse.json(data);
   } catch (error) {

@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    // Next.js 15: params est maintenant une Promise
+    const resolvedParams = await params;
+    const id = resolvedParams.id;
     const tenant = request.headers.get('X-Tenant');
 
     if (!tenant) {
