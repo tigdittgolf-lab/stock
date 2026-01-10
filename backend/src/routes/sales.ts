@@ -2961,24 +2961,50 @@ sales.get('/proforma/:id', async (c) => {
     console.log(`🔍 Looking for proforma ${id} in tenant: ${tenant}`);
 
     try {
-      // Récupérer la proforma depuis la base de données via RPC
-      const { data: proformaRaw, error: fetchError } = await backendDatabaseService.executeRPC('get_proforma_by_id', {
+      // CORRECTION: Use the same approach as invoices - directly call the adaptive fallback
+      // instead of relying on RPC that might return incomplete or double-wrapped data
+      console.log(`🔍 Using adaptive fallback for proforma ${id} in tenant: ${tenant}`);
+      
+      const result = await backendDatabaseService.executeRPC('get_proforma_by_id_adaptive', {
         p_tenant: tenant,
         p_nfact: id
       });
 
-      if (fetchError) {
-        console.warn('Database fetch failed, using cache fallback:', fetchError);
-        throw fetchError;
+      if (!result.success) {
+        console.warn('Adaptive fallback failed, using cache fallback:', result.error);
+        
+        // Fallback: utiliser le cache
+        const proformas = createdDocumentsCache.get(`${tenant}_proformas`) || [];
+        console.log(`📊 Cache has ${proformas.length} proforma invoices`);
+        
+        const proforma = proformas.find(pf => pf.nfprof === id);
+        if (!proforma) {
+          console.log(`❌ Proforma ${id} not found in cache`);
+          console.log(`Available proforma IDs: ${proformas.map(pf => pf.nfprof).join(', ')}`);
+          return c.json({ success: false, error: 'Proforma not found' }, 404);
+        }
+
+        console.log(`✅ Found proforma ${id} in cache`);
+        return c.json({ success: true, data: proforma, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
       }
 
-      if (!proformaRaw) {
-        console.log(`❌ Proforma ${id} not found in database`);
-        return c.json({ success: false, error: 'Proforma not found' }, 404);
-      }
+      const proforma = result.data;
+      
+      // Format the data to match expected structure (no double wrapping)
+      const formattedProforma = {
+        nfact: proforma.nfact,
+        nclient: proforma.nclient,
+        date_fact: proforma.date_fact,
+        montant_ht: proforma.montant_ht,
+        tva: proforma.tva,
+        montant_ttc: proforma.montant_ttc || (proforma.montant_ht + proforma.tva),
+        created_at: proforma.created_at,
+        client_name: proforma.client_name || proforma.raison_sociale || proforma.nclient,
+        details: proforma.details || []
+      };
 
-      console.log(`✅ Found proforma ${id} in database`);
-      return c.json({ success: true, data: proformaRaw , database_type: backendDatabaseService.getActiveDatabaseType() });
+      console.log(`✅ Found proforma ${id} with ${formattedProforma.details.length} details using adaptive fallback`);
+      return c.json({ success: true, data: formattedProforma, source: 'adaptive_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
 
     } catch (dbError) {
       console.warn('Database access failed, falling back to cache:', dbError);

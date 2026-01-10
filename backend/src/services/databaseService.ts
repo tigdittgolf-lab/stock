@@ -255,6 +255,7 @@ export class BackendDatabaseService {
           
         case 'get_proforma_by_id':
         case 'get_proforma_by_id_from_tenant':
+        case 'get_proforma_by_id_adaptive':
           return this.getSupabaseProformaById(tenant, params.p_nfact);
           
         case 'get_bl_list':
@@ -559,29 +560,88 @@ export class BackendDatabaseService {
 
   private async getSupabaseProformaById(tenant: string, nfact: string): Promise<any> {
     try {
-      const { data, error } = await supabaseAdmin
-        .from(`${tenant}.fprof`)
-        .select(`
-          *,
-          client:${tenant}.client(nom),
-          details:${tenant}.detail_fprof(*)
-        `)
-        .eq('nfact', nfact)
-        .single();
+      console.log(`🔍 Looking for Proforma with ID ${nfact} in tenant ${tenant}`);
+      
+      // First, try to get the proforma from the fprof table using exec_sql
+      const { data: proformaData, error: proformaError } = await supabaseAdmin.rpc('exec_sql', {
+        sql: `SELECT f.*, c.raison_sociale FROM "${tenant}".fprof f LEFT JOIN "${tenant}".client c ON f.nclient = c.nclient WHERE f.nfact = ${nfact};`
+      });
 
-      if (!error && data) {
-        return { 
-          success: true, 
-          data: {
-            ...data,
-            client_name: data.client?.nom || null
-          }
-        };
+      if (proformaError || !proformaData || proformaData.length === 0) {
+        console.log(`❌ Proforma ${nfact} not found in ${tenant}.fprof table:`, proformaError?.message);
+        throw new Error('Proforma not found');
       }
 
-      throw new Error('Proforma not found');
+      const proforma = proformaData[0];
+      console.log(`✅ Found proforma ${nfact}:`, proforma);
+      
+      // Now get the REAL proforma details from detail_fprof table using exec_sql
+      let proformaDetails = [];
+      try {
+        console.log(`🔍 Fetching REAL Proforma details for NFact: ${nfact} from ${tenant}.detail_fprof`);
+        
+        const { data: detailsData, error: detailsError } = await supabaseAdmin.rpc('exec_sql', {
+          sql: `SELECT d.*, a.designation FROM "${tenant}".detail_fprof d LEFT JOIN "${tenant}".article a ON d.narticle = a.narticle WHERE d.nfact = ${nfact} ORDER BY d.id;`
+        });
+
+        if (!detailsError && detailsData && detailsData.length > 0) {
+          proformaDetails = detailsData.map(detail => ({
+            narticle: detail.narticle,
+            designation: detail.designation || `Article ${detail.narticle}`,
+            qte: detail.qte || 0,
+            prix: detail.prix || 0,
+            tva: detail.tva || 0,
+            total_ligne: detail.total_ligne || 0,
+            pr_achat: detail.pr_achat || 0
+          }));
+          console.log(`✅ Found ${proformaDetails.length} REAL article details for Proforma ${nfact}`);
+          console.log(`📦 Real articles:`, proformaDetails);
+        } else {
+          console.log(`⚠️ No real details found in ${tenant}.detail_fprof for NFact ${nfact}:`, detailsError?.message);
+          
+          // Try with uppercase field names as backup
+          console.log(`🔄 Trying with uppercase field names...`);
+          const { data: detailsDataUpper, error: detailsErrorUpper } = await supabaseAdmin.rpc('exec_sql', {
+            sql: `SELECT d.*, a.designation FROM "${tenant}".detail_fprof d LEFT JOIN "${tenant}".article a ON d.Narticle = a.Narticle WHERE d.NFact = ${nfact} ORDER BY d.id;`
+          });
+          
+          if (!detailsErrorUpper && detailsDataUpper && detailsDataUpper.length > 0) {
+            proformaDetails = detailsDataUpper.map(detail => ({
+              narticle: detail.narticle || detail.Narticle,
+              designation: detail.designation || `Article ${detail.narticle || detail.Narticle}`,
+              qte: detail.qte || detail.Qte || 0,
+              prix: detail.prix || detail.prix || 0,
+              tva: detail.tva || detail.tva || 0,
+              total_ligne: detail.total_ligne || detail.total_ligne || 0,
+              pr_achat: detail.pr_achat || 0
+            }));
+            console.log(`✅ Found ${proformaDetails.length} REAL article details with uppercase fields for Proforma ${nfact}`);
+          } else {
+            console.log(`⚠️ No details found with either case for Proforma ${nfact}`);
+            proformaDetails = [];
+          }
+        }
+      } catch (detailError) {
+        console.error(`❌ Error fetching REAL Proforma details:`, detailError);
+        proformaDetails = [];
+      }
+      
+      // Create the complete structure with REAL details
+      const formattedProforma = {
+        ...proforma,
+        client_name: proforma.raison_sociale || proforma.nclient,
+        details: proformaDetails, // REAL data from detail_fprof table
+        // Ensure compatibility with frontend expectations
+        montant_ttc: proforma.montant_ttc || (proforma.montant_ht + proforma.tva)
+      };
+      
+      return { 
+        success: true, 
+        data: formattedProforma
+      };
+
     } catch (error) {
-      console.log(`📋 Proforma ${nfact} not found, using mock data`);
+      console.log(`📋 Proforma ${nfact} not found in tenant ${tenant}:`, error instanceof Error ? error.message : error);
       return { success: false, error: 'Proforma not found' };
     }
   }
