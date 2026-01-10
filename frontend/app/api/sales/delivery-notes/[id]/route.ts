@@ -27,7 +27,9 @@ export async function GET(
     console.log(`🔍 Frontend API: Getting BL details for ID ${id}, tenant: ${tenant}`);
 
     // Proxy to backend via tunnel
-    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}`}/api/sales/delivery-notes/${id}`;
+    const backendUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://frontend-iota-six-72.vercel.app/api'
+      : 'http://localhost:3005/api';
     
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -39,7 +41,7 @@ export async function GET(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ Backend error ${response.status}: ${errorText}`);
+      console.error(`Backend error:  Backend error ${response.status}: ${errorText}`);
       return NextResponse.json(
         { success: false, error: `Backend error: ${response.status}` },
         { status: response.status }

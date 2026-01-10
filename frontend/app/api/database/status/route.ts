@@ -3,16 +3,18 @@ import { NextRequest, NextResponse } from 'next/server';
 function getApiUrl() {
   // En production, utiliser Tailscale (URL permanente)
   if (process.env.NODE_ENV === 'production') {
-    return `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}`;
+    return ${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'};
   }
   // En développement, utiliser localhost
-  return `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}`;
+  return ${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'};
 }
 
 export async function GET(request: NextRequest) {
   try {
     // Rediriger vers le backend via tunnel
-    const backendUrl = `${getApiUrl()}/api/database-config`;
+    const backendUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://frontend-iota-six-72.vercel.app/api'
+      : 'http://localhost:3005/api';
     
     const response = await fetch(backendUrl, {
       method: 'GET',

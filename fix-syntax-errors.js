@@ -1,100 +1,101 @@
 const fs = require('fs');
 const path = require('path');
 
-/**
- * Script pour corriger les erreurs de syntaxe créées par la migration automatique
- */
-
-const routesDir = 'backend/src/routes';
-
-function getAllRouteFiles() {
-  const files = fs.readdirSync(routesDir);
-  return files.filter(file => file.endsWith('.ts')).map(file => path.join(routesDir, file));
-}
-
+// Fonction pour corriger les erreurs de syntaxe
 function fixSyntaxErrors(filePath) {
-  console.log(`🔧 Correction de ${filePath}...`);
-  
-  let content = fs.readFileSync(filePath, 'utf8');
-  let modified = false;
-  
-  // 1. Corriger les erreurs dans les template literals
-  const badPattern1 = /\$\{([^,}]+),\s*database_type:\s*backendDatabaseService\.getActiveDatabaseType\(\)\s*\}/g;
-  if (badPattern1.test(content)) {
-    content = content.replace(badPattern1, '${$1}');
-    modified = true;
-    console.log(`  ✅ Template literals corrigés`);
-  }
-  
-  // 2. Corriger les virgules mal placées dans les objets JSON
-  const badPattern2 = /(\w+:\s*[^,}]+)\s*,\s*database_type:\s*backendDatabaseService\.getActiveDatabaseType\(\)\s*\}/g;
-  if (badPattern2.test(content)) {
-    content = content.replace(badPattern2, '$1, database_type: backendDatabaseService.getActiveDatabaseType() }');
-    modified = true;
-    console.log(`  ✅ Virgules dans JSON corrigées`);
-  }
-  
-  // 3. Corriger les espaces manquants avant database_type
-  const badPattern3 = /(\w+:\s*[^,}]+)\s*,\s*database_type:/g;
-  if (badPattern3.test(content)) {
-    content = content.replace(badPattern3, '$1, database_type:');
-    modified = true;
-    console.log(`  ✅ Espaces corrigés`);
-  }
-  
-  // 4. Corriger les patterns spécifiques trouvés
-  content = content.replace(
-    /message: `Database function not available \(\$\{dbType, database_type: backendDatabaseService\.getActiveDatabaseType\(\) \}\)\. Please check configuration\.`/g,
-    'message: `Database function not available (${dbType}). Please check configuration.`, database_type: backendDatabaseService.getActiveDatabaseType()'
-  );
-  
-  // 5. Corriger les patterns avec des espaces étranges
-  content = content.replace(
-    /(\w+:\s*[^,}]+)\s*,\s*database_type:\s*backendDatabaseService\.getActiveDatabaseType\(\)\s*\}/g,
-    '$1, database_type: backendDatabaseService.getActiveDatabaseType() }'
-  );
-  
-  // 6. Ajouter l'import manquant si nécessaire
-  if (content.includes('backendDatabaseService.getActiveDatabaseType()') && 
-      !content.includes('import { backendDatabaseService }')) {
-    
-    // Trouver la ligne d'import de databaseRouter
-    if (content.includes('import { databaseRouter }')) {
-      content = content.replace(
-        /import\s*{\s*databaseRouter\s*}\s*from\s*['"][^'"]*databaseRouter\.js['"];?/,
-        `import { databaseRouter } from '../services/databaseRouter.js';
-import { backendDatabaseService } from '../services/databaseService.js';`
-      );
-      modified = true;
-      console.log(`  ✅ Import backendDatabaseService ajouté`);
+  try {
+    let content = fs.readFileSync(filePath, 'utf8');
+    let hasChanges = false;
+
+    // Corriger les template literals mal formés
+    const fixes = [
+      // Corriger les URLs avec template literals
+      {
+        from: /`\$\{process\.env\.NODE_ENV === 'production' \? 'https:\/\/frontend-iota-six-72\.vercel\.app' : 'http:\/\/localhost:3005'\}\/api\//g,
+        to: `\${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}/api/`
+      },
+      {
+        from: /`\$\{process\.env\.NODE_ENV === 'production' \? 'https:\/\/frontend-iota-six-72\.vercel\.app' : 'http:\/\/localhost:3005'\}`/g,
+        to: `\${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}`
+      },
+      // Corriger les emojis dans les template literals
+      {
+        from: /console\.error\(`❌([^`]+)`\);/g,
+        to: 'console.error(`Backend error: $1`);'
+      },
+      {
+        from: /console\.error\('❌([^']+)'\);/g,
+        to: "console.error('Backend error: $1');"
+      },
+      // Corriger les erreurs de template literal spécifiques
+      {
+        from: /`\$\{process\.env\.NODE_ENV === \\'production\\' \? \\'https:\/\/frontend-iota-six-72\.vercel\.app\\' : \\'http:\/\/localhost:3005\\'}\//g,
+        to: '${process.env.NODE_ENV === \'production\' ? \'https://frontend-iota-six-72.vercel.app\' : \'http://localhost:3005\'}/'
+      }
+    ];
+
+    for (const fix of fixes) {
+      if (fix.from.test && fix.from.test(content)) {
+        content = content.replace(fix.from, fix.to);
+        hasChanges = true;
+      } else if (typeof fix.from === 'string' && content.includes(fix.from)) {
+        content = content.replaceAll(fix.from, fix.to);
+        hasChanges = true;
+      }
     }
+
+    // Approche plus simple : remplacer par des URLs conditionnelles simples
+    if (content.includes('${process.env.NODE_ENV')) {
+      // Remplacer par une approche plus simple
+      content = content.replace(
+        /const backendUrl = `[^`]+`;/g,
+        `const backendUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://frontend-iota-six-72.vercel.app/api'
+      : 'http://localhost:3005/api';`
+      );
+      hasChanges = true;
+    }
+
+    if (hasChanges) {
+      fs.writeFileSync(filePath, content, 'utf8');
+      console.log(`✅ Fixed syntax: ${filePath}`);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error(`❌ Error fixing ${filePath}:`, error.message);
+    return false;
   }
-  
-  if (modified) {
-    fs.writeFileSync(filePath, content, 'utf8');
-    console.log(`  💾 Fichier ${filePath} corrigé et sauvegardé`);
-  } else {
-    console.log(`  ⏭️ Aucune correction nécessaire pour ${filePath}`);
-  }
-  
-  return modified;
 }
 
-function fixAllSyntaxErrors() {
-  console.log('🚀 Correction des erreurs de syntaxe...');
+// Fonction pour parcourir et corriger tous les fichiers
+function fixAllFiles(dirPath) {
+  let fixedCount = 0;
   
-  const routeFiles = getAllRouteFiles();
-  let totalFixed = 0;
+  try {
+    const items = fs.readdirSync(dirPath);
+    
+    for (const item of items) {
+      const itemPath = path.join(dirPath, item);
+      const stat = fs.statSync(itemPath);
+      
+      if (stat.isDirectory()) {
+        if (item !== 'node_modules' && item !== '.next' && item !== '.git') {
+          fixedCount += fixAllFiles(itemPath);
+        }
+      } else if (stat.isFile() && item.endsWith('.ts')) {
+        if (fixSyntaxErrors(itemPath)) {
+          fixedCount++;
+        }
+      }
+    }
+  } catch (error) {
+    console.error(`❌ Error reading directory ${dirPath}:`, error.message);
+  }
   
-  routeFiles.forEach(file => {
-    const fixed = fixSyntaxErrors(file);
-    if (fixed) totalFixed++;
-  });
-  
-  console.log('');
-  console.log('🎯 CORRECTION TERMINÉE:');
-  console.log(`  📊 ${totalFixed}/${routeFiles.length} fichiers corrigés`);
-  console.log('  ✅ Erreurs de syntaxe corrigées');
+  return fixedCount;
 }
 
-fixAllSyntaxErrors();
+console.log('🔧 Fixing syntax errors in API routes...');
+const fixedCount = fixAllFiles('./frontend/app/api');
+console.log(`🎉 Fixed ${fixedCount} files with syntax errors.`);

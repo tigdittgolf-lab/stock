@@ -27,7 +27,9 @@ export async function GET(
     const validId = String(numericId); // Normaliser l'ID
 
     // Faire la requête vers le backend local avec l'ID valide
-    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}`}/api/pdf/debug-bl/${validId}`;
+    const backendUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://frontend-iota-six-72.vercel.app/api'
+      : 'http://localhost:3005/api';
     
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -38,7 +40,7 @@ export async function GET(
     });
 
     if (!response.ok) {
-      console.error(`❌ Backend debug error: ${response.status} - ${await response.text()}`);
+      console.error(`Backend error:  Backend debug error: ${response.status} - ${await response.text()}`);
       return NextResponse.json(
         { success: false, error: `Backend debug error: ${response.status}` },
         { status: response.status }

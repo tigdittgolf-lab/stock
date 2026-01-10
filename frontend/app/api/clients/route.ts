@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     console.log(`🔄 Frontend API: Forwarding clients request for tenant ${tenant}`);
     
     // Utiliser Tailscale tunnel pour accéder au backend local
-    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}`}/api/clients';
+    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : ${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}}/api/clients';
     
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ Backend clients error: ${response.status} - ${errorText}`);
+      console.error(`Backend error:  Backend clients error: ${response.status} - ${errorText}`);
       
       return NextResponse.json({
         success: false,
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     
     console.log(`🔄 Frontend API: Forwarding create client request for tenant ${tenant}`);
     
-    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}`}/api/clients';
+    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : ${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}}/api/clients';
     
     const response = await fetch(backendUrl, {
       method: 'POST',

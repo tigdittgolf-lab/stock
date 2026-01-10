@@ -34,7 +34,7 @@ export async function PUT(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ Backend error ${response.status}: ${errorText}`);
+      console.error(`Backend error:  Backend error ${response.status}: ${errorText}`);
       return NextResponse.json(
         { success: false, error: `Backend error: ${response.status}` },
         { status: response.status }

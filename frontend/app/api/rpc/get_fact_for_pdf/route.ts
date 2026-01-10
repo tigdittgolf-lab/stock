@@ -15,7 +15,9 @@ export async function POST(request: NextRequest) {
     console.log(`🔍 Frontend RPC Proxy - get_fact_for_pdf, Tenant: ${tenant}, Body:`, body);
 
     // Utiliser Tailscale tunnel pour accéder au backend local
-    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}`}/api/rpc/get_fact_for_pdf`;
+    const backendUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://frontend-iota-six-72.vercel.app/api'
+      : 'http://localhost:3005/api';
     
     const response = await fetch(backendUrl, {
       method: 'POST',
@@ -28,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ Backend RPC error: ${response.status} - ${errorText}`);
+      console.error(`Backend error:  Backend RPC error: ${response.status} - ${errorText}`);
       return NextResponse.json(
         { success: false, error: `Backend RPC error: ${response.status} - ${errorText}` },
         { status: response.status }

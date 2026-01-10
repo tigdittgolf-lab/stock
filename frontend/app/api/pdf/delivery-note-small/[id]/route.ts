@@ -24,7 +24,9 @@ export async function GET(
     const validId = String(numericId); // Normaliser l'ID
 
     // Faire la requête vers le backend local via le proxy frontend
-    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}`}/api/pdf/delivery-note-small/${validId}`;
+    const backendUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://frontend-iota-six-72.vercel.app/api'
+      : 'http://localhost:3005/api';
     
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -35,7 +37,7 @@ export async function GET(
     });
 
     if (!response.ok) {
-      console.error(`❌ Backend PDF error: ${response.status} - ${await response.text()}`);
+      console.error(`Backend error:  Backend PDF error: ${response.status} - ${await response.text()}`);
       return NextResponse.json(
         { success: false, error: `Backend PDF error: ${response.status} - ${await response.text()}` },
         { status: response.status }

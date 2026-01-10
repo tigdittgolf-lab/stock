@@ -30,7 +30,7 @@ export async function GET(
     });
 
     if (!response.ok) {
-      console.error(`❌ Backend error: ${response.status} ${response.statusText}`);
+      console.error(`Backend error:  Backend error: ${response.status} ${response.statusText}`);
       return NextResponse.json(
         { success: false, error: `Backend error: ${response.status}` },
         { status: response.status }
