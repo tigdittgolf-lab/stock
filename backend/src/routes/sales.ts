@@ -1879,10 +1879,14 @@ sales.get('/invoices', async (c) => {
     console.log(`🧾 Fetching invoices from database for tenant: ${tenant}`);
 
     try {
-      // Récupérer les factures depuis la base de données via RPC
-      const { data: invoicesRaw, error: fetchError } = await databaseRouter.rpc('get_fact_list', {
-        p_tenant: tenant
+      // CORRECTION: Utiliser exec_sql pour récupérer les vraies données factures avec tous les champs
+      const { data: invoicesRaw, error: fetchError } = await supabaseAdmin.rpc('exec_sql', {
+        sql: `SELECT * FROM "${tenant}".fact ORDER BY nfact DESC LIMIT 10;`
       });
+      
+      const invoices = invoicesRaw || [];
+      console.log(`📊 Raw invoices from SQL:`, invoicesRaw);
+      console.log(`📊 SQL Error:`, fetchError);
       
       if (fetchError) {
         console.warn('Database fetch failed, using cache fallback:', fetchError);
@@ -1891,21 +1895,20 @@ sales.get('/invoices', async (c) => {
         return c.json({ success: true, data: cachedInvoices, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
       }
 
-      const invoices = invoicesRaw || [];
-      
       // Formater les données pour correspondre au format attendu
-      const formattedInvoices = invoices.map(inv => ({
+      const formattedInvoices = Array.isArray(invoices) ? invoices.map(inv => ({
         nfact: inv.nfact,
         nclient: inv.nclient,
         date_fact: inv.date_fact,
-        montant_ht: inv.montant_ht,
-        tva: inv.tva,
-        total_ttc: inv.montant_ht + inv.tva,
+        montant_ht: inv.montant_ht || 0,
+        tva: inv.tva || 0,
+        montant_ttc: inv.montant_ttc || (inv.montant_ht + inv.tva) || 0,
         created_at: inv.created_at,
-        client_name: inv.raison_sociale || inv.nclient
-      }));
+        client_name: inv.client_name || inv.nclient
+      })) : [];
 
       console.log(`✅ Found ${formattedInvoices.length} invoices in database`);
+      console.log(`📋 Sample invoice data:`, formattedInvoices[0]);
       return c.json({ success: true, data: formattedInvoices, source: 'database' , database_type: backendDatabaseService.getActiveDatabaseType() });
 
     } catch (dbError) {
@@ -2472,12 +2475,14 @@ sales.get('/delivery-notes', async (c) => {
     console.log(`📋 Fetching delivery notes from database for tenant: ${tenant}`);
 
     try {
-      // Récupérer les BL depuis la base de données via RPC
-      const { data: deliveryNotesRaw, error: fetchError } = await databaseRouter.rpc('get_bl_list', {
-        p_tenant: tenant
+      // CORRECTION: Utiliser exec_sql pour récupérer les vraies données BL avec tous les champs
+      const { data: deliveryNotesRaw, error: fetchError } = await supabaseAdmin.rpc('exec_sql', {
+        sql: `SELECT * FROM "${tenant}".bl ORDER BY nfact DESC LIMIT 10;`
       });
       
       const deliveryNotes = deliveryNotesRaw || [];
+      console.log(`📊 Raw delivery notes from SQL:`, deliveryNotesRaw);
+      console.log(`📊 SQL Error:`, fetchError);
 
       if (fetchError) {
         console.warn('Database fetch failed, using cache fallback:', fetchError);
@@ -2488,18 +2493,20 @@ sales.get('/delivery-notes', async (c) => {
       }
 
       // Formater les données pour correspondre au format attendu
-      const formattedDeliveryNotes = deliveryNotes.map(bl => ({
-        nbl: bl.nfact,
+      const formattedDeliveryNotes = Array.isArray(deliveryNotes) ? deliveryNotes.map(bl => ({
+        nfact: bl.nfact || bl.nbl || bl.id,
+        nbl: bl.nbl || bl.nfact || bl.id,
         nclient: bl.nclient,
-        date_fact: bl.date_fact,
-        montant_ht: bl.montant_ht,
-        tva: bl.tva,
-        total_ttc: bl.montant_ht + bl.tva,
+        date_fact: bl.date_fact || bl.date_bl || bl.created_at,
+        montant_ht: bl.montant_ht || 0,
+        tva: bl.tva || 0,
+        montant_ttc: bl.montant_ttc || bl.total_ttc || (bl.montant_ht + bl.tva) || 0,
         created_at: bl.created_at,
-        client_name: bl.raison_sociale || bl.nclient
-      }));
+        client_name: bl.client_name || bl.raison_sociale || bl.nclient
+      })) : [];
 
       console.log(`✅ Found ${formattedDeliveryNotes.length} delivery notes in database`);
+      console.log(`📋 Sample BL data:`, formattedDeliveryNotes[0]);
       return c.json({ success: true, data: formattedDeliveryNotes, source: 'database' , database_type: backendDatabaseService.getActiveDatabaseType() });
 
     } catch (dbError) {
@@ -2845,19 +2852,36 @@ sales.get('/proforma', async (c) => {
     console.log(`📋 Fetching proforma invoices from database for tenant: ${tenant}`);
 
     try {
-      // Récupérer les proformas depuis la base de données via RPC
-      const { data: proformasRaw, error: fetchError } = await backendDatabaseService.executeRPC('get_proforma_list', {
-        p_tenant: tenant
+      // CORRECTION: Utiliser exec_sql pour récupérer les vraies données proformas avec tous les champs
+      const { data: proformasRaw, error: fetchError } = await supabaseAdmin.rpc('exec_sql', {
+        sql: `SELECT * FROM "${tenant}".fprof ORDER BY nfact DESC LIMIT 10;`
       });
+      
+      const proformas = proformasRaw || [];
+      console.log(`📊 Raw proformas from SQL:`, proformasRaw);
+      console.log(`📊 SQL Error:`, fetchError);
 
       if (fetchError) {
-        console.warn('Database fetch failed, using cache fallback:', fetchError);
+        console.warn('Database fetch failed, using fallback data:', fetchError);
         throw fetchError;
       }
 
-      const proformas = proformasRaw || [];
-      console.log(`✅ Found ${proformas.length} proforma invoices in database`);
-      return c.json({ success: true, data: proformas , database_type: backendDatabaseService.getActiveDatabaseType() });
+      // Formater les données pour correspondre au format attendu
+      const formattedProformas = Array.isArray(proformas) ? proformas.map(pf => ({
+        nfact: pf.nfact,
+        nfprof: pf.nfprof || pf.nfact,
+        nclient: pf.nclient,
+        date_fact: pf.date_fact,
+        montant_ht: pf.montant_ht || 0,
+        tva: pf.tva || 0,
+        montant_ttc: pf.montant_ttc || (pf.montant_ht + pf.tva) || 0,
+        created_at: pf.created_at,
+        client_name: pf.client_name || pf.nclient
+      })) : [];
+
+      console.log(`✅ Found ${formattedProformas.length} proforma invoices in database`);
+      console.log(`📋 Sample proforma data:`, formattedProformas[0]);
+      return c.json({ success: true, data: formattedProformas, source: 'database', database_type: backendDatabaseService.getActiveDatabaseType() });
 
     } catch (dbError) {
       console.warn('Database access failed, falling back to real data:', dbError);
@@ -2866,6 +2890,7 @@ sales.get('/proforma', async (c) => {
       const realProformaData = [
         {
           nfact: 1,
+          nfprof: 1,
           nclient: "C001",
           client_name: "SECTEUR SANITAIRE AINT TEDELES",
           date_fact: "2025-01-06",
@@ -2876,6 +2901,7 @@ sales.get('/proforma', async (c) => {
         },
         {
           nfact: 2,
+          nfprof: 2,
           nclient: "C002", 
           client_name: "A P C MOSTAGANEM",
           date_fact: "2025-01-05",
@@ -2886,6 +2912,7 @@ sales.get('/proforma', async (c) => {
         },
         {
           nfact: 3,
+          nfprof: 3,
           nclient: "C003",
           client_name: "ALGERIE TELECOM", 
           date_fact: "2025-01-04",
@@ -2907,19 +2934,14 @@ sales.get('/proforma', async (c) => {
           const modification = modifications.get(proforma.nfact);
           return modification || proforma;
         });
+
+      // Ajouter les nouvelles proformas du cache
+      const allProformas = [...cachedProformas, ...modifiedData];
       
-      const filteredCachedProformas = cachedProformas.filter(proforma => !deletedProformas.has(proforma.nfact));
-      const allProformas = [...modifiedData, ...filteredCachedProformas];
-      
-      console.log(`✅ Using fallback data: ${allProformas.length} proformas from ${backendDatabaseService.getActiveDatabaseType()} fallback`);
-      return c.json({ 
-        success: true, 
-        data: allProformas,
-        message: "No proformas found or RPC function not available",
-        source: 'fallback',
-        database_type: backendDatabaseService.getActiveDatabaseType()
-      });
+      console.log(`✅ Found ${allProformas.length} proforma invoices (fallback data)`);
+      return c.json({ success: true, data: allProformas, source: 'fallback', database_type: backendDatabaseService.getActiveDatabaseType() });
     }
+
   } catch (error) {
     console.error('Error fetching proforma invoices:', error);
     return c.json({ success: false, error: 'Failed to fetch proforma invoices' }, 500);
