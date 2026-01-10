@@ -10,6 +10,172 @@ const pdf = new Hono();
 // PDF service will load company info from database dynamically
 const pdfService = new PDFService();
 
+// Utility function to fetch Invoice data consistently with full details
+async function fetchInvoiceData(tenant: string, id: string) {
+  const requestedId = parseInt(id);
+  
+  console.log(`📋 PDF: Fetching Invoice data ${requestedId} for tenant: ${tenant}`);
+
+  // Validation stricte de l'ID
+  if (isNaN(requestedId) || requestedId <= 0) {
+    console.error(`🚨 ERREUR: ID Invoice invalide ${id}`);
+    throw new Error(`ID Invoice invalide: ${id}. Veuillez fournir un ID valide.`);
+  }
+
+  const actualId = requestedId;
+
+  // Essayer d'abord le cache
+  const invoices = createdDocumentsCache.get(`${tenant}_invoices`) || [];
+  
+  console.log(`📊 Cache contains ${invoices.length} invoices`);
+  
+  let invoiceData = invoices.find(inv => inv.nfact === actualId);
+  
+  if (invoiceData && invoiceData.details && invoiceData.details.length > 0) {
+    console.log(`✅ PDF: Found complete Invoice data ${actualId} in cache with ${invoiceData.details.length} articles`);
+    return formatInvoiceDataForPDF(invoiceData);
+  }
+
+  // Si pas dans le cache ou pas de détails, récupérer depuis la base de données
+  console.log(`🔍 PDF: Invoice ${actualId} not in cache or incomplete, fetching from database...`);
+  
+  try {
+    // CORRECTION: Utiliser l'approche adaptative comme pour l'affichage des détails
+    const invoiceResult = await backendDatabaseService.executeRPC('get_fact_by_id_adaptive', {
+      p_tenant: tenant,
+      p_nfact: actualId
+    });
+
+    if (!invoiceResult.success || !invoiceResult.data) {
+      console.error(`🚨 ERREUR: Invoice ${actualId} introuvable dans la base de données`);
+      console.error(`🚨 Error details:`, invoiceResult.error);
+      throw new Error(`Invoice ${actualId} introuvable. ${invoiceResult.error || 'Vérifiez que cette facture existe.'}`);
+    }
+
+    const invoiceInfo = invoiceResult.data;
+    console.log(`✅ PDF: Found Invoice ${actualId} with ${invoiceInfo.details?.length || 0} article details`);
+
+    return formatInvoiceDataForPDF(invoiceInfo);
+
+  } catch (error) {
+    console.error(`🚨 PDF: Error fetching Invoice ${actualId}:`, error);
+    throw new Error(`Impossible de récupérer la facture ${actualId}: ${error.message}`);
+  }
+}
+
+// Utility function to format invoice data for PDF service
+function formatInvoiceDataForPDF(invoiceInfo: any) {
+  return {
+    nfact: invoiceInfo.nfact,
+    date_fact: invoiceInfo.date_fact,
+    client: {
+      raison_sociale: invoiceInfo.client_name || invoiceInfo.raison_sociale || invoiceInfo.nclient,
+      adresse: invoiceInfo.client_address || '',
+      tel: invoiceInfo.client_phone || '',
+      nif: invoiceInfo.client_nif || '',
+      rc: invoiceInfo.client_rc || ''
+    },
+    montant_ht: invoiceInfo.montant_ht,
+    tva: invoiceInfo.tva,
+    montant_ttc: invoiceInfo.montant_ttc || invoiceInfo.total_ttc,
+    timbre: invoiceInfo.timbre || 0,
+    autre_taxe: invoiceInfo.autre_taxe || 0,
+    detail_fact: (invoiceInfo.details || []).map(detail => ({
+      article: {
+        designation: detail.designation,
+        narticle: detail.narticle
+      },
+      qte: detail.qte,
+      prix: detail.prix,
+      tva: detail.tva,
+      total_ligne: detail.total_ligne
+    }))
+  };
+}
+
+// Utility function to fetch Proforma data consistently with full details
+async function fetchProformaData(tenant: string, id: string) {
+  const requestedId = parseInt(id);
+  
+  console.log(`📋 PDF: Fetching Proforma data ${requestedId} for tenant: ${tenant}`);
+
+  // Validation stricte de l'ID
+  if (isNaN(requestedId) || requestedId <= 0) {
+    console.error(`🚨 ERREUR: ID Proforma invalide ${id}`);
+    throw new Error(`ID Proforma invalide: ${id}. Veuillez fournir un ID valide.`);
+  }
+
+  const actualId = requestedId;
+
+  // Essayer d'abord le cache
+  const proformas = createdDocumentsCache.get(`${tenant}_proformas`) || [];
+  
+  console.log(`📊 Cache contains ${proformas.length} proformas`);
+  
+  let proformaData = proformas.find(pf => pf.nfact === actualId);
+  
+  if (proformaData && proformaData.details && proformaData.details.length > 0) {
+    console.log(`✅ PDF: Found complete Proforma data ${actualId} in cache with ${proformaData.details.length} articles`);
+    return formatProformaDataForPDF(proformaData);
+  }
+
+  // Si pas dans le cache ou pas de détails, récupérer depuis la base de données
+  console.log(`🔍 PDF: Proforma ${actualId} not in cache or incomplete, fetching from database...`);
+  
+  try {
+    // CORRECTION: Utiliser l'approche adaptative comme pour l'affichage des détails
+    const proformaResult = await backendDatabaseService.executeRPC('get_proforma_by_id_adaptive', {
+      p_tenant: tenant,
+      p_nfact: actualId
+    });
+
+    if (!proformaResult.success || !proformaResult.data) {
+      console.error(`🚨 ERREUR: Proforma ${actualId} introuvable dans la base de données`);
+      console.error(`🚨 Error details:`, proformaResult.error);
+      throw new Error(`Proforma ${actualId} introuvable. ${proformaResult.error || 'Vérifiez que ce proforma existe.'}`);
+    }
+
+    const proformaInfo = proformaResult.data;
+    console.log(`✅ PDF: Found Proforma ${actualId} with ${proformaInfo.details?.length || 0} article details`);
+
+    return formatProformaDataForPDF(proformaInfo);
+
+  } catch (error) {
+    console.error(`🚨 PDF: Error fetching Proforma ${actualId}:`, error);
+    throw new Error(`Impossible de récupérer le proforma ${actualId}: ${error.message}`);
+  }
+}
+
+// Utility function to format proforma data for PDF service
+function formatProformaDataForPDF(proformaInfo: any) {
+  return {
+    nfact: proformaInfo.nfact,
+    date_fact: proformaInfo.date_fact,
+    client: {
+      raison_sociale: proformaInfo.client_name || proformaInfo.raison_sociale || proformaInfo.nclient,
+      adresse: proformaInfo.client_address || '',
+      tel: proformaInfo.client_phone || '',
+      nif: proformaInfo.client_nif || '',
+      rc: proformaInfo.client_rc || ''
+    },
+    montant_ht: proformaInfo.montant_ht,
+    tva: proformaInfo.tva,
+    montant_ttc: proformaInfo.montant_ttc || proformaInfo.total_ttc,
+    timbre: proformaInfo.timbre || 0,
+    autre_taxe: proformaInfo.autre_taxe || 0,
+    detail_fact: (proformaInfo.details || []).map(detail => ({
+      article: {
+        designation: detail.designation,
+        narticle: detail.narticle
+      },
+      qte: detail.qte,
+      prix: detail.prix,
+      tva: detail.tva,
+      total_ligne: detail.total_ligne
+    }))
+  };
+}
+
 // Utility function to fetch BL data consistently with full details
 async function fetchBLData(tenant: string, id: string) {
   const requestedId = parseInt(id);
@@ -124,15 +290,13 @@ pdf.get('/invoice/:id', async (c) => {
 
     console.log(`📄 Generating invoice PDF for ID: ${id}, Tenant: ${tenant}`);
 
-    // Fetch invoice data
-    const { data: invoiceData, error } = await supabaseAdmin.rpc('get_fact_by_id', {
-      p_tenant: tenant,
-      p_nfact: parseInt(id)
-    });
-
-    if (error || !invoiceData) {
+    // Fetch invoice data using utility function (same approach as BL)
+    try {
+      var invoiceData = await fetchInvoiceData(tenant, id);
+      console.log(`✅ Invoice data fetched successfully for ID: ${id}`);
+    } catch (error) {
       console.error('Error fetching invoice:', error);
-      return c.json({ success: false, error: 'Invoice not found' }, 404);
+      return c.json({ success: false, error: error.message }, 404);
     }
 
     // Generate PDF
@@ -256,15 +420,13 @@ pdf.get('/proforma/:id', async (c) => {
 
     console.log(`📄 Generating proforma PDF for ID: ${id}, Tenant: ${tenant}`);
 
-    // Fetch proforma data
-    const { data: proformaData, error } = await supabaseAdmin.rpc('get_fprof_by_id', {
-      p_tenant: tenant,
-      p_nfact: parseInt(id)
-    });
-
-    if (error || !proformaData) {
+    // Fetch proforma data using utility function (same approach as invoices and BL)
+    try {
+      var proformaData = await fetchProformaData(tenant, id);
+      console.log(`✅ Proforma data fetched successfully for ID: ${id}`);
+    } catch (error) {
       console.error('Error fetching proforma:', error);
-      return c.json({ success: false, error: 'Proforma not found' }, 404);
+      return c.json({ success: false, error: error.message }, 404);
     }
 
     // Generate PDF
