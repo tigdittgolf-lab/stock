@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test URL Production Directe</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        .result { margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 3px; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        a { color: #007bff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test URL Production - Bouton Modifier</h1>
+    
+    <div class="test-section info">
+        <h2>📍 URLs de Production Disponibles</h2>
+        <p><strong>URL Fixe (utilisée par l'utilisateur):</strong></p>
+        <p><a href="https://frontend-iota-six-72.vercel.app/delivery-notes/list" target="_blank">https://frontend-iota-six-72.vercel.app/delivery-notes/list</a></p>
+        
+        <p><strong>URL Dernière Déployée:</strong></p>
+        <p><a href="https://st-article-1-r72koiuyt-tigdittgolf-9191s-projects.vercel.app/delivery-notes/list" target="_blank">https://st-article-1-r72koiuyt-tigdittgolf-9191s-projects.vercel.app/delivery-notes/list</a></p>
+        
+        <p><strong>URL Précédente:</strong></p>
+        <p><a href="https://st-article-1-krsqf17h5-tigdittgolf-9191s-projects.vercel.app/delivery-notes/list" target="_blank">https://st-article-1-krsqf17h5-tigdittgolf-9191s-projects.vercel.app/delivery-notes/list</a></p>
+    </div>
+
+    <div class="test-section">
+        <h2>🔄 Test Cache et Déploiement</h2>
+        <button onclick="testLatestDeployment()">Tester Dernier Déploiement</button>
+        <button onclick="clearCacheAndTest()">Vider Cache et Tester</button>
+        <div id="deploymentResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 Vérification Code Source</h2>
+        <button onclick="checkSourceCode()">Vérifier Code Source</button>
+        <div id="sourceResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🎯 Actions Recommandées</h2>
+        <div class="info">
+            <h3>Si vous ne voyez pas le bouton "Modifier" :</h3>
+            <ol>
+                <li><strong>Vider le cache du navigateur :</strong>
+                    <ul>
+                        <li>Chrome/Edge : Ctrl+Shift+R ou F12 → Network → Disable cache</li>
+                        <li>Firefox : Ctrl+Shift+R</li>
+                        <li>Safari : Cmd+Option+R</li>
+                    </ul>
+                </li>
+                <li><strong>Essayer l'URL du dernier déploiement :</strong>
+                    <br><a href="https://st-article-1-r72koiuyt-tigdittgolf-9191s-projects.vercel.app/delivery-notes/list" target="_blank">https://st-article-1-r72koiuyt-tigdittgolf-9191s-projects.vercel.app/delivery-notes/list</a>
+                </li>
+                <li><strong>Mode navigation privée :</strong> Ouvrir dans un onglet privé/incognito</li>
+                <li><strong>Attendre la propagation :</strong> Parfois 2-3 minutes pour la mise à jour</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🎉 Ce que vous devriez voir</h2>
+        <div class="success">
+            <h3>Dans la colonne "Actions" de chaque BL :</h3>
+            <p><strong>Avant :</strong> [👁️ Voir] [🗑️ Supprimer] [📄 BL Complet] [📄 BL Réduit] [🎫 Ticket]</p>
+            <p><strong>Maintenant :</strong> [👁️ Voir] <strong style="color: #28a745;">[✏️ Modifier]</strong> [🗑️ Supprimer] [📄 BL Complet] [📄 BL Réduit] [🎫 Ticket]</p>
+            
+            <h3>Le bouton "✏️ Modifier" devrait :</h3>
+            <ul>
+                <li>Être de couleur verte (#28a745)</li>
+                <li>Être placé entre "👁️ Voir" et "🗑️ Supprimer"</li>
+                <li>Rediriger vers /delivery-notes/{id}/edit</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        async function testLatestDeployment() {
+            const resultDiv = document.getElementById('deploymentResult');
+            resultDiv.innerHTML = '🔄 Test en cours...';
+            
+            try {
+                const latestUrl = 'https://st-article-1-r72koiuyt-tigdittgolf-9191s-projects.vercel.app/delivery-notes/list';
+                const response = await fetch(latestUrl);
+                const html = await response.text();
+                
+                const hasModifierButton = html.includes('✏️ Modifier') || html.includes('Modifier');
+                const hasModifierStyle = html.includes('#28a745') && html.includes('Modifier');
+                
+                if (hasModifierButton && hasModifierStyle) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ <strong>SUCCÈS:</strong> Bouton "Modifier" détecté dans le dernier déploiement !<br>
+                            📍 URL testée: ${latestUrl}<br>
+                            🎯 Le bouton devrait être visible maintenant<br>
+                            💡 <strong>Essayez cette URL directement ou videz votre cache</strong>
+                        </div>
+                    `;
+                } else if (hasModifierButton) {
+                    resultDiv.innerHTML = `
+                        <div class="info">
+                            ⚠️ <strong>PARTIEL:</strong> Bouton "Modifier" détecté mais style peut-être manquant<br>
+                            📍 URL testée: ${latestUrl}<br>
+                            💡 Essayez de vider le cache du navigateur
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ <strong>PROBLÈME:</strong> Bouton "Modifier" non trouvé dans le dernier déploiement<br>
+                            📍 URL testée: ${latestUrl}<br>
+                            🔄 Le déploiement peut ne pas avoir pris effet
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ <strong>ERREUR:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function clearCacheAndTest() {
+            const resultDiv = document.getElementById('deploymentResult');
+            resultDiv.innerHTML = `
+                <div class="info">
+                    🔄 <strong>Instructions pour vider le cache :</strong><br><br>
+                    <strong>1. Chrome/Edge :</strong><br>
+                    - Appuyez sur F12 pour ouvrir les outils développeur<br>
+                    - Allez dans l'onglet "Network"<br>
+                    - Cochez "Disable cache"<br>
+                    - Rechargez la page avec Ctrl+Shift+R<br><br>
+                    
+                    <strong>2. Firefox :</strong><br>
+                    - Appuyez sur Ctrl+Shift+R pour un rechargement forcé<br><br>
+                    
+                    <strong>3. Safari :</strong><br>
+                    - Appuyez sur Cmd+Option+R<br><br>
+                    
+                    <strong>4. Mode Incognito/Privé :</strong><br>
+                    - Ouvrez un nouvel onglet privé<br>
+                    - Allez sur : <a href="https://st-article-1-r72koiuyt-tigdittgolf-9191s-projects.vercel.app/delivery-notes/list" target="_blank">URL du dernier déploiement</a>
+                </div>
+            `;
+        }
+
+        async function checkSourceCode() {
+            const resultDiv = document.getElementById('sourceResult');
+            resultDiv.innerHTML = '🔍 Vérification du code source...';
+            
+            try {
+                const urls = [
+                    'https://frontend-iota-six-72.vercel.app/delivery-notes/list',
+                    'https://st-article-1-r72koiuyt-tigdittgolf-9191s-projects.vercel.app/delivery-notes/list'
+                ];
+                
+                let results = [];
+                
+                for (const url of urls) {
+                    try {
+                        const response = await fetch(url);
+                        const html = await response.text();
+                        
+                        const hasModifier = html.includes('✏️ Modifier');
+                        const hasModifierStyle = html.includes('#28a745');
+                        const hasModifierFunction = html.includes('router.push') && html.includes('/edit');
+                        
+                        results.push({
+                            url: url.includes('frontend-iota-six-72') ? 'URL Fixe' : 'Dernier Déploiement',
+                            fullUrl: url,
+                            hasModifier,
+                            hasModifierStyle,
+                            hasModifierFunction,
+                            status: response.status
+                        });
+                    } catch (e) {
+                        results.push({
+                            url: url.includes('frontend-iota-six-72') ? 'URL Fixe' : 'Dernier Déploiement',
+                            fullUrl: url,
+                            error: e.message
+                        });
+                    }
+                }
+                
+                let resultHtml = '<h4>📊 Résultats de vérification :</h4>';
+                results.forEach(result => {
+                    if (result.error) {
+                        resultHtml += `
+                            <div class="error">
+                                ❌ <strong>${result.url}:</strong> Erreur - ${result.error}
+                            </div>
+                        `;
+                    } else {
+                        const status = result.hasModifier && result.hasModifierStyle && result.hasModifierFunction ? 'success' : 'error';
+                        resultHtml += `
+                            <div class="${status}">
+                                ${status === 'success' ? '✅' : '❌'} <strong>${result.url}:</strong><br>
+                                - Bouton Modifier: ${result.hasModifier ? '✅' : '❌'}<br>
+                                - Style Modifier: ${result.hasModifierStyle ? '✅' : '❌'}<br>
+                                - Fonction Modifier: ${result.hasModifierFunction ? '✅' : '❌'}<br>
+                                - Status HTTP: ${result.status}<br>
+                                <small>URL: ${result.fullUrl}</small>
+                            </div>
+                        `;
+                    }
+                });
+                
+                resultDiv.innerHTML = resultHtml;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ <strong>ERREUR:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-exécuter le test au chargement
+        window.onload = function() {
+            console.log('🔍 Page de test chargée');
+            console.log('📍 URLs à tester:');
+            console.log('- URL Fixe: https://frontend-iota-six-72.vercel.app/delivery-notes/list');
+            console.log('- Dernier déploiement: https://st-article-1-r72koiuyt-tigdittgolf-9191s-projects.vercel.app/delivery-notes/list');
+            
+            // Lancer automatiquement le test
+            setTimeout(testLatestDeployment, 1000);
+        };
+    </script>
+</body>
+</html>
