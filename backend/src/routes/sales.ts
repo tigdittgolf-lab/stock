@@ -2807,6 +2807,146 @@ sales.post('/delivery-notes', async (c) => {
   }
 });
 
+// Update delivery note - MODIFICATION D'UN BL
+sales.put('/delivery-notes/:id', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    const blId = c.req.param('id');
+    const body = await c.req.json();
+    const { Nclient, date_fact, detail_bl } = body;
+
+    if (!blId || isNaN(parseInt(blId))) {
+      return c.json({ success: false, error: 'Valid BL ID required' }, 400);
+    }
+
+    if (!detail_bl || !Array.isArray(detail_bl) || detail_bl.length === 0) {
+      return c.json({ success: false, error: 'detail_bl is required and must be a non-empty array' }, 400);
+    }
+
+    console.log(`🔄 Updating delivery note ${blId} for tenant: ${tenant}, Client: ${Nclient}`);
+
+    // 1. Vérifier que le BL existe
+    const existingBL = await backendDatabaseService.executeRPC('get_bl_by_id', {
+      p_tenant: tenant,
+      p_nfact: parseInt(blId)
+    });
+
+    if (!existingBL.success || !existingBL.data) {
+      return c.json({ success: false, error: `BL ${blId} not found` }, 404);
+    }
+
+    // 2. Calculer les totaux
+    let montant_ht = 0;
+    let tva_total = 0;
+
+    const processedDetails = detail_bl.map(detail => {
+      const qte = parseFloat(detail.qte) || 0;
+      const prix = parseFloat(detail.prix) || 0;
+      const tva_rate = parseFloat(detail.tva) || 19;
+      
+      const total_ligne_ht = qte * prix;
+      const tva_ligne = total_ligne_ht * (tva_rate / 100);
+      const total_ligne = total_ligne_ht + tva_ligne;
+      
+      montant_ht += total_ligne_ht;
+      tva_total += tva_ligne;
+      
+      return {
+        narticle: detail.narticle,
+        qte: qte,
+        prix: prix,
+        tva: tva_rate,
+        total_ligne: total_ligne
+      };
+    });
+
+    const montant_ttc = montant_ht + tva_total;
+
+    // 3. Mettre à jour le BL principal
+    const updateBLResult = await backendDatabaseService.executeRPC('update_bl', {
+      p_tenant: tenant,
+      p_nfact: parseInt(blId),
+      p_nclient: Nclient,
+      p_date_fact: date_fact,
+      p_montant_ht: montant_ht,
+      p_tva: tva_total,
+      p_montant_ttc: montant_ttc
+    });
+
+    if (!updateBLResult.success) {
+      console.error('❌ Error updating BL:', updateBLResult.error);
+      return c.json({ success: false, error: 'Failed to update BL' }, 500);
+    }
+
+    // 4. Supprimer les anciens détails
+    const deleteDetailsResult = await backendDatabaseService.executeRPC('delete_bl_details', {
+      p_tenant: tenant,
+      p_nfact: parseInt(blId)
+    });
+
+    if (!deleteDetailsResult.success) {
+      console.error('❌ Error deleting old BL details:', deleteDetailsResult.error);
+      return c.json({ success: false, error: 'Failed to delete old BL details' }, 500);
+    }
+
+    // 5. Insérer les nouveaux détails
+    for (const detail of processedDetails) {
+      const insertDetailResult = await backendDatabaseService.executeRPC('insert_bl_detail', {
+        p_tenant: tenant,
+        p_nfact: parseInt(blId),
+        p_narticle: detail.narticle,
+        p_qte: detail.qte,
+        p_prix: detail.prix,
+        p_tva: detail.tva,
+        p_total_ligne: detail.total_ligne
+      });
+
+      if (!insertDetailResult.success) {
+        console.error('❌ Error inserting BL detail:', insertDetailResult.error);
+        return c.json({ success: false, error: 'Failed to insert BL detail' }, 500);
+      }
+    }
+
+    // 6. Récupérer le BL mis à jour avec ses détails
+    const updatedBL = await backendDatabaseService.executeRPC('get_bl_by_id', {
+      p_tenant: tenant,
+      p_nfact: parseInt(blId)
+    });
+
+    if (updatedBL.success && updatedBL.data) {
+      // Mettre à jour le cache
+      const cacheKey = `${tenant}_bl`;
+      const cachedBLs = createdDocumentsCache.get(cacheKey) || [];
+      const blIndex = cachedBLs.findIndex(bl => (bl.nbl || bl.nfact) === parseInt(blId));
+      
+      if (blIndex !== -1) {
+        cachedBLs[blIndex] = updatedBL.data;
+        createdDocumentsCache.set(cacheKey, cachedBLs);
+      }
+
+      console.log(`✅ BL ${blId} updated successfully`);
+      return c.json({ 
+        success: true, 
+        message: 'BL mis à jour avec succès',
+        data: updatedBL.data
+      });
+    } else {
+      return c.json({ success: false, error: 'Failed to retrieve updated BL' }, 500);
+    }
+
+  } catch (error) {
+    console.error('❌ Error updating delivery note:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Erreur lors de la modification du bon de livraison'
+    }, 500);
+  }
+});
+
 
 // ===== PROFORMA INVOICES =====
 
