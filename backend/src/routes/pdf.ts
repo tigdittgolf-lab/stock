@@ -245,9 +245,11 @@ async function fetchBLData(tenant: string, id: string) {
         tel: blInfo.client_phone || ''
       },
       nclient: blInfo.nclient,
-      montant_ht: blInfo.montant_ht || 0,
-      tva: blInfo.tva || 0,
-      montant_ttc: blInfo.montant_ttc || (blInfo.montant_ht + blInfo.tva) || 0,
+      montant_ht: parseFloat(blInfo.montant_ht) || 0,
+      tva: parseFloat(blInfo.tva) || 0,
+      montant_ttc: parseFloat(blInfo.montant_ttc) || (parseFloat(blInfo.montant_ht) + parseFloat(blInfo.tva)) || 0,
+      timbre: parseFloat(blInfo.timbre) || 0,
+      autre_taxe: parseFloat(blInfo.autre_taxe) || 0,
       // CORRECTION: Formater les détails pour correspondre à l'interface DeliveryNoteData
       detail_bl: blInfo.details?.map((detail: any) => ({
         article: {
@@ -263,6 +265,14 @@ async function fetchBLData(tenant: string, id: string) {
       // Garder les champs originaux pour compatibilité
       ...blInfo
     };
+
+    // Debug logs pour vérifier les calculs
+    console.log(`🔍 PDF Debug BL ${actualId}:`, {
+      montant_ht: formattedBL.montant_ht,
+      tva: formattedBL.tva,
+      montant_ttc: formattedBL.montant_ttc,
+      calculated_ttc: formattedBL.montant_ht + formattedBL.tva
+    });
 
     console.log(`✅ PDF: BL ${actualId} formatted successfully with ${formattedBL.details.length} details`);
     return formattedBL;

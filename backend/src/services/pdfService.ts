@@ -293,6 +293,15 @@ export class PDFService {
     const doc = new jsPDF();
     let yPos = 20;
 
+    // Debug logs pour vérifier les données reçues
+    console.log(`🔍 PDF Service - Données reçues pour BL:`, {
+      montant_ht: deliveryData.montant_ht,
+      tva: deliveryData.tva,
+      montant_ttc: deliveryData.montant_ttc,
+      timbre: deliveryData.timbre,
+      autre_taxe: deliveryData.autre_taxe
+    });
+
     // Get company info from database for the specific tenant
     const companyInfo = await this.getCompanyInfo(tenant);
 
@@ -444,6 +453,14 @@ export class PDFService {
       doc.setFont('helvetica', 'normal');
 
       const totalTTC = (deliveryData.montant_ht || 0) + (deliveryData.tva || 0) + (deliveryData.timbre || 0) + (deliveryData.autre_taxe || 0);
+
+      console.log(`🔍 PDF Service - Calcul totalTTC:`, {
+        montant_ht: deliveryData.montant_ht || 0,
+        tva: deliveryData.tva || 0,
+        timbre: deliveryData.timbre || 0,
+        autre_taxe: deliveryData.autre_taxe || 0,
+        totalTTC: totalTTC
+      });
 
       doc.text('Sous-total HT:', 120, yPos);
       doc.text(formatAmount(deliveryData.montant_ht || 0), 190, yPos, { align: 'right' });
