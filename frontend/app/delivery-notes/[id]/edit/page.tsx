@@ -56,6 +56,13 @@ export default function EditDeliveryNote({ params }: { params: Promise<{ id: str
     loadInitialData();
   }, []);
 
+  // Recalculer automatiquement les totaux quand les détails changent
+  useEffect(() => {
+    // Force le re-render des totaux quand les détails changent
+    const totals = calculateTotals();
+    console.log('🔄 Totaux recalculés:', totals);
+  }, [details]);
+
   const loadInitialData = async () => {
     try {
       setLoading(true);
@@ -112,14 +119,15 @@ export default function EditDeliveryNote({ params }: { params: Promise<{ id: str
   };
 
   const addDetail = () => {
-    setDetails([...details, {
+    const newDetail = {
       narticle: '',
       designation: '',
       qte: 1,
       prix: 0,
       tva: 19,
       total_ligne: 0
-    }]);
+    };
+    setDetails([...details, newDetail]);
   };
 
   const removeDetail = (index: number) => {
@@ -139,15 +147,16 @@ export default function EditDeliveryNote({ params }: { params: Promise<{ id: str
       }
     }
     
-    // Recalculer le total de la ligne
-    const detail = newDetails[index];
-    const qte = parseFloat(detail.qte.toString()) || 0;
-    const prix = parseFloat(detail.prix.toString()) || 0;
-    const tva_rate = parseFloat(detail.tva.toString()) || 19;
-    
-    const total_ht = qte * prix;
-    const tva_amount = total_ht * (tva_rate / 100);
-    newDetails[index].total_ligne = total_ht + tva_amount;
+    // Recalculer le total de la ligne pour TOUS les détails
+    newDetails.forEach((detail, i) => {
+      const qte = parseFloat(detail.qte.toString()) || 0;
+      const prix = parseFloat(detail.prix.toString()) || 0;
+      const tva_rate = parseFloat(detail.tva.toString()) || 19;
+      
+      const total_ht = qte * prix;
+      const tva_amount = total_ht * (tva_rate / 100);
+      newDetails[i].total_ligne = total_ht + tva_amount;
+    });
     
     setDetails(newDetails);
   };
