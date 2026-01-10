@@ -24,7 +24,7 @@ export async function GET(
     const validId = String(numericId);
     
     // Utiliser Tailscale tunnel pour accéder au backend local
-    const backendUrl = `https://frontend-iota-six-72.vercel.app/api/sales/invoices/${validId}`;
+    const backendUrl = `http://localhost:3005/api/sales/invoices/${validId}`;
     
     const response = await fetch(backendUrl, {
       method: 'GET',

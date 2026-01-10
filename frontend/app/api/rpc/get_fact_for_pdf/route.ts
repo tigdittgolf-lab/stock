@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔍 Frontend RPC Proxy - get_fact_for_pdf, Tenant: ${tenant}, Body:`, body);
 
     // Utiliser Tailscale tunnel pour accéder au backend local
-    const backendUrl = `https://frontend-iota-six-72.vercel.app/api/rpc/get_fact_for_pdf`;
+    const backendUrl = `http://localhost:3005/api/rpc/get_fact_for_pdf`;
     
     const response = await fetch(backendUrl, {
       method: 'POST',

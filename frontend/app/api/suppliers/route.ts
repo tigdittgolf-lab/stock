@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     console.log(`🔄 Frontend API: Forwarding suppliers request for tenant ${tenant}`);
     
     // Utiliser Tailscale tunnel pour accéder au backend local
-    const backendUrl = 'https://frontend-iota-six-72.vercel.app/api/suppliers';
+    const backendUrl = 'http://localhost:3005/api/suppliers';
     
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     
     console.log(`🔄 Frontend API: Forwarding create supplier request for tenant ${tenant}`);
     
-    const backendUrl = 'https://frontend-iota-six-72.vercel.app/api/suppliers';
+    const backendUrl = 'http://localhost:3005/api/suppliers';
     
     const response = await fetch(backendUrl, {
       method: 'POST',

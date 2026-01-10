@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 function getApiUrl() {
   // En production, utiliser Tailscale (URL permanente)
   if (process.env.NODE_ENV === 'production') {
-    return 'https://frontend-iota-six-72.vercel.app';
+    return 'http://localhost:3005';
   }
   // En développement, utiliser localhost
   return 'http://localhost:3005';

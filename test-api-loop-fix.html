@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Loop Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        .result { margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 3px; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Test API Loop Fix</h1>
+    
+    <div class="test-section info">
+        <h2>🔍 Problème Résolu</h2>
+        <p><strong>Erreur 508 (Loop Detected)</strong> causée par des API routes qui s'appelaient elles-mêmes</p>
+        <p><strong>Solution appliquée :</strong> 18 fichiers corrigés pour pointer vers localhost:3005</p>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 Test des API Routes</h2>
+        <button onclick="testProformas()">Test Proformas</button>
+        <button onclick="testDeliveryNotes()">Test Delivery Notes</button>
+        <button onclick="testInvoices()">Test Invoices</button>
+        <button onclick="testAllAPIs()">Test Toutes les APIs</button>
+        <div id="testResult" class="result"></div>
+    </div>
+
+    <div class="test-section success">
+        <h2>✅ URLs Corrigées</h2>
+        <p><strong>Avant :</strong> https://frontend-iota-six-72.vercel.app/api/... (boucle)</p>
+        <p><strong>Après :</strong> http://localhost:3005/api/... (backend direct)</p>
+    </div>
+
+    <script>
+        async function testAPI(endpoint, name) {
+            try {
+                console.log(`🧪 Testing ${name}...`);
+                const response = await fetch(`http://localhost:3001${endpoint}`, {
+                    headers: {
+                        'X-Tenant': '2025_bu01'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                return {
+                    name,
+                    endpoint,
+                    status: response.status,
+                    success: response.ok,
+                    data: data,
+                    error: response.ok ? null : `HTTP ${response.status}`
+                };
+            } catch (error) {
+                return {
+                    name,
+                    endpoint,
+                    status: 'ERROR',
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+
+        async function testProformas() {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.innerHTML = '🔄 Test des proformas...';
+            
+            const result = await testAPI('/api/sales/proformas', 'Proformas');
+            displayResult([result]);
+        }
+
+        async function testDeliveryNotes() {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.innerHTML = '🔄 Test des bons de livraison...';
+            
+            const result = await testAPI('/api/sales/delivery-notes', 'Delivery Notes');
+            displayResult([result]);
+        }
+
+        async function testInvoices() {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.innerHTML = '🔄 Test des factures...';
+            
+            const result = await testAPI('/api/sales/invoices', 'Invoices');
+            displayResult([result]);
+        }
+
+        async function testAllAPIs() {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.innerHTML = '🔄 Test de toutes les APIs...';
+            
+            const apis = [
+                { endpoint: '/api/sales/proformas', name: 'Proformas' },
+                { endpoint: '/api/sales/delivery-notes', name: 'Delivery Notes' },
+                { endpoint: '/api/sales/invoices', name: 'Invoices' },
+                { endpoint: '/api/articles', name: 'Articles' },
+                { endpoint: '/api/clients', name: 'Clients' },
+                { endpoint: '/api/suppliers', name: 'Suppliers' }
+            ];
+            
+            const results = [];
+            for (const api of apis) {
+                const result = await testAPI(api.endpoint, api.name);
+                results.push(result);
+            }
+            
+            displayResult(results);
+        }
+
+        function displayResult(results) {
+            const resultDiv = document.getElementById('testResult');
+            
+            let html = '<h4>📊 Résultats des Tests :</h4>';
+            
+            let successCount = 0;
+            let errorCount = 0;
+            
+            results.forEach(result => {
+                const statusClass = result.success ? 'success' : 'error';
+                const icon = result.success ? '✅' : '❌';
+                
+                if (result.success) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                }
+                
+                html += `
+                    <div class="${statusClass}" style="margin: 10px 0; padding: 10px; border-radius: 5px;">
+                        ${icon} <strong>${result.name}</strong><br>
+                        📍 Endpoint: ${result.endpoint}<br>
+                        📊 Status: ${result.status}<br>
+                        ${result.success ? 
+                            `✅ Données reçues: ${Array.isArray(result.data?.data) ? result.data.data.length + ' éléments' : 'OK'}` :
+                            `❌ Erreur: ${result.error}`
+                        }
+                        ${result.status === 508 ? '<br><strong>⚠️ BOUCLE DÉTECTÉE - Vérifiez la configuration</strong>' : ''}
+                    </div>
+                `;
+            });
+            
+            // Résumé
+            html += `
+                <div class="${errorCount === 0 ? 'success' : 'info'}" style="margin: 15px 0; padding: 15px; border-radius: 5px;">
+                    <h4>📈 Résumé</h4>
+                    <p>✅ Succès: ${successCount}</p>
+                    <p>❌ Erreurs: ${errorCount}</p>
+                    ${errorCount === 0 ? 
+                        '<p><strong>🎉 Toutes les APIs fonctionnent correctement !</strong></p>' :
+                        '<p><strong>⚠️ Certaines APIs ont encore des problèmes</strong></p>'
+                    }
+                </div>
+            `;
+            
+            resultDiv.innerHTML = html;
+        }
+
+        // Auto-test des proformas au chargement
+        window.onload = function() {
+            setTimeout(testProformas, 1000);
+        };
+    </script>
+</body>
+</html>

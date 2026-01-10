@@ -27,7 +27,7 @@ export async function GET(
     const validId = String(numericId); // Normaliser l'ID
 
     // Faire la requête vers le backend local avec l'ID valide
-    const backendUrl = `https://frontend-iota-six-72.vercel.app/api/pdf/debug-bl/${validId}`;
+    const backendUrl = `http://localhost:3005/api/pdf/debug-bl/${validId}`;
     
     const response = await fetch(backendUrl, {
       method: 'GET',

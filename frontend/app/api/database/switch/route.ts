@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Utiliser Tailscale (URL permanente) avec le bon endpoint
-    const backendUrl = 'https://frontend-iota-six-72.vercel.app/api/database/switch';
+    const backendUrl = 'http://localhost:3005/api/database/switch';
     
     console.log('Switching database via tunnel:', backendUrl);
     console.log('Switch config:', body);

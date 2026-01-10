@@ -5,8 +5,8 @@ export async function GET(request: NextRequest) {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     console.log(`🔄 Frontend API: Forwarding proformas request for tenant: ${tenant}`);
 
-    // Utiliser Tailscale tunnel pour accéder au backend local
-    const backendUrl = 'https://frontend-iota-six-72.vercel.app/api/sales/proforma';
+    // Appeler le backend local directement
+    const backendUrl = 'http://localhost:3005/api/sales/proforma';
     
     const response = await fetch(backendUrl, {
       method: 'GET',

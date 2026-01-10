@@ -24,7 +24,7 @@ export async function GET(
     const validId = String(numericId); // Normaliser l'ID
 
     // Faire la requête vers le backend local via le proxy frontend
-    const backendUrl = `https://frontend-iota-six-72.vercel.app/api/pdf/delivery-note-ticket/${validId}`;
+    const backendUrl = `http://localhost:3005/api/pdf/delivery-note-ticket/${validId}`;
     
     const response = await fetch(backendUrl, {
       method: 'GET',
