@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
       : 'http://localhost:3005/api';
     
-    const response = await fetch(backendUrl, {
+    const response = await fetch(`${backendUrl}/sales/invoices`, {
       method: 'GET',
       headers: {
         'X-Tenant': tenant,
