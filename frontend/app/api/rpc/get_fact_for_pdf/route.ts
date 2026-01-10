@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     // Utiliser Tailscale tunnel pour accéder au backend local
     const backendUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://frontend-iota-six-72.vercel.app/api'
+      ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
       : 'http://localhost:3005/api';
     
     const response = await fetch(backendUrl, {

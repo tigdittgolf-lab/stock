@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     console.log(`🔄 Frontend API: Forwarding suppliers request for tenant ${tenant}`);
     
     // Utiliser Tailscale tunnel pour accéder au backend local
-    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}/api/suppliers`;
+    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://desktop-bhhs068.tail1d9c54.ts.net' : 'http://localhost:3005'}/api/suppliers`;
     
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     
     console.log(`🔄 Frontend API: Forwarding create supplier request for tenant ${tenant}`);
     
-    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}/api/suppliers`;
+    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://desktop-bhhs068.tail1d9c54.ts.net' : 'http://localhost:3005'}/api/suppliers`;
     
     const response = await fetch(backendUrl, {
       method: 'POST',

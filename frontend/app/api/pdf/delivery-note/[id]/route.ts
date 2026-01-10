@@ -27,7 +27,7 @@ export async function GET(
 
     // Faire la requête vers le backend local via le proxy frontend
     const backendUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://frontend-iota-six-72.vercel.app/api'
+      ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
       : 'http://localhost:3005/api';
     
     const response = await fetch(backendUrl, {

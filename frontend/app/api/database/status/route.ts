@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 function getApiUrl() {
   // En production, utiliser Tailscale (URL permanente)
   if (process.env.NODE_ENV === 'production') {
-    return 'https://frontend-iota-six-72.vercel.app';
+    return 'https://desktop-bhhs068.tail1d9c54.ts.net';
   }
   // En développement, utiliser localhost
   return 'http://localhost:3005';
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   try {
     // Rediriger vers le backend via tunnel
     const backendUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://frontend-iota-six-72.vercel.app/api'
+      ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
       : 'http://localhost:3005/api';
     
     const response = await fetch(backendUrl, {
