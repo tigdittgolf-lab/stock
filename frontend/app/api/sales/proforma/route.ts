@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     console.log(`🔍 Frontend API: Proxying proformas to backend for tenant ${tenant}`);
     
     // Faire la requête vers le backend local via Tailscale
-    const backendUrl = `http://localhost:3005/api/sales/proforma`;
+    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}`}/api/sales/proforma`;
     
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     console.log(`📝 Frontend API: Proxying POST proforma to backend for tenant ${tenant}`);
     
     // Faire la requête vers le backend local via Tailscale
-    const backendUrl = `http://localhost:3005/api/sales/proforma`;
+    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}`}/api/sales/proforma`;
     
     const response = await fetch(backendUrl, {
       method: 'POST',

@@ -27,7 +27,7 @@ export async function GET(
     console.log(`🔍 Frontend API: Getting BL details for ID ${id}, tenant: ${tenant}`);
 
     // Proxy to backend via tunnel
-    const backendUrl = `http://localhost:3005/api/sales/delivery-notes/${id}`;
+    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : `${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'}`}/api/sales/delivery-notes/${id}`;
     
     const response = await fetch(backendUrl, {
       method: 'GET',
