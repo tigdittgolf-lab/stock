@@ -1944,18 +1944,17 @@ sales.get('/invoices/:id', async (c) => {
     console.log(`🔍 Looking for invoice ${id} from database in tenant: ${tenant}`);
 
     try {
-      // Récupérer la facture depuis la base de données via RPC
-      const { data: invoice, error: fetchError } = await databaseRouter.rpc('get_fact_by_id', {
+      // CORRECTION: Use the same approach as BL - directly call the adaptive fallback
+      // instead of relying on RPC that returns incomplete data
+      console.log(`🔍 Using adaptive fallback for invoice ${id} in tenant: ${tenant}`);
+      
+      const result = await backendDatabaseService.executeRPC('get_fact_by_id_adaptive', {
         p_tenant: tenant,
         p_nfact: id
       });
 
-      if (fetchError) {
-        if (fetchError.code === 'PGRST116') {
-          console.log(`❌ Invoice ${id} not found in database`);
-          return c.json({ success: false, error: 'Invoice not found' }, 404);
-        }
-        console.warn('Database fetch failed, using cache fallback:', fetchError);
+      if (!result.success) {
+        console.warn('Adaptive fallback failed, using cache fallback:', result.error);
         
         // Fallback vers le cache
         const invoices = createdDocumentsCache.get(`${tenant}_invoices`) || [];
@@ -1970,6 +1969,8 @@ sales.get('/invoices/:id', async (c) => {
         return c.json({ success: true, data: cachedInvoice, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
       }
 
+      const invoice = result.data;
+      
       // Formater les données pour correspondre au format attendu
       const formattedInvoice = {
         nfact: invoice.nfact,
@@ -1977,22 +1978,14 @@ sales.get('/invoices/:id', async (c) => {
         date_fact: invoice.date_fact,
         montant_ht: invoice.montant_ht,
         tva: invoice.tva,
-        total_ttc: invoice.montant_ht + invoice.tva,
+        total_ttc: invoice.montant_ttc || (invoice.montant_ht + invoice.tva),
         created_at: invoice.created_at,
-        client_name: invoice.raison_sociale || invoice.nclient,
-        details: invoice.details?.map(detail => ({
-          narticle: detail.narticle,
-          designation: detail.designation || detail.narticle,
-          qte: detail.qte,
-          prix: detail.prix,
-          tva: detail.tva,
-          total_ligne: detail.total_ligne,
-          pr_achat: detail.pr_achat
-        })) || []
+        client_name: invoice.client_name || invoice.raison_sociale || invoice.nclient,
+        details: invoice.details || []
       };
 
-      console.log(`✅ Found invoice ${id} in database with ${formattedInvoice.details.length} details`);
-      return c.json({ success: true, data: formattedInvoice, source: 'database' , database_type: backendDatabaseService.getActiveDatabaseType() });
+      console.log(`✅ Found invoice ${id} with ${formattedInvoice.details.length} details using adaptive fallback`);
+      return c.json({ success: true, data: formattedInvoice, source: 'adaptive_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
 
     } catch (dbError) {
       console.warn('Database connection failed, using cache fallback:', dbError);

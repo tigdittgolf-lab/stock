@@ -273,6 +273,11 @@ export class BackendDatabaseService {
         case 'get_fact_list_by_tenant':
           return this.getSupabaseFactList(tenant);
           
+        case 'get_fact_by_id':
+        case 'get_fact_by_id_from_tenant':
+        case 'get_fact_by_id_adaptive':
+          return this.getSupabaseFactById(tenant, params.p_nfact);
+          
         case 'get_articles_by_tenant':
           return this.getSupabaseArticles(tenant);
           
@@ -578,6 +583,95 @@ export class BackendDatabaseService {
     } catch (error) {
       console.log(`📋 Proforma ${nfact} not found, using mock data`);
       return { success: false, error: 'Proforma not found' };
+    }
+  }
+
+  private async getSupabaseFactById(tenant: string, nfact: string): Promise<any> {
+    try {
+      console.log(`🔍 Looking for Invoice with ID ${nfact} in tenant ${tenant}`);
+      
+      // First, try to get the invoice from the fact table using exec_sql
+      const { data: factData, error: factError } = await supabaseAdmin.rpc('exec_sql', {
+        sql: `SELECT f.*, c.raison_sociale FROM "${tenant}".fact f LEFT JOIN "${tenant}".client c ON f.nclient = c.nclient WHERE f.nfact = ${nfact};`
+      });
+
+      if (factError || !factData || factData.length === 0) {
+        console.log(`❌ Invoice ${nfact} not found in ${tenant}.fact table:`, factError?.message);
+        throw new Error('Invoice not found');
+      }
+
+      const invoice = factData[0];
+      console.log(`✅ Found invoice ${nfact}:`, invoice);
+      
+      // Now get the REAL invoice details from detail_fact table using exec_sql
+      // CORRECTION: Use uppercase field names NFact, Narticle as per database schema
+      let invoiceDetails = [];
+      try {
+        console.log(`🔍 Fetching REAL Invoice details for NFact: ${nfact} from ${tenant}.detail_fact`);
+        
+        const { data: detailsData, error: detailsError } = await supabaseAdmin.rpc('exec_sql', {
+          sql: `SELECT d.*, a.designation FROM "${tenant}".detail_fact d LEFT JOIN "${tenant}".article a ON d.narticle = a.narticle WHERE d.nfact = ${nfact} ORDER BY d.id;`
+        });
+
+        if (!detailsError && detailsData && detailsData.length > 0) {
+          invoiceDetails = detailsData.map(detail => ({
+            narticle: detail.narticle,
+            designation: detail.designation || `Article ${detail.narticle}`,
+            qte: detail.qte || 0,
+            prix: detail.prix || 0,
+            tva: detail.tva || 0,
+            total_ligne: detail.total_ligne || 0,
+            pr_achat: detail.pr_achat || 0
+          }));
+          console.log(`✅ Found ${invoiceDetails.length} REAL article details for Invoice ${nfact}`);
+          console.log(`📦 Real articles:`, invoiceDetails);
+        } else {
+          console.log(`⚠️ No real details found in ${tenant}.detail_fact for NFact ${nfact}:`, detailsError?.message);
+          
+          // Try with uppercase field names as backup
+          console.log(`🔄 Trying with uppercase field names...`);
+          const { data: detailsDataUpper, error: detailsErrorUpper } = await supabaseAdmin.rpc('exec_sql', {
+            sql: `SELECT d.*, a.designation FROM "${tenant}".detail_fact d LEFT JOIN "${tenant}".article a ON d.Narticle = a.Narticle WHERE d.NFact = ${nfact} ORDER BY d.id;`
+          });
+          
+          if (!detailsErrorUpper && detailsDataUpper && detailsDataUpper.length > 0) {
+            invoiceDetails = detailsDataUpper.map(detail => ({
+              narticle: detail.narticle || detail.Narticle,
+              designation: detail.designation || `Article ${detail.narticle || detail.Narticle}`,
+              qte: detail.qte || detail.Qte || 0,
+              prix: detail.prix || detail.prix || 0,
+              tva: detail.tva || detail.tva || 0,
+              total_ligne: detail.total_ligne || detail.total_ligne || 0,
+              pr_achat: detail.pr_achat || 0
+            }));
+            console.log(`✅ Found ${invoiceDetails.length} REAL article details with uppercase fields for Invoice ${nfact}`);
+          } else {
+            console.log(`⚠️ No details found with either case for Invoice ${nfact}`);
+            invoiceDetails = [];
+          }
+        }
+      } catch (detailError) {
+        console.error(`❌ Error fetching REAL Invoice details:`, detailError);
+        invoiceDetails = [];
+      }
+      
+      // Create the complete structure with REAL details
+      const formattedInvoice = {
+        ...invoice,
+        client_name: invoice.raison_sociale || invoice.nclient,
+        details: invoiceDetails, // REAL data from detail_fact table
+        // Ensure compatibility with frontend expectations
+        montant_ttc: invoice.montant_ttc || (invoice.montant_ht + invoice.tva)
+      };
+      
+      return { 
+        success: true, 
+        data: formattedInvoice
+      };
+
+    } catch (error) {
+      console.log(`📋 Invoice ${nfact} not found in tenant ${tenant}:`, error instanceof Error ? error.message : error);
+      return { success: false, error: 'Invoice not found' };
     }
   }
 
