@@ -319,7 +319,7 @@ export default function DeliveryNotesList() {
               <button
                 onClick={() => {
                   console.log(`🔗 Navigating to details with REAL ID: ${validId}`);
-                  router.push(`/delivery-notes/details/${validId}`);
+                  router.push(`/delivery-notes/${validId}`);
                 }}
                 style={{
                   padding: '8px 15px',
@@ -486,11 +486,30 @@ export default function DeliveryNotesList() {
               </button>
             </div>
             
-            {/* Actions - Deuxième ligne: Supprimer */}
+            {/* Actions - Deuxième ligne: Modifier et Supprimer */}
             <div style={{
               display: 'flex',
               gap: '8px'
             }}>
+              <button
+                onClick={() => {
+                  console.log(`✏️ Navigating to edit with REAL ID: ${validId}`);
+                  router.push(`/delivery-notes/${validId}/edit`);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
+              >
+                ✏️ Modifier ce BL
+              </button>
               <button
                 onClick={() => {
                   if (confirm(`Êtes-vous sûr de vouloir supprimer le BL ${displayId} ?`)) {
@@ -606,7 +625,7 @@ export default function DeliveryNotesList() {
                     <button
                       onClick={() => {
                         console.log(`🔗 Navigating to details with REAL ID: ${validId} for BL ${displayId}`);
-                        router.push(`/delivery-notes/details/${validId}`);
+                        router.push(`/delivery-notes/${validId}`);
                       }}
                       style={{
                         padding: '6px 12px',
@@ -622,6 +641,27 @@ export default function DeliveryNotesList() {
                       title={`Voir les détails du BL ${displayId}`}
                     >
                       👁️ Voir
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        console.log(`✏️ Navigating to edit with REAL ID: ${validId} for BL ${displayId}`);
+                        router.push(`/delivery-notes/${validId}/edit`);
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        minWidth: '70px'
+                      }}
+                      title={`Modifier le BL ${displayId}`}
+                    >
+                      ✏️ Modifier
                     </button>
                     
                     <button
