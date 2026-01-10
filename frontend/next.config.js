@@ -7,7 +7,7 @@ const nextConfig = {
   
   // Variables d'environnement publiques
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://desktop-bhhs068.tail1d9c54.ts.net/api',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://frontend-iota-six-72.vercel.app/api',
   },
   
   // Configuration des images

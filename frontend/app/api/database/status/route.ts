@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 function getApiUrl() {
   // En production, utiliser Tailscale (URL permanente)
   if (process.env.NODE_ENV === 'production') {
-    return 'https://desktop-bhhs068.tail1d9c54.ts.net';
+    return 'https://frontend-iota-six-72.vercel.app';
   }
   // En développement, utiliser localhost
   return 'http://localhost:3005';

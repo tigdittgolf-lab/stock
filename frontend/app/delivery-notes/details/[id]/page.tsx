@@ -103,7 +103,7 @@ export default function BLDetailsPage() {
         console.log(`⚠️ Proxy failed with ${response.status}, trying direct backend access...`);
         
         try {
-          response = await fetch(`https://desktop-bhhs068.tail1d9c54.ts.net/api/pdf/debug-bl/${blId}`, {
+          response = await fetch(`https://frontend-iota-six-72.vercel.app/api/pdf/debug-bl/${blId}`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',

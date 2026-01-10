@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Utiliser Tailscale (URL permanente) avec le bon endpoint
-    const backendUrl = 'https://desktop-bhhs068.tail1d9c54.ts.net/api/database/test';
+    const backendUrl = 'https://frontend-iota-six-72.vercel.app/api/database/test';
     
     console.log('Testing database connection via tunnel:', backendUrl);
     console.log('Test config:', body);

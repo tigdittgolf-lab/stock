@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Final - Bouton Modifier</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        .result { margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 3px; }
+        a { color: #007bff; text-decoration: none; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>🎯 Test Final - Bouton Modifier BL</h1>
+    
+    <div class="test-section success">
+        <h2>✅ Corrections Apportées</h2>
+        <ul>
+            <li>✅ Configuration Vercel corrigée (API URL production)</li>
+            <li>✅ Frontend déployé séparément</li>
+            <li>✅ Alias mis à jour vers le bon déploiement</li>
+            <li>✅ Code des boutons Modifier committé et déployé</li>
+        </ul>
+    </div>
+
+    <div class="test-section info">
+        <h2>🔗 URL à Tester MAINTENANT</h2>
+        <p><strong>URL Production (mise à jour) :</strong></p>
+        <p><a href="https://frontend-iota-six-72.vercel.app/delivery-notes/list" target="_blank">
+            https://frontend-iota-six-72.vercel.app/delivery-notes/list
+        </a></p>
+        
+        <p><strong>URL Directe (dernier déploiement) :</strong></p>
+        <p><a href="https://frontend-4b21s3lbq-tigdittgolf-9191s-projects.vercel.app/delivery-notes/list" target="_blank">
+            https://frontend-4b21s3lbq-tigdittgolf-9191s-projects.vercel.app/delivery-notes/list
+        </a></p>
+    </div>
+
+    <div class="test-section warning">
+        <h2>⚠️ Instructions Importantes</h2>
+        <ol>
+            <li><strong>Videz votre cache navigateur :</strong>
+                <ul>
+                    <li>Chrome/Edge : Ctrl+Shift+R</li>
+                    <li>Firefox : Ctrl+Shift+R</li>
+                    <li>Safari : Cmd+Option+R</li>
+                </ul>
+            </li>
+            <li><strong>Ou utilisez un onglet privé/incognito</strong></li>
+            <li><strong>Attendez 1-2 minutes</strong> pour la propagation DNS</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 Test Automatique</h2>
+        <button onclick="testModifierButton()">Tester Bouton Modifier</button>
+        <div id="testResult" class="result"></div>
+    </div>
+
+    <div class="test-section success">
+        <h2>🎯 Ce que Vous Devriez Voir Maintenant</h2>
+        <p><strong>Dans chaque ligne de BL, colonne "Actions" :</strong></p>
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace;">
+            [👁️ Voir] <span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 3px;">[✏️ Modifier]</span> [🗑️ Supprimer] [📄 BL Complet] [📄 BL Réduit] [🎫 Ticket]
+        </div>
+        
+        <p><strong>Le bouton "✏️ Modifier" devrait :</strong></p>
+        <ul>
+            <li>Être de couleur <span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 3px;">VERTE</span></li>
+            <li>Être placé entre "👁️ Voir" et "🗑️ Supprimer"</li>
+            <li>Rediriger vers /delivery-notes/{id}/edit quand cliqué</li>
+        </ul>
+    </div>
+
+    <div class="test-section info">
+        <h2>🚀 Test Workflow Complet</h2>
+        <ol>
+            <li>Allez sur <a href="https://frontend-iota-six-72.vercel.app/delivery-notes/list" target="_blank">la liste des BL</a></li>
+            <li>Cliquez sur "✏️ Modifier" d'un BL</li>
+            <li>Vous devriez arriver sur la page de modification</li>
+            <li>Modifiez quelque chose (client, date, article)</li>
+            <li>Cliquez "Sauvegarder"</li>
+            <li>Vous devriez revenir aux détails du BL mis à jour</li>
+        </ol>
+    </div>
+
+    <script>
+        async function testModifierButton() {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.innerHTML = '🔄 Test en cours...';
+            
+            try {
+                const urls = [
+                    'https://frontend-iota-six-72.vercel.app/delivery-notes/list',
+                    'https://frontend-4b21s3lbq-tigdittgolf-9191s-projects.vercel.app/delivery-notes/list'
+                ];
+                
+                let results = [];
+                
+                for (const url of urls) {
+                    try {
+                        const response = await fetch(url);
+                        const html = await response.text();
+                        
+                        const hasModifier = html.includes('✏️ Modifier');
+                        const hasModifierStyle = html.includes('#28a745');
+                        const hasModifierFunction = html.includes('/edit');
+                        
+                        results.push({
+                            name: url.includes('frontend-iota-six-72') ? 'URL Production' : 'URL Directe',
+                            url,
+                            hasModifier,
+                            hasModifierStyle,
+                            hasModifierFunction,
+                            status: response.status
+                        });
+                    } catch (e) {
+                        results.push({
+                            name: url.includes('frontend-iota-six-72') ? 'URL Production' : 'URL Directe',
+                            url,
+                            error: e.message
+                        });
+                    }
+                }
+                
+                let resultHtml = '<h4>📊 Résultats du Test :</h4>';
+                
+                results.forEach(result => {
+                    if (result.error) {
+                        resultHtml += `
+                            <div class="error">
+                                ❌ <strong>${result.name}:</strong> Erreur - ${result.error}
+                            </div>
+                        `;
+                    } else {
+                        const allGood = result.hasModifier && result.hasModifierStyle && result.hasModifierFunction;
+                        const className = allGood ? 'success' : 'warning';
+                        const icon = allGood ? '✅' : '⚠️';
+                        
+                        resultHtml += `
+                            <div class="${className}">
+                                ${icon} <strong>${result.name}:</strong><br>
+                                - Bouton "✏️ Modifier": ${result.hasModifier ? '✅ Trouvé' : '❌ Manquant'}<br>
+                                - Style vert (#28a745): ${result.hasModifierStyle ? '✅ Présent' : '❌ Manquant'}<br>
+                                - Fonction /edit: ${result.hasModifierFunction ? '✅ Présente' : '❌ Manquante'}<br>
+                                - Status HTTP: ${result.status}<br>
+                                ${allGood ? '<strong>🎉 TOUT FONCTIONNE !</strong>' : '<strong>⚠️ Videz votre cache ou attendez 1-2 minutes</strong>'}
+                            </div>
+                        `;
+                    }
+                });
+                
+                resultDiv.innerHTML = resultHtml;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ <strong>ERREUR:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-test après 2 secondes
+        setTimeout(() => {
+            testModifierButton();
+        }, 2000);
+    </script>
+</body>
+</html>

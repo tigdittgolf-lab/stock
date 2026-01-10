@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     console.log(`🔍 Frontend API: Proxying invoices to backend for tenant ${tenant}`);
     
     // Faire la requête vers le backend local via Tailscale
-    const backendUrl = `https://desktop-bhhs068.tail1d9c54.ts.net/api/sales/invoices`;
+    const backendUrl = `https://frontend-iota-six-72.vercel.app/api/sales/invoices`;
     
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     console.log(`📝 Frontend API: Proxying POST invoice to backend for tenant ${tenant}`);
     
     // Faire la requête vers le backend local via Tailscale
-    const backendUrl = `https://desktop-bhhs068.tail1d9c54.ts.net/api/sales/invoices`;
+    const backendUrl = `https://frontend-iota-six-72.vercel.app/api/sales/invoices`;
     
     const response = await fetch(backendUrl, {
       method: 'POST',
