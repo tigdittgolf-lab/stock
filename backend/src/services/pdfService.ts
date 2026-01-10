@@ -452,14 +452,19 @@ export class PDFService {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
 
-      const totalTTC = (deliveryData.montant_ht || 0) + (deliveryData.tva || 0) + (deliveryData.timbre || 0) + (deliveryData.autre_taxe || 0);
+      // Utiliser directement montant_ttc si disponible, sinon calculer
+      let totalTTC = deliveryData.montant_ttc;
+      if (totalTTC === undefined || totalTTC === null || isNaN(totalTTC)) {
+        totalTTC = (deliveryData.montant_ht || 0) + (deliveryData.tva || 0) + (deliveryData.timbre || 0) + (deliveryData.autre_taxe || 0);
+      }
 
       console.log(`🔍 PDF Service - Calcul totalTTC:`, {
         montant_ht: deliveryData.montant_ht || 0,
         tva: deliveryData.tva || 0,
         timbre: deliveryData.timbre || 0,
         autre_taxe: deliveryData.autre_taxe || 0,
-        totalTTC: totalTTC
+        montant_ttc_from_data: deliveryData.montant_ttc,
+        totalTTC_final: totalTTC
       });
 
       doc.text('Sous-total HT:', 120, yPos);
@@ -617,8 +622,12 @@ export class PDFService {
       yPos += 5;
     }
     
-    // Total TTC en gras
-    const totalTTC = (deliveryData.montant_ht || 0) + (deliveryData.tva || 0);
+    // Total TTC en gras - Utiliser montant_ttc si disponible
+    let totalTTC = deliveryData.montant_ttc;
+    if (totalTTC === undefined || totalTTC === null || isNaN(totalTTC)) {
+      totalTTC = (deliveryData.montant_ht || 0) + (deliveryData.tva || 0);
+    }
+    
     if (totalTTC > 0) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10);
@@ -730,8 +739,12 @@ export class PDFService {
       yPos += 4;
     }
     
-    // Total TTC en gras
-    const totalTTC = (deliveryData.montant_ht || 0) + (deliveryData.tva || 0);
+    // Total TTC en gras - Utiliser montant_ttc si disponible
+    let totalTTC = deliveryData.montant_ttc;
+    if (totalTTC === undefined || totalTTC === null || isNaN(totalTTC)) {
+      totalTTC = (deliveryData.montant_ht || 0) + (deliveryData.tva || 0);
+    }
+    
     if (totalTTC > 0) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);

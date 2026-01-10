@@ -234,7 +234,18 @@ async function fetchBLData(tenant: string, id: string) {
     const blInfo = blResult.data;
     console.log(`✅ PDF: Found BL ${actualId} with ${blInfo.details?.length || 0} article details`);
 
-    // Formater les données pour le PDF
+    // Formater les données pour le PDF avec calculs robustes
+    const montant_ht = parseFloat(blInfo.montant_ht) || 0;
+    const tva = parseFloat(blInfo.tva) || 0;
+    const timbre = parseFloat(blInfo.timbre) || 0;
+    const autre_taxe = parseFloat(blInfo.autre_taxe) || 0;
+    
+    // Calculer le Total TTC de manière robuste
+    let montant_ttc = parseFloat(blInfo.montant_ttc);
+    if (isNaN(montant_ttc) || montant_ttc === null || montant_ttc === undefined) {
+      montant_ttc = montant_ht + tva + timbre + autre_taxe;
+    }
+    
     const formattedBL = {
       nfact: blInfo.nfact || blInfo.nbl,
       nbl: blInfo.nbl || blInfo.nfact,
@@ -245,11 +256,11 @@ async function fetchBLData(tenant: string, id: string) {
         tel: blInfo.client_phone || ''
       },
       nclient: blInfo.nclient,
-      montant_ht: parseFloat(blInfo.montant_ht) || 0,
-      tva: parseFloat(blInfo.tva) || 0,
-      montant_ttc: parseFloat(blInfo.montant_ttc) || (parseFloat(blInfo.montant_ht) + parseFloat(blInfo.tva)) || 0,
-      timbre: parseFloat(blInfo.timbre) || 0,
-      autre_taxe: parseFloat(blInfo.autre_taxe) || 0,
+      montant_ht: montant_ht,
+      tva: tva,
+      montant_ttc: montant_ttc,
+      timbre: timbre,
+      autre_taxe: autre_taxe,
       // CORRECTION: Formater les détails pour correspondre à l'interface DeliveryNoteData
       detail_bl: blInfo.details?.map((detail: any) => ({
         article: {
@@ -268,10 +279,12 @@ async function fetchBLData(tenant: string, id: string) {
 
     // Debug logs pour vérifier les calculs
     console.log(`🔍 PDF Debug BL ${actualId}:`, {
-      montant_ht: formattedBL.montant_ht,
-      tva: formattedBL.tva,
-      montant_ttc: formattedBL.montant_ttc,
-      calculated_ttc: formattedBL.montant_ht + formattedBL.tva
+      montant_ht: montant_ht,
+      tva: tva,
+      timbre: timbre,
+      autre_taxe: autre_taxe,
+      montant_ttc: montant_ttc,
+      calculated_ttc: montant_ht + tva + timbre + autre_taxe
     });
 
     console.log(`✅ PDF: BL ${actualId} formatted successfully with ${formattedBL.details.length} details`);
