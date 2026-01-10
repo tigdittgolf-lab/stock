@@ -53,7 +53,7 @@ export default function TestPDFDebug() {
     try {
       console.log(`🔍 Testing direct backend connection`);
       
-      const url = 'https://frontend-iota-six-72.vercel.app/api/pdf/delivery-note/4';
+      const url = 'https://desktop-bhhs068.tail1d9c54.ts.net/api/pdf/delivery-note/4';
       console.log(`📄 Testing direct backend URL: ${url}`);
       
       const response = await fetch(url, {
@@ -199,7 +199,7 @@ export default function TestPDFDebug() {
         <p><strong>Current URL:</strong> {typeof window !== 'undefined' ? window.location.href : 'N/A'}</p>
         <p><strong>User Agent:</strong> {typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'}</p>
         <p><strong>Tenant:</strong> 2025_bu01</p>
-        <p><strong>Backend URL:</strong> https://frontend-iota-six-72.vercel.app</p>
+        <p><strong>Backend URL:</strong> https://desktop-bhhs068.tail1d9c54.ts.net</p>
       </div>
     </div>
   );

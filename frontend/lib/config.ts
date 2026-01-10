@@ -1,6 +1,6 @@
 // Configuration des URLs selon l'environnement
 export const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://frontend-iota-six-72.vercel.app/api'
+  ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
   : 'http://localhost:3005/api';
 
 // Configuration pour mode offline (sans Internet)
