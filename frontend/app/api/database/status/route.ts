@@ -3,10 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 function getApiUrl() {
   // En production, utiliser Tailscale (URL permanente)
   if (process.env.NODE_ENV === 'production') {
-    return ${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'};
+    return 'https://frontend-iota-six-72.vercel.app';
   }
   // En développement, utiliser localhost
-  return ${process.env.NODE_ENV === 'production' ? 'https://frontend-iota-six-72.vercel.app' : 'http://localhost:3005'};
+  return 'http://localhost:3005';
 }
 
 export async function GET(request: NextRequest) {
