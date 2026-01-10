@@ -176,23 +176,36 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
   const fetchProforma = async () => {
     try {
       console.log('🔍 Fetching proforma with params:', resolvedParams);
-      console.log('🔍 ID parameter:', resolvedParams.id, 'type:', typeof resolvedParams.id);
+      console.log('🔍 Raw proforma ID parameter:', JSON.stringify(resolvedParams.id), 'type:', typeof resolvedParams.id);
       
-      if (!resolvedParams.id || resolvedParams.id === 'undefined') {
-        setError('ID de facture proforma invalide');
+      // Validation stricte de l'ID
+      if (!resolvedParams.id || resolvedParams.id === 'undefined' || resolvedParams.id === 'null') {
+        console.error('❌ Invalid proforma ID parameter:', resolvedParams.id);
+        setError(`ID de facture proforma invalide: "${resolvedParams.id}". Retournez à la liste et sélectionnez un proforma valide.`);
         setLoading(false);
         return;
       }
       
+      // Vérifier que l'ID est un nombre valide et entier
+      const numericId = parseInt(resolvedParams.id);
+      if (isNaN(numericId) || numericId <= 0 || !Number.isInteger(parseFloat(resolvedParams.id))) {
+        console.error('❌ Invalid proforma ID parameter:', resolvedParams.id, '- not a valid integer');
+        setError(`ID de facture proforma invalide: "${resolvedParams.id}" - doit être un nombre entier positif.`);
+        setLoading(false);
+        return;
+      }
+      
+      console.log('✅ Valid proforma ID:', numericId);
+      
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`/api/sales/proforma/${resolvedParams.id}`, {
+      const response = await fetch(`/api/sales/proforma/${numericId}`, {
         headers: {
           'X-Tenant': tenant
         }
       });
       
       if (response.status === 404) {
-        setError('Facture proforma non trouvée');
+        setError(`Facture proforma N° ${numericId} non trouvée`);
         return;
       }
 
@@ -270,8 +283,17 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
           <button 
             onClick={async () => {
               try {
+                // Utiliser l'ID numérique validé
+                const numericId = parseInt(resolvedParams.id);
+                if (isNaN(numericId) || numericId <= 0 || !Number.isInteger(parseFloat(resolvedParams.id))) {
+                  alert('Erreur: ID du proforma invalide pour la génération PDF');
+                  return;
+                }
+                
                 const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-                const response = await fetch(`/api/pdf/proforma/${resolvedParams.id}`, {
+                console.log('🖨️ Generating PDF for proforma ID:', numericId);
+                
+                const response = await fetch(`/api/pdf/proforma/${numericId}`, {
                   headers: {
                     'X-Tenant': tenant
                   }
@@ -281,8 +303,11 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
                   const blob = await response.blob();
                   const url = window.URL.createObjectURL(blob);
                   window.open(url, '_blank');
+                  console.log('✅ PDF generated successfully for proforma:', numericId);
                 } else {
-                  alert('Erreur lors de la génération du PDF');
+                  const errorData = await response.json().catch(() => ({}));
+                  console.error('❌ PDF generation failed:', response.status, errorData);
+                  alert(`Erreur lors de la génération du PDF: ${errorData.error || response.statusText}`);
                 }
               } catch (error) {
                 console.error('Error generating PDF:', error);

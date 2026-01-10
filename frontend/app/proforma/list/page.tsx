@@ -492,7 +492,36 @@ export default function ProformaList() {
                     <td style={{ textAlign: 'right' }}><strong>{(parseFloat(proforma.montant_ht?.toString() || '0') + parseFloat(proforma.tva?.toString() || '0')).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</strong></td>
                     <td>
                       <button 
-                        onClick={() => router.push(`/proforma/${proforma.nfact || proforma.nfprof}`)}
+                        onClick={() => {
+                          // Essayer plusieurs champs d'ID possibles
+                          const proformaId = proforma.nfact || proforma.nfprof || (proforma as any).id;
+                          
+                          console.log('🔍 Navigating to proforma details:', { 
+                            nfact: proforma.nfact, 
+                            nfprof: proforma.nfprof, 
+                            id: (proforma as any).id,
+                            finalId: proformaId,
+                            fullProforma: proforma
+                          });
+                          
+                          // Validation stricte de l'ID
+                          if (!proformaId || proformaId === 'undefined' || proformaId === undefined) {
+                            console.error('❌ ID proforma invalide:', { proformaId, proforma });
+                            alert(`Erreur: ID du proforma non trouvé ou invalide (${proformaId}). Vérifiez les données.`);
+                            return;
+                          }
+                          
+                          // Vérifier que l'ID est un nombre valide et entier
+                          const numericId = parseInt(String(proformaId));
+                          if (isNaN(numericId) || numericId <= 0 || !Number.isInteger(parseFloat(String(proformaId)))) {
+                            console.error('❌ ID proforma non numérique ou non entier:', { proformaId, numericId });
+                            alert(`Erreur: ID du proforma invalide (${proformaId}). L'ID doit être un nombre entier positif.`);
+                            return;
+                          }
+                          
+                          console.log('✅ Navigating to proforma with valid ID:', numericId);
+                          router.push(`/proforma/${numericId}`);
+                        }}
                         className={styles.viewButton}
                       >
                         Voir
@@ -501,9 +530,9 @@ export default function ProformaList() {
                     <td>
                       <PrintOptions
                         documentType="proforma"
-                        documentId={proforma.nfact || proforma.nfprof}
-                        documentNumber={proforma.nfact || proforma.nfprof}
-                        clientName={(proforma as any).client_name || (proforma as any).clientName || 'Client'}
+                        documentId={proforma.nfact || proforma.nfprof || (proforma as any).id}
+                        documentNumber={proforma.nfact || proforma.nfprof || (proforma as any).id}
+                        clientName={(proforma as any).client_name || (proforma as any).clientName || proforma.nclient || 'Client'}
                         isModal={false}
                       />
                     </td>
