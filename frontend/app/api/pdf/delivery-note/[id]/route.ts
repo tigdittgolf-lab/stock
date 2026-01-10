@@ -30,7 +30,7 @@ export async function GET(
       ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
       : 'http://localhost:3005/api';
     
-    const response = await fetch(backendUrl, {
+    const response = await fetch(`${backendUrl}/pdf/delivery-note/${validId}`, {
       method: 'GET',
       headers: {
         'X-Tenant': tenant,
