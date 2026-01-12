@@ -358,11 +358,11 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
             <div className={styles.totalsGrid}>
               <div className={styles.totalRow}>
                 <span>Montant HT :</span>
-                <span>{deliveryNote.montant_ht?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</span>
+                <span>{parseFloat(deliveryNote.montant_ht?.toString() || '0').toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</span>
               </div>
               <div className={styles.totalRow}>
                 <span>TVA :</span>
-                <span>{deliveryNote.tva?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</span>
+                <span>{parseFloat(deliveryNote.tva?.toString() || '0').toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</span>
               </div>
               <div className={styles.totalRow}>
                 <strong>Total TTC :</strong>
@@ -371,7 +371,13 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
                     // Calcul automatique du Total TTC si non défini
                     let totalTTC = deliveryNote.montant_ttc;
                     if (totalTTC === undefined || totalTTC === null || isNaN(totalTTC)) {
-                      totalTTC = (deliveryNote.montant_ht || 0) + (deliveryNote.tva || 0);
+                      // Convertir en nombres pour éviter la concaténation de chaînes
+                      const montantHT = parseFloat(deliveryNote.montant_ht?.toString() || '0') || 0;
+                      const tva = parseFloat(deliveryNote.tva?.toString() || '0') || 0;
+                      totalTTC = montantHT + tva;
+                    } else {
+                      // S'assurer que totalTTC est un nombre
+                      totalTTC = parseFloat(totalTTC.toString()) || 0;
                     }
                     return totalTTC.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                   })()} DA
