@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test PDF TTC Fix</title>
+</head>
+<body>
+    <h1>Test PDF TTC Calculation Fix</h1>
+    
+    <div id="results"></div>
+    
+    <script>
+        async function testPDFTTC() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>🧪 Testing PDF TTC calculation...</p>';
+            
+            const baseUrl = 'https://frontend-iota-six-72.vercel.app';
+            const tenant = '2025_bu01';
+            const blId = 5;
+            
+            try {
+                // Test the data endpoint first
+                console.log('📊 Testing data endpoint...');
+                const dataResponse = await fetch(`${baseUrl}/api/sales/delivery-notes/${blId}`, {
+                    headers: {
+                        'X-Tenant': tenant
+                    }
+                });
+                
+                if (dataResponse.ok) {
+                    const data = await dataResponse.json();
+                    console.log('📊 BL Data:', data);
+                    
+                    results.innerHTML += `
+                        <h3>📊 BL ${blId} Data (${data.database_type}):</h3>
+                        <ul>
+                            <li>Montant HT: ${data.data.montant_ht} (${typeof data.data.montant_ht})</li>
+                            <li>TVA: ${data.data.tva} (${typeof data.data.tva})</li>
+                            <li>Montant TTC: ${data.data.montant_ttc} (${typeof data.data.montant_ttc})</li>
+                            <li>Database: ${data.database_type}</li>
+                            <li>Source: ${data.source}</li>
+                        </ul>
+                    `;
+                    
+                    // Calculate expected TTC
+                    const expectedTTC = parseFloat(data.data.montant_ht) + parseFloat(data.data.tva);
+                    const actualTTC = parseFloat(data.data.montant_ttc);
+                    
+                    results.innerHTML += `
+                        <h3>🔍 TTC Calculation Check:</h3>
+                        <ul>
+                            <li>Expected TTC: ${expectedTTC.toFixed(2)} DA</li>
+                            <li>Actual TTC: ${actualTTC.toFixed(2)} DA</li>
+                            <li>Match: ${Math.abs(expectedTTC - actualTTC) < 0.01 ? '✅ YES' : '❌ NO'}</li>
+                        </ul>
+                    `;
+                }
+                
+                // Test PDF generation
+                console.log('📄 Testing PDF generation...');
+                const pdfResponse = await fetch(`${baseUrl}/api/pdf/delivery-note/${blId}`, {
+                    headers: {
+                        'X-Tenant': tenant
+                    }
+                });
+                
+                results.innerHTML += `
+                    <h3>📄 PDF Generation Test:</h3>
+                    <ul>
+                        <li>Status: ${pdfResponse.status}</li>
+                        <li>Content-Type: ${pdfResponse.headers.get('content-type')}</li>
+                        <li>Content-Length: ${pdfResponse.headers.get('content-length')} bytes</li>
+                        <li>Result: ${pdfResponse.ok ? '✅ SUCCESS' : '❌ FAILED'}</li>
+                    </ul>
+                `;
+                
+                if (pdfResponse.ok) {
+                    // Create download link
+                    const blob = await pdfResponse.blob();
+                    const url = URL.createObjectURL(blob);
+                    results.innerHTML += `
+                        <p><a href="${url}" download="bl_${blId}_test.pdf" target="_blank">📥 Download Test PDF</a></p>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('❌ Test failed:', error);
+                results.innerHTML += `<p>❌ Test failed: ${error.message}</p>`;
+            }
+        }
+        
+        // Run test when page loads
+        window.onload = testPDFTTC;
+    </script>
+</body>
+</html>

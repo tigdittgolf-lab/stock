@@ -2536,26 +2536,17 @@ sales.get('/delivery-notes/:id', async (c) => {
     console.log(`🔍 Looking for delivery note ${id} from database in tenant: ${tenant}`);
 
     try {
-      // Récupérer le BL depuis la base de données via RPC
-      console.log(`🔍 Calling get_bl_by_id with tenant: ${tenant}, id: ${id}`);
-      const { data: deliveryNote, error: fetchError } = await databaseRouter.rpc('get_bl_by_id', {
+      // Récupérer le BL depuis la base de données via le service de base de données
+      console.log(`🔍 Calling backendDatabaseService.executeRPC with tenant: ${tenant}, id: ${id}`);
+      const blResult = await backendDatabaseService.executeRPC('get_bl_by_id', {
         p_tenant: tenant,
         p_nfact: id
       });
 
-      console.log(`📊 RPC Response - Data:`, deliveryNote, 'Error:', fetchError);
+      console.log(`📊 Database Service Response:`, blResult);
 
-      if (fetchError) {
-        if (fetchError.code === 'PGRST116') {
-          console.log(`❌ Delivery note ${id} not found in database`);
-          return c.json({ success: false, error: 'Delivery note not found' }, 404);
-        }
-        if (fetchError.code === 'PGRST106' || fetchError.message?.includes('schema must be one of')) {
-          console.log(`⚠️ RPC function get_bl_by_id not available - using cache fallback`);
-          console.log(`📋 Please execute SUPABASE_RPC_FUNCTIONS_FIXED.sql in your Supabase SQL Editor`);
-        } else {
-          console.warn('Database fetch failed, using cache fallback:', fetchError);
-        }
+      if (!blResult.success || !blResult.data) {
+        console.log(`❌ Delivery note ${id} not found in database`);
         
         // Fallback vers le cache
         const deliveryNotes = createdDocumentsCache.get(`${tenant}_bl`) || [];
@@ -2573,19 +2564,28 @@ sales.get('/delivery-notes/:id', async (c) => {
         return c.json({ success: true, data: cachedDeliveryNote, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
       }
 
-      if (!deliveryNote) {
-        console.log(`❌ Delivery note ${id} returned null from database`);
-        return c.json({ success: false, error: 'Delivery note not found' }, 404);
-      }
+      const deliveryNote = blResult.data;
 
-      // Formater les données pour correspondre au format attendu
+      // Formater les données pour correspondre au format attendu avec conversion numérique
+      const montant_ht = parseFloat(deliveryNote.montant_ht?.toString() || '0') || 0;
+      const tva = parseFloat(deliveryNote.tva?.toString() || '0') || 0;
+      const timbre = parseFloat(deliveryNote.timbre?.toString() || '0') || 0;
+      const autre_taxe = parseFloat(deliveryNote.autre_taxe?.toString() || '0') || 0;
+      
+      let montant_ttc = parseFloat(deliveryNote.montant_ttc?.toString() || '0');
+      if (isNaN(montant_ttc) || montant_ttc === 0) {
+        montant_ttc = montant_ht + tva + timbre + autre_taxe;
+      }
+      
       const formattedDeliveryNote = {
         nbl: deliveryNote.nfact,
         nclient: deliveryNote.nclient,
         date_fact: deliveryNote.date_fact,
-        montant_ht: deliveryNote.montant_ht,
-        tva: deliveryNote.tva,
-        total_ttc: deliveryNote.montant_ht + deliveryNote.tva,
+        montant_ht: montant_ht,
+        tva: tva,
+        montant_ttc: montant_ttc, // Utiliser montant_ttc calculé au lieu de total_ttc
+        timbre: timbre,
+        autre_taxe: autre_taxe,
         created_at: deliveryNote.created_at,
         client_name: deliveryNote.raison_sociale || deliveryNote.nclient,
         details: deliveryNote.details?.map(detail => ({

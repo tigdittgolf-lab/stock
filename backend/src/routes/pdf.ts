@@ -235,16 +235,28 @@ async function fetchBLData(tenant: string, id: string) {
     console.log(`✅ PDF: Found BL ${actualId} with ${blInfo.details?.length || 0} article details`);
 
     // Formater les données pour le PDF avec calculs robustes
-    const montant_ht = parseFloat(blInfo.montant_ht) || 0;
-    const tva = parseFloat(blInfo.tva) || 0;
-    const timbre = parseFloat(blInfo.timbre) || 0;
-    const autre_taxe = parseFloat(blInfo.autre_taxe) || 0;
+    const montant_ht = parseFloat(blInfo.montant_ht?.toString() || '0') || 0;
+    const tva = parseFloat(blInfo.tva?.toString() || '0') || 0;
+    const timbre = parseFloat(blInfo.timbre?.toString() || '0') || 0;
+    const autre_taxe = parseFloat(blInfo.autre_taxe?.toString() || '0') || 0;
     
     // Calculer le Total TTC de manière robuste
-    let montant_ttc = parseFloat(blInfo.montant_ttc);
-    if (isNaN(montant_ttc) || montant_ttc === null || montant_ttc === undefined) {
+    let montant_ttc = parseFloat(blInfo.montant_ttc?.toString() || '0');
+    if (isNaN(montant_ttc) || montant_ttc === null || montant_ttc === undefined || montant_ttc === 0) {
       montant_ttc = montant_ht + tva + timbre + autre_taxe;
     }
+    
+    // Debug logs pour vérifier les calculs AVANT formatage
+    console.log(`🔍 PDF Debug BL ${actualId} - Conversion des types:`, {
+      raw_montant_ht: blInfo.montant_ht,
+      raw_tva: blInfo.tva,
+      raw_montant_ttc: blInfo.montant_ttc,
+      converted_montant_ht: montant_ht,
+      converted_tva: tva,
+      converted_montant_ttc_from_db: parseFloat(blInfo.montant_ttc?.toString() || '0'),
+      calculated_montant_ttc: montant_ttc,
+      final_calculation: montant_ht + tva + timbre + autre_taxe
+    });
     
     const formattedBL = {
       nfact: blInfo.nfact || blInfo.nbl,

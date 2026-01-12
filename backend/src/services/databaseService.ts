@@ -1560,14 +1560,28 @@ export class BackendDatabaseService {
           total_ligne: detail.total_ligne || 0
         })) : [];
       
-      // Combiner les données
+      // Combiner les données avec conversion numérique robuste
+      const montant_ht = parseFloat(blData.montant_ht?.toString() || '0') || 0;
+      const tva = parseFloat(blData.tva?.toString() || '0') || 0;
+      const timbre = parseFloat(blData.timbre?.toString() || '0') || 0;
+      const autre_taxe = parseFloat(blData.autre_taxe?.toString() || '0') || 0;
+      
+      let montant_ttc = parseFloat(blData.montant_ttc?.toString() || '0');
+      if (isNaN(montant_ttc) || montant_ttc === 0) {
+        montant_ttc = montant_ht + tva + timbre + autre_taxe;
+      }
+      
       const result = {
         ...blData,
         details: details,
-        // Normaliser les champs pour compatibilité
+        // Normaliser les champs pour compatibilité avec conversion numérique
         nbl: blData.nfact,
         date_bl: blData.date_fact,
-        montant_ttc: blData.montant_ttc || (blData.montant_ht + blData.tva)
+        montant_ht: montant_ht,
+        tva: tva,
+        timbre: timbre,
+        autre_taxe: autre_taxe,
+        montant_ttc: montant_ttc
       };
       
       console.log(`✅ ${dbType}: Found BL ${nfact} with ${details.length} article details`);
