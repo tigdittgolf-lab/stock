@@ -1,5 +1,4 @@
 {
-  "type": "postgresql",
-  "name": "postgresql database",
-  "database": "postgres"
+  "type": "mysql",
+  "name": "mysql database"
 }
