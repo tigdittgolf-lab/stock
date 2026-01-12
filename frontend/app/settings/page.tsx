@@ -97,9 +97,11 @@ export default function SettingsPage() {
       if (result.success && result.data) {
         console.log('🔍 Données familles reçues:', result.data);
         
-        // L'API retourne un tableau de strings, on doit le convertir en objets
+        // L'API retourne un tableau d'objets avec la propriété 'famille'
         const familiesArray = Array.isArray(result.data) 
-          ? result.data.map((famille: string) => ({ famille: String(famille) }))
+          ? result.data.map((item: any) => ({ 
+              famille: String(item.famille || item) 
+            }))
           : [];
         
         setFamilies(familiesArray);
@@ -191,7 +193,7 @@ export default function SettingsPage() {
       setLoading(true);
       console.log('🔍 Chargement des informations entreprise...');
       
-      const response = await fetch(`getApiUrl('settings/activities')`, {
+      const response = await fetch(getApiUrl('settings/activities'), {
         headers: {
           'X-Tenant': getTenant()
         }
@@ -255,7 +257,7 @@ export default function SettingsPage() {
       let response;
       if (companyInfo.id === 0) {
         // Créer si n'existe pas
-        response = await fetch(`getApiUrl('settings/activities')`, {
+        response = await fetch(getApiUrl('settings/activities'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -265,7 +267,7 @@ export default function SettingsPage() {
         });
       } else {
         // Mettre à jour si existe - utiliser POST au lieu de PUT
-        response = await fetch(`getApiUrl('settings/activities')`, {
+        response = await fetch(getApiUrl('settings/activities'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

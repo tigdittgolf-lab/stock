@@ -1,58 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '../../../../lib/database/database-service';
+
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
+  : 'http://localhost:3005/api';
 
 export async function GET(request: NextRequest) {
   try {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
-    const dbType = DatabaseService.getActiveDatabaseType();
-    
-    console.log(`🔍 Récupération activité pour le tenant: ${tenant} (DB: ${dbType})`);
+    console.log(`🔍 Récupération activité pour le tenant: ${tenant}`);
 
-    const result = await DatabaseService.executeRPC('get_tenant_activite', {
-      p_tenant: tenant
-    });
-
-    console.log(`📊 Résultat ${dbType} get_tenant_activite:`, { 
-      success: result.success,
-      dataType: typeof result.data,
-      tenant: tenant 
-    });
-
-    if (result.success && result.data) {
-      let activity: any = result.data;
-      if (typeof result.data === 'string') {
-        try {
-          activity = JSON.parse(result.data);
-        } catch (parseError) {
-          console.log('⚠️ Failed to parse JSON:', parseError);
-          activity = null;
-        }
+    const response = await fetch(`${API_BASE_URL}/settings/activities`, {
+      headers: {
+        'X-Tenant': tenant
       }
-      
-      console.log(`✅ Activité récupérée via ${dbType}`);
-      return NextResponse.json({
-        success: true,
-        data: activity,
-        debug: {
-          tenant: tenant,
-          method: 'database_service',
-          database_type: dbType,
-          function: 'get_tenant_activite'
-        }
-      });
-    } else {
-      console.log(`❌ Erreur ${dbType}:`, result.error);
-      return NextResponse.json({
-        success: true,
-        data: null,
-        debug: {
-          tenant: tenant,
-          database_type: dbType,
-          error: result.error,
-          function: 'get_tenant_activite'
-        }
-      });
+    });
+
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.status}`);
     }
+
+    const data = await response.json();
+    return NextResponse.json(data);
 
   } catch (error) {
     console.error('❌ Erreur serveur:', error);
@@ -68,48 +36,28 @@ export async function POST(request: NextRequest) {
   try {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     const body = await request.json();
-    const dbType = DatabaseService.getActiveDatabaseType();
     
-    console.log(`🔍 Mise à jour activité pour le tenant: ${tenant} (DB: ${dbType})`, body);
+    console.log(`🔍 Mise à jour activité pour le tenant: ${tenant}`, body);
 
-    const result = await DatabaseService.executeRPC('update_tenant_activite', {
-      p_tenant: tenant,
-      p_data: body
+    const response = await fetch(`${API_BASE_URL}/settings/activities`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Tenant': tenant
+      },
+      body: JSON.stringify(body)
     });
 
-    console.log(`📊 Résultat ${dbType} update_tenant_activite:`, { 
-      success: result.success,
-      data: result.data,
-      tenant: tenant,
-      body: body
-    });
-
-    if (result.success) {
-      return NextResponse.json({
-        success: true,
-        message: 'Activité mise à jour avec succès',
-        data: result.data,
-        debug: {
-          tenant: tenant,
-          database_type: dbType,
-          function: 'update_tenant_activite',
-          input: body
-        }
-      });
-    } else {
-      console.log(`❌ Erreur ${dbType} update:`, result.error);
+    if (!response.ok) {
+      const errorText = await response.text();
       return NextResponse.json({
         success: false,
-        error: result.error || 'Erreur de mise à jour',
-        debug: {
-          tenant: tenant,
-          database_type: dbType,
-          function: 'update_tenant_activite',
-          input: body,
-          dbError: result.error
-        }
-      }, { status: 400 });
+        error: `Backend error: ${response.status} - ${errorText}`
+      }, { status: response.status });
     }
+
+    const data = await response.json();
+    return NextResponse.json(data);
 
   } catch (error) {
     console.error('❌ Erreur mise à jour activité:', error);
