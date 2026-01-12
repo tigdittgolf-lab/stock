@@ -47,8 +47,9 @@ interface DeliveryNoteData {
     tva?: number;
     total_ligne?: number;
   }>;
-  montant_ht?: number;
-  tva?: number;
+  montant_ht: number;    // ← Rendu obligatoire
+  tva: number;           // ← Rendu obligatoire  
+  montant_ttc: number;   // ← Rendu obligatoire
   timbre?: number;
   autre_taxe?: number;
 }
@@ -293,6 +294,18 @@ export class PDFService {
     const doc = new jsPDF();
     let yPos = 20;
 
+    // DEBUG: Log des données reçues
+    console.log(`🔍 PDF Service - Données reçues pour generateDeliveryNote:`, {
+      montant_ht: deliveryData.montant_ht,
+      tva: deliveryData.tva,
+      montant_ttc: deliveryData.montant_ttc,
+      timbre: deliveryData.timbre,
+      autre_taxe: deliveryData.autre_taxe,
+      dataType_montant_ht: typeof deliveryData.montant_ht,
+      dataType_tva: typeof deliveryData.tva,
+      dataType_montant_ttc: typeof deliveryData.montant_ttc
+    });
+
     // Debug logs pour vérifier les données reçues
     console.log(`🔍 PDF Service - Données reçues pour BL:`, {
       montant_ht: deliveryData.montant_ht,
@@ -457,6 +470,9 @@ export class PDFService {
       if (totalTTC === undefined || totalTTC === null || isNaN(totalTTC)) {
         totalTTC = (deliveryData.montant_ht || 0) + (deliveryData.tva || 0) + (deliveryData.timbre || 0) + (deliveryData.autre_taxe || 0);
       }
+      
+      // S'assurer que totalTTC est un nombre valide
+      totalTTC = parseFloat(totalTTC.toString()) || 0;
 
       console.log(`🔍 PDF Service - Calcul totalTTC:`, {
         montant_ht: deliveryData.montant_ht || 0,
@@ -625,8 +641,11 @@ export class PDFService {
     // Total TTC en gras - Utiliser montant_ttc si disponible
     let totalTTC = deliveryData.montant_ttc;
     if (totalTTC === undefined || totalTTC === null || isNaN(totalTTC)) {
-      totalTTC = (deliveryData.montant_ht || 0) + (deliveryData.tva || 0);
+      totalTTC = (deliveryData.montant_ht || 0) + (deliveryData.tva || 0) + (deliveryData.timbre || 0) + (deliveryData.autre_taxe || 0);
     }
+    
+    // S'assurer que totalTTC est un nombre valide
+    totalTTC = parseFloat(totalTTC.toString()) || 0;
     
     if (totalTTC > 0) {
       doc.setFont('helvetica', 'bold');
@@ -742,8 +761,11 @@ export class PDFService {
     // Total TTC en gras - Utiliser montant_ttc si disponible
     let totalTTC = deliveryData.montant_ttc;
     if (totalTTC === undefined || totalTTC === null || isNaN(totalTTC)) {
-      totalTTC = (deliveryData.montant_ht || 0) + (deliveryData.tva || 0);
+      totalTTC = (deliveryData.montant_ht || 0) + (deliveryData.tva || 0) + (deliveryData.timbre || 0) + (deliveryData.autre_taxe || 0);
     }
+    
+    // S'assurer que totalTTC est un nombre valide
+    totalTTC = parseFloat(totalTTC.toString()) || 0;
     
     if (totalTTC > 0) {
       doc.setFont('helvetica', 'bold');
