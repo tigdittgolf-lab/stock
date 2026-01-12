@@ -223,7 +223,7 @@ export class PDFService {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
 
-    const totalTTC = parseFloat(invoiceData.montant_ht?.toString() || "0") + parseFloat(invoiceData.tva?.toString() || "0") + parseFloat(invoiceData.timbre?.toString() || "0") + parseFloat(invoiceData.autre_taxe?.toString() || "0");
+    const totalTTC = invoiceData.montant_ht + invoiceData.tva + invoiceData.timbre + invoiceData.autre_taxe;
 
     doc.text('Sous-total HT:', 120, yPos);
     doc.text(formatAmount(invoiceData.montant_ht), 190, yPos, { align: 'right' });
@@ -949,7 +949,7 @@ export class PDFService {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
 
-    const totalTTC = parseFloat(invoiceData.montant_ht?.toString() || "0") + parseFloat(invoiceData.tva?.toString() || "0") + parseFloat(invoiceData.timbre?.toString() || "0") + parseFloat(invoiceData.autre_taxe?.toString() || "0");
+    const totalTTC = invoiceData.montant_ht + invoiceData.tva + invoiceData.timbre + invoiceData.autre_taxe;
 
     doc.text('Sous-total HT:', 120, yPos);
     doc.text(formatAmount(invoiceData.montant_ht), 190, yPos, { align: 'right' });
