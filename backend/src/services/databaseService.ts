@@ -1501,14 +1501,24 @@ export class BackendDatabaseService {
       let blSql;
       if (dbType === 'mysql') {
         blSql = `
-          SELECT bl.*, c.raison_sociale as client_name, c.adresse as client_address, c.tel as client_phone
+          SELECT bl.*, c.raison_sociale as client_name, c.adresse as client_address, c.tel as client_phone,
+                 CAST(bl.montant_ht AS DECIMAL(15,2)) as montant_ht_numeric,
+                 CAST(bl.tva AS DECIMAL(15,2)) as tva_numeric,
+                 CAST(bl.timbre AS DECIMAL(15,2)) as timbre_numeric,
+                 CAST(bl.autre_taxe AS DECIMAL(15,2)) as autre_taxe_numeric,
+                 CAST(bl.montant_ht AS DECIMAL(15,2)) + CAST(bl.tva AS DECIMAL(15,2)) + CAST(bl.timbre AS DECIMAL(15,2)) + CAST(bl.autre_taxe AS DECIMAL(15,2)) as montant_ttc_calculated
           FROM \`${tenant}\`.bl bl
           LEFT JOIN \`${tenant}\`.client c ON bl.nclient = c.nclient
           WHERE bl.nfact = ?
         `;
       } else {
         blSql = `
-          SELECT bl.*, c.raison_sociale as client_name, c.adresse as client_address, c.tel as client_phone
+          SELECT bl.*, c.raison_sociale as client_name, c.adresse as client_address, c.tel as client_phone,
+                 CAST(bl.montant_ht AS NUMERIC(15,2)) as montant_ht_numeric,
+                 CAST(bl.tva AS NUMERIC(15,2)) as tva_numeric,
+                 CAST(bl.timbre AS NUMERIC(15,2)) as timbre_numeric,
+                 CAST(bl.autre_taxe AS NUMERIC(15,2)) as autre_taxe_numeric,
+                 CAST(bl.montant_ht AS NUMERIC(15,2)) + CAST(bl.tva AS NUMERIC(15,2)) + CAST(bl.timbre AS NUMERIC(15,2)) + CAST(bl.autre_taxe AS NUMERIC(15,2)) as montant_ttc_calculated
           FROM "${tenant}".bl bl
           LEFT JOIN "${tenant}".client c ON bl.nclient = c.nclient
           WHERE bl.nfact = $1
@@ -1525,11 +1535,15 @@ export class BackendDatabaseService {
       
       const blData = blResult.data[0];
       
-      // Récupérer les détails du BL
+      // Récupérer les détails du BL avec conversion numérique
       let detailsSql;
       if (dbType === 'mysql') {
         detailsSql = `
-          SELECT d.*, a.designation
+          SELECT d.*, a.designation,
+                 CAST(d.qte AS DECIMAL(10,2)) as qte_numeric,
+                 CAST(d.prix AS DECIMAL(15,2)) as prix_numeric,
+                 CAST(d.tva AS DECIMAL(5,2)) as tva_numeric,
+                 CAST(d.total_ligne AS DECIMAL(15,2)) as total_ligne_numeric
           FROM \`${tenant}\`.detail_bl d
           LEFT JOIN \`${tenant}\`.article a ON d.narticle = a.narticle
           WHERE d.nfact = ?
@@ -1537,7 +1551,11 @@ export class BackendDatabaseService {
         `;
       } else {
         detailsSql = `
-          SELECT d.*, a.designation
+          SELECT d.*, a.designation,
+                 CAST(d.qte AS NUMERIC(10,2)) as qte_numeric,
+                 CAST(d.prix AS NUMERIC(15,2)) as prix_numeric,
+                 CAST(d.tva AS NUMERIC(5,2)) as tva_numeric,
+                 CAST(d.total_ligne AS NUMERIC(15,2)) as total_ligne_numeric
           FROM "${tenant}".detail_bl d
           LEFT JOIN "${tenant}".article a ON d.narticle = a.narticle
           WHERE d.nfact = $1
@@ -1549,27 +1567,44 @@ export class BackendDatabaseService {
         await this.executeMySQLQuery(detailsSql, [nfact]) : 
         await this.executePostgreSQLQuery(detailsSql, [nfact]);
       
-      // Formater les détails
+      // Formater les détails avec les valeurs numériques converties
       const details = detailsResult.success && detailsResult.data ? 
         detailsResult.data.map((detail: any) => ({
           narticle: detail.narticle,
           designation: detail.designation || `Article ${detail.narticle}`,
-          qte: detail.qte || 0,
-          prix: detail.prix || 0,
-          tva: detail.tva || 0,
-          total_ligne: detail.total_ligne || 0
+          qte: parseFloat(detail.qte_numeric?.toString() || detail.qte?.toString() || '0') || 0,
+          prix: parseFloat(detail.prix_numeric?.toString() || detail.prix?.toString() || '0') || 0,
+          tva: parseFloat(detail.tva_numeric?.toString() || detail.tva?.toString() || '0') || 0,
+          total_ligne: parseFloat(detail.total_ligne_numeric?.toString() || detail.total_ligne?.toString() || '0') || 0
         })) : [];
       
-      // Combiner les données avec conversion numérique robuste
-      const montant_ht = parseFloat(blData.montant_ht?.toString() || '0') || 0;
-      const tva = parseFloat(blData.tva?.toString() || '0') || 0;
-      const timbre = parseFloat(blData.timbre?.toString() || '0') || 0;
-      const autre_taxe = parseFloat(blData.autre_taxe?.toString() || '0') || 0;
+      // Utiliser les valeurs numériques converties depuis la base de données
+      const montant_ht = parseFloat(blData.montant_ht_numeric?.toString() || blData.montant_ht?.toString() || '0') || 0;
+      const tva = parseFloat(blData.tva_numeric?.toString() || blData.tva?.toString() || '0') || 0;
+      const timbre = parseFloat(blData.timbre_numeric?.toString() || blData.timbre?.toString() || '0') || 0;
+      const autre_taxe = parseFloat(blData.autre_taxe_numeric?.toString() || blData.autre_taxe?.toString() || '0') || 0;
       
-      let montant_ttc = parseFloat(blData.montant_ttc?.toString() || '0');
+      // Utiliser le calcul fait par la base de données en priorité
+      let montant_ttc = parseFloat(blData.montant_ttc_calculated?.toString() || '0');
       if (isNaN(montant_ttc) || montant_ttc === 0) {
+        // Fallback au calcul manuel si le calcul DB a échoué
         montant_ttc = montant_ht + tva + timbre + autre_taxe;
       }
+      
+      // Debug logs pour tracer les conversions - VERSION 3.0
+      console.log(`🔍 ${dbType} BL ${nfact} - Database Numeric Conversion (v3.0):`, {
+        raw_montant_ht: blData.montant_ht,
+        raw_tva: blData.tva,
+        raw_montant_ttc: blData.montant_ttc,
+        db_montant_ht_numeric: blData.montant_ht_numeric,
+        db_tva_numeric: blData.tva_numeric,
+        db_montant_ttc_calculated: blData.montant_ttc_calculated,
+        final_montant_ht: montant_ht,
+        final_tva: tva,
+        final_montant_ttc: montant_ttc,
+        calculation_check: montant_ht + tva + timbre + autre_taxe,
+        deployment_version: '3.0_DATABASE_CAST_FIX'
+      });
       
       const result = {
         ...blData,
@@ -1584,7 +1619,7 @@ export class BackendDatabaseService {
         montant_ttc: montant_ttc
       };
       
-      console.log(`✅ ${dbType}: Found BL ${nfact} with ${details.length} article details`);
+      console.log(`✅ ${dbType}: Found BL ${nfact} with ${details.length} article details, TTC: ${montant_ttc}`);
       
       return { success: true, data: result };
     } catch (error) {
@@ -1604,13 +1639,120 @@ export class BackendDatabaseService {
   }
 
   private async getFactById(dbType: 'mysql' | 'postgresql', tenant: string, nfact: string): Promise<any> {
-    let sql;
-    if (dbType === 'mysql') {
-      sql = `SELECT * FROM \`${tenant}\`.fact WHERE nfact = ?`;
-    } else {
-      sql = `SELECT * FROM "${tenant}".fact WHERE nfact = $1`;
+    try {
+      // Récupérer d'abord la facture principale
+      let factSql;
+      if (dbType === 'mysql') {
+        factSql = `
+          SELECT fact.*, c.raison_sociale as client_name, c.adresse as client_address, c.tel as client_phone,
+                 CAST(fact.montant_ht AS DECIMAL(15,2)) as montant_ht_numeric,
+                 CAST(fact.tva AS DECIMAL(15,2)) as tva_numeric,
+                 CAST(fact.timbre AS DECIMAL(15,2)) as timbre_numeric,
+                 CAST(fact.autre_taxe AS DECIMAL(15,2)) as autre_taxe_numeric,
+                 CAST(fact.montant_ht AS DECIMAL(15,2)) + CAST(fact.tva AS DECIMAL(15,2)) + CAST(fact.timbre AS DECIMAL(15,2)) + CAST(fact.autre_taxe AS DECIMAL(15,2)) as montant_ttc_calculated
+          FROM \`${tenant}\`.fact fact
+          LEFT JOIN \`${tenant}\`.client c ON fact.nclient = c.nclient
+          WHERE fact.nfact = ?
+        `;
+      } else {
+        factSql = `
+          SELECT fact.*, c.raison_sociale as client_name, c.adresse as client_address, c.tel as client_phone,
+                 CAST(fact.montant_ht AS NUMERIC(15,2)) as montant_ht_numeric,
+                 CAST(fact.tva AS NUMERIC(15,2)) as tva_numeric,
+                 CAST(fact.timbre AS NUMERIC(15,2)) as timbre_numeric,
+                 CAST(fact.autre_taxe AS NUMERIC(15,2)) as autre_taxe_numeric,
+                 CAST(fact.montant_ht AS NUMERIC(15,2)) + CAST(fact.tva AS NUMERIC(15,2)) + CAST(fact.timbre AS NUMERIC(15,2)) + CAST(fact.autre_taxe AS NUMERIC(15,2)) as montant_ttc_calculated
+          FROM "${tenant}".fact fact
+          LEFT JOIN "${tenant}".client c ON fact.nclient = c.nclient
+          WHERE fact.nfact = $1
+        `;
+      }
+      
+      const factResult = dbType === 'mysql' ? 
+        await this.executeMySQLQuery(factSql, [nfact]) : 
+        await this.executePostgreSQLQuery(factSql, [nfact]);
+      
+      if (!factResult.success || !factResult.data || factResult.data.length === 0) {
+        return { success: false, error: 'Invoice not found' };
+      }
+      
+      const factData = factResult.data[0];
+      
+      // Récupérer les détails de la facture avec conversion numérique
+      let detailsSql;
+      if (dbType === 'mysql') {
+        detailsSql = `
+          SELECT d.*, a.designation,
+                 CAST(d.qte AS DECIMAL(10,2)) as qte_numeric,
+                 CAST(d.prix AS DECIMAL(15,2)) as prix_numeric,
+                 CAST(d.tva AS DECIMAL(5,2)) as tva_numeric,
+                 CAST(d.total_ligne AS DECIMAL(15,2)) as total_ligne_numeric
+          FROM \`${tenant}\`.detail_fact d
+          LEFT JOIN \`${tenant}\`.article a ON d.narticle = a.narticle
+          WHERE d.nfact = ?
+          ORDER BY d.narticle
+        `;
+      } else {
+        detailsSql = `
+          SELECT d.*, a.designation,
+                 CAST(d.qte AS NUMERIC(10,2)) as qte_numeric,
+                 CAST(d.prix AS NUMERIC(15,2)) as prix_numeric,
+                 CAST(d.tva AS NUMERIC(5,2)) as tva_numeric,
+                 CAST(d.total_ligne AS NUMERIC(15,2)) as total_ligne_numeric
+          FROM "${tenant}".detail_fact d
+          LEFT JOIN "${tenant}".article a ON d.narticle = a.narticle
+          WHERE d.nfact = $1
+          ORDER BY d.narticle
+        `;
+      }
+      
+      const detailsResult = dbType === 'mysql' ? 
+        await this.executeMySQLQuery(detailsSql, [nfact]) : 
+        await this.executePostgreSQLQuery(detailsSql, [nfact]);
+      
+      // Formater les détails avec les valeurs numériques converties
+      const details = detailsResult.success && detailsResult.data ? 
+        detailsResult.data.map((detail: any) => ({
+          narticle: detail.narticle,
+          designation: detail.designation || `Article ${detail.narticle}`,
+          qte: parseFloat(detail.qte_numeric?.toString() || detail.qte?.toString() || '0') || 0,
+          prix: parseFloat(detail.prix_numeric?.toString() || detail.prix?.toString() || '0') || 0,
+          tva: parseFloat(detail.tva_numeric?.toString() || detail.tva?.toString() || '0') || 0,
+          total_ligne: parseFloat(detail.total_ligne_numeric?.toString() || detail.total_ligne?.toString() || '0') || 0
+        })) : [];
+      
+      // Utiliser les valeurs numériques converties depuis la base de données
+      const montant_ht = parseFloat(factData.montant_ht_numeric?.toString() || factData.montant_ht?.toString() || '0') || 0;
+      const tva = parseFloat(factData.tva_numeric?.toString() || factData.tva?.toString() || '0') || 0;
+      const timbre = parseFloat(factData.timbre_numeric?.toString() || factData.timbre?.toString() || '0') || 0;
+      const autre_taxe = parseFloat(factData.autre_taxe_numeric?.toString() || factData.autre_taxe?.toString() || '0') || 0;
+      
+      // Utiliser le calcul fait par la base de données en priorité
+      let montant_ttc = parseFloat(factData.montant_ttc_calculated?.toString() || '0');
+      if (isNaN(montant_ttc) || montant_ttc === 0) {
+        // Fallback au calcul manuel si le calcul DB a échoué
+        montant_ttc = montant_ht + tva + timbre + autre_taxe;
+      }
+      
+      const result = {
+        ...factData,
+        details: details,
+        // Normaliser les champs pour compatibilité
+        date_fact: factData.date_fact,
+        montant_ht: montant_ht,
+        tva: tva,
+        timbre: timbre,
+        autre_taxe: autre_taxe,
+        montant_ttc: montant_ttc
+      };
+      
+      console.log(`✅ ${dbType}: Found Invoice ${nfact} with ${details.length} article details, TTC: ${montant_ttc}`);
+      
+      return { success: true, data: result };
+    } catch (error) {
+      console.error(`❌ ${dbType}: Error fetching Invoice ${nfact}:`, error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
-    return dbType === 'mysql' ? this.executeMySQLQuery(sql, [nfact]) : this.executePostgreSQLQuery(sql, [nfact]);
   }
 
   private async insertBL(dbType: 'mysql' | 'postgresql', params: any): Promise<any> {
@@ -1813,52 +1955,119 @@ export class BackendDatabaseService {
   }
 
   private async getProformaById(dbType: 'mysql' | 'postgresql', tenant: string, nfact: string): Promise<any> {
-    if (dbType === 'mysql') {
-      // Pour MySQL, récupérer la proforma avec ses détails via JOIN, incluant raison_sociale
-      const sql = `
-        SELECT 
-          f.*,
-          c.raison_sociale as client_name,
-          JSON_ARRAYAGG(
-            JSON_OBJECT(
-              'narticle', d.narticle,
-              'designation', COALESCE(a.designation, CONCAT('Article ', d.narticle)),
-              'qte', d.qte,
-              'prix', d.prix,
-              'total_ligne', d.total_ligne
-            )
-          ) as details
-        FROM fprof f
-        LEFT JOIN client c ON f.nclient = c.nclient
-        LEFT JOIN detail_fprof d ON f.nfact = d.nfact
-        LEFT JOIN article a ON d.narticle = a.narticle
-        WHERE f.nfact = ?
-        GROUP BY f.nfact, c.raison_sociale
-      `;
-      
-      const result = await this.executeMySQLQuery(sql, [nfact]);
-      
-      // Parser le JSON des détails si c'est une chaîne
-      if (result.success && result.data && result.data.length > 0) {
-        const proforma = result.data[0];
-        if (typeof proforma.details === 'string') {
-          try {
-            proforma.details = JSON.parse(proforma.details);
-          } catch (e) {
-            console.warn('Failed to parse details JSON:', e);
-            proforma.details = [];
-          }
-        }
-        // Filtrer les détails null (quand il n'y a pas de LEFT JOIN match)
-        if (Array.isArray(proforma.details)) {
-          proforma.details = proforma.details.filter(detail => detail.narticle !== null);
-        }
+    try {
+      // Récupérer d'abord la proforma principale
+      let proformaSql;
+      if (dbType === 'mysql') {
+        proformaSql = `
+          SELECT fprof.*, c.raison_sociale as client_name, c.adresse as client_address, c.tel as client_phone,
+                 CAST(fprof.montant_ht AS DECIMAL(15,2)) as montant_ht_numeric,
+                 CAST(fprof.tva AS DECIMAL(15,2)) as tva_numeric,
+                 CAST(fprof.timbre AS DECIMAL(15,2)) as timbre_numeric,
+                 CAST(fprof.autre_taxe AS DECIMAL(15,2)) as autre_taxe_numeric,
+                 CAST(fprof.montant_ht AS DECIMAL(15,2)) + CAST(fprof.tva AS DECIMAL(15,2)) + CAST(fprof.timbre AS DECIMAL(15,2)) + CAST(fprof.autre_taxe AS DECIMAL(15,2)) as montant_ttc_calculated
+          FROM \`${tenant}\`.fprof fprof
+          LEFT JOIN \`${tenant}\`.client c ON fprof.nclient = c.nclient
+          WHERE fprof.nfact = ?
+        `;
+      } else {
+        proformaSql = `
+          SELECT fprof.*, c.raison_sociale as client_name, c.adresse as client_address, c.tel as client_phone,
+                 CAST(fprof.montant_ht AS NUMERIC(15,2)) as montant_ht_numeric,
+                 CAST(fprof.tva AS NUMERIC(15,2)) as tva_numeric,
+                 CAST(fprof.timbre AS NUMERIC(15,2)) as timbre_numeric,
+                 CAST(fprof.autre_taxe AS NUMERIC(15,2)) as autre_taxe_numeric,
+                 CAST(fprof.montant_ht AS NUMERIC(15,2)) + CAST(fprof.tva AS NUMERIC(15,2)) + CAST(fprof.timbre AS NUMERIC(15,2)) + CAST(fprof.autre_taxe AS NUMERIC(15,2)) as montant_ttc_calculated
+          FROM "${tenant}".fprof fprof
+          LEFT JOIN "${tenant}".client c ON fprof.nclient = c.nclient
+          WHERE fprof.nfact = $1
+        `;
       }
       
-      return result;
-    } else {
-      const sql = `SELECT * FROM "${tenant}".fprof WHERE nfact = $1`;
-      return this.executePostgreSQLQuery(sql, [nfact]);
+      const proformaResult = dbType === 'mysql' ? 
+        await this.executeMySQLQuery(proformaSql, [nfact]) : 
+        await this.executePostgreSQLQuery(proformaSql, [nfact]);
+      
+      if (!proformaResult.success || !proformaResult.data || proformaResult.data.length === 0) {
+        return { success: false, error: 'Proforma not found' };
+      }
+      
+      const proformaData = proformaResult.data[0];
+      
+      // Récupérer les détails de la proforma avec conversion numérique
+      let detailsSql;
+      if (dbType === 'mysql') {
+        detailsSql = `
+          SELECT d.*, a.designation,
+                 CAST(d.qte AS DECIMAL(10,2)) as qte_numeric,
+                 CAST(d.prix AS DECIMAL(15,2)) as prix_numeric,
+                 CAST(d.tva AS DECIMAL(5,2)) as tva_numeric,
+                 CAST(d.total_ligne AS DECIMAL(15,2)) as total_ligne_numeric
+          FROM \`${tenant}\`.detail_fprof d
+          LEFT JOIN \`${tenant}\`.article a ON d.narticle = a.narticle
+          WHERE d.nfact = ?
+          ORDER BY d.narticle
+        `;
+      } else {
+        detailsSql = `
+          SELECT d.*, a.designation,
+                 CAST(d.qte AS NUMERIC(10,2)) as qte_numeric,
+                 CAST(d.prix AS NUMERIC(15,2)) as prix_numeric,
+                 CAST(d.tva AS NUMERIC(5,2)) as tva_numeric,
+                 CAST(d.total_ligne AS NUMERIC(15,2)) as total_ligne_numeric
+          FROM "${tenant}".detail_fprof d
+          LEFT JOIN "${tenant}".article a ON d.narticle = a.narticle
+          WHERE d.nfact = $1
+          ORDER BY d.narticle
+        `;
+      }
+      
+      const detailsResult = dbType === 'mysql' ? 
+        await this.executeMySQLQuery(detailsSql, [nfact]) : 
+        await this.executePostgreSQLQuery(detailsSql, [nfact]);
+      
+      // Formater les détails avec les valeurs numériques converties
+      const details = detailsResult.success && detailsResult.data ? 
+        detailsResult.data.map((detail: any) => ({
+          narticle: detail.narticle,
+          designation: detail.designation || `Article ${detail.narticle}`,
+          qte: parseFloat(detail.qte_numeric?.toString() || detail.qte?.toString() || '0') || 0,
+          prix: parseFloat(detail.prix_numeric?.toString() || detail.prix?.toString() || '0') || 0,
+          tva: parseFloat(detail.tva_numeric?.toString() || detail.tva?.toString() || '0') || 0,
+          total_ligne: parseFloat(detail.total_ligne_numeric?.toString() || detail.total_ligne?.toString() || '0') || 0
+        })) : [];
+      
+      // Utiliser les valeurs numériques converties depuis la base de données
+      const montant_ht = parseFloat(proformaData.montant_ht_numeric?.toString() || proformaData.montant_ht?.toString() || '0') || 0;
+      const tva = parseFloat(proformaData.tva_numeric?.toString() || proformaData.tva?.toString() || '0') || 0;
+      const timbre = parseFloat(proformaData.timbre_numeric?.toString() || proformaData.timbre?.toString() || '0') || 0;
+      const autre_taxe = parseFloat(proformaData.autre_taxe_numeric?.toString() || proformaData.autre_taxe?.toString() || '0') || 0;
+      
+      // Utiliser le calcul fait par la base de données en priorité
+      let montant_ttc = parseFloat(proformaData.montant_ttc_calculated?.toString() || '0');
+      if (isNaN(montant_ttc) || montant_ttc === 0) {
+        // Fallback au calcul manuel si le calcul DB a échoué
+        montant_ttc = montant_ht + tva + timbre + autre_taxe;
+      }
+      
+      const result = {
+        ...proformaData,
+        details: details,
+        // Normaliser les champs pour compatibilité
+        date_fact: proformaData.date_fact,
+        montant_ht: montant_ht,
+        tva: tva,
+        timbre: timbre,
+        autre_taxe: autre_taxe,
+        montant_ttc: montant_ttc
+      };
+      
+      console.log(`✅ ${dbType}: Found Proforma ${nfact} with ${details.length} article details, TTC: ${montant_ttc}`);
+      
+      return { success: true, data: result };
+    } catch (error) {
+      console.error(`❌ ${dbType}: Error fetching Proforma ${nfact}:`, error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
