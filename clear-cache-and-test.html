@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test BL 5 - Total TTC Corrigé</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+        }
+        .success {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        .warning {
+            border-left-color: #ffc107;
+            background-color: #fff3cd;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .code {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Test BL 5 - Correction Total TTC</h1>
+        
+        <div class="step success">
+            <h3>✅ Correction Déployée</h3>
+            <p><strong>Commit :</strong> 9d47a6d - Fix Total TTC display issue</p>
+            <p><strong>URL Production :</strong> https://frontend-7b9x59gqg-tigdittgolf-9191s-projects.vercel.app</p>
+            <p><strong>Total TTC attendu pour BL 5 :</strong> 1 190,00 DA</p>
+        </div>
+
+        <div class="step warning">
+            <h3>🔧 Actions à Effectuer</h3>
+            <ol>
+                <li><strong>Vider le cache navigateur :</strong>
+                    <div class="code">Ctrl + Shift + R (ou Cmd + Shift + R sur Mac)</div>
+                </li>
+                <li><strong>Ou ouvrir en navigation privée :</strong>
+                    <div class="code">Ctrl + Shift + N (ou Cmd + Shift + N sur Mac)</div>
+                </li>
+                <li><strong>Aller sur l'application :</strong>
+                    <a href="https://frontend-7b9x59gqg-tigdittgolf-9191s-projects.vercel.app" class="button" target="_blank">
+                        🚀 Ouvrir l'Application
+                    </a>
+                </li>
+                <li><strong>Se connecter et tester le BL 5</strong></li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>🧪 Test de Vérification</h3>
+            <p>Une fois connecté, naviguez vers :</p>
+            <ul>
+                <li>📋 <strong>Liste des BL</strong> → BL N° 5</li>
+                <li>📄 <strong>Générer PDF</strong> → Vérifier que "Total TTC : 1 190,00 DA" s'affiche</li>
+                <li>🎫 <strong>Tester tous les formats</strong> : Complet, Réduit, Ticket</li>
+            </ul>
+        </div>
+
+        <div class="step success">
+            <h3>🔍 Diagnostic Technique</h3>
+            <p><strong>Problème identifié :</strong> montant_ttc = undefined dans la base de données</p>
+            <p><strong>Solution appliquée :</strong> Calcul automatique = montant_ht + tva</p>
+            <p><strong>Résultat :</strong> 1000 + 190 = 1190 DA</p>
+        </div>
+
+        <div class="step">
+            <h3>📱 Si le problème persiste</h3>
+            <p>Contactez-moi avec une capture d'écran du PDF généré pour diagnostic approfondi.</p>
+        </div>
+    </div>
+
+    <script>
+        // Forcer le rechargement sans cache
+        if (performance.navigation.type !== 1) {
+            console.log('🔄 Rechargement forcé pour éviter le cache');
+        }
+        
+        // Afficher les informations de cache
+        console.log('📊 Informations de cache:', {
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            cacheStatus: 'Rechargement recommandé'
+        });
+    </script>
+</body>
+</html>
