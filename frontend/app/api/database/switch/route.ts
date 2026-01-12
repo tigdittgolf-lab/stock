@@ -1,43 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
+  : 'http://localhost:3005/api';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     
-    // Utiliser Tailscale (URL permanente) avec le bon endpoint
-    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://desktop-bhhs068.tail1d9c54.ts.net' : 'http://localhost:3005'}/api/database/switch`;
-    
-    console.log('Switching database via tunnel:', backendUrl);
-    console.log('Switch config:', body);
-    
-    const response = await fetch(backendUrl, {
+    console.log(`🔄 Frontend API: Switch database request:`, body);
+
+    // Appeler l'endpoint de switch du backend
+    const response = await fetch(`${API_BASE_URL}/database/switch`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Tenant': '2025_bu01',
-        // Transférer les headers d'authentification si présents
-        ...(request.headers.get('authorization') && {
-          'Authorization': request.headers.get('authorization')!
-        })
+        'X-Tenant': tenant
       },
-      body: JSON.stringify({ type: body.type, config: body })
+      body: JSON.stringify(body)
     });
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Backend switch error response:', response.status, errorText);
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      return NextResponse.json({
+        success: false,
+        error: `Backend error: ${response.status} - ${errorText}`
+      }, { status: response.status });
     }
     
     const data = await response.json();
-    console.log('Backend switch response:', data);
     
-    return NextResponse.json(data, { status: response.status });
-    
+    return NextResponse.json(data);
   } catch (error) {
-    console.error('Error in database switch API:', error);
+    console.error('❌ Frontend API error switching database:', error);
     return NextResponse.json(
-      { success: false, error: `Failed to switch database: ${error instanceof Error ? error.message : 'Unknown error'}` },
+      { success: false, error: 'Failed to switch database' },
       { status: 500 }
     );
   }

@@ -27,7 +27,7 @@ export default function DatabaseTypeIndicator({ className, style }: DatabaseType
         const response = await fetch(apiUrl);
         if (response.ok) {
           const data = await response.json();
-          const backendType = data.data.type;
+          const backendType = data.currentType; // Correction: utiliser currentType au lieu de data.data.type
           setDatabaseType(backendType);
           
           // Vérifier la synchronisation avec le frontend

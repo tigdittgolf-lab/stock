@@ -1,31 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-function getApiUrl() {
-  // En production, utiliser Tailscale (URL permanente)
-  if (process.env.NODE_ENV === 'production') {
-    return 'https://desktop-bhhs068.tail1d9c54.ts.net';
-  }
-  // En développement, utiliser localhost
-  return 'http://localhost:3005';
-}
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
+  : 'http://localhost:3005/api';
 
 export async function GET(request: NextRequest) {
   try {
-    // Rediriger vers le backend via tunnel
-    const backendUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
-      : 'http://localhost:3005/api';
+    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     
-    const response = await fetch(backendUrl, {
+    // Appeler l'endpoint de statut de base de données du backend
+    const response = await fetch(`${API_BASE_URL}/database/current`, {
       method: 'GET',
       headers: {
-        'X-Tenant': '2025_bu01'
+        'X-Tenant': tenant
       }
     });
     
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.status}`);
+    }
+    
     const data = await response.json();
     
-    return NextResponse.json(data);
+    return NextResponse.json({
+      success: true,
+      currentType: data.currentType,
+      timestamp: data.timestamp
+    });
   } catch (error) {
     console.error('Database status error:', error);
     return NextResponse.json(
