@@ -59,7 +59,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
       }
       
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`http://localhost:3005/api/sales/delivery-notes/${resolvedParams.id}`, {
+      const response = await fetch(`/api/sales/delivery-notes/${resolvedParams.id}`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -89,7 +89,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       console.log('🏢 Fetching company info for tenant:', tenant);
       
-      const response = await fetch(`http://localhost:3005/api/settings/activities`, {
+      const response = await fetch(`/api/settings/activities`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -199,7 +199,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           <button 
             onClick={() => {
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-              const url = `http://localhost:3005/api/pdf/delivery-note/${deliveryNote.nbl}`;
+              const url = `/api/pdf/delivery-note/${deliveryNote.nbl}`;
               
               fetch(url, {
                 headers: {
@@ -224,7 +224,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           <button 
             onClick={() => {
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-              const url = `http://localhost:3005/api/pdf/delivery-note-small/${deliveryNote.nbl}`;
+              const url = `/api/pdf/delivery-note-small/${deliveryNote.nbl}`;
               
               fetch(url, {
                 headers: {
@@ -249,7 +249,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           <button 
             onClick={() => {
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-              const url = `http://localhost:3005/api/pdf/delivery-note-ticket/${deliveryNote.nbl}`;
+              const url = `/api/pdf/delivery-note-ticket/${deliveryNote.nbl}`;
               
               fetch(url, {
                 headers: {
@@ -366,7 +366,16 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
               </div>
               <div className={styles.totalRow}>
                 <strong>Total TTC :</strong>
-                <strong>{deliveryNote.montant_ttc?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</strong>
+                <strong>
+                  {(() => {
+                    // Calcul automatique du Total TTC si non défini
+                    let totalTTC = deliveryNote.montant_ttc;
+                    if (totalTTC === undefined || totalTTC === null || isNaN(totalTTC)) {
+                      totalTTC = (deliveryNote.montant_ht || 0) + (deliveryNote.tva || 0);
+                    }
+                    return totalTTC.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                  })()} DA
+                </strong>
               </div>
             </div>
           </div>
