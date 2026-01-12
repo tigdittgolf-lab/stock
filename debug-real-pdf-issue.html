@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Real PDF Issue</title>
+</head>
+<body>
+    <h1>Debug Real PDF TTC Issue</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function debugRealIssue() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>🔍 Debugging real PDF TTC issue...</p>';
+            
+            const baseUrl = 'https://frontend-iota-six-72.vercel.app';
+            const tenant = '2025_bu01';
+            const blId = 5;
+            
+            try {
+                // 1. Test data endpoint to see raw data
+                console.log('📊 Testing data endpoint...');
+                const dataResponse = await fetch(`${baseUrl}/api/sales/delivery-notes/${blId}`, {
+                    headers: { 'X-Tenant': tenant }
+                });
+                
+                if (dataResponse.ok) {
+                    const data = await dataResponse.json();
+                    console.log('📊 Raw API Data:', data);
+                    
+                    results.innerHTML += `
+                        <h3>📊 Raw API Data (${data.database_type}):</h3>
+                        <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                        <h4>🔍 Type Analysis:</h4>
+                        <ul>
+                            <li>montant_ht: ${data.data.montant_ht} (type: ${typeof data.data.montant_ht})</li>
+                            <li>tva: ${data.data.tva} (type: ${typeof data.data.tva})</li>
+                            <li>montant_ttc: ${data.data.montant_ttc} (type: ${typeof data.data.montant_ttc})</li>
+                        </ul>
+                    `;
+                    
+                    // Test calculation manually
+                    const ht = data.data.montant_ht;
+                    const tva = data.data.tva;
+                    const ttc = data.data.montant_ttc;
+                    
+                    results.innerHTML += `
+                        <h4>🧮 Manual Calculation Test:</h4>
+                        <ul>
+                            <li>Raw addition: ${ht} + ${tva} = ${ht + tva}</li>
+                            <li>parseFloat addition: ${parseFloat(ht)} + ${parseFloat(tva)} = ${parseFloat(ht) + parseFloat(tva)}</li>
+                            <li>String concat test: "${ht}" + "${tva}" = "${"" + ht + tva}"</li>
+                        </ul>
+                    `;
+                }
+                
+                // 2. Test PDF debug endpoint
+                console.log('🔍 Testing PDF debug endpoint...');
+                const debugResponse = await fetch(`${baseUrl}/api/pdf/debug-bl/${blId}`, {
+                    headers: { 'X-Tenant': tenant }
+                });
+                
+                if (debugResponse.ok) {
+                    const debugData = await debugResponse.json();
+                    console.log('🔍 PDF Debug Data:', debugData);
+                    
+                    results.innerHTML += `
+                        <h3>🔍 PDF Debug Data:</h3>
+                        <pre>${JSON.stringify(debugData, null, 2)}</pre>
+                    `;
+                }
+                
+                // 3. Test actual PDF generation
+                console.log('📄 Testing PDF generation...');
+                const pdfResponse = await fetch(`${baseUrl}/api/pdf/delivery-note/${blId}`, {
+                    headers: { 'X-Tenant': tenant }
+                });
+                
+                results.innerHTML += `
+                    <h3>📄 PDF Generation Test:</h3>
+                    <ul>
+                        <li>Status: ${pdfResponse.status}</li>
+                        <li>Content-Type: ${pdfResponse.headers.get('content-type')}</li>
+                        <li>Size: ${pdfResponse.headers.get('content-length')} bytes</li>
+                    </ul>
+                `;
+                
+                if (pdfResponse.ok) {
+                    const blob = await pdfResponse.blob();
+                    const url = URL.createObjectURL(blob);
+                    results.innerHTML += `
+                        <p><a href="${url}" download="debug_bl_${blId}.pdf" target="_blank">📥 Download Debug PDF</a></p>
+                    `;
+                } else {
+                    const errorText = await pdfResponse.text();
+                    results.innerHTML += `<p>❌ PDF Error: ${errorText}</p>`;
+                }
+                
+            } catch (error) {
+                console.error('❌ Debug failed:', error);
+                results.innerHTML += `<p>❌ Debug failed: ${error.message}</p>`;
+            }
+        }
+        
+        // Run debug when page loads
+        window.onload = debugRealIssue;
+    </script>
+</body>
+</html>

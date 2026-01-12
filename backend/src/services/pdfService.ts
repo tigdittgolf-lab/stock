@@ -477,13 +477,14 @@ export class PDFService {
       // S'assurer que totalTTC est un nombre valide
       totalTTC = parseFloat(totalTTC.toString()) || 0;
 
-      console.log(`🔍 PDF Service - Calcul totalTTC:`, {
+      console.log(`🔍 PDF Service - Calcul totalTTC (v2.0):`, {
         montant_ht: deliveryData.montant_ht || 0,
         tva: deliveryData.tva || 0,
         timbre: deliveryData.timbre || 0,
         autre_taxe: deliveryData.autre_taxe || 0,
         montant_ttc_from_data: deliveryData.montant_ttc,
-        totalTTC_final: totalTTC
+        totalTTC_final: totalTTC,
+        deployment_version: '2.0_CRITICAL_FIX'
       });
 
       doc.text('Sous-total HT:', 120, yPos);

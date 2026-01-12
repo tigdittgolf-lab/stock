@@ -246,8 +246,8 @@ async function fetchBLData(tenant: string, id: string) {
       montant_ttc = montant_ht + tva + timbre + autre_taxe;
     }
     
-    // Debug logs pour vérifier les calculs AVANT formatage
-    console.log(`🔍 PDF Debug BL ${actualId} - Conversion des types:`, {
+    // Debug logs pour vérifier les calculs AVANT formatage - VERSION 2.0
+    console.log(`🔍 PDF Debug BL ${actualId} - Conversion des types (v2.0):`, {
       raw_montant_ht: blInfo.montant_ht,
       raw_tva: blInfo.tva,
       raw_montant_ttc: blInfo.montant_ttc,
@@ -255,7 +255,8 @@ async function fetchBLData(tenant: string, id: string) {
       converted_tva: tva,
       converted_montant_ttc_from_db: parseFloat(blInfo.montant_ttc?.toString() || '0'),
       calculated_montant_ttc: montant_ttc,
-      final_calculation: montant_ht + tva + timbre + autre_taxe
+      final_calculation: montant_ht + tva + timbre + autre_taxe,
+      deployment_version: '2.0_CRITICAL_FIX'
     });
     
     const formattedBL = {
