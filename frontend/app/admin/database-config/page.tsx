@@ -57,12 +57,19 @@ export default function DatabaseConfigPage() {
       const response = await fetch('/api/database/status');
       if (response.ok) {
         const data = await response.json();
-        setBackendStatus(data.data);
+        
+        // Créer un objet de statut compatible avec l'interface
+        const statusData = {
+          type: data.currentType,
+          timestamp: data.timestamp
+        };
+        
+        setBackendStatus(statusData);
         
         // Initialiser l'interface avec le type backend actuel
-        if (data.data.type) {
-          setSelectedType(data.data.type);
-          setConfig(getDefaultConfig(data.data.type));
+        if (data.currentType) {
+          setSelectedType(data.currentType);
+          setConfig(getDefaultConfig(data.currentType));
         }
       }
     } catch (error) {
