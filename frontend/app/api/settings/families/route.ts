@@ -1,87 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
+  : 'http://localhost:3005/api';
 
 export async function GET(request: NextRequest) {
   try {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     console.log(`🔍 Récupération des familles pour le tenant: ${tenant}`);
 
-    try {
-      const { data, error } = await supabase.rpc('get_families', {
-        p_tenant: tenant
-      });
-
-      console.log(`📊 Résultat RPC get_families:`, { 
-        error: error, 
-        dataType: typeof data,
-        dataContent: data,
-        tenant: tenant 
-      });
-
-      if (!error && data) {
-        let families = data;
-        if (typeof data === 'string') {
-          try {
-            families = JSON.parse(data);
-          } catch (parseError) {
-            console.log('⚠️ Failed to parse JSON:', parseError);
-            families = [];
-          }
-        }
-        
-        console.log(`✅ Familles récupérées via RPC:`, families?.length || 0);
-        return NextResponse.json({
-          success: true,
-          data: families || [],
-          debug: {
-            tenant: tenant,
-            method: 'rpc_function',
-            function: 'get_families',
-            dataType: typeof data,
-            originalData: data
-          }
-        });
-      } else if (error) {
-        console.log(`❌ Erreur RPC:`, error);
-        return NextResponse.json({
-          success: true,
-          data: [],
-          debug: {
-            tenant: tenant,
-            error: error.message,
-            function: 'get_families',
-            suggestion: 'Vérifiez que la fonction RPC get_families existe dans Supabase'
-          }
-        });
-      }
-    } catch (rpcError) {
-      console.log('⚠️ RPC function failed:', rpcError);
-      return NextResponse.json({
-        success: true,
-        data: [],
-        debug: {
-          tenant: tenant,
-          error: rpcError instanceof Error ? rpcError.message : 'RPC Error',
-          function: 'get_families',
-          suggestion: 'La fonction RPC get_families n\'existe pas ou a échoué'
-        }
-      });
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: [],
-      debug: {
-        tenant: tenant,
-        method: 'fallback',
-        message: 'Aucune méthode n\'a fonctionné'
+    const response = await fetch(`${API_BASE_URL}/settings/families`, {
+      headers: {
+        'X-Tenant': tenant
       }
     });
+
+    if (!response.ok) {
+      throw new Error(`Backend error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
 
   } catch (error) {
     console.error('❌ Erreur serveur:', error);
@@ -100,31 +39,25 @@ export async function POST(request: NextRequest) {
     
     console.log(`🔍 Création famille pour le tenant: ${tenant}`, body);
 
-    // Créer une famille via RPC
-    try {
-      const { data, error } = await supabase.rpc('create_family', {
-        p_tenant: tenant,
-        p_famille: body.famille
-      });
+    const response = await fetch(`${API_BASE_URL}/settings/families`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Tenant': tenant
+      },
+      body: JSON.stringify(body)
+    });
 
-      if (!error) {
-        return NextResponse.json({
-          success: true,
-          message: 'Famille créée avec succès',
-          data: data
-        });
-      } else {
-        return NextResponse.json({
-          success: false,
-          error: error.message
-        }, { status: 400 });
-      }
-    } catch (rpcError) {
+    if (!response.ok) {
+      const errorText = await response.text();
       return NextResponse.json({
         success: false,
-        error: 'Fonction RPC create_family non disponible'
-      }, { status: 500 });
+        error: `Backend error: ${response.status} - ${errorText}`
+      }, { status: response.status });
     }
+
+    const data = await response.json();
+    return NextResponse.json(data);
 
   } catch (error) {
     console.error('❌ Erreur création famille:', error);
@@ -143,30 +76,23 @@ export async function DELETE(request: NextRequest) {
     
     console.log(`🔍 Suppression famille pour le tenant: ${tenant}`, famille);
 
-    // Supprimer une famille via RPC
-    try {
-      const { data, error } = await supabase.rpc('delete_family', {
-        p_tenant: tenant,
-        p_famille: famille
-      });
-
-      if (!error) {
-        return NextResponse.json({
-          success: true,
-          message: 'Famille supprimée avec succès'
-        });
-      } else {
-        return NextResponse.json({
-          success: false,
-          error: error.message
-        }, { status: 400 });
+    const response = await fetch(`${API_BASE_URL}/settings/families/${encodeURIComponent(famille || '')}`, {
+      method: 'DELETE',
+      headers: {
+        'X-Tenant': tenant
       }
-    } catch (rpcError) {
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
       return NextResponse.json({
         success: false,
-        error: 'Fonction RPC delete_family non disponible'
-      }, { status: 500 });
+        error: `Backend error: ${response.status} - ${errorText}`
+      }, { status: response.status });
     }
+
+    const data = await response.json();
+    return NextResponse.json(data);
 
   } catch (error) {
     console.error('❌ Erreur suppression famille:', error);

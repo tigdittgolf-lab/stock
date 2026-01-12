@@ -85,7 +85,7 @@ export default function SettingsPage() {
       setLoading(true);
       console.log('🔍 Chargement des familles...');
       
-      const response = await fetch(`getApiUrl('settings/families')`, {
+      const response = await fetch(getApiUrl('settings/families'), {
         headers: {
           'X-Tenant': getTenant()
         }
@@ -128,7 +128,7 @@ export default function SettingsPage() {
 
     try {
       setLoading(true);
-      const response = await fetch(`getApiUrl('settings/families')`, {
+      const response = await fetch(getApiUrl('settings/families'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -162,7 +162,7 @@ export default function SettingsPage() {
 
     try {
       setLoading(true);
-      const response = await fetch(`getApiUrl('settings/families/${encodeURIComponent(famille)}')`, {
+      const response = await fetch(getApiUrl(`settings/families/${encodeURIComponent(famille)}`), {
         method: 'DELETE',
         headers: {
           'X-Tenant': getTenant()
