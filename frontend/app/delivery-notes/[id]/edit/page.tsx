@@ -60,7 +60,8 @@ export default function EditDeliveryNote({ params }: { params: Promise<{ id: str
   useEffect(() => {
     // Force le re-render des totaux quand les détails changent
     const totals = calculateTotals();
-    console.log('🔄 Totaux recalculés:', totals);
+    // Supprimer le log excessif pour éviter le spam
+    // console.log('🔄 Totaux recalculés:', totals);
   }, [details]);
 
   const loadInitialData = async () => {
