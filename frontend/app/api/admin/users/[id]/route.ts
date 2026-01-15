@@ -9,10 +9,11 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 // GET - Récupérer un utilisateur par ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = parseInt(params.id);
+    const { id } = await params;
+    const userId = parseInt(id);
     
     if (isNaN(userId)) {
       return NextResponse.json({
@@ -52,10 +53,11 @@ export async function GET(
 // PUT - Mettre à jour un utilisateur
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = parseInt(params.id);
+    const { id } = await params;
+    const userId = parseInt(id);
     
     if (isNaN(userId)) {
       return NextResponse.json({
@@ -124,10 +126,11 @@ export async function PUT(
 // DELETE - Supprimer un utilisateur
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = parseInt(params.id);
+    const { id } = await params;
+    const userId = parseInt(id);
     
     if (isNaN(userId)) {
       return NextResponse.json({
