@@ -1,24 +1,7 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/frontend/$1"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production",
-    "NEXT_PUBLIC_API_URL": "https://enabled-encourage-mechanics-performance.trycloudflare.com/api"
-  },
-  "functions": {
-    "frontend/pages/api/**/*.js": {
-      "maxDuration": 30
-    }
+  "public": true,
+  "github": {
+    "silent": true
   }
 }
