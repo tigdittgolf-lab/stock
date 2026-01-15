@@ -47,11 +47,40 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log('🔍 Création nouvel utilisateur:', body);
+    console.log('🔍 Création nouvel utilisateur:', { ...body, password: '***' });
+
+    // Validation des champs requis
+    if (!body.username || !body.email || !body.password) {
+      return NextResponse.json({
+        success: false,
+        error: 'Username, email et password sont requis'
+      }, { status: 400 });
+    }
+
+    // Hasher le mot de passe (simple hash pour l'instant)
+    // TODO: Utiliser bcrypt pour un hash plus sécurisé en production
+    const crypto = require('crypto');
+    const password_hash = crypto
+      .createHash('sha256')
+      .update(body.password)
+      .digest('hex');
+
+    // Préparer les données pour l'insertion
+    const userData = {
+      username: body.username,
+      email: body.email,
+      password_hash: password_hash, // Utiliser password_hash au lieu de password
+      full_name: body.full_name || '',
+      role: body.role || 'user',
+      business_units: body.business_units || [],
+      active: true
+    };
+
+    console.log('📝 Données utilisateur préparées:', { ...userData, password_hash: '***' });
 
     const { data, error } = await supabase
       .from('users')
-      .insert([body])
+      .insert([userData])
       .select()
       .single();
 
@@ -75,7 +104,8 @@ export async function POST(request: NextRequest) {
     console.error('❌ Erreur création utilisateur:', error);
     return NextResponse.json({
       success: false,
-      error: 'Erreur interne du serveur'
+      error: 'Erreur interne du serveur',
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }
