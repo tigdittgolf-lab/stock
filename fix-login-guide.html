@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide de Correction - Problème de Connexion</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #dc3545;
+            border-bottom: 4px solid #dc3545;
+            padding-bottom: 15px;
+            margin-top: 0;
+        }
+        h2 {
+            color: #28a745;
+            margin-top: 30px;
+        }
+        .problem-box {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .solution-box {
+            background: #d4edda;
+            border-left: 5px solid #28a745;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .code-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .step {
+            background: #e7f3ff;
+            border-left: 4px solid #007bff;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .step-number {
+            display: inline-block;
+            width: 35px;
+            height: 35px;
+            background: #007bff;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 35px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .button {
+            display: inline-block;
+            padding: 15px 30px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+        .button:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,123,255,0.3);
+        }
+        .button.success {
+            background: #28a745;
+        }
+        .button.success:hover {
+            background: #218838;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .user-table th,
+        .user-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .user-table th {
+            background: #007bff;
+            color: white;
+        }
+        .user-table tr:hover {
+            background: #f8f9fa;
+        }
+        .highlight {
+            background: #fff3cd;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Guide de Correction - Problème de Connexion</h1>
+        
+        <div class="problem-box">
+            <h3 style="margin-top: 0;">❌ Problème Identifié</h3>
+            <p><strong>Symptôme</strong>: Vous avez créé un utilisateur via l'interface admin, mais vous ne pouvez pas vous connecter avec.</p>
+            <p><strong>Message d'erreur</strong>: "Nom d'utilisateur ou mot de passe incorrect"</p>
+            <p><strong>Cause</strong>: La fonction <code>authenticate_user</code> dans Supabase compare le mot de passe hashé avec le mot de passe en clair.</p>
+        </div>
+
+        <div class="solution-box">
+            <h3 style="margin-top: 0;">✅ Solution</h3>
+            <p>Corriger la fonction <code>authenticate_user</code> pour qu'elle hashe le mot de passe fourni AVANT de le comparer.</p>
+        </div>
+
+        <h2>📋 Instructions Étape par Étape</h2>
+
+        <div class="step">
+            <span class="step-number">1</span>
+            <strong>Ouvrez le SQL Editor de Supabase</strong>
+            <p style="margin: 10px 0 10px 45px;">
+                Cliquez sur le bouton ci-dessous pour ouvrir directement l'éditeur SQL:
+            </p>
+            <div style="margin-left: 45px;">
+                <a href="https://supabase.com/dashboard/project/szgodrjglbpzkrksnroi/sql/new" 
+                   target="_blank" 
+                   class="button">
+                    🚀 Ouvrir SQL Editor
+                </a>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            <strong>Copiez le script SQL de correction</strong>
+            <p style="margin: 10px 0 10px 45px;">
+                Le script se trouve dans le fichier: <code>FIX_AUTHENTICATE_USER_HASH.sql</code>
+            </p>
+            <div class="code-box" style="margin-left: 45px;">
+                <button onclick="copySQL()" style="float: right; padding: 5px 15px; cursor: pointer; background: #28a745; color: white; border: none; border-radius: 4px;">
+                    📋 Copier
+                </button>
+                <pre id="sqlCode" style="margin: 0; white-space: pre-wrap;">CREATE OR REPLACE FUNCTION authenticate_user(
+    p_username VARCHAR,
+    p_password VARCHAR
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_user RECORD;
+    v_result JSON;
+    v_password_hash TEXT;
+BEGIN
+    -- Hasher le mot de passe fourni avec SHA-256
+    v_password_hash := encode(digest(p_password, 'sha256'), 'hex');
+    
+    -- Récupérer l'utilisateur par username OU email
+    SELECT 
+        id, username, email, password_hash, full_name, role, 
+        business_units, active
+    INTO v_user
+    FROM public.users
+    WHERE (username = p_username OR email = p_username) AND active = true;
+    
+    IF NOT FOUND THEN
+        RETURN json_build_object(
+            'success', false,
+            'error', 'Utilisateur non trouvé ou inactif'
+        );
+    END IF;
+    
+    -- Vérifier le mot de passe hashé
+    IF v_user.password_hash != v_password_hash THEN
+        RETURN json_build_object(
+            'success', false,
+            'error', 'Mot de passe incorrect'
+        );
+    END IF;
+    
+    -- Mettre à jour la date de dernière connexion
+    UPDATE public.users 
+    SET last_login = CURRENT_TIMESTAMP 
+    WHERE id = v_user.id;
+    
+    -- Retourner les informations de l'utilisateur
+    v_result := json_build_object(
+        'success', true,
+        'user', json_build_object(
+            'id', v_user.id,
+            'username', v_user.username,
+            'email', v_user.email,
+            'full_name', v_user.full_name,
+            'role', v_user.role,
+            'business_units', v_user.business_units
+        )
+    );
+    
+    RETURN v_result;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'success', false,
+            'error', 'Erreur lors de l''authentification: ' || SQLERRM
+        );
+END;
+$$;</pre>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">3</span>
+            <strong>Collez et Exécutez</strong>
+            <p style="margin: 10px 0 10px 45px;">
+                1. Collez le code dans l'éditeur SQL de Supabase<br>
+                2. Cliquez sur le bouton <strong>"Run"</strong> (vert, en bas à droite)<br>
+                3. Attendez le message de confirmation
+            </p>
+        </div>
+
+        <div class="step">
+            <span class="step-number">4</span>
+            <strong>Testez la Connexion</strong>
+            <p style="margin: 10px 0 10px 45px;">
+                Retournez sur la page de connexion et essayez de vous connecter:
+            </p>
+            <div style="margin-left: 45px;">
+                <a href="https://frontend-iota-six-72.vercel.app" 
+                   target="_blank" 
+                   class="button success">
+                    🔐 Tester la Connexion
+                </a>
+            </div>
+        </div>
+
+        <h2>👥 Utilisateurs dans la Base</h2>
+        
+        <table class="user-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Statut</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>admin</td>
+                    <td>admin@example.com</td>
+                    <td>admin</td>
+                    <td>✅ Actif</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>manager</td>
+                    <td>manager@example.com</td>
+                    <td>manager</td>
+                    <td>✅ Actif</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>user</td>
+                    <td>user@example.com</td>
+                    <td>user</td>
+                    <td>✅ Actif</td>
+                </tr>
+                <tr class="highlight">
+                    <td>11</td>
+                    <td><strong>habib</strong></td>
+                    <td><strong>habib.belkacemi@outlook.com</strong></td>
+                    <td><strong>manager</strong></td>
+                    <td>✅ Actif</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="info">
+            <strong>💡 Note</strong>: L'utilisateur "habib" (ID: 11) est celui que vous venez de créer. Après la correction, vous pourrez vous connecter avec cet utilisateur.
+        </div>
+
+        <h2>🧪 Test Optionnel dans SQL Editor</h2>
+        
+        <p>Après avoir exécuté la correction, vous pouvez tester directement dans le SQL Editor:</p>
+        
+        <div class="code-box">
+            SELECT authenticate_user('habib', 'votre_mot_de_passe');
+        </div>
+
+        <p>Résultat attendu:</p>
+        <div class="code-box">
+{
+  "success": true,
+  "user": {
+    "id": 11,
+    "username": "habib",
+    "email": "habib.belkacemi@outlook.com",
+    "role": "manager",
+    "business_units": [...]
+  }
+}
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ Important</strong>: Remplacez <code>'votre_mot_de_passe'</code> par le mot de passe réel que vous avez saisi lors de la création de l'utilisateur.
+        </div>
+
+        <h2>📚 Documentation Complète</h2>
+        
+        <p>Pour plus de détails techniques, consultez:</p>
+        <ul>
+            <li><code>FIX_LOGIN_PROBLEM_SOLUTION.md</code> - Documentation complète</li>
+            <li><code>FIX_AUTHENTICATE_USER_HASH.sql</code> - Script SQL de correction</li>
+            <li><code>ADMIN_USERS_MULTI_DB_COMPLETE.md</code> - Documentation du système admin</li>
+        </ul>
+
+        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #dee2e6;">
+            <p style="color: #6c757d;">
+                <strong>Date</strong>: 15 janvier 2026<br>
+                <strong>Status</strong>: 🔧 Correction Prête - Exécution Manuelle Requise
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function copySQL() {
+            const sqlCode = document.getElementById('sqlCode').textContent;
+            navigator.clipboard.writeText(sqlCode).then(() => {
+                alert('✅ Code SQL copié dans le presse-papiers!\n\nVous pouvez maintenant le coller dans le SQL Editor de Supabase.');
+            }).catch(err => {
+                alert('❌ Erreur lors de la copie. Veuillez copier manuellement le code.');
+            });
+        }
+    </script>
+</body>
+</html>
