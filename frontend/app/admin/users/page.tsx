@@ -41,6 +41,10 @@ export default function UsersPage() {
     business_units: [] as string[]
   });
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [editPassword, setEditPassword] = useState('');
+
   useEffect(() => {
     fetchUsers();
     fetchBusinessUnits();
@@ -150,6 +154,12 @@ export default function UsersPage() {
 
     console.log('🔄 Updating user:', editingUser);
 
+    // Préparer les données avec le nouveau mot de passe si fourni
+    const updateData = {
+      ...editingUser,
+      ...(editPassword.trim() !== '' && { password: editPassword })
+    };
+
     try {
       setLoading(true);
       const token = localStorage.getItem('auth_token');
@@ -159,7 +169,7 @@ export default function UsersPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(editingUser)
+        body: JSON.stringify(updateData)
       });
 
       console.log('📡 Response status:', response.status);
@@ -170,6 +180,8 @@ export default function UsersPage() {
       if (result.success) {
         showMessage('Utilisateur mis à jour avec succès !');
         setEditingUser(null);
+        setEditPassword('');
+        setShowEditPassword(false);
         fetchUsers();
       } else {
         console.error('❌ Update failed:', result.error);
@@ -369,18 +381,39 @@ export default function UsersPage() {
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
                   Mot de passe *
                 </label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  placeholder="••••••••"
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #dee2e6',
-                    borderRadius: '4px'
-                  }}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    placeholder="••••••••"
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      paddingRight: '45px',
+                      border: '1px solid #dee2e6',
+                      borderRadius: '4px'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '5px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '5px 10px',
+                      fontSize: '16px'
+                    }}
+                    title={showPassword ? "Masquer" : "Afficher"}
+                  >
+                    {showPassword ? '🙈' : '👁️'}
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -630,6 +663,56 @@ export default function UsersPage() {
                             <option value="true">✅ Actif</option>
                             <option value="false">❌ Inactif</option>
                           </select>
+                        </div>
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', fontWeight: '500', fontSize: '14px', cursor: 'pointer' }}>
+                            <input
+                              type="checkbox"
+                              checked={showEditPassword}
+                              onChange={(e) => {
+                                setShowEditPassword(e.target.checked);
+                                if (!e.target.checked) setEditPassword('');
+                              }}
+                              style={{ marginRight: '8px' }}
+                            />
+                            🔐 Changer le mot de passe
+                          </label>
+                          {showEditPassword && (
+                            <div style={{ position: 'relative', maxWidth: '400px' }}>
+                              <input
+                                type={showPassword ? "text" : "password"}
+                                value={editPassword}
+                                onChange={(e) => setEditPassword(e.target.value)}
+                                placeholder="Nouveau mot de passe"
+                                style={{
+                                  width: '100%',
+                                  padding: '10px',
+                                  paddingRight: '45px',
+                                  border: '1px solid #dee2e6',
+                                  borderRadius: '4px',
+                                  fontSize: '14px'
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                style={{
+                                  position: 'absolute',
+                                  right: '5px',
+                                  top: '50%',
+                                  transform: 'translateY(-50%)',
+                                  background: 'transparent',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  padding: '5px 10px',
+                                  fontSize: '16px'
+                                }}
+                                title={showPassword ? "Masquer" : "Afficher"}
+                              >
+                                {showPassword ? '🙈' : '👁️'}
+                              </button>
+                            </div>
+                          )}
                         </div>
                         <div style={{ gridColumn: '1 / -1' }}>
                           <label style={{ display: 'block', marginBottom: '10px', fontWeight: '500', fontSize: '14px' }}>
