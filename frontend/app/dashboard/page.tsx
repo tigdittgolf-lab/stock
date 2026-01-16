@@ -614,10 +614,52 @@ export default function Dashboard() {
               <span>
                 <strong>Contexte:</strong> {tenantInfo.business_unit.toUpperCase()} - Exercice {tenantInfo.year} ({tenantInfo.schema})
               </span>
+              {companyInfo && (
+                <span style={{ 
+                  padding: '4px 12px', 
+                  background: '#e7f3ff', 
+                  borderRadius: '12px',
+                  color: '#004085',
+                  fontWeight: '500'
+                }}>
+                  🏢 {companyInfo.nom_entreprise || 'Activité non définie'}
+                </span>
+              )}
               <DatabaseTypeIndicator />
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* Afficher le nom de l'utilisateur connecté */}
+            {(() => {
+              try {
+                const userInfo = typeof window !== 'undefined' ? localStorage.getItem('user_info') : null;
+                const user = userInfo ? JSON.parse(userInfo) : null;
+                if (user) {
+                  const roleIcon = user.role === 'admin' ? '👨‍💼' : user.role === 'manager' ? '👔' : '👤';
+                  const roleColor = user.role === 'admin' ? '#667eea' : user.role === 'manager' ? '#ffc107' : '#6c757d';
+                  return (
+                    <div style={{
+                      padding: '6px 14px',
+                      background: 'white',
+                      border: `2px solid ${roleColor}`,
+                      borderRadius: '20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      color: '#333'
+                    }}>
+                      <span>{roleIcon}</span>
+                      <span>{user.full_name || user.username}</span>
+                    </div>
+                  );
+                }
+                return null;
+              } catch {
+                return null;
+              }
+            })()}
             <button 
               onClick={handleNewExercise}
               style={{
