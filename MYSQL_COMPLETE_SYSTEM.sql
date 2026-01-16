@@ -14,7 +14,7 @@ USE stock_management_auth;
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(100) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(191) UNIQUE NOT NULL, -- 191 pour utf8mb4 (767/4 = 191)
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(255),
     role VARCHAR(50) DEFAULT 'user', -- 'admin', 'manager', 'user'
@@ -35,10 +35,10 @@ CREATE TABLE IF NOT EXISTS business_units (
     schema_name VARCHAR(100) UNIQUE NOT NULL, -- ex: bu01_2024, bu02_2024
     bu_code VARCHAR(50) NOT NULL,
     year INT NOT NULL,
-    nom_entreprise VARCHAR(255),
+    nom_entreprise VARCHAR(191), -- 191 pour utf8mb4
     adresse TEXT,
     telephone VARCHAR(50),
-    email VARCHAR(255),
+    email VARCHAR(191), -- 191 pour utf8mb4
     active BOOLEAN DEFAULT TRUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -87,7 +87,7 @@ DELIMITER $$
 DROP FUNCTION IF EXISTS authenticate_user$$
 
 CREATE FUNCTION authenticate_user(
-    p_username VARCHAR(255),
+    p_username VARCHAR(191),
     p_password VARCHAR(255)
 )
 RETURNS JSON
@@ -95,8 +95,8 @@ DETERMINISTIC
 READS SQL DATA
 BEGIN
     DECLARE v_user_id INT;
-    DECLARE v_username VARCHAR(255);
-    DECLARE v_email VARCHAR(255);
+    DECLARE v_username VARCHAR(191);
+    DECLARE v_email VARCHAR(191);
     DECLARE v_password_hash VARCHAR(255);
     DECLARE v_full_name VARCHAR(255);
     DECLARE v_role VARCHAR(50);
@@ -176,9 +176,9 @@ DROP PROCEDURE IF EXISTS create_user$$
 
 CREATE PROCEDURE create_user(
     IN p_username VARCHAR(100),
-    IN p_email VARCHAR(255),
+    IN p_email VARCHAR(191),
     IN p_password VARCHAR(255),
-    IN p_full_name VARCHAR(255),
+    IN p_full_name VARCHAR(191),
     IN p_role VARCHAR(50),
     IN p_business_units JSON
 )
@@ -211,9 +211,9 @@ DROP PROCEDURE IF EXISTS update_user$$
 CREATE PROCEDURE update_user(
     IN p_user_id INT,
     IN p_username VARCHAR(100),
-    IN p_email VARCHAR(255),
+    IN p_email VARCHAR(191),
     IN p_password VARCHAR(255), -- NULL si pas de changement
-    IN p_full_name VARCHAR(255),
+    IN p_full_name VARCHAR(191),
     IN p_role VARCHAR(50),
     IN p_business_units JSON,
     IN p_active BOOLEAN
