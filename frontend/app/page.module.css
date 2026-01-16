@@ -60,7 +60,7 @@
 }
 
 .main {
-  margin-top: 120px;
+  margin-top: 160px;
   padding: 1rem;
   width: 100%;
   max-width: none;
@@ -268,7 +268,7 @@
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
-  margin-top: 120px;
+  margin-top: 160px;
 }
 
 .dashboardHeader {
@@ -813,7 +813,7 @@
   }
 
   .main {
-    margin-top: 140px;
+    margin-top: 180px;
     padding: 0.5rem;
   }
 
