@@ -31,31 +31,9 @@ export default function TenantSelection() {
 
   const loadUserBusinessUnits = async () => {
     try {
-      console.log('🔍 Chargement des BU via API...');
+      console.log('🔍 Chargement des BU autorisées pour l\'utilisateur...');
       
-      // APPELER L'API EXERCISES POUR RÉCUPÉRER LES VRAIS BU
-      const response = await fetch(getApiUrl('auth/exercises'));
-      const data = await response.json();
-      
-      console.log('📊 Réponse API exercises:', data);
-      
-      if (data.success && data.data && data.data.length > 0) {
-        // Transformer les données de l'API en objets BusinessUnit
-        const buList = data.data.map((exercise: any) => {
-          return {
-            id: exercise.schema_name,
-            name: `Business Unit ${exercise.bu_code} (${exercise.year})`,
-            description: `${exercise.nom_entreprise} - ${exercise.schema_name}`
-          };
-        });
-
-        console.log('🏢 Available BUs:', buList);
-        setBusinessUnits(buList);
-        return;
-      }
-
-      // Fallback: essayer localStorage si l'API échoue
-      console.log('⚠️ API échouée, essai localStorage...');
+      // CORRECTION: Récupérer les BU autorisées depuis user_info
       const userInfoStr = localStorage.getItem('user_info');
       if (!userInfoStr) {
         console.error('No user info found, redirecting to login');
@@ -64,16 +42,49 @@ export default function TenantSelection() {
       }
 
       const userInfo = JSON.parse(userInfoStr);
-      console.log('👤 User info (fallback):', userInfo);
+      console.log('👤 User info:', userInfo);
 
       const userBusinessUnits = userInfo.business_units || [];
       
       if (userBusinessUnits.length === 0) {
-        console.warn('User has no business units assigned');
+        console.warn('⚠️ User has no business units assigned');
         setBusinessUnits([]);
         return;
       }
 
+      console.log('🔐 BU autorisées pour cet utilisateur:', userBusinessUnits);
+
+      // Charger TOUS les BU disponibles depuis l'API
+      const response = await fetch(getApiUrl('auth/exercises'));
+      const data = await response.json();
+      
+      console.log('📊 Tous les BU disponibles:', data);
+      
+      if (data.success && data.data && data.data.length > 0) {
+        // FILTRER uniquement les BU auxquelles l'utilisateur a accès
+        const filteredBUs = data.data.filter((exercise: any) => {
+          return userBusinessUnits.includes(exercise.schema_name);
+        });
+
+        console.log('✅ BU filtrées (autorisées):', filteredBUs);
+
+        // Transformer les données filtrées en objets BusinessUnit
+        const buList = filteredBUs.map((exercise: any) => {
+          return {
+            id: exercise.schema_name,
+            name: `Business Unit ${exercise.bu_code} (${exercise.year})`,
+            description: `${exercise.nom_entreprise} - ${exercise.schema_name}`
+          };
+        });
+
+        console.log('🏢 BU disponibles pour l\'utilisateur:', buList);
+        setBusinessUnits(buList);
+        return;
+      }
+
+      // Fallback: utiliser directement les BU de l'utilisateur
+      console.log('⚠️ API échouée, utilisation des BU de l\'utilisateur...');
+      
       // Transformer les schémas en objets BusinessUnit
       const buList = userBusinessUnits.map((schema: string) => {
         const parts = schema.split('_');
@@ -87,14 +98,12 @@ export default function TenantSelection() {
         };
       });
 
-      console.log('🏢 Available BUs (fallback):', buList);
+      console.log('🏢 BU disponibles (fallback):', buList);
       setBusinessUnits(buList);
     } catch (error) {
-      console.error('Error loading business units:', error);
-      // Fallback final
-      setBusinessUnits([
-        { id: '2025_bu01', name: 'Business Unit 01 (2025)', description: 'Schéma: 2025_bu01' }
-      ]);
+      console.error('❌ Error loading business units:', error);
+      // En cas d'erreur, ne pas afficher de BU par défaut
+      setBusinessUnits([]);
     }
   };
 
