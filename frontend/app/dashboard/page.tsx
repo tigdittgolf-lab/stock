@@ -54,6 +54,7 @@ interface Supplier {
 export default function Dashboard() {
   const router = useRouter();
   const [tenantInfo, setTenantInfo] = useState<TenantInfo | null>(null);
+  const [companyInfo, setCompanyInfo] = useState<any>(null);
   const [articles, setArticles] = useState<Article[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -180,7 +181,8 @@ export default function Dashboard() {
       await Promise.all([
         fetchArticles(headers),
         fetchClients(headers),
-        fetchSuppliers(headers)
+        fetchSuppliers(headers),
+        fetchCompanyInfo(headers)
       ]);
 
     } catch (err) {
@@ -278,6 +280,23 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error('Error fetching suppliers:', err);
+    }
+  };
+
+  const fetchCompanyInfo = async (headers: any) => {
+    try {
+      console.log('🏢 Fetching company info...');
+      const response = await fetch('/api/company/info', { headers });
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        setCompanyInfo(data.data);
+        console.log('✅ Company info loaded:', data.data.nom_entreprise);
+      } else {
+        console.warn('Company info not loaded:', data.error);
+      }
+    } catch (err) {
+      console.error('Error fetching company info:', err);
     }
   };
 
