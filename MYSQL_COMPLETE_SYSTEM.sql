@@ -274,31 +274,24 @@ DELIMITER ;
 -- ==================== DONNÉES INITIALES ====================
 
 -- Créer un utilisateur admin par défaut (si n'existe pas déjà)
-DELIMITER $$
-CREATE PROCEDURE IF NOT EXISTS init_admin()
-BEGIN
-    DECLARE admin_count INT;
-    
-    SELECT COUNT(*) INTO admin_count FROM users WHERE username = 'admin';
-    
-    IF admin_count = 0 THEN
-        CALL create_user(
-            'admin',
-            'admin@example.com',
-            'admin123',
-            'Administrateur Système',
-            'admin',
-            JSON_ARRAY('bu01_2024', 'bu02_2024')
-        );
-        SELECT '✅ Utilisateur admin créé' as status;
-    ELSE
-        SELECT '⚠️  Utilisateur admin existe déjà' as status;
-    END IF;
-END$$
-DELIMITER ;
+-- On utilise INSERT IGNORE pour éviter l'erreur de duplication
+INSERT IGNORE INTO users (username, email, password_hash, full_name, role, business_units, active, created_at)
+VALUES (
+    'admin',
+    'admin@example.com',
+    SHA2('admin123', 256),
+    'Administrateur Système',
+    'admin',
+    JSON_ARRAY('bu01_2024', 'bu02_2024'),
+    TRUE,
+    NOW()
+);
 
-CALL init_admin();
-DROP PROCEDURE IF EXISTS init_admin;
+-- Afficher le statut
+SELECT IF(ROW_COUNT() > 0, 
+    '✅ Utilisateur admin créé', 
+    '⚠️  Utilisateur admin existe déjà'
+) as admin_status;
 
 -- Créer quelques Business Units par défaut (si n'existent pas déjà)
 INSERT IGNORE INTO business_units (schema_name, bu_code, year, nom_entreprise, active) VALUES
