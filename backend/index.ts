@@ -13,6 +13,8 @@ import stock from './src/routes/stock.js';
 import reports from './src/routes/reports.js';
 import auth from './src/routes/auth.js';
 import authReal from './src/routes/auth-real.js';
+import authMySQL from './src/routes/auth-mysql.js';
+import authPostgreSQL from './src/routes/auth-postgresql.js';
 import pdf from './src/routes/pdf.js';
 import cache from './src/routes/cache.js';
 import settings from './src/routes/settings.js';
@@ -80,6 +82,8 @@ app.route('/api/stock', stock);
 app.route('/api/reports', reports);
 app.route('/api/auth', auth);
 app.route('/api/auth-real', authReal);
+app.route('/api/auth-mysql', authMySQL);
+app.route('/api/auth-postgresql', authPostgreSQL);
 app.route('/api/pdf', pdf);
 app.route('/api/cache', cache);
 app.route('/api/settings', settings);
@@ -120,6 +124,8 @@ app.get('/', (c) => c.json({
     reports: '/api/reports',
     auth: '/api/auth',
     authReal: '/api/auth-real',
+    authMySQL: '/api/auth-mysql',
+    authPostgreSQL: '/api/auth-postgresql',
     pdf: '/api/pdf',
     cache: '/api/cache',
     settings: '/api/settings',
