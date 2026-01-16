@@ -273,18 +273,35 @@ DELIMITER ;
 
 -- ==================== DONNÉES INITIALES ====================
 
--- Créer un utilisateur admin par défaut
-CALL create_user(
-    'admin',
-    'admin@example.com',
-    'admin123',
-    'Administrateur Système',
-    'admin',
-    JSON_ARRAY('bu01_2024', 'bu02_2024')
-);
+-- Créer un utilisateur admin par défaut (si n'existe pas déjà)
+DELIMITER $$
+CREATE PROCEDURE IF NOT EXISTS init_admin()
+BEGIN
+    DECLARE admin_count INT;
+    
+    SELECT COUNT(*) INTO admin_count FROM users WHERE username = 'admin';
+    
+    IF admin_count = 0 THEN
+        CALL create_user(
+            'admin',
+            'admin@example.com',
+            'admin123',
+            'Administrateur Système',
+            'admin',
+            JSON_ARRAY('bu01_2024', 'bu02_2024')
+        );
+        SELECT '✅ Utilisateur admin créé' as status;
+    ELSE
+        SELECT '⚠️  Utilisateur admin existe déjà' as status;
+    END IF;
+END$$
+DELIMITER ;
 
--- Créer quelques Business Units par défaut
-INSERT INTO business_units (schema_name, bu_code, year, nom_entreprise, active) VALUES
+CALL init_admin();
+DROP PROCEDURE IF EXISTS init_admin;
+
+-- Créer quelques Business Units par défaut (si n'existent pas déjà)
+INSERT IGNORE INTO business_units (schema_name, bu_code, year, nom_entreprise, active) VALUES
 ('bu01_2024', 'BU01', 2024, 'ETS BENAMAR BOUZID MENOUAR', TRUE),
 ('bu02_2024', 'BU02', 2024, 'ETS BENAMAR BOUZID MENOUAR', TRUE),
 ('bu01_2025', 'BU01', 2025, 'ETS BENAMAR BOUZID MENOUAR', TRUE),
