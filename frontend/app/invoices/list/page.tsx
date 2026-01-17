@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import PrintOptions from '../../../components/PrintOptions';
 
 interface Invoice {
   nfact: number;
@@ -347,6 +348,24 @@ export default function InvoicesList() {
             </button>
           </div>
           
+          {/* WhatsApp Button */}
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            marginTop: '8px'
+          }}>
+            <div style={{ flex: 1 }}>
+              <PrintOptions
+                documentType="invoice"
+                documentId={fact.nfact}
+                documentNumber={fact.nfact}
+                clientName={fact.client_name}
+                clientId={fact.nclient}
+                isModal={false}
+              />
+            </div>
+          </div>
+          
           {/* Deuxième ligne - Bouton Détails */}
           <div style={{
             display: 'flex',
@@ -452,6 +471,18 @@ export default function InvoicesList() {
                   >
                     📄 Imprimer Facture
                   </button>
+                  
+                  {/* WhatsApp Button */}
+                  <div style={{ minWidth: '150px' }}>
+                    <PrintOptions
+                      documentType="invoice"
+                      documentId={fact.nfact}
+                      documentNumber={fact.nfact}
+                      clientName={fact.client_name}
+                      clientId={fact.nclient}
+                      isModal={false}
+                    />
+                  </div>
                   
                   {/* Bouton Détails */}
                   <button
