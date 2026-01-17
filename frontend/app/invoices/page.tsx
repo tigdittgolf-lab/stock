@@ -453,6 +453,7 @@ export default function CreateInvoice() {
           documentId={createdInvoice.id}
           documentNumber={createdInvoice.number}
           clientName={createdInvoice.clientName}
+          clientId={createdInvoice.clientId || selectedClient}
           isModal={true}
           onClose={() => {
             setShowPrintModal(false);

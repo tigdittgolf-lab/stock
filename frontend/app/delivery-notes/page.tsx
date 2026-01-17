@@ -469,6 +469,7 @@ export default function CreateDeliveryNote() {
           documentId={createdBL.id}
           documentNumber={createdBL.number}
           clientName={createdBL.clientName}
+          clientId={createdBL.clientId || selectedClient}
           isModal={true}
           onClose={() => {
             setShowPrintModal(false);

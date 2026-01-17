@@ -38,17 +38,6 @@ export default function PrintOptions({
   const [manualPhone, setManualPhone] = useState('');
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [isSending, setIsSending] = useState(false);
-
-export default function PrintOptions({ 
-  documentType, 
-  documentId, 
-  documentNumber, 
-  clientName,
-  onClose,
-  isModal = false 
-}: PrintOptionsProps) {
-  
-  const tenant = useTenant();
   
   const getDocumentLabel = () => {
     switch (documentType) {

@@ -466,6 +466,7 @@ export default function CreateProforma() {
           documentId={createdProforma.id}
           documentNumber={createdProforma.number}
           clientName={createdProforma.clientName}
+          clientId={createdProforma.clientId || selectedClient}
           isModal={true}
           onClose={() => {
             setShowPrintModal(false);
