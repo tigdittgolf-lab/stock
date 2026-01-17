@@ -18,6 +18,71 @@ export interface DatabaseConfig {
   password?: string;
 }
 
+/**
+ * Get a database connection for WhatsApp operations
+ */
+export async function getDatabaseConnection(): Promise<any> {
+  const service = BackendDatabaseService.getInstance();
+  const dbType = service.getActiveDatabaseType();
+  
+  switch (dbType) {
+    case 'supabase':
+      return {
+        query: async (sql: string, params: any[] = []) => {
+          // Convert PostgreSQL-style parameters ($1, $2) to Supabase format
+          let supabaseSql = sql;
+          params.forEach((param, index) => {
+            supabaseSql = supabaseSql.replace(`$${index + 1}`, `$${index + 1}`);
+          });
+          
+          const { data, error } = await supabaseAdmin.rpc('execute_sql', {
+            sql_query: supabaseSql,
+            params: params
+          });
+          
+          if (error) throw error;
+          return { rows: data || [], rowCount: data?.length || 0 };
+        }
+      };
+    
+    case 'postgresql':
+      const pgClient = new Client({
+        host: process.env.POSTGRES_HOST || 'localhost',
+        port: parseInt(process.env.POSTGRES_PORT || '5432'),
+        database: process.env.POSTGRES_DATABASE || 'stock_management',
+        user: process.env.POSTGRES_USER || 'postgres',
+        password: process.env.POSTGRES_PASSWORD || 'postgres'
+      });
+      await pgClient.connect();
+      return pgClient;
+    
+    case 'mysql':
+      const mysqlConnection = await mysql.createConnection({
+        host: process.env.MYSQL_HOST || 'localhost',
+        port: parseInt(process.env.MYSQL_PORT || '3307'),
+        database: process.env.MYSQL_DATABASE || 'stock_management',
+        user: process.env.MYSQL_USER || 'root',
+        password: process.env.MYSQL_PASSWORD || ''
+      });
+      
+      return {
+        query: async (sql: string, params: any[] = []) => {
+          // Convert PostgreSQL-style parameters to MySQL format
+          let mysqlSql = sql;
+          params.forEach((param, index) => {
+            mysqlSql = mysqlSql.replace(`$${index + 1}`, '?');
+          });
+          
+          const [rows] = await mysqlConnection.execute(mysqlSql, params);
+          return { rows: Array.isArray(rows) ? rows : [rows], rowCount: Array.isArray(rows) ? rows.length : 1 };
+        }
+      };
+    
+    default:
+      throw new Error(`Unsupported database type: ${dbType}`);
+  }
+}
+
 export class BackendDatabaseService {
   private static instance: BackendDatabaseService;
   private activeConfig: DatabaseConfig | null = null;

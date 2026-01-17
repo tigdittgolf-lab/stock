@@ -3,6 +3,11 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "setup-whatsapp": "bun run setup-whatsapp-infrastructure.ts",
+    "migrate-whatsapp": "bun run migrations/run-whatsapp-migrations.ts",
+    "test-whatsapp": "bun run setup-whatsapp-infrastructure.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
@@ -12,11 +17,16 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.86.2",
     "@types/pg": "^8.16.0",
+    "@types/redis": "^4.0.10",
     "dotenv": "^16.4.5",
     "fast-deep-equal": "^3.1.3",
     "hono": "^4.11.1",
+    "ioredis": "^5.9.2",
     "jspdf": "^3.0.4",
     "mysql2": "^3.16.0",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "redis": "^5.10.0",
+    "whatsapp-business-api": "^0.0.4",
+    "whatsapp-mdf": "^1.0.9"
   }
 }

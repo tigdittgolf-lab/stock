@@ -22,6 +22,7 @@ import admin from './src/routes/admin.js';
 import missingEndpoints from './src/routes/missing-endpoints.js';
 import databaseConfig from './src/routes/database-config.js';
 import database from './src/routes/database.js';
+import whatsapp from './src/routes/whatsapp.js';
 
 const app = new Hono();
 
@@ -90,6 +91,7 @@ app.route('/api/settings', settings);
 app.route('/api/admin', admin);
 app.route('/api/database-config', databaseConfig);
 app.route('/api/database', database);
+app.route('/api/whatsapp', whatsapp);
 app.route('/api', missingEndpoints);
 
 try {
@@ -130,6 +132,7 @@ app.get('/', (c) => c.json({
     cache: '/api/cache',
     settings: '/api/settings',
     admin: '/api/admin',
+    whatsapp: '/api/whatsapp',
     health: '/health'
   }
 }));

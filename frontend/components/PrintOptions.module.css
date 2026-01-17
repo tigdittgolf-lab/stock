@@ -23,16 +23,31 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
+/* WhatsApp Modal */
+.whatsappModal {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
 .modalHeader {
   text-align: center;
   margin-bottom: 20px;
   padding-bottom: 16px;
   border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .modalHeader h3 {
   color: #28a745;
-  margin: 0 0 8px 0;
+  margin: 0;
   font-size: 18px;
 }
 
@@ -62,6 +77,78 @@
   text-align: center;
   padding-top: 16px;
   border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* WhatsApp specific styles */
+.documentInfo {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.documentInfo p {
+  margin: 4px 0;
+  color: #333;
+}
+
+.contactsSection {
+  margin-bottom: 20px;
+}
+
+.contactsList {
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.contactItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.contactItem:hover {
+  background-color: #f8f9fa;
+}
+
+.contactItem input[type="checkbox"] {
+  margin: 0;
+}
+
+.manualPhoneSection {
+  margin-bottom: 20px;
+}
+
+.phoneInput {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.messageSection {
+  margin-bottom: 20px;
+}
+
+.messageInput {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  resize: vertical;
+  font-family: inherit;
 }
 
 /* Print button styles */
@@ -91,6 +178,15 @@
   transform: translateY(0);
 }
 
+.whatsappButton {
+  background: #25d366;
+}
+
+.whatsappButton:hover {
+  background: #1da851;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
+}
+
 .closeButton {
   background: #6c757d;
   color: white;
@@ -104,6 +200,43 @@
 
 .closeButton:hover {
   background: #545b62;
+}
+
+.cancelButton {
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 24px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  flex: 1;
+}
+
+.cancelButton:hover {
+  background: #545b62;
+}
+
+.sendButton {
+  background: #25d366;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 24px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  flex: 1;
+}
+
+.sendButton:hover:not(:disabled) {
+  background: #1da851;
+}
+
+.sendButton:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 
 /* Inline styles for lists */

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useTenant } from '../hooks/useTenant';
 import styles from './PrintOptions.module.css';
 
@@ -9,9 +9,35 @@ interface PrintOptionsProps {
   documentId: number;
   documentNumber: number;
   clientName?: string;
+  clientId?: string;
   onClose?: () => void;
   isModal?: boolean;
 }
+
+interface WhatsAppContact {
+  phoneNumber: string;
+  name?: string;
+  clientId?: string;
+}
+
+export default function PrintOptions({ 
+  documentType, 
+  documentId, 
+  documentNumber, 
+  clientName,
+  clientId,
+  onClose,
+  isModal = false 
+}: PrintOptionsProps) {
+  
+  const tenant = useTenant();
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [whatsappContacts, setWhatsappContacts] = useState<WhatsAppContact[]>([]);
+  const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
+  const [customMessage, setCustomMessage] = useState('');
+  const [manualPhone, setManualPhone] = useState('');
+  const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
 export default function PrintOptions({ 
   documentType, 
@@ -81,80 +107,256 @@ export default function PrintOptions({
     openPDFPreview(format);
   };
 
-  const printOptions = () => {
-    switch (documentType) {
-      case 'bl':
-        return (
-          <>
-            <button 
-              onClick={() => handlePrint('complet')}
-              className={styles.printButton}
-            >
-              📄 BL Complet
-            </button>
-            <button 
-              onClick={() => handlePrint('reduit')}
-              className={styles.printButton}
-            >
-              📄 BL Réduit
-            </button>
-            <button 
-              onClick={() => handlePrint('ticket')}
-              className={styles.printButton}
-            >
-              🎫 Ticket
-            </button>
-          </>
-        );
-      case 'invoice':
-        return (
-          <button 
-            onClick={() => handlePrint('invoice')}
-            className={styles.printButton}
-          >
-            📄 Imprimer Facture
-          </button>
-        );
-      case 'proforma':
-        return (
-          <button 
-            onClick={() => handlePrint('proforma')}
-            className={styles.printButton}
-          >
-            📄 Imprimer Proforma
-          </button>
-        );
-      default:
-        return null;
+  const handleWhatsAppClick = async () => {
+    setShowWhatsAppModal(true);
+    await loadWhatsAppContacts();
+  };
+
+  const loadWhatsAppContacts = async () => {
+    if (!tenant?.id) return;
+    
+    setIsLoadingContacts(true);
+    try {
+      const response = await fetch(`/api/whatsapp/contacts?tenantId=${tenant.id}&clientId=${clientId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setWhatsappContacts(data.contacts || []);
+        
+        // Set default message
+        const docLabel = getDocumentLabel();
+        setCustomMessage(`Voici votre ${docLabel.toLowerCase()} N° ${documentNumber}`);
+      }
+    } catch (error) {
+      console.error('Error loading WhatsApp contacts:', error);
+    } finally {
+      setIsLoadingContacts(false);
     }
+  };
+
+  const handleSendWhatsApp = async () => {
+    if (selectedContacts.length === 0 && !manualPhone) {
+      alert('Veuillez sélectionner au moins un contact ou saisir un numéro');
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const recipients = [
+        ...selectedContacts.map(phone => ({ phoneNumber: phone, clientId })),
+        ...(manualPhone ? [{ phoneNumber: manualPhone, clientId }] : [])
+      ];
+
+      const response = await fetch('/api/whatsapp/send-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId: tenant?.id,
+          documentId,
+          documentType: documentType === 'bl' ? 'delivery_note' : documentType,
+          filename: `${getDocumentLabel()}_${documentNumber}.pdf`,
+          recipients,
+          customMessage
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`WhatsApp envoyé avec succès ! ${result.summary.sent} envoyés, ${result.summary.failed} échecs`);
+        setShowWhatsAppModal(false);
+      } else {
+        throw new Error('Erreur lors de l\'envoi WhatsApp');
+      }
+    } catch (error) {
+      console.error('Error sending WhatsApp:', error);
+      alert('Erreur lors de l\'envoi WhatsApp');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleContactToggle = (phoneNumber: string) => {
+    setSelectedContacts(prev => 
+      prev.includes(phoneNumber) 
+        ? prev.filter(p => p !== phoneNumber)
+        : [...prev, phoneNumber]
+    );
+  };
+
+  const printOptions = () => {
+    const baseOptions = (() => {
+      switch (documentType) {
+        case 'bl':
+          return (
+            <>
+              <button 
+                onClick={() => handlePrint('complet')}
+                className={styles.printButton}
+              >
+                📄 BL Complet
+              </button>
+              <button 
+                onClick={() => handlePrint('reduit')}
+                className={styles.printButton}
+              >
+                📄 BL Réduit
+              </button>
+              <button 
+                onClick={() => handlePrint('ticket')}
+                className={styles.printButton}
+              >
+                🎫 Ticket
+              </button>
+            </>
+          );
+        case 'invoice':
+          return (
+            <button 
+              onClick={() => handlePrint('invoice')}
+              className={styles.printButton}
+            >
+              📄 Imprimer Facture
+            </button>
+          );
+        case 'proforma':
+          return (
+            <button 
+              onClick={() => handlePrint('proforma')}
+              className={styles.printButton}
+            >
+              📄 Imprimer Proforma
+            </button>
+          );
+        default:
+          return null;
+      }
+    })();
+
+    return (
+      <>
+        {baseOptions}
+        <button 
+          onClick={handleWhatsAppClick}
+          className={`${styles.printButton} ${styles.whatsappButton}`}
+        >
+          📱 Envoyer via WhatsApp
+        </button>
+      </>
+    );
   };
 
   if (isModal) {
     return (
-      <div className={styles.modalOverlay}>
-        <div className={styles.modalContent}>
-          <div className={styles.modalHeader}>
-            <h3>✅ {getDocumentLabel()} N° {documentNumber} créé avec succès !</h3>
-            {clientName && <p>👤 Client: {clientName}</p>}
-          </div>
-          
-          <div className={styles.modalBody}>
-            <h4>🖨️ Options d'impression :</h4>
-            <div className={styles.printOptionsGrid}>
-              {printOptions()}
+      <>
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3>✅ {getDocumentLabel()} N° {documentNumber} créé avec succès !</h3>
+              {clientName && <p>👤 Client: {clientName}</p>}
+            </div>
+            
+            <div className={styles.modalBody}>
+              <h4>🖨️ Options d'impression :</h4>
+              <div className={styles.printOptionsGrid}>
+                {printOptions()}
+              </div>
+            </div>
+            
+            <div className={styles.modalFooter}>
+              <button 
+                onClick={onClose}
+                className={styles.closeButton}
+              >
+                Fermer
+              </button>
             </div>
           </div>
-          
-          <div className={styles.modalFooter}>
-            <button 
-              onClick={onClose}
-              className={styles.closeButton}
-            >
-              Fermer
-            </button>
-          </div>
         </div>
-      </div>
+
+        {/* WhatsApp Modal */}
+        {showWhatsAppModal && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.whatsappModal}>
+              <div className={styles.modalHeader}>
+                <h3>📱 Envoyer via WhatsApp</h3>
+                <button 
+                  onClick={() => setShowWhatsAppModal(false)}
+                  className={styles.closeButton}
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className={styles.modalBody}>
+                <div className={styles.documentInfo}>
+                  <p><strong>{getDocumentLabel()} N° {documentNumber}</strong></p>
+                  {clientName && <p>Client: {clientName}</p>}
+                </div>
+
+                <div className={styles.contactsSection}>
+                  <h4>Contacts WhatsApp:</h4>
+                  {isLoadingContacts ? (
+                    <p>Chargement des contacts...</p>
+                  ) : whatsappContacts.length > 0 ? (
+                    <div className={styles.contactsList}>
+                      {whatsappContacts.map((contact, index) => (
+                        <label key={index} className={styles.contactItem}>
+                          <input
+                            type="checkbox"
+                            checked={selectedContacts.includes(contact.phoneNumber)}
+                            onChange={() => handleContactToggle(contact.phoneNumber)}
+                          />
+                          <span>
+                            {contact.name || 'Contact sans nom'} - {contact.phoneNumber}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>Aucun contact WhatsApp trouvé</p>
+                  )}
+                </div>
+
+                <div className={styles.manualPhoneSection}>
+                  <h4>Ou saisir un numéro manuellement:</h4>
+                  <input
+                    type="text"
+                    placeholder="Ex: +33612345678"
+                    value={manualPhone}
+                    onChange={(e) => setManualPhone(e.target.value)}
+                    className={styles.phoneInput}
+                  />
+                </div>
+
+                <div className={styles.messageSection}>
+                  <h4>Message personnalisé:</h4>
+                  <textarea
+                    value={customMessage}
+                    onChange={(e) => setCustomMessage(e.target.value)}
+                    className={styles.messageInput}
+                    rows={3}
+                  />
+                </div>
+              </div>
+              
+              <div className={styles.modalFooter}>
+                <button 
+                  onClick={() => setShowWhatsAppModal(false)}
+                  className={styles.cancelButton}
+                >
+                  Annuler
+                </button>
+                <button 
+                  onClick={handleSendWhatsApp}
+                  disabled={isSending || (selectedContacts.length === 0 && !manualPhone)}
+                  className={styles.sendButton}
+                >
+                  {isSending ? 'Envoi...' : 'Envoyer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
     );
   }
 
