@@ -30,6 +30,8 @@ export default function PrintOptions({
   isModal = false 
 }: PrintOptionsProps) {
   
+  console.log('🔍 PrintOptions component loaded:', { documentType, documentId, documentNumber, isModal });
+  
   const tenant = useTenant();
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [whatsappContacts, setWhatsappContacts] = useState<WhatsAppContact[]>([]);
@@ -172,6 +174,8 @@ export default function PrintOptions({
   };
 
   const printOptions = () => {
+    console.log('🔍 PrintOptions rendering - documentType:', documentType);
+    
     const baseOptions = (() => {
       switch (documentType) {
         case 'bl':
@@ -220,12 +224,15 @@ export default function PrintOptions({
       }
     })();
 
+    console.log('🔍 Base options rendered, adding WhatsApp button');
+
     return (
       <>
         {baseOptions}
         <button 
           onClick={handleWhatsAppClick}
           className={`${styles.printButton} ${styles.whatsappButton}`}
+          style={{ backgroundColor: '#25d366' }}
         >
           📱 Envoyer via WhatsApp
         </button>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test WhatsApp Button</title>
+    <style>
+        .printButton {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .whatsappButton {
+            background: #25d366 !important;
+        }
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test du bouton WhatsApp</h1>
+    
+    <div style="border: 1px solid #ccc; padding: 20px; margin: 20px 0;">
+        <h3>✅ Facture N° 123 créée avec succès !</h3>
+        <p>👤 Client: Test Client</p>
+        
+        <h4>🖨️ Options d'impression :</h4>
+        <div>
+            <button class="printButton">📄 Imprimer Facture</button>
+            <button class="printButton whatsappButton" onclick="showWhatsAppModal()">📱 Envoyer via WhatsApp</button>
+        </div>
+        
+        <button onclick="closeModal()" style="margin-top: 20px; background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 6px;">Fermer</button>
+    </div>
+
+    <!-- Modal WhatsApp -->
+    <div id="whatsappModal" style="display: none;">
+        <div class="overlay" onclick="closeWhatsAppModal()"></div>
+        <div class="modal">
+            <h3>📱 Envoyer via WhatsApp</h3>
+            <p><strong>Facture N° 123</strong></p>
+            <p>Client: Test Client</p>
+            
+            <h4>Contacts WhatsApp:</h4>
+            <p>Aucun contact WhatsApp trouvé</p>
+            
+            <h4>Ou saisir un numéro manuellement:</h4>
+            <input type="text" placeholder="Ex: +33612345678" style="width: 100%; padding: 8px; margin: 5px 0;">
+            
+            <h4>Message personnalisé:</h4>
+            <textarea style="width: 100%; padding: 8px; margin: 5px 0; height: 60px;">Voici votre facture N° 123</textarea>
+            
+            <div style="margin-top: 20px;">
+                <button onclick="closeWhatsAppModal()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 6px; margin-right: 10px;">Annuler</button>
+                <button style="background: #25d366; color: white; border: none; padding: 10px 20px; border-radius: 6px;">Envoyer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showWhatsAppModal() {
+            document.getElementById('whatsappModal').style.display = 'block';
+        }
+        
+        function closeWhatsAppModal() {
+            document.getElementById('whatsappModal').style.display = 'none';
+        }
+        
+        function closeModal() {
+            alert('Modal fermé - retour à la liste');
+        }
+        
+        console.log('🧪 Test WhatsApp Button loaded');
+        console.log('Le bouton vert "📱 Envoyer via WhatsApp" devrait être visible');
+    </script>
+</body>
+</html>
