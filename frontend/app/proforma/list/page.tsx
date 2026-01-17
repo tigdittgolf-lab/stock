@@ -534,6 +534,7 @@ export default function ProformaList() {
                         documentNumber={proforma.nfact || proforma.nfprof || (proforma as any).id}
                         clientName={(proforma as any).client_name || (proforma as any).clientName || proforma.nclient || 'Client'}
                         isModal={false}
+                        whatsappOnly={true}
                       />
                     </td>
                   </tr>

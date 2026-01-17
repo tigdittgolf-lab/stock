@@ -12,6 +12,7 @@ interface PrintOptionsProps {
   clientId?: string;
   onClose?: () => void;
   isModal?: boolean;
+  whatsappOnly?: boolean; // Nouvelle prop pour n'afficher que WhatsApp
 }
 
 interface WhatsAppContact {
@@ -27,7 +28,8 @@ export default function PrintOptions({
   clientName,
   clientId,
   onClose,
-  isModal = false 
+  isModal = false,
+  whatsappOnly = false // Nouvelle prop avec valeur par défaut
 }: PrintOptionsProps) {
   
   console.log('🔍 PrintOptions component loaded:', { documentType, documentId, documentNumber, isModal });
@@ -174,7 +176,20 @@ export default function PrintOptions({
   };
 
   const printOptions = () => {
-    console.log('🔍 PrintOptions rendering - documentType:', documentType);
+    console.log('🔍 PrintOptions rendering - documentType:', documentType, 'whatsappOnly:', whatsappOnly);
+    
+    // Si whatsappOnly est true, ne retourner que le bouton WhatsApp
+    if (whatsappOnly) {
+      return (
+        <button 
+          onClick={handleWhatsAppClick}
+          className={`${styles.printButton} ${styles.whatsappButton}`}
+          style={{ backgroundColor: '#25d366' }}
+        >
+          📱 Envoyer via WhatsApp
+        </button>
+      );
+    }
     
     const baseOptions = (() => {
       switch (documentType) {

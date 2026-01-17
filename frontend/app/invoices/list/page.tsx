@@ -362,6 +362,7 @@ export default function InvoicesList() {
                 clientName={fact.client_name}
                 clientId={fact.nclient}
                 isModal={false}
+                whatsappOnly={true}
               />
             </div>
           </div>
@@ -481,6 +482,7 @@ export default function InvoicesList() {
                       clientName={fact.client_name}
                       clientId={fact.nclient}
                       isModal={false}
+                      whatsappOnly={true}
                     />
                   </div>
                   

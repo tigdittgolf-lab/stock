@@ -501,6 +501,7 @@ export default function DeliveryNotesList() {
                   clientName={bl.client_name}
                   clientId={bl.nclient}
                   isModal={false}
+                  whatsappOnly={true}
                 />
               </div>
             </div>
@@ -778,6 +779,7 @@ export default function DeliveryNotesList() {
                         clientName={bl.client_name}
                         clientId={bl.nclient}
                         isModal={false}
+                        whatsappOnly={true}
                       />
                     </div>
                   </div>
