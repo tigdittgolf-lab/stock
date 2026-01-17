@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import PrintOptions from '../../../components/PrintOptions';
 
 interface DeliveryNote {
   nfact: number;
@@ -486,7 +487,25 @@ export default function DeliveryNotesList() {
               </button>
             </div>
             
-            {/* Actions - Deuxième ligne: Modifier et Supprimer */}
+            {/* Actions - Deuxième ligne: WhatsApp */}
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              marginBottom: '8px'
+            }}>
+              <div style={{ flex: 1 }}>
+                <PrintOptions
+                  documentType="bl"
+                  documentId={validId}
+                  documentNumber={displayId}
+                  clientName={bl.client_name}
+                  clientId={bl.nclient}
+                  isModal={false}
+                />
+              </div>
+            </div>
+            
+            {/* Actions - Troisième ligne: Modifier et Supprimer */}
             <div style={{
               display: 'flex',
               gap: '8px'
@@ -749,6 +768,18 @@ export default function DeliveryNotesList() {
                     >
                       🎫 Ticket
                     </button>
+                    
+                    {/* WhatsApp Button */}
+                    <div style={{ minWidth: '150px' }}>
+                      <PrintOptions
+                        documentType="bl"
+                        documentId={validId}
+                        documentNumber={displayId}
+                        clientName={bl.client_name}
+                        clientId={bl.nclient}
+                        isModal={false}
+                      />
+                    </div>
                   </div>
                 </td>
               </tr>
