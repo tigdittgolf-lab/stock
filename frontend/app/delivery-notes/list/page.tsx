@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PrintOptions from '../../../components/PrintOptions';
-import TestWhatsAppButton from '../../../components/TestWhatsAppButton';
 
 interface DeliveryNote {
   nfact: number;
@@ -495,18 +494,14 @@ export default function DeliveryNotesList() {
               marginBottom: '8px'
             }}>
               <div style={{ flex: 1 }}>
-                <div style={{
-                  backgroundColor: '#ff0000',
-                  color: 'white',
-                  padding: '15px',
-                  textAlign: 'center',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  border: '3px solid #000',
-                  borderRadius: '10px'
-                }}>
-                  🚨 BOUTON TEST ROUGE - SI VOUS VOYEZ CECI, LE CODE FONCTIONNE 🚨
-                </div>
+                <PrintOptions
+                  documentType="bl"
+                  documentId={validId}
+                  documentNumber={displayId}
+                  clientName={bl.client_name}
+                  clientId={bl.nclient}
+                  isModal={false}
+                />
               </div>
             </div>
             
@@ -776,18 +771,14 @@ export default function DeliveryNotesList() {
                     
                     {/* WhatsApp Button */}
                     <div style={{ minWidth: '150px' }}>
-                      <div style={{
-                        backgroundColor: '#ff0000',
-                        color: 'white',
-                        padding: '10px',
-                        textAlign: 'center',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        border: '2px solid #000',
-                        borderRadius: '5px'
-                      }}>
-                        🚨 TEST ROUGE 🚨
-                      </div>
+                      <PrintOptions
+                        documentType="bl"
+                        documentId={validId}
+                        documentNumber={displayId}
+                        clientName={bl.client_name}
+                        clientId={bl.nclient}
+                        isModal={false}
+                      />
                     </div>
                   </div>
                 </td>
