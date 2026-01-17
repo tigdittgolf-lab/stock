@@ -1,0 +1,4 @@
+Deployment trigger: 2025-01-17 22:45:00
+This file forces Vercel to redeploy the application.
+Commit: d4d8c20
+WhatsApp button test deployment.
