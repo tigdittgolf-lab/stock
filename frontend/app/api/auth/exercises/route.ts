@@ -1,13 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+// Vérifier que les variables d'environnement sont définies
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+// Si les variables ne sont pas définies, retourner une erreur propre
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('❌ Supabase credentials not configured');
+}
+
+const supabase = supabaseUrl && supabaseServiceKey 
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null;
 
 export async function GET(request: NextRequest) {
   try {
+    // Vérifier que Supabase est configuré
+    if (!supabase) {
+      return NextResponse.json({
+        success: false,
+        error: 'Supabase not configured',
+        data: []
+      }, { status: 500 });
+    }
+
     console.log('🔍 Récupération des exercices - MÉTHODE DIRECTE SUPABASE');
     console.log('🔗 Supabase URL:', supabaseUrl);
 

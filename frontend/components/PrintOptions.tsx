@@ -101,26 +101,57 @@ export default function PrintOptions({
   };
 
   const handleWhatsAppClick = async () => {
+    console.log('🔍 WhatsApp button clicked!');
+    console.log('📊 Component state:', { 
+      documentType, 
+      documentId, 
+      documentNumber, 
+      clientName, 
+      clientId,
+      tenant: tenant?.id 
+    });
+    
+    if (!tenant?.id) {
+      console.error('❌ No tenant ID found!', tenant);
+      alert('Erreur: Tenant non trouvé. Veuillez vous reconnecter.');
+      return;
+    }
+    
     setShowWhatsAppModal(true);
     await loadWhatsAppContacts();
   };
 
   const loadWhatsAppContacts = async () => {
-    if (!tenant?.id) return;
+    console.log('🔄 Loading WhatsApp contacts...');
+    console.log('📊 Tenant info:', tenant);
+    
+    if (!tenant?.id) {
+      console.error('❌ No tenant ID for loading contacts');
+      return;
+    }
     
     setIsLoadingContacts(true);
     try {
-      const response = await fetch(`/api/whatsapp/contacts?tenantId=${tenant.id}&clientId=${clientId}`);
+      const url = `/api/whatsapp/contacts?tenantId=${tenant.id}&clientId=${clientId}`;
+      console.log('🌐 Fetching:', url);
+      
+      const response = await fetch(url);
+      console.log('📡 Response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('📋 Contacts data:', data);
         setWhatsappContacts(data.contacts || []);
         
         // Set default message
         const docLabel = getDocumentLabel();
         setCustomMessage(`Voici votre ${docLabel.toLowerCase()} N° ${documentNumber}`);
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Failed to load contacts:', errorData);
       }
     } catch (error) {
-      console.error('Error loading WhatsApp contacts:', error);
+      console.error('❌ Error loading WhatsApp contacts:', error);
     } finally {
       setIsLoadingContacts(false);
     }
@@ -182,7 +213,31 @@ export default function PrintOptions({
     if (whatsappOnly) {
       return (
         <button 
-          onClick={handleWhatsAppClick}
+          onClick={async () => {
+            console.log('🔍 Simple WhatsApp button clicked!');
+            
+            // Solution alternative : Ouvrir WhatsApp directement
+            try {
+              const phoneNumber = prompt('Entrez le numéro WhatsApp (ex: +213674768390):');
+              if (!phoneNumber) return;
+              
+              const message = prompt('Message personnalisé (optionnel):') || 
+                `Voici votre ${getDocumentLabel().toLowerCase()} N° ${documentNumber}`;
+              
+              // Créer le lien WhatsApp direct
+              const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+              const encodedMessage = encodeURIComponent(message);
+              const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+              
+              // Ouvrir WhatsApp
+              window.open(whatsappUrl, '_blank');
+              
+              alert('✅ WhatsApp ouvert ! Envoyez le message manuellement.');
+            } catch (error) {
+              console.error('❌ WhatsApp error:', error);
+              alert('❌ Erreur lors de l\'ouverture WhatsApp');
+            }
+          }}
           className={`${styles.printButton} ${styles.whatsappButton}`}
           style={{ backgroundColor: '#25d366' }}
         >

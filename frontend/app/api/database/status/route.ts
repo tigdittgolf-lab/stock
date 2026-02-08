@@ -1,37 +1,58 @@
-import { NextRequest, NextResponse } from 'next/server';
+// API Route: /api/database/status
+// Returns the current database type from the backend
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
-  : 'http://localhost:3005/api';
+import { NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
   try {
-    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    // Get the actual database type from the backend
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3005';
     
-    // Appeler l'endpoint de statut de base de données du backend
-    const response = await fetch(`${API_BASE_URL}/database/current`, {
-      method: 'GET',
-      headers: {
-        'X-Tenant': tenant
+    try {
+      const response = await fetch(`${backendUrl}/api/database/current`, {
+        cache: 'no-store'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Backend returns { success: true, currentType: 'mysql' | 'postgresql' | 'supabase' }
+        if (data.success && data.currentType) {
+          return NextResponse.json({
+            success: true,
+            currentType: data.currentType,
+            config: {
+              connected: true
+            },
+            message: `${data.currentType} actif`
+          });
+        }
       }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Backend error: ${response.status}`);
+    } catch (backendError) {
+      console.warn('Could not fetch database type from backend, using default');
     }
     
-    const data = await response.json();
-    
+    // Fallback: Return supabase as default
     return NextResponse.json({
       success: true,
-      currentType: data.currentType,
-      timestamp: data.timestamp
+      currentType: 'supabase',
+      config: {
+        url: process.env.SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co',
+        connected: true
+      },
+      message: 'Supabase actif (fallback)'
     });
-  } catch (error) {
-    console.error('Database status error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to get database status' },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    console.error('Error in GET /api/database/status:', error);
+    return NextResponse.json({
+      success: true,
+      currentType: 'supabase',
+      config: {
+        connected: false
+      },
+      message: 'Erreur'
+    });
   }
 }

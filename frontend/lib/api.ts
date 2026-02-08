@@ -42,36 +42,10 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
 
 // Fonction utilitaire pour les URLs API - PRODUCTION READY
 export const getApiUrl = (endpoint: string): string => {
-  // Détecter l'environnement - plus robuste
-  const isLocalhost = typeof window !== 'undefined' && 
-                     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  
-  // En mode développement Next.js, NODE_ENV est 'development'
-  // En production Vercel, NODE_ENV est 'production'
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  const isProduction = process.env.NODE_ENV === 'production';
-  
-  console.log('🔍 API URL Debug:', {
-    endpoint,
-    hostname: typeof window !== 'undefined' ? window.location.hostname : 'SSR',
-    port: typeof window !== 'undefined' ? window.location.port : 'SSR',
-    isLocalhost,
-    isDevelopment,
-    isProduction,
-    NODE_ENV: process.env.NODE_ENV
-  });
-  
-  // Si on est sur localhost ET en mode développement, utiliser le backend local
-  if (isLocalhost && isDevelopment) {
-    const url = `http://localhost:3005/api/${endpoint}`;
-    console.log('🏠 Local Development URL:', url);
-    return url;
-  }
-  
-  // Sinon, utiliser les routes API Next.js intégrées (production ou SSR)
+  // Toujours utiliser les API Routes Next.js intégrées
   if (typeof window !== 'undefined') {
     const url = `${window.location.origin}/api/${endpoint}`;
-    console.log('🌐 Production/SSR URL:', url);
+    console.log('🌐 API URL:', url);
     return url;
   }
   

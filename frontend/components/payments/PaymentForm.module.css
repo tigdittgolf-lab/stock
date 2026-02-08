@@ -1,0 +1,165 @@
+.paymentForm {
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 600px;
+}
+
+.header {
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 16px;
+}
+
+.header h3 {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    color: #1f2937;
+}
+
+.documentInfo {
+    margin: 0;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.balanceInfo {
+    background: #f3f4f6;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.balanceRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.balanceRow:last-child {
+    margin-bottom: 0;
+    padding-top: 8px;
+    border-top: 1px solid #d1d5db;
+}
+
+.balanceAmount {
+    color: #059669;
+    font-size: 18px;
+}
+
+.errorBox {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 20px;
+}
+
+.errorBox p {
+    margin: 4px 0;
+    color: #dc2626;
+    font-size: 14px;
+}
+
+.formGroup {
+    margin-bottom: 20px;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #374151;
+    font-size: 14px;
+}
+
+.required {
+    color: #dc2626;
+}
+
+.input,
+.select,
+.textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.amountInput {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.amountInput input {
+    padding-right: 50px;
+}
+
+.currency {
+    position: absolute;
+    right: 12px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.warning {
+    margin: 6px 0 0 0;
+    color: #f59e0b;
+    font-size: 13px;
+}
+
+.actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.cancelButton,
+.submitButton {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.cancelButton {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.cancelButton:hover:not(:disabled) {
+    background: #e5e7eb;
+}
+
+.submitButton {
+    background: #3b82f6;
+    color: white;
+}
+
+.submitButton:hover:not(:disabled) {
+    background: #2563eb;
+}
+
+.cancelButton:disabled,
+.submitButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

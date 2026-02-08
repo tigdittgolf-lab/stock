@@ -1,0 +1,183 @@
+.paymentHistory {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.title {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    color: #1f2937;
+}
+
+.loading,
+.error,
+.empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
+}
+
+.error {
+    color: #dc2626;
+}
+
+.retryButton {
+    margin-top: 12px;
+    padding: 8px 16px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.retryButton:hover {
+    background: #2563eb;
+}
+
+.tableContainer {
+    overflow-x: auto;
+    margin-bottom: 16px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.table thead {
+    background: #f3f4f6;
+}
+
+.table th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.table td {
+    padding: 12px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+}
+
+.table tbody tr:hover {
+    background: #f9fafb;
+}
+
+.amount {
+    font-weight: 600;
+    color: #059669;
+}
+
+.notes {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.actions,
+.editActions {
+    display: flex;
+    gap: 8px;
+}
+
+.editButton,
+.deleteButton,
+.saveButton,
+.cancelButton {
+    padding: 6px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.editButton {
+    background: #eff6ff;
+}
+
+.editButton:hover {
+    background: #dbeafe;
+}
+
+.deleteButton {
+    background: #fee2e2;
+}
+
+.deleteButton:hover {
+    background: #fecaca;
+}
+
+.saveButton {
+    background: #d1fae5;
+    color: #065f46;
+    font-weight: bold;
+}
+
+.saveButton:hover {
+    background: #a7f3d0;
+}
+
+.cancelButton {
+    background: #f3f4f6;
+    color: #374151;
+    font-weight: bold;
+}
+
+.cancelButton:hover {
+    background: #e5e7eb;
+}
+
+.editInput,
+.editSelect {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.editInput:focus,
+.editSelect:focus {
+    outline: none;
+    border-color: #3b82f6;
+}
+
+.summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: #f3f4f6;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+.totalAmount {
+    font-size: 18px;
+    font-weight: bold;
+    color: #059669;
+}
+
+@media (max-width: 768px) {
+    .table {
+        font-size: 12px;
+    }
+
+    .table th,
+    .table td {
+        padding: 8px;
+    }
+
+    .notes {
+        max-width: 100px;
+    }
+}

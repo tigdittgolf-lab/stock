@@ -32,7 +32,11 @@ export default function DeliveryNotesList() {
   const [minAmount, setMinAmount] = useState('');
   const [maxAmount, setMaxAmount] = useState('');
   const [selectedClient, setSelectedClient] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState<'all' | 'paid' | 'partially_paid'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // État pour stocker les statuts de paiement
+  const [paymentStatuses, setPaymentStatuses] = useState<Record<number, string>>({});
 
   useEffect(() => {
     // Détecter si on est sur mobile
@@ -104,6 +108,10 @@ export default function DeliveryNotesList() {
         });
         setDeliveryNotes(data.data || []);
         setFilteredDeliveryNotes(data.data || []);
+        
+        // Charger les statuts de paiement pour chaque BL
+        loadPaymentStatuses(data.data || [], tenantSchema);
+        
         console.log('✅ Loaded', data.data?.length || 0, 'delivery notes');
       } else {
         throw new Error(data.error || 'Failed to load delivery notes');
@@ -114,6 +122,38 @@ export default function DeliveryNotesList() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fonction pour charger les statuts de paiement
+  const loadPaymentStatuses = async (notes: DeliveryNote[], tenantSchema: string) => {
+    const statuses: Record<number, string> = {};
+    
+    // Charger les statuts en parallèle
+    await Promise.all(
+      notes.map(async (note) => {
+        try {
+          const response = await fetch(
+            `/api/payments/balance?documentType=delivery_note&documentId=${note.nbl}`,
+            {
+              headers: {
+                'X-Tenant': tenantSchema
+              }
+            }
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+              statuses[note.nbl] = data.data.status;
+            }
+          }
+        } catch (error) {
+          console.error(`Error loading payment status for BL ${note.nbl}:`, error);
+        }
+      })
+    );
+    
+    setPaymentStatuses(statuses);
   };
 
   // Fonction de filtrage améliorée - CORRECTION MAJEURE
@@ -174,6 +214,19 @@ export default function DeliveryNotesList() {
       filtered = filtered.filter(bl => (bl.montant_ttc || (bl.montant_ht + bl.tva)) <= parseFloat(maxAmount));
     }
 
+    // Filtre par statut de paiement
+    if (paymentStatus !== 'all') {
+      filtered = filtered.filter(bl => {
+        const status = paymentStatuses[bl.nbl];
+        if (paymentStatus === 'paid') {
+          return status === 'paid';
+        } else if (paymentStatus === 'partially_paid') {
+          return status === 'partially_paid';
+        }
+        return true;
+      });
+    }
+
     console.log(`📊 Filtering results:`, {
       original: deliveryNotes.length,
       filtered: filtered.length,
@@ -183,7 +236,8 @@ export default function DeliveryNotesList() {
       dateFrom,
       dateTo,
       minAmount,
-      maxAmount
+      maxAmount,
+      paymentStatus
     });
 
     setFilteredDeliveryNotes(filtered);
@@ -210,7 +264,7 @@ export default function DeliveryNotesList() {
   // Effet pour appliquer les filtres quand ils changent
   useEffect(() => {
     applyFilters();
-  }, [searchTerm, dateFrom, dateTo, minAmount, maxAmount, selectedClient, deliveryNotes]);
+  }, [searchTerm, dateFrom, dateTo, minAmount, maxAmount, selectedClient, paymentStatus, deliveryNotes, paymentStatuses]);
 
   // Fonction pour réinitialiser les filtres
   const resetFilters = () => {
@@ -220,6 +274,7 @@ export default function DeliveryNotesList() {
     setMinAmount('');
     setMaxAmount('');
     setSelectedClient('');
+    setPaymentStatus('all');
   };
 
   // Obtenir la liste unique des clients pour le filtre
@@ -416,7 +471,79 @@ export default function DeliveryNotesList() {
               </div>
             </div>
 
-            {/* Actions - Première ligne: PDF */}
+            {/* Actions - Première ligne: Actions principales */}
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              flexWrap: 'wrap',
+              marginBottom: '8px'
+            }}>
+              <button
+                onClick={() => {
+                  console.log(`🔗 Navigating to details with REAL ID: ${validId}`);
+                  router.push(`/delivery-notes/${validId}`);
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: '100px',
+                  padding: '10px',
+                  backgroundColor: '#17a2b8',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 'bold'
+                }}
+              >
+                👁️ Voir
+              </button>
+              
+              <button
+                onClick={() => {
+                  console.log(`✏️ Navigating to edit with REAL ID: ${validId}`);
+                  router.push(`/delivery-notes/${validId}/edit`);
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: '100px',
+                  padding: '10px',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 'bold'
+                }}
+              >
+                ✏️ Modifier
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (confirm(`Êtes-vous sûr de vouloir supprimer le BL ${displayId} ?`)) {
+                    alert('Fonction de suppression à implémenter');
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: '100px',
+                  padding: '10px',
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 'bold'
+                }}
+              >
+                🗑️ Supprimer
+              </button>
+            </div>
+            
+            {/* Actions - Deuxième ligne: Options d'impression */}
             <div style={{
               display: 'flex',
               gap: '8px',
@@ -487,7 +614,7 @@ export default function DeliveryNotesList() {
               </button>
             </div>
             
-            {/* Actions - Deuxième ligne: WhatsApp */}
+            {/* Actions - Troisième ligne: WhatsApp */}
             <div style={{
               display: 'flex',
               gap: '8px',
@@ -504,52 +631,6 @@ export default function DeliveryNotesList() {
                   whatsappOnly={true}
                 />
               </div>
-            </div>
-            
-            {/* Actions - Troisième ligne: Modifier et Supprimer */}
-            <div style={{
-              display: 'flex',
-              gap: '8px'
-            }}>
-              <button
-                onClick={() => {
-                  console.log(`✏️ Navigating to edit with REAL ID: ${validId}`);
-                  router.push(`/delivery-notes/${validId}/edit`);
-                }}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  backgroundColor: '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 'bold'
-                }}
-              >
-                ✏️ Modifier ce BL
-              </button>
-              <button
-                onClick={() => {
-                  if (confirm(`Êtes-vous sûr de vouloir supprimer le BL ${displayId} ?`)) {
-                    alert('Fonction de suppression à implémenter');
-                  }
-                }}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  backgroundColor: '#dc3545',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 'bold'
-                }}
-              >
-                🗑️ Supprimer ce BL
-              </button>
             </div>
           </div>
         );
@@ -636,151 +717,164 @@ export default function DeliveryNotesList() {
                 <td style={{ padding: '15px', textAlign: 'center' }}>
                   <div style={{
                     display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '5px',
-                    justifyContent: 'center',
+                    flexDirection: 'column',
+                    gap: '8px',
                     alignItems: 'center'
                   }}>
                     {/* Première ligne - Actions principales */}
-                    <button
-                      onClick={() => {
-                        console.log(`🔗 Navigating to details with REAL ID: ${validId} for BL ${displayId}`);
-                        router.push(`/delivery-notes/${validId}`);
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#17a2b8',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        minWidth: '70px'
-                      }}
-                      title={`Voir les détails du BL ${displayId}`}
-                    >
-                      👁️ Voir
-                    </button>
+                    <div style={{
+                      display: 'flex',
+                      gap: '5px',
+                      justifyContent: 'center',
+                      flexWrap: 'wrap'
+                    }}>
+                      <button
+                        onClick={() => {
+                          console.log(`🔗 Navigating to details with REAL ID: ${validId} for BL ${displayId}`);
+                          router.push(`/delivery-notes/${validId}`);
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#17a2b8',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          minWidth: '70px'
+                        }}
+                        title={`Voir les détails du BL ${displayId}`}
+                      >
+                        👁️ Voir
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          console.log(`✏️ Navigating to edit with REAL ID: ${validId} for BL ${displayId}`);
+                          router.push(`/delivery-notes/${validId}/edit`);
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#28a745',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          minWidth: '70px'
+                        }}
+                        title={`Modifier le BL ${displayId}`}
+                      >
+                        ✏️ Modifier
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          if (confirm(`Êtes-vous sûr de vouloir supprimer le BL ${displayId} ?`)) {
+                            alert('Fonction de suppression à implémenter');
+                          }
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#dc3545',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          minWidth: '70px'
+                        }}
+                        title={`Supprimer le BL ${displayId}`}
+                      >
+                        🗑️ Supprimer
+                      </button>
+                    </div>
                     
-                    <button
-                      onClick={() => {
-                        console.log(`✏️ Navigating to edit with REAL ID: ${validId} for BL ${displayId}`);
-                        router.push(`/delivery-notes/${validId}/edit`);
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#28a745',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        minWidth: '70px'
-                      }}
-                      title={`Modifier le BL ${displayId}`}
-                    >
-                      ✏️ Modifier
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        if (confirm(`Êtes-vous sûr de vouloir supprimer le BL ${displayId} ?`)) {
-                          alert('Fonction de suppression à implémenter');
-                        }
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#dc3545',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        minWidth: '70px'
-                      }}
-                      title={`Supprimer le BL ${displayId}`}
-                    >
-                      🗑️ Supprimer
-                    </button>
-                    
-                    {/* Deuxième ligne - Boutons PDF avec prévisualisation */}
-                    <button
-                      onClick={() => {
-                        console.log(`📄 PDF Complete - Using REAL ID: ${validId} for BL ${displayId}`);
-                        openPDFPreview(validId, 'complete');
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#007bff',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        minWidth: '90px'
-                      }}
-                      title={`Prévisualiser BL Complet ${displayId}`}
-                    >
-                      📄 BL Complet
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        console.log(`📄 PDF Small - Using REAL ID: ${validId} for BL ${displayId}`);
-                        openPDFPreview(validId, 'small');
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#17a2b8',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        minWidth: '90px'
-                      }}
-                      title={`Prévisualiser BL Réduit ${displayId}`}
-                    >
-                      📄 BL Réduit
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        console.log(`🎫 PDF Ticket - Using REAL ID: ${validId} for BL ${displayId}`);
-                        openPDFPreview(validId, 'ticket');
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#6f42c1',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        minWidth: '70px'
-                      }}
-                      title={`Prévisualiser Ticket ${displayId}`}
-                    >
-                      🎫 Ticket
-                    </button>
-                    
-                    {/* WhatsApp Button */}
-                    <div style={{ minWidth: '150px' }}>
-                      <PrintOptions
-                        documentType="bl"
-                        documentId={validId}
-                        documentNumber={displayId}
-                        clientName={bl.client_name}
-                        clientId={bl.nclient}
-                        isModal={false}
-                        whatsappOnly={true}
-                      />
+                    {/* Deuxième ligne - Actions d'impression */}
+                    <div style={{
+                      display: 'flex',
+                      gap: '5px',
+                      justifyContent: 'center',
+                      flexWrap: 'wrap'
+                    }}>
+                      <button
+                        onClick={() => {
+                          console.log(`📄 PDF Complete - Using REAL ID: ${validId} for BL ${displayId}`);
+                          openPDFPreview(validId, 'complete');
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#007bff',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          minWidth: '90px'
+                        }}
+                        title={`Prévisualiser BL Complet ${displayId}`}
+                      >
+                        📄 BL Complet
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          console.log(`📄 PDF Small - Using REAL ID: ${validId} for BL ${displayId}`);
+                          openPDFPreview(validId, 'small');
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#17a2b8',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          minWidth: '90px'
+                        }}
+                        title={`Prévisualiser BL Réduit ${displayId}`}
+                      >
+                        📄 BL Réduit
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          console.log(`🎫 PDF Ticket - Using REAL ID: ${validId} for BL ${displayId}`);
+                          openPDFPreview(validId, 'ticket');
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#6f42c1',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          minWidth: '70px'
+                        }}
+                        title={`Prévisualiser Ticket ${displayId}`}
+                      >
+                        🎫 Ticket
+                      </button>
+                      
+                      {/* WhatsApp Button */}
+                      <div style={{ minWidth: '120px' }}>
+                        <PrintOptions
+                          documentType="bl"
+                          documentId={validId}
+                          documentNumber={displayId}
+                          clientName={bl.client_name}
+                          clientId={bl.nclient}
+                          isModal={false}
+                          whatsappOnly={true}
+                        />
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -983,6 +1077,35 @@ export default function DeliveryNotesList() {
                 </select>
               </div>
 
+              {/* Filtre par statut de paiement */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '5px',
+                  fontWeight: 'bold',
+                  color: '#333',
+                  fontSize: '14px'
+                }}>
+                  💰 Statut de paiement
+                </label>
+                <select
+                  value={paymentStatus}
+                  onChange={(e) => setPaymentStatus(e.target.value as any)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '2px solid #e0e0e0',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="all">Tous (payés + partiellement payés + non payés)</option>
+                  <option value="paid">🟢 Payés totalement</option>
+                  <option value="partially_paid">🟡 Partiellement payés</option>
+                </select>
+              </div>
+
               {/* Filtre par date de début */}
               <div>
                 <label style={{
@@ -1091,7 +1214,7 @@ export default function DeliveryNotesList() {
             </div>
 
             {/* Résumé des filtres actifs */}
-            {(searchTerm || selectedClient || dateFrom || dateTo || minAmount || maxAmount) && (
+            {(searchTerm || selectedClient || dateFrom || dateTo || minAmount || maxAmount || paymentStatus !== 'all') && (
               <div style={{
                 background: '#e7f3ff',
                 border: '1px solid #b3d9ff',
@@ -1102,6 +1225,10 @@ export default function DeliveryNotesList() {
                 <strong>🎯 Filtres actifs :</strong>
                 {searchTerm && <span style={{ marginLeft: '10px', background: '#007bff', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Recherche: "{searchTerm}"</span>}
                 {selectedClient && <span style={{ marginLeft: '10px', background: '#28a745', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Client: {selectedClient}</span>}
+                {paymentStatus !== 'all' && <span style={{ marginLeft: '10px', background: '#10b981', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>
+                  {paymentStatus === 'paid' && '🟢 Payés totalement'}
+                  {paymentStatus === 'partially_paid' && '🟡 Partiellement payés'}
+                </span>}
                 {dateFrom && <span style={{ marginLeft: '10px', background: '#17a2b8', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Depuis: {dateFrom}</span>}
                 {dateTo && <span style={{ marginLeft: '10px', background: '#17a2b8', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Jusqu'à: {dateTo}</span>}
                 {minAmount && <span style={{ marginLeft: '10px', background: '#ffc107', color: 'black', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Min: {minAmount} DA</span>}

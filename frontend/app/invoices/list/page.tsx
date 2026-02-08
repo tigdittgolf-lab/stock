@@ -31,7 +31,11 @@ export default function InvoicesList() {
   const [minAmount, setMinAmount] = useState('');
   const [maxAmount, setMaxAmount] = useState('');
   const [selectedClient, setSelectedClient] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState<'all' | 'paid' | 'partially_paid'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // État pour stocker les statuts de paiement
+  const [paymentStatuses, setPaymentStatuses] = useState<Record<number, string>>({});
 
   useEffect(() => {
     // Détecter si on est sur mobile
@@ -90,6 +94,10 @@ export default function InvoicesList() {
       if (data.success) {
         setInvoices(data.data || []);
         setFilteredInvoices(data.data || []);
+        
+        // Charger les statuts de paiement pour chaque facture
+        loadPaymentStatuses(data.data || [], tenantSchema);
+        
         console.log('✅ Loaded', data.data?.length || 0, 'invoices');
       } else {
         throw new Error(data.error || 'Failed to load invoices');
@@ -100,6 +108,38 @@ export default function InvoicesList() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fonction pour charger les statuts de paiement
+  const loadPaymentStatuses = async (invoices: Invoice[], tenantSchema: string) => {
+    const statuses: Record<number, string> = {};
+    
+    // Charger les statuts en parallèle
+    await Promise.all(
+      invoices.map(async (invoice) => {
+        try {
+          const response = await fetch(
+            `/api/payments/balance?documentType=invoice&documentId=${invoice.nfact}`,
+            {
+              headers: {
+                'X-Tenant': tenantSchema
+              }
+            }
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+              statuses[invoice.nfact] = data.data.status;
+            }
+          }
+        } catch (error) {
+          console.error(`Error loading payment status for invoice ${invoice.nfact}:`, error);
+        }
+      })
+    );
+    
+    setPaymentStatuses(statuses);
   };
 
   // Fonction de filtrage
@@ -136,13 +176,26 @@ export default function InvoicesList() {
       filtered = filtered.filter(invoice => invoice.montant_ttc <= parseFloat(maxAmount));
     }
 
+    // Filtre par statut de paiement
+    if (paymentStatus !== 'all') {
+      filtered = filtered.filter(invoice => {
+        const status = paymentStatuses[invoice.nfact];
+        if (paymentStatus === 'paid') {
+          return status === 'paid';
+        } else if (paymentStatus === 'partially_paid') {
+          return status === 'partially_paid';
+        }
+        return true;
+      });
+    }
+
     setFilteredInvoices(filtered);
   };
 
   // Effet pour appliquer les filtres quand ils changent
   useEffect(() => {
     applyFilters();
-  }, [searchTerm, dateFrom, dateTo, minAmount, maxAmount, selectedClient, invoices]);
+  }, [searchTerm, dateFrom, dateTo, minAmount, maxAmount, selectedClient, paymentStatus, invoices, paymentStatuses]);
 
   // Fonction pour réinitialiser les filtres
   const resetFilters = () => {
@@ -152,6 +205,7 @@ export default function InvoicesList() {
     setMinAmount('');
     setMaxAmount('');
     setSelectedClient('');
+    setPaymentStatus('all');
   };
 
   // Obtenir la liste unique des clients pour le filtre
@@ -319,13 +373,83 @@ export default function InvoicesList() {
             </div>
           </div>
 
-          {/* Actions supplémentaires - Impression + Détails */}
+          {/* Actions - Première ligne: Actions principales */}
           <div style={{
             display: 'flex',
             gap: '8px',
-            flexWrap: 'wrap'
+            flexWrap: 'wrap',
+            marginBottom: '8px'
           }}>
-            {/* Première ligne - Impression facture */}
+            <button
+              onClick={() => {
+                router.push(`/invoices/details/${fact.nfact}`);
+              }}
+              style={{
+                flex: 1,
+                minWidth: '100px',
+                padding: '10px',
+                backgroundColor: '#17a2b8',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: 'bold'
+              }}
+            >
+              👁️ Voir Détails
+            </button>
+            
+            <button
+              onClick={() => {
+                router.push(`/invoices/${fact.nfact}/edit`);
+              }}
+              style={{
+                flex: 1,
+                minWidth: '100px',
+                padding: '10px',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: 'bold'
+              }}
+            >
+              ✏️ Modifier
+            </button>
+            
+            <button
+              onClick={() => {
+                if (confirm(`Êtes-vous sûr de vouloir supprimer la facture ${fact.nfact} ?`)) {
+                  alert('Fonction de suppression à implémenter');
+                }
+              }}
+              style={{
+                flex: 1,
+                minWidth: '100px',
+                padding: '10px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: 'bold'
+              }}
+            >
+              🗑️ Supprimer
+            </button>
+          </div>
+          
+          {/* Actions - Deuxième ligne: Options d'impression */}
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            flexWrap: 'wrap',
+            marginBottom: '8px'
+          }}>
             <button
               onClick={() => {
                 console.log(`📄 PDF Invoice - ID: ${fact.nfact}`);
@@ -346,14 +470,8 @@ export default function InvoicesList() {
             >
               📄 Imprimer Facture
             </button>
-          </div>
-          
-          {/* WhatsApp Button */}
-          <div style={{
-            display: 'flex',
-            gap: '8px',
-            marginTop: '8px'
-          }}>
+            
+            {/* WhatsApp Button */}
             <div style={{ flex: 1 }}>
               <PrintOptions
                 documentType="invoice"
@@ -365,33 +483,6 @@ export default function InvoicesList() {
                 whatsappOnly={true}
               />
             </div>
-          </div>
-          
-          {/* Deuxième ligne - Bouton Détails */}
-          <div style={{
-            display: 'flex',
-            gap: '8px',
-            marginTop: '8px'
-          }}>
-            <button
-              onClick={() => {
-                // Naviguer vers une page de détails
-                router.push(`/invoices/details/${fact.nfact}`);
-              }}
-              style={{
-                flex: 1,
-                padding: '12px',
-                backgroundColor: '#007bff',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 'bold'
-              }}
-            >
-              ℹ️ Voir Détails de la Facture
-            </button>
           </div>
         </div>
       ))}
@@ -447,66 +538,120 @@ export default function InvoicesList() {
                 <div style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '6px',
+                  gap: '8px',
                   alignItems: 'center'
                 }}>
-                  {/* Bouton Impression */}
-                  <button
-                    onClick={() => {
-                      console.log(`📄 PDF Invoice - ID: ${fact.nfact}`);
-                      openPDFPreview(fact.nfact, 'invoice');
-                    }}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: '#28a745',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      width: '100%',
-                      maxWidth: '150px'
-                    }}
-                    title="Imprimer Facture PDF"
-                  >
-                    📄 Imprimer Facture
-                  </button>
-                  
-                  {/* WhatsApp Button */}
-                  <div style={{ minWidth: '150px' }}>
-                    <PrintOptions
-                      documentType="invoice"
-                      documentId={fact.nfact}
-                      documentNumber={fact.nfact}
-                      clientName={fact.client_name}
-                      clientId={fact.nclient}
-                      isModal={false}
-                      whatsappOnly={true}
-                    />
+                  {/* Première ligne - Actions principales */}
+                  <div style={{
+                    display: 'flex',
+                    gap: '5px',
+                    justifyContent: 'center',
+                    flexWrap: 'wrap'
+                  }}>
+                    <button
+                      onClick={() => {
+                        router.push(`/invoices/details/${fact.nfact}`);
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#17a2b8',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        minWidth: '70px'
+                      }}
+                      title="Voir les détails de la facture"
+                    >
+                      👁️ Voir
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        router.push(`/invoices/${fact.nfact}/edit`);
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        minWidth: '70px'
+                      }}
+                      title="Modifier la facture"
+                    >
+                      ✏️ Modifier
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        if (confirm(`Êtes-vous sûr de vouloir supprimer la facture ${fact.nfact} ?`)) {
+                          alert('Fonction de suppression à implémenter');
+                        }
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        minWidth: '70px'
+                      }}
+                      title="Supprimer la facture"
+                    >
+                      🗑️ Supprimer
+                    </button>
                   </div>
                   
-                  {/* Bouton Détails */}
-                  <button
-                    onClick={() => {
-                      router.push(`/invoices/details/${fact.nfact}`);
-                    }}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: '#007bff',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      width: '100%',
-                      maxWidth: '150px'
-                    }}
-                    title="Voir tous les détails de la facture"
-                  >
-                    ℹ️ Voir Détails
-                  </button>
+                  {/* Deuxième ligne - Actions d'impression */}
+                  <div style={{
+                    display: 'flex',
+                    gap: '5px',
+                    justifyContent: 'center',
+                    flexWrap: 'wrap'
+                  }}>
+                    <button
+                      onClick={() => {
+                        console.log(`📄 PDF Invoice - ID: ${fact.nfact}`);
+                        openPDFPreview(fact.nfact, 'invoice');
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        minWidth: '120px'
+                      }}
+                      title="Imprimer Facture PDF"
+                    >
+                      📄 Imprimer Facture
+                    </button>
+                    
+                    {/* WhatsApp Button */}
+                    <div style={{ minWidth: '150px' }}>
+                      <PrintOptions
+                        documentType="invoice"
+                        documentId={fact.nfact}
+                        documentNumber={fact.nfact}
+                        clientName={fact.client_name}
+                        clientId={fact.nclient}
+                        isModal={false}
+                        whatsappOnly={true}
+                      />
+                    </div>
+                  </div>
                 </div>
               </td>
             </tr>
@@ -708,6 +853,35 @@ export default function InvoicesList() {
                 </select>
               </div>
 
+              {/* Filtre par statut de paiement */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '5px',
+                  fontWeight: 'bold',
+                  color: '#333',
+                  fontSize: '14px'
+                }}>
+                  💰 Statut de paiement
+                </label>
+                <select
+                  value={paymentStatus}
+                  onChange={(e) => setPaymentStatus(e.target.value as any)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '2px solid #e0e0e0',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="all">Tous (payés + partiellement payés + non payés)</option>
+                  <option value="paid">🟢 Payés totalement</option>
+                  <option value="partially_paid">🟡 Partiellement payés</option>
+                </select>
+              </div>
+
               {/* Filtre par date de début */}
               <div>
                 <label style={{
@@ -816,7 +990,7 @@ export default function InvoicesList() {
             </div>
 
             {/* Résumé des filtres actifs */}
-            {(searchTerm || selectedClient || dateFrom || dateTo || minAmount || maxAmount) && (
+            {(searchTerm || selectedClient || dateFrom || dateTo || minAmount || maxAmount || paymentStatus !== 'all') && (
               <div style={{
                 background: '#e8f5e8',
                 border: '1px solid #b3e5b3',
@@ -827,6 +1001,10 @@ export default function InvoicesList() {
                 <strong>🎯 Filtres actifs :</strong>
                 {searchTerm && <span style={{ marginLeft: '10px', background: '#28a745', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Recherche: "{searchTerm}"</span>}
                 {selectedClient && <span style={{ marginLeft: '10px', background: '#007bff', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Client: {selectedClient}</span>}
+                {paymentStatus !== 'all' && <span style={{ marginLeft: '10px', background: '#10b981', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>
+                  {paymentStatus === 'paid' && '🟢 Payés totalement'}
+                  {paymentStatus === 'partially_paid' && '🟡 Partiellement payés'}
+                </span>}
                 {dateFrom && <span style={{ marginLeft: '10px', background: '#17a2b8', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Depuis: {dateFrom}</span>}
                 {dateTo && <span style={{ marginLeft: '10px', background: '#17a2b8', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Jusqu'à: {dateTo}</span>}
                 {minAmount && <span style={{ marginLeft: '10px', background: '#ffc107', color: 'black', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Min: {minAmount} DA</span>}

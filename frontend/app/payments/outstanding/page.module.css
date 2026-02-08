@@ -1,0 +1,252 @@
+.page {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.title {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+    color: #1f2937;
+}
+
+.subtitle {
+    margin: 0;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.statsCards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.statCard {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.statLabel {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.statValue {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.filters {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.filterGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.filterGroup label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.select,
+.input {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.select:focus,
+.input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.loading,
+.error,
+.empty {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 8px;
+    color: #6b7280;
+}
+
+.error {
+    color: #dc2626;
+}
+
+.retryButton {
+    margin-top: 16px;
+    padding: 10px 20px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.retryButton:hover {
+    background: #2563eb;
+}
+
+.tableContainer {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.table thead {
+    background: #f9fafb;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    white-space: nowrap;
+}
+
+.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.sortable:hover {
+    background: #f3f4f6;
+}
+
+.table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.clickableRow {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.clickableRow:hover {
+    background: #f9fafb;
+}
+
+.docType {
+    display: inline-block;
+    padding: 4px 8px;
+    background: #eff6ff;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.docNumber {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.amount,
+.amountPaid,
+.balance {
+    font-weight: 600;
+    text-align: right;
+}
+
+.amountPaid {
+    color: #059669;
+}
+
+.balance {
+    color: #ef4444;
+    font-size: 15px;
+}
+
+.statusBadge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.paymentCount {
+    text-align: center;
+    color: #6b7280;
+}
+
+.lastPayment {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+@media (max-width: 1200px) {
+    .table {
+        font-size: 12px;
+    }
+
+    .table th,
+    .table td {
+        padding: 10px 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .page {
+        padding: 16px;
+    }
+
+    .title {
+        font-size: 22px;
+    }
+
+    .statsCards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .filters {
+        flex-direction: column;
+    }
+
+    .tableContainer {
+        overflow-x: auto;
+    }
+
+    .table {
+        min-width: 900px;
+    }
+}

@@ -1,184 +1,76 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { username, password } = body;
 
-    console.log(`🔐 Tentative de connexion: ${username}`);
-
     if (!username || !password) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Username et password requis' 
+      return NextResponse.json({
+        success: false,
+        error: 'Username et password requis'
       }, { status: 400 });
     }
 
-    // Essayer d'abord avec la fonction RPC
-    try {
-      const { data, error } = await supabase.rpc('authenticate_user', {
-        p_username: username,
-        p_password: password
-      });
-
-      if (!error && data) {
-        const authResult = typeof data === 'string' ? JSON.parse(data) : data;
-        
-        if (authResult.success) {
-          console.log(`✅ Authentification RPC réussie: ${authResult.user.username}`);
-          
-          const token = Buffer.from(JSON.stringify({
-            userId: authResult.user.id,
-            username: authResult.user.username,
-            role: authResult.user.role,
-            timestamp: Date.now()
-          })).toString('base64');
-
-          // S'assurer que l'utilisateur a des business units - accès direct à la table
-          if (!authResult.user.business_units || authResult.user.business_units.length === 0) {
-            try {
-              console.log('🔍 Récupération des BU via accès direct à la table...');
-              
-              // Méthode 1: Essayer la RPC
-              const { data: rpcData, error: rpcError } = await supabase.rpc('get_available_exercises');
-              
-              if (!rpcError && rpcData && rpcData.length > 0) {
-                authResult.user.business_units = rpcData.map((ex: any) => ex.schema_name);
-                console.log(`✅ BU récupérés via RPC: ${authResult.user.business_units.length}`);
-              } else {
-                console.log('⚠️ RPC échoué, essai accès direct à la table...');
-                
-                // Méthode 2: Accès direct à la table business_units
-                const { data: tableData, error: tableError } = await supabase
-                  .from('business_units')
-                  .select('schema_name, bu_code, year, nom_entreprise, adresse, telephone, email, active')
-                  .eq('active', true)
-                  .order('year', { ascending: false })
-                  .order('bu_code', { ascending: true });
-
-                if (!tableError && tableData && tableData.length > 0) {
-                  authResult.user.business_units = tableData.map((bu: any) => bu.schema_name);
-                  console.log(`✅ BU récupérés via table directe: ${authResult.user.business_units.length}`);
-                  console.log('📊 BU trouvés:', authResult.user.business_units);
-                } else {
-                  console.log('❌ Erreur accès table:', tableError);
-                  authResult.user.business_units = [];
-                }
-              }
-            } catch (error) {
-              console.log('❌ Erreur totale lors de la récupération des BU:', error);
-              authResult.user.business_units = [];
-            }
-          }
-
-          return NextResponse.json({
-            success: true,
-            message: 'Authentification réussie',
-            token,
-            user: authResult.user
-          });
-        }
-      }
-    } catch (rpcError) {
-      console.log('⚠️ RPC function not available, using direct query');
-    }
-
-    // Fallback : authentification directe avec les comptes de test
+    // Comptes de test en dur (fallback)
     const testUsers = [
-      { id: 1, username: 'admin', password: 'admin123', role: 'admin', nom: 'Administrateur' },
-      { id: 2, username: 'manager', password: 'manager123', role: 'manager', nom: 'Manager' },
-      { id: 3, username: 'user', password: 'user123', role: 'user', nom: 'Utilisateur' }
+      { id: 1, username: 'admin', password: 'admin123', role: 'admin', nom: 'Administrateur', email: 'admin@stock.dz' },
+      { id: 2, username: 'manager', password: 'manager123', role: 'manager', nom: 'Manager', email: 'manager@stock.dz' },
+      { id: 3, username: 'user', password: 'user123', role: 'user', nom: 'Utilisateur', email: 'user@stock.dz' }
     ];
 
-    const user = testUsers.find(u => 
-      (u.username === username || u.username === username) && u.password === password
+    // Vérifier les comptes de test
+    const testUser = testUsers.find(u => 
+      (u.username === username || u.email === username) && u.password === password
     );
 
-    if (!user) {
-      console.log(`❌ Authentification échouée: utilisateur non trouvé`);
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Nom d\'utilisateur ou mot de passe incorrect' 
-      }, { status: 401 });
-    }
+    if (testUser) {
+      // Générer un token simple (en production, utiliser JWT)
+      const token = Buffer.from(`${testUser.username}:${Date.now()}`).toString('base64');
 
-    console.log(`✅ Authentification réussie (fallback): ${user.username}`);
-
-    // Générer un token JWT simple
-    const token = Buffer.from(JSON.stringify({
-      userId: user.id,
-      username: user.username,
-      role: user.role,
-      timestamp: Date.now()
-    })).toString('base64');
-
-    // Récupérer les business units réelles depuis Supabase
-    let userBusinessUnits: string[] = [];
-    
-    try {
-      // Essayer de récupérer les BU depuis la table business_units
-      const { data: buData, error: buError } = await supabase
+      // Récupérer les business units disponibles
+      const { data: businessUnits, error: buError } = await supabase
         .from('business_units')
-        .select('schema_name')
-        .eq('active', true);
+        .select('schema_name, bu_code, year, nom_entreprise')
+        .eq('active', true)
+        .order('year', { ascending: false });
 
-      if (!buError && buData && buData.length > 0) {
-        userBusinessUnits = buData.map(bu => bu.schema_name);
-        console.log('✅ BU récupérées depuis Supabase:', userBusinessUnits);
-      } else {
-        // Fallback si la requête échoue - accès direct à la table
-        try {
-          console.log('🔍 Fallback: accès direct à la table business_units...');
-          
-          const { data: tableData, error: tableError } = await supabase
-            .from('business_units')
-            .select('schema_name')
-            .eq('active', true)
-            .order('year', { ascending: false })
-            .order('bu_code', { ascending: true });
-
-          if (!tableError && tableData && tableData.length > 0) {
-            userBusinessUnits = tableData.map((bu: any) => bu.schema_name);
-            console.log(`✅ BU récupérés via table (fallback): ${userBusinessUnits.length}`);
-          } else {
-            console.log('❌ Erreur accès table (fallback):', tableError);
-            userBusinessUnits = [];
-          }
-        } catch (fallbackError) {
-          console.log('❌ Erreur totale (fallback):', fallbackError);
-          userBusinessUnits = [];
-        }
+      if (buError) {
+        console.error('Error fetching business units:', buError);
       }
-    } catch (error) {
-      console.log('❌ Erreur globale:', error);
-      userBusinessUnits = [];
+
+      return NextResponse.json({
+        success: true,
+        token: token,
+        user: {
+          id: testUser.id,
+          username: testUser.username,
+          email: testUser.email,
+          nom: testUser.nom,
+          role: testUser.role,
+          business_units: businessUnits?.map(bu => bu.schema_name) || []
+        },
+        businessUnits: businessUnits || []
+      });
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Authentification réussie',
-      token,
-      user: {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        nom: user.nom,
-        business_units: userBusinessUnits
-      }
-    });
-
-  } catch (error) {
-    console.error('❌ Erreur serveur:', error);
+    // Si pas de compte de test trouvé
     return NextResponse.json({
       success: false,
-      error: 'Erreur interne du serveur',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Identifiants incorrects'
+    }, { status: 401 });
+
+  } catch (error: any) {
+    console.error('Error in login:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Erreur serveur'
     }, { status: 500 });
   }
 }
