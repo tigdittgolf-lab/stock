@@ -23,6 +23,7 @@ import missingEndpoints from './src/routes/missing-endpoints.js';
 import databaseConfig from './src/routes/database-config.js';
 import database from './src/routes/database.js';
 import whatsapp from './src/routes/whatsapp.js';
+import migrations from './routes/migrations.js';
 
 const app = new Hono();
 
@@ -92,6 +93,7 @@ app.route('/api/admin', admin);
 app.route('/api/database-config', databaseConfig);
 app.route('/api/database', database);
 app.route('/api/whatsapp', whatsapp);
+app.route('/api/migrations', migrations);
 app.route('/api', missingEndpoints);
 
 try {

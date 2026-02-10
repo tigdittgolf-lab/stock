@@ -1,6 +1,22 @@
 {
+  "name": "stock-management-sync",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test-connection": "node test-connection.js",
+    "sync-db": "node sync-database-objects-pg.js",
+    "sync-db-supabase": "node sync-database-objects.js",
+    "verify-sync": "node verify-sync.js",
+    "rollback": "node rollback-sync.js",
+    "help": "echo 'Scripts disponibles: test-connection, sync-db, sync-db-supabase, verify-sync, rollback'"
+  },
   "dependencies": {
-    "@supabase/supabase-js": "^2.90.1"
+    "@supabase/supabase-js": "^2.90.1",
+    "cors": "^2.8.6",
+    "dotenv": "^16.3.1",
+    "express": "^5.2.1",
+    "mysql2": "^3.16.3",
+    "pg": "^8.11.3"
   },
   "deploymentTrigger": "2026-01-03-21:55-force-mobile-deployment"
 }

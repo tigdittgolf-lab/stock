@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Configuration du backend via Tailscale (URL PERMANENTE)
-const BACKEND_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
-  : 'http://localhost:3005/api';
+// Configuration du backend via variable d'environnement
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3005';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +10,7 @@ export async function GET(request: NextRequest) {
     console.log(`🔄 Frontend API: Forwarding suppliers request to backend for tenant ${tenant}`);
     
     // Forwarder la requête vers le backend
-    const backendResponse = await fetch(`${BACKEND_URL}/suppliers`, {
+    const backendResponse = await fetch(`${BACKEND_URL}/api/sales/suppliers`, {
       method: 'GET',
       headers: {
         'X-Tenant': tenant,
@@ -47,7 +45,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔄 Frontend API: Forwarding supplier creation to backend for tenant ${tenant}`);
     
     // Forwarder la requête vers le backend
-    const backendResponse = await fetch(`${BACKEND_URL}/suppliers`, {
+    const backendResponse = await fetch(`${BACKEND_URL}/api/sales/suppliers`, {
       method: 'POST',
       headers: {
         'X-Tenant': tenant,

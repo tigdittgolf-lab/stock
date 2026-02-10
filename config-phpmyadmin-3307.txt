@@ -1,0 +1,46 @@
+// =====================================================
+// CONFIGURATION À AJOUTER DANS config.inc.php
+// =====================================================
+
+// Cherchez cette ligne dans votre config.inc.php:
+// $cfg['Servers'][$i]['host'] = 'localhost';
+
+// Ajoutez JUSTE APRÈS cette ligne:
+$cfg['Servers'][$i]['port'] = '3307';
+
+// =====================================================
+// EXEMPLE COMPLET:
+// =====================================================
+
+$i++;
+$cfg['Servers'][$i]['auth_type'] = 'cookie';
+$cfg['Servers'][$i]['host'] = 'localhost';
+$cfg['Servers'][$i]['port'] = '3307';  // ← AJOUTER CETTE LIGNE
+$cfg['Servers'][$i]['connect_type'] = 'tcp';
+$cfg['Servers'][$i]['compress'] = false;
+$cfg['Servers'][$i]['AllowNoPassword'] = true;
+
+// =====================================================
+// FICHIERS À MODIFIER:
+// =====================================================
+
+1. C:\wamp64\apps\phpmyadmin4.9.7\config.inc.php
+2. C:\wamp64\apps\phpmyadmin5.1.1\config.inc.php
+
+// =====================================================
+// APRÈS MODIFICATION:
+// =====================================================
+
+1. Sauvegarder les fichiers
+2. Redémarrer WAMP (Restart All Services)
+3. Ouvrir http://localhost/phpmyadmin
+4. Vérifier la table payments dans stock_management
+
+// =====================================================
+// ALTERNATIVE: Connexion manuelle
+// =====================================================
+
+Dans phpMyAdmin, sur la page de connexion:
+- Serveur: localhost:3307
+- Utilisateur: root
+- Mot de passe: (vide)

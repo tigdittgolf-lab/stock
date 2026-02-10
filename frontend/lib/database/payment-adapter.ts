@@ -37,13 +37,13 @@ export function getActiveDatabaseType(explicitType?: DatabaseType): DatabaseType
   if (explicitType) {
     // En production Vercel, vérifier si le proxy Tailscale est disponible
     if (process.env.VERCEL && (explicitType === 'mysql' || explicitType === 'postgresql')) {
-      // Si le proxy est configuré, on peut utiliser MySQL
+      // Si le proxy est configuré, on peut utiliser MySQL/PostgreSQL
       if (process.env.MYSQL_PROXY_URL) {
-        console.log('✅ Production: Utilisation de MySQL via Tailscale proxy');
-        return 'mysql';
+        console.log(`✅ Production: Utilisation de ${explicitType} via Tailscale proxy`);
+        return explicitType; // Retourner le type demandé, pas toujours 'mysql'
       }
       // Sinon, forcer Supabase
-      console.warn(`⚠️ Production: MySQL/PostgreSQL non disponible, utilisation de Supabase`);
+      console.warn(`⚠️ Production: ${explicitType} non disponible sans proxy, utilisation de Supabase`);
       return 'supabase';
     }
     return explicitType;

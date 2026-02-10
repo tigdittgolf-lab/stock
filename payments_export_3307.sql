@@ -1,0 +1,6 @@
+﻿1	2025_bu01	delivery_note	5	2026-02-08	100.00	cash	Note p1	2026-02-08 17:27:25	NULL	2026-02-08 17:27:25	NULL
+2	2025_bu01	delivery_note	5	2026-02-07	200.00	cash	note p2	2026-02-08 17:28:34	NULL	2026-02-08 17:28:34	NULL
+3	2025_bu01	delivery_note	3	2026-02-08	4000.00	mobile_payment	note 2 paiement	2026-02-08 20:29:11	NULL	2026-02-08 20:32:58	NULL
+4	2025_bu01	delivery_note	5	2026-02-08	500.00	cash	p 500	2026-02-08 20:53:42	NULL	2026-02-08 20:53:42	NULL
+5	2025_bu01	delivery_note	5	2026-02-08	390.00	cash	fin de paiement	2026-02-08 20:54:23	NULL	2026-02-08 20:54:23	NULL
+6	2025_bu01	delivery_note	3	2026-02-09	65.17	cash	note 2 payment	2026-02-09 21:53:42	NULL	2026-02-09 21:53:42	NULL

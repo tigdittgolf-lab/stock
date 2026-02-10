@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Configuration du backend via Tailscale (URL PERMANENTE)
-const BACKEND_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
-  : 'http://localhost:3005/api';
+// Configuration du backend via variable d'environnement
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3005';
 
 export async function GET(request: NextRequest) {
   try {
