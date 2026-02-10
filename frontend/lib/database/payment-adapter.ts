@@ -35,8 +35,14 @@ export interface PaymentBalance {
 export function getActiveDatabaseType(explicitType?: DatabaseType): DatabaseType {
   // Si un type est explicitement fourni (côté serveur), l'utiliser
   if (explicitType) {
-    // En production Vercel, forcer Supabase si MySQL/PostgreSQL est demandé
+    // En production Vercel, vérifier si le proxy Tailscale est disponible
     if (process.env.VERCEL && (explicitType === 'mysql' || explicitType === 'postgresql')) {
+      // Si le proxy est configuré, on peut utiliser MySQL
+      if (process.env.MYSQL_PROXY_URL) {
+        console.log('✅ Production: Utilisation de MySQL via Tailscale proxy');
+        return 'mysql';
+      }
+      // Sinon, forcer Supabase
       console.warn(`⚠️ Production: MySQL/PostgreSQL non disponible, utilisation de Supabase`);
       return 'supabase';
     }
@@ -84,7 +90,30 @@ async function executeMySQLQuery(sql: string, params: any[] = [], database?: str
     return result.data;
   }
   
-  // Côté serveur : utiliser mysql2 directement
+  // Côté serveur : vérifier si on utilise le proxy Tailscale (production)
+  const proxyUrl = process.env.MYSQL_PROXY_URL;
+  
+  if (proxyUrl) {
+    // Production avec Tailscale : utiliser le proxy
+    console.log('🔗 Using Tailscale proxy:', proxyUrl);
+    const response = await fetch(`${proxyUrl}/api/mysql/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sql,
+        params,
+        database: database || 'stock_management'
+      })
+    });
+    
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.error || 'MySQL proxy query failed');
+    }
+    return result.data;
+  }
+  
+  // Développement local : utiliser mysql2 directement
   const mysql = require('mysql2/promise');
   const connection = await mysql.createConnection({
     host: 'localhost',
