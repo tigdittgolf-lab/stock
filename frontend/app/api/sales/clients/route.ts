@@ -8,9 +8,11 @@ export async function GET(request: NextRequest) {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     
     console.log(`🔄 Frontend API: Forwarding clients request to backend for tenant ${tenant}`);
+    console.log(`🌐 BACKEND_URL configured: ${BACKEND_URL}`);
+    console.log(`🎯 Full URL: ${BACKEND_URL}/api/sales/clients`);
     
     // Forwarder la requête vers le backend
-    const backendResponse = await fetch(`${BACKEND_URL}/sales/clients`, {
+    const backendResponse = await fetch(`${BACKEND_URL}/api/sales/clients`, {
       method: 'GET',
       headers: {
         'X-Tenant': tenant,
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔄 Frontend API: Forwarding client creation to backend for tenant ${tenant}`);
     
     // Forwarder la requête vers le backend
-    const backendResponse = await fetch(`${BACKEND_URL}/sales/clients`, {
+    const backendResponse = await fetch(`${BACKEND_URL}/api/sales/clients`, {
       method: 'POST',
       headers: {
         'X-Tenant': tenant,

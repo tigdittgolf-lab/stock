@@ -8,6 +8,8 @@ export async function GET(request: NextRequest) {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     
     console.log(`🔄 Frontend API: Forwarding articles request to backend for tenant ${tenant}`);
+    console.log(`🌐 BACKEND_URL configured: ${BACKEND_URL}`);
+    console.log(`🎯 Full URL: ${BACKEND_URL}/api/sales/articles`);
     
     // Forwarder la requête vers le backend
     const backendResponse = await fetch(`${BACKEND_URL}/api/sales/articles`, {
