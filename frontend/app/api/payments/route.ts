@@ -63,6 +63,13 @@ export async function POST(request: NextRequest) {
     const tenantId = request.headers.get('X-Tenant') || body.tenantId || '2025_bu01';
     const dbType = (request.headers.get('X-Database-Type') as any) || 'supabase';
 
+    console.log('🔍 POST /api/payments - Headers:', {
+      'X-Tenant': request.headers.get('X-Tenant'),
+      'X-Database-Type': request.headers.get('X-Database-Type'),
+      'Computed dbType': dbType,
+      'Body tenantId': body.tenantId
+    });
+
     // Validation
     if (!documentType || !documentId || !paymentDate || !amount) {
       return NextResponse.json({

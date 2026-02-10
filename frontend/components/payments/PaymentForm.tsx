@@ -118,6 +118,13 @@ export default function PaymentForm({
             const dbConfig = localStorage.getItem('activeDbConfig');
             const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
             
+            console.log('🔍 PaymentForm - Submitting payment:', {
+                dbConfig: dbConfig ? JSON.parse(dbConfig) : null,
+                dbType,
+                documentType,
+                documentId
+            });
+            
             const response = await fetch('/api/payments', {
                 method: 'POST',
                 headers: {
@@ -135,6 +142,8 @@ export default function PaymentForm({
             });
 
             const data = await response.json();
+            
+            console.log('📡 PaymentForm - Response:', { status: response.status, data });
 
             if (response.ok && data.success) {
                 onSuccess();
