@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getApiUrl } from '@/lib/api';
 import DatabaseTypeIndicator from '@/components/DatabaseTypeIndicator';
+import DatabaseSelector from '@/components/DatabaseSelector';
 import styles from "../page.module.css";
 import dashboardStyles from "./dashboard.module.css";
 
@@ -644,6 +645,7 @@ export default function Dashboard() {
                   🏢 {companyInfo.nom_entreprise || 'Activité non définie'}
                 </span>
               )}
+              <DatabaseSelector />
               <DatabaseTypeIndicator />
             </div>
           </div>
