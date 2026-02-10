@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test localStorage - Sélecteur de Base de Données</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #2196F3;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #45a049;
+        }
+        .btn-secondary {
+            background: #2196F3;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #0b7dda;
+        }
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #da190b;
+        }
+        pre {
+            background: #263238;
+            color: #aed581;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Test localStorage - Sélecteur de Base de Données</h1>
+        
+        <div class="section">
+            <h2>📊 État actuel</h2>
+            <div id="currentStatus"></div>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Actions</h2>
+            <button class="btn-secondary" onclick="setSupabase()">☁️ Configurer Supabase</button>
+            <button class="btn-secondary" onclick="setMySQL()">🐬 Configurer MySQL</button>
+            <button class="btn-secondary" onclick="setPostgreSQL()">🐘 Configurer PostgreSQL</button>
+            <br><br>
+            <button class="btn-primary" onclick="checkConfig()">🔄 Rafraîchir</button>
+            <button class="btn-danger" onclick="clearConfig()">🗑️ Effacer la config</button>
+        </div>
+
+        <div class="section">
+            <h2>📝 Détails de la configuration</h2>
+            <pre id="configDetails">Aucune configuration trouvée</pre>
+        </div>
+
+        <div class="section">
+            <h2>🧪 Test d'envoi de header</h2>
+            <button class="btn-primary" onclick="testHeader()">📡 Tester l'envoi du header</button>
+            <div id="headerTestResult"></div>
+        </div>
+
+        <div class="section">
+            <h2>ℹ️ Instructions</h2>
+            <ol>
+                <li>Ouvrez cette page dans le même navigateur que votre application</li>
+                <li>Vérifiez l'état actuel de la configuration</li>
+                <li>Sélectionnez une base de données</li>
+                <li>Testez l'envoi du header pour vérifier que tout fonctionne</li>
+                <li>Retournez sur votre application et créez un paiement</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function checkConfig() {
+            const config = localStorage.getItem('activeDbConfig');
+            const statusDiv = document.getElementById('currentStatus');
+            const detailsDiv = document.getElementById('configDetails');
+
+            if (config) {
+                try {
+                    const parsed = JSON.parse(config);
+                    const dbType = parsed.type || 'unknown';
+                    const dbName = parsed.name || 'Unknown';
+                    
+                    statusDiv.innerHTML = `
+                        <div class="status success">
+                            ✅ Configuration active: <strong>${dbName}</strong> (${dbType})
+                        </div>
+                    `;
+                    
+                    detailsDiv.textContent = JSON.stringify(parsed, null, 2);
+                } catch (e) {
+                    statusDiv.innerHTML = `
+                        <div class="status error">
+                            ❌ Configuration invalide: ${e.message}
+                        </div>
+                    `;
+                    detailsDiv.textContent = config;
+                }
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="status info">
+                        ℹ️ Aucune configuration trouvée. Sélectionnez une base de données.
+                    </div>
+                `;
+                detailsDiv.textContent = 'Aucune configuration trouvée';
+            }
+        }
+
+        function setSupabase() {
+            const config = {
+                type: 'supabase',
+                name: 'Supabase Cloud',
+                supabaseUrl: 'https://szgodrjglbpzkrksnroi.supabase.co',
+                isActive: true,
+                lastTested: new Date().toISOString()
+            };
+            localStorage.setItem('activeDbConfig', JSON.stringify(config));
+            checkConfig();
+            alert('✅ Configuration Supabase enregistrée!');
+        }
+
+        function setMySQL() {
+            const config = {
+                type: 'mysql',
+                name: 'MySQL Local',
+                host: 'localhost',
+                port: 3306,
+                database: 'stock_management',
+                username: 'root',
+                password: '',
+                isActive: true,
+                lastTested: new Date().toISOString()
+            };
+            localStorage.setItem('activeDbConfig', JSON.stringify(config));
+            checkConfig();
+            alert('✅ Configuration MySQL enregistrée!');
+        }
+
+        function setPostgreSQL() {
+            const config = {
+                type: 'postgresql',
+                name: 'PostgreSQL Local',
+                host: 'localhost',
+                port: 5432,
+                database: 'stock_management',
+                username: 'postgres',
+                password: 'postgres',
+                isActive: true,
+                lastTested: new Date().toISOString()
+            };
+            localStorage.setItem('activeDbConfig', JSON.stringify(config));
+            checkConfig();
+            alert('✅ Configuration PostgreSQL enregistrée!');
+        }
+
+        function clearConfig() {
+            if (confirm('Êtes-vous sûr de vouloir effacer la configuration?')) {
+                localStorage.removeItem('activeDbConfig');
+                checkConfig();
+                alert('🗑️ Configuration effacée!');
+            }
+        }
+
+        async function testHeader() {
+            const resultDiv = document.getElementById('headerTestResult');
+            const config = localStorage.getItem('activeDbConfig');
+            
+            if (!config) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ Aucune configuration trouvée. Sélectionnez d'abord une base de données.
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(config);
+                const dbType = parsed.type;
+
+                resultDiv.innerHTML = `
+                    <div class="status info">
+                        🔄 Test en cours avec dbType: ${dbType}...
+                    </div>
+                `;
+
+                // Simuler l'envoi du header comme le fait PaymentForm
+                console.log('🔍 Test - Sending header:', {
+                    'X-Database-Type': dbType,
+                    config: parsed
+                });
+
+                resultDiv.innerHTML = `
+                    <div class="status success">
+                        ✅ Header envoyé avec succès!<br>
+                        <strong>X-Database-Type:</strong> ${dbType}<br>
+                        <br>
+                        Vérifiez la console du navigateur (F12) pour voir les détails.
+                    </div>
+                `;
+            } catch (e) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ Erreur: ${e.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Charger l'état au démarrage
+        checkConfig();
+    </script>
+</body>
+</html>
