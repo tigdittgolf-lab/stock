@@ -1,0 +1,76 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    ✅ CORRECTION TERMINÉE                                    ║
+║                                                                              ║
+║  Problème : Paiements enregistrés dans Supabase au lieu de MySQL            ║
+║  Solution : Ajout du header X-Database-Type pour transmettre la config      ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📦 FICHIERS MODIFIÉS : 15 fichiers
+
+   Backend (4)
+   ✅ frontend/lib/database/payment-adapter.ts
+   ✅ frontend/app/api/payments/route.ts
+   ✅ frontend/app/api/payments/balance/route.ts
+   ✅ frontend/app/api/payments/[id]/route.ts
+
+   Frontend (5)
+   ✅ frontend/components/payments/PaymentForm.tsx
+   ✅ frontend/components/payments/PaymentHistory.tsx
+   ✅ frontend/components/payments/PaymentSummary.tsx
+   ✅ frontend/app/delivery-notes/list/page.tsx
+   ✅ frontend/app/invoices/list/page.tsx
+
+   Configuration MySQL (6)
+   ✅ frontend/lib/database/database-defaults.ts
+   ✅ frontend/lib/database/server-adapters/mysql-server-adapter.ts
+   ✅ frontend/app/api/database/mysql/route.ts
+   ✅ frontend/app/api/database/mysql/rpc-migration/route.ts
+   ✅ frontend/app/api/payments/outstanding/route.ts
+   ✅ Port MySQL changé de 3307 → 3306 (standard)
+
+🚀 POUR TESTER MAINTENANT :
+
+   1. Redémarrer l'application :
+      .\restart-and-test.ps1
+
+   2. Ouvrir http://localhost:3000
+
+   3. Vérifier que l'indicateur affiche "MySQL"
+
+   4. Créer un paiement de test (50 DA)
+
+   5. Vérifier MySQL :
+      mysql -u root -P 3306 -e "SELECT * FROM payments ORDER BY id DESC LIMIT 1;" stock_management
+
+   6. Vérifier Supabase (le paiement NE DOIT PAS y être)
+
+📚 DOCUMENTATION COMPLÈTE :
+
+   - CORRECTION_COMPLETE_PAIEMENTS.md     (Guide complet)
+   - CORRECTION_PROBLEME_SUPABASE_MYSQL.md (Détails techniques)
+   - RESUME_CORRECTION_FINALE.md          (Résumé exécutif)
+
+⚠️ IMPORTANT :
+
+   ✅ Port MySQL : 3306 (pas 3307)
+   ✅ Vider le cache du navigateur (Ctrl+Shift+R)
+   ✅ Vérifier l'indicateur de base de données
+   ✅ Tester avec un petit montant d'abord
+
+🎯 RÉSULTAT ATTENDU :
+
+   ✅ Paiements créés dans MySQL (port 3306)
+   ❌ Paiements NON créés dans Supabase
+   ✅ L'indicateur correspond à la réalité
+   ✅ Toutes les opérations (GET/POST/PUT/DELETE) fonctionnent
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Si ça ne fonctionne pas, vérifier :
+   1. MySQL est démarré sur le port 3306
+   2. Les serveurs sont redémarrés
+   3. Le cache du navigateur est vidé
+   4. Les logs dans la console (F12)
+
+═══════════════════════════════════════════════════════════════════════════════

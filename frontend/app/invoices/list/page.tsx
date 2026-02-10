@@ -118,11 +118,16 @@ export default function InvoicesList() {
     await Promise.all(
       invoices.map(async (invoice) => {
         try {
+          // Récupérer la config de la base de données active
+          const dbConfig = localStorage.getItem('activeDbConfig');
+          const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+          
           const response = await fetch(
             `/api/payments/balance?documentType=invoice&documentId=${invoice.nfact}`,
             {
               headers: {
-                'X-Tenant': tenantSchema
+                'X-Tenant': tenantSchema,
+                'X-Database-Type': dbType
               }
             }
           );

@@ -132,11 +132,16 @@ export default function DeliveryNotesList() {
     await Promise.all(
       notes.map(async (note) => {
         try {
+          // Récupérer la config de la base de données active
+          const dbConfig = localStorage.getItem('activeDbConfig');
+          const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+          
           const response = await fetch(
             `/api/payments/balance?documentType=delivery_note&documentId=${note.nbl}`,
             {
               headers: {
-                'X-Tenant': tenantSchema
+                'X-Tenant': tenantSchema,
+                'X-Database-Type': dbType
               }
             }
           );

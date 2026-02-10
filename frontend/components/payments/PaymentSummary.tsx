@@ -57,8 +57,17 @@ export default function PaymentSummary({
         setError(null);
 
         try {
+            // Récupérer la config de la base de données active
+            const dbConfig = localStorage.getItem('activeDbConfig');
+            const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+            
             const response = await fetch(
-                `/api/payments/balance?documentType=${documentType}&documentId=${documentId}`
+                `/api/payments/balance?documentType=${documentType}&documentId=${documentId}`,
+                {
+                    headers: {
+                        'X-Database-Type': dbType
+                    }
+                }
             );
 
             if (response.ok) {
@@ -77,8 +86,17 @@ export default function PaymentSummary({
 
     const fetchPaymentCount = async () => {
         try {
+            // Récupérer la config de la base de données active
+            const dbConfig = localStorage.getItem('activeDbConfig');
+            const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+            
             const response = await fetch(
-                `/api/payments?documentType=${documentType}&documentId=${documentId}`
+                `/api/payments?documentType=${documentType}&documentId=${documentId}`,
+                {
+                    headers: {
+                        'X-Database-Type': dbType
+                    }
+                }
             );
 
             if (response.ok) {

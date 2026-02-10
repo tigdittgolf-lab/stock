@@ -50,8 +50,17 @@ export default function PaymentHistory({
         setError(null);
 
         try {
+            // Récupérer la config de la base de données active
+            const dbConfig = localStorage.getItem('activeDbConfig');
+            const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+            
             const response = await fetch(
-                `/api/payments?documentType=${documentType}&documentId=${documentId}`
+                `/api/payments?documentType=${documentType}&documentId=${documentId}`,
+                {
+                    headers: {
+                        'X-Database-Type': dbType
+                    }
+                }
             );
 
             if (response.ok) {
@@ -85,10 +94,15 @@ export default function PaymentHistory({
 
     const handleSaveEdit = async (paymentId: number) => {
         try {
+            // Récupérer la config de la base de données active
+            const dbConfig = localStorage.getItem('activeDbConfig');
+            const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+            
             const response = await fetch(`/api/payments/${paymentId}`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-Database-Type': dbType
                 },
                 body: JSON.stringify(editForm)
             });
@@ -114,8 +128,15 @@ export default function PaymentHistory({
         }
 
         try {
+            // Récupérer la config de la base de données active
+            const dbConfig = localStorage.getItem('activeDbConfig');
+            const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+            
             const response = await fetch(`/api/payments/${paymentId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'X-Database-Type': dbType
+                }
             });
 
             if (response.ok) {

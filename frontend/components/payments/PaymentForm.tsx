@@ -53,8 +53,17 @@ export default function PaymentForm({
 
     const fetchBalance = async () => {
         try {
+            // Récupérer la config de la base de données active
+            const dbConfig = localStorage.getItem('activeDbConfig');
+            const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+            
             const response = await fetch(
-                `/api/payments/balance?documentType=${documentType}&documentId=${documentId}`
+                `/api/payments/balance?documentType=${documentType}&documentId=${documentId}`,
+                {
+                    headers: {
+                        'X-Database-Type': dbType
+                    }
+                }
             );
             
             if (response.ok) {
@@ -105,10 +114,15 @@ export default function PaymentForm({
         setErrors([]);
 
         try {
+            // Récupérer la config de la base de données active
+            const dbConfig = localStorage.getItem('activeDbConfig');
+            const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+            
             const response = await fetch('/api/payments', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-Database-Type': dbType
                 },
                 body: JSON.stringify({
                     documentType,

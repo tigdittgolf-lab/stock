@@ -1,13 +1,10 @@
 // API Route: /api/payments/[id]
 // Handles: GET (detail), PUT (update), DELETE (delete)
+// Supports: Supabase, MySQL, PostgreSQL
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getPaymentsByDocument, updatePayment, deletePayment } from '@/lib/database/payment-adapter';
 import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 // GET /api/payments/[id]
 export async function GET(
@@ -17,35 +14,76 @@ export async function GET(
   try {
     const { id } = await params;
     const tenantId = request.headers.get('X-Tenant') || '2025_bu01';
+    const dbType = (request.headers.get('X-Database-Type') as any) || 'supabase';
 
-    const { data, error } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .eq('id', parseInt(id))
-      .single();
+    console.log('📋 Fetching payment:', { id, tenantId, dbType });
 
-    if (error) {
-      if (error.code === 'PGRST116') {
+    if (dbType === 'mysql') {
+      // MySQL: Requête directe
+      const response = await fetch('http://localhost:3000/api/database/mysql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          config: {
+            host: 'localhost',
+            port: 3306,
+            username: 'root',
+            password: '',
+            database: 'stock_management'
+          },
+          sql: 'SELECT * FROM payments WHERE id = ? AND tenant_id = ?',
+          params: [parseInt(id), tenantId]
+        })
+      });
+
+      const result = await response.json();
+      if (!result.success || !result.data || result.data.length === 0) {
         return NextResponse.json({
           success: false,
           error: 'Payment not found'
         }, { status: 404 });
       }
-      
-      console.error('Error fetching payment:', error);
-      return NextResponse.json({
-        success: false,
-        error: error.message
-      }, { status: 500 });
-    }
 
-    return NextResponse.json({
-      success: true,
-      data: data
-    });
+      return NextResponse.json({
+        success: true,
+        data: result.data[0]
+      });
+    } else {
+      // Supabase
+      const supabase = createClient(
+        process.env.SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('id', parseInt(id))
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return NextResponse.json({
+            success: false,
+            error: 'Payment not found'
+          }, { status: 404 });
+        }
+        
+        console.error('Error fetching payment:', error);
+        return NextResponse.json({
+          success: false,
+          error: error.message
+        }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: data
+      });
+    }
   } catch (error: any) {
-    console.error('Error in GET /api/payments/[id]:', error);
+    console.error('❌ Error in GET /api/payments/[id]:', error);
     return NextResponse.json({
       success: false,
       error: error.message
@@ -62,6 +100,7 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
     const tenantId = request.headers.get('X-Tenant') || '2025_bu01';
+    const dbType = (request.headers.get('X-Database-Type') as any) || 'supabase';
 
     // Validation
     if (body.amount !== undefined && body.amount <= 0) {
@@ -71,38 +110,25 @@ export async function PUT(
       }, { status: 400 });
     }
 
-    // Build update object (only include provided fields)
-    const updateData: any = {
-      updated_at: new Date().toISOString()
-    };
+    console.log('✏️ Updating payment:', { id, tenantId, dbType });
 
-    if (body.paymentDate !== undefined) updateData.payment_date = body.paymentDate;
-    if (body.amount !== undefined) updateData.amount = body.amount;
-    if (body.paymentMethod !== undefined) updateData.payment_method = body.paymentMethod;
-    if (body.notes !== undefined) updateData.notes = body.notes;
+    // Build update object
+    const updates: any = {};
+    if (body.paymentDate !== undefined) updates.payment_date = body.paymentDate;
+    if (body.amount !== undefined) updates.amount = body.amount;
+    if (body.paymentMethod !== undefined) updates.payment_method = body.paymentMethod;
+    if (body.notes !== undefined) updates.notes = body.notes;
 
-    const { data, error } = await supabase
-      .from('payments')
-      .update(updateData)
-      .eq('tenant_id', tenantId)
-      .eq('id', parseInt(id))
-      .select()
-      .single();
+    const payment = await updatePayment(parseInt(id), tenantId, updates, dbType);
 
-    if (error) {
-      console.error('Error updating payment:', error);
-      return NextResponse.json({
-        success: false,
-        error: error.message
-      }, { status: 500 });
-    }
+    console.log('✅ Payment updated:', payment.id);
 
     return NextResponse.json({
       success: true,
-      data: data
+      data: payment
     });
   } catch (error: any) {
-    console.error('Error in PUT /api/payments/[id]:', error);
+    console.error('❌ Error in PUT /api/payments/[id]:', error);
     return NextResponse.json({
       success: false,
       error: error.message
@@ -118,27 +144,20 @@ export async function DELETE(
   try {
     const { id } = await params;
     const tenantId = request.headers.get('X-Tenant') || '2025_bu01';
+    const dbType = (request.headers.get('X-Database-Type') as any) || 'supabase';
 
-    const { error } = await supabase
-      .from('payments')
-      .delete()
-      .eq('tenant_id', tenantId)
-      .eq('id', parseInt(id));
+    console.log('🗑️ Deleting payment:', { id, tenantId, dbType });
 
-    if (error) {
-      console.error('Error deleting payment:', error);
-      return NextResponse.json({
-        success: false,
-        error: error.message
-      }, { status: 500 });
-    }
+    await deletePayment(parseInt(id), tenantId, dbType);
+
+    console.log('✅ Payment deleted');
 
     return NextResponse.json({
       success: true,
       message: 'Payment deleted successfully'
     });
   } catch (error: any) {
-    console.error('Error in DELETE /api/payments/[id]:', error);
+    console.error('❌ Error in DELETE /api/payments/[id]:', error);
     return NextResponse.json({
       success: false,
       error: error.message
