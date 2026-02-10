@@ -35,6 +35,11 @@ export interface PaymentBalance {
 export function getActiveDatabaseType(explicitType?: DatabaseType): DatabaseType {
   // Si un type est explicitement fourni (côté serveur), l'utiliser
   if (explicitType) {
+    // En production Vercel, forcer Supabase si MySQL/PostgreSQL est demandé
+    if (process.env.VERCEL && (explicitType === 'mysql' || explicitType === 'postgresql')) {
+      console.warn(`⚠️ Production: MySQL/PostgreSQL non disponible, utilisation de Supabase`);
+      return 'supabase';
+    }
     return explicitType;
   }
   
