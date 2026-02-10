@@ -40,12 +40,11 @@ export default function DatabaseTypeIndicator({ className, style }: DatabaseType
             backendType 
           });
           
-          // AUTO-CORRECTION: Si pas synchronisé, corriger automatiquement
+          // AUTO-CORRECTION DÉSACTIVÉE: L'utilisateur contrôle manuellement la base de données
           if (!isSync) {
-            console.log(`🔧 Auto-correction: Frontend (${frontendType}) → Backend (${backendType})`);
-            setIsAutoFixing(true);
-            await autoFixSynchronization(backendType);
-            setIsAutoFixing(false);
+            console.warn(`⚠️ Désynchronisation détectée: Frontend (${frontendType}) ≠ Backend (${backendType})`);
+            console.warn(`💡 Utilisez le sélecteur de base de données pour changer manuellement`);
+            // Ne pas forcer l'auto-correction
           }
         } else {
           throw new Error('Backend non accessible');
