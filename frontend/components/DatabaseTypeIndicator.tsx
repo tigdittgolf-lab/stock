@@ -60,62 +60,6 @@ export default function DatabaseTypeIndicator({ className, style }: DatabaseType
       }
     };
 
-    const autoFixSynchronization = async (correctBackendType: string) => {
-      try {
-        console.log(`🔄 Auto-correction vers ${correctBackendType}...`);
-        
-        // Obtenir la configuration par défaut pour le type backend
-        const defaultConfigs = {
-          supabase: {
-            type: 'supabase',
-            name: 'Supabase Production',
-            supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co'
-          },
-          postgresql: {
-            type: 'postgresql',
-            name: 'PostgreSQL Local',
-            host: 'localhost',
-            port: 5432,
-            database: 'postgres',
-            username: 'postgres',
-            password: 'postgres'
-          },
-          mysql: {
-            type: 'mysql',
-            name: 'MySQL Local',
-            host: 'localhost',
-            port: 3306,
-            database: 'stock_local',
-            username: 'root',
-            password: ''
-          }
-        };
-        
-        const correctConfig = defaultConfigs[correctBackendType as keyof typeof defaultConfigs];
-        
-        if (correctConfig) {
-          // Mettre à jour le localStorage frontend pour qu'il corresponde au backend
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('activeDbConfig', JSON.stringify({
-              ...correctConfig,
-              isActive: true,
-              lastTested: new Date().toISOString()
-            }));
-            console.log(`✅ Frontend synchronisé avec ${correctBackendType}`);
-            
-            // Mettre à jour l'état local
-            setSyncStatus({ 
-              synced: true, 
-              frontendType: correctBackendType, 
-              backendType: correctBackendType 
-            });
-          }
-        }
-      } catch (error) {
-        console.error('❌ Erreur auto-correction:', error);
-      }
-    };
-
     detectDatabaseType();
 
     // Recharger toutes les 10 secondes pour rester synchronisé
