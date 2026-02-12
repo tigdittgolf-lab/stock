@@ -4,6 +4,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useEffect, useState } from 'react';
 import styles from './page.module.css';
 
+// Disable static generation for this page
+export const dynamic = 'force-dynamic';
+
 export default function ThemeDemoPage() {
   const { theme, toggleTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
