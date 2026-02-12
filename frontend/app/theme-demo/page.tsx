@@ -1,10 +1,26 @@
 'use client';
 
 import { useTheme } from '@/contexts/ThemeContext';
+import { useEffect, useState } from 'react';
 import styles from './page.module.css';
 
 export default function ThemeDemoPage() {
   const { theme, toggleTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>Chargement...</h1>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
