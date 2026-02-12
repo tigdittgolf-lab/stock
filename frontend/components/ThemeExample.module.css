@@ -1,0 +1,137 @@
+.container {
+  padding: 40px 20px;
+  min-height: 100vh;
+  background: var(--background);
+}
+
+.card {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 32px;
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+}
+
+.title {
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.text {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.primaryButton {
+  padding: 12px 24px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.primaryButton:hover {
+  background: var(--primary-color-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.primaryButton:active {
+  transform: translateY(0);
+}
+
+.secondaryButton {
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondaryButton:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: var(--primary-color-light);
+}
+
+.alertsGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.alert {
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  border-left: 4px solid;
+  transition: all 0.2s ease;
+}
+
+.alert:hover {
+  transform: translateX(4px);
+}
+
+.success {
+  background: var(--success-color-light);
+  color: var(--success-color);
+  border-color: var(--success-color);
+}
+
+.warning {
+  background: var(--warning-color-light);
+  color: var(--warning-color);
+  border-color: var(--warning-color);
+}
+
+.error {
+  background: var(--error-color-light);
+  color: var(--error-color);
+  border-color: var(--error-color);
+}
+
+.info {
+  background: var(--info-color-light);
+  color: var(--info-color);
+  border-color: var(--info-color);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .card {
+    padding: 24px;
+  }
+  
+  .title {
+    font-size: 1.5rem;
+  }
+  
+  .buttonGroup {
+    flex-direction: column;
+  }
+  
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
+  }
+}
