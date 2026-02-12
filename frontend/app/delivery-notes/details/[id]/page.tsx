@@ -231,26 +231,27 @@ export default function BLDetailsPage() {
     return (
       <div style={{ 
         padding: isMobile ? '10px' : '20px',
-        background: isMobile ? '#f5f5f5' : 'white',
+        background: 'var(--background)',
         minHeight: '100vh'
       }}>
         <div style={{
-          background: 'white',
+          background: 'var(--card-background)',
           padding: '40px',
           borderRadius: '10px',
           textAlign: 'center',
-          boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.1)' : 'none'
+          boxShadow: 'var(--shadow-md)',
+          border: '1px solid var(--border-color)'
         }}>
           <div style={{
             width: '40px',
             height: '40px',
-            border: '4px solid #f3f3f3',
-            borderTop: '4px solid #007bff',
+            border: '4px solid var(--border-color)',
+            borderTop: '4px solid var(--primary-color)',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
             margin: '0 auto 20px'
           }}></div>
-          <p>Chargement des détails du BL...</p>
+          <p style={{ color: 'var(--text-primary)' }}>Chargement des détails du BL...</p>
         </div>
       </div>
     );
@@ -260,15 +261,16 @@ export default function BLDetailsPage() {
     return (
       <div style={{ 
         padding: isMobile ? '10px' : '20px',
-        background: isMobile ? '#f5f5f5' : 'white',
+        background: 'var(--background)',
         minHeight: '100vh'
       }}>
         <div style={{
-          background: '#f8d7da',
-          color: '#721c24',
+          background: 'var(--error-color-light)',
+          color: 'var(--error-color)',
           padding: '20px',
           borderRadius: '8px',
-          textAlign: 'center'
+          textAlign: 'center',
+          border: '1px solid var(--error-color)'
         }}>
           <h3>❌ Erreur</h3>
           <p>{error}</p>
@@ -277,7 +279,7 @@ export default function BLDetailsPage() {
             style={{
               marginTop: '15px',
               padding: '10px 20px',
-              backgroundColor: '#dc3545',
+              backgroundColor: 'var(--error-color)',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
@@ -295,16 +297,17 @@ export default function BLDetailsPage() {
     return (
       <div style={{ 
         padding: isMobile ? '10px' : '20px',
-        background: isMobile ? '#f5f5f5' : 'white',
+        background: 'var(--background)',
         minHeight: '100vh'
       }}>
         <div style={{
-          background: 'white',
+          background: 'var(--card-background)',
           padding: '40px',
           borderRadius: '10px',
-          textAlign: 'center'
+          textAlign: 'center',
+          border: '1px solid var(--border-color)'
         }}>
-          <h3>📋 BL non trouvé</h3>
+          <h3 style={{ color: 'var(--text-primary)' }}>📋 BL non trouvé</h3>
           <button 
             onClick={() => router.back()}
             style={{
@@ -327,18 +330,19 @@ export default function BLDetailsPage() {
   return (
     <div style={{ 
       padding: isMobile ? '10px' : '20px',
-      background: isMobile ? '#f5f5f5' : 'white',
+      background: 'var(--background)',
       minHeight: '100vh',
       maxWidth: isMobile ? '100%' : '1000px',
       margin: '0 auto'
     }}>
       {/* En-tête */}
       <div style={{
-        background: 'white',
+        background: 'var(--card-background)',
         padding: isMobile ? '15px' : '20px',
         borderRadius: '10px',
         marginBottom: '20px',
-        boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.1)' : '0 2px 4px rgba(0,0,0,0.1)'
+        boxShadow: 'var(--shadow-md)',
+        border: '1px solid var(--border-color)'
       }}>
         <div style={{
           display: 'flex',
@@ -350,7 +354,7 @@ export default function BLDetailsPage() {
           <h1 style={{ 
             margin: 0, 
             fontSize: isMobile ? '20px' : '24px',
-            color: '#007bff'
+            color: 'var(--primary-color)'
           }}>
             📋 Détails BL {blData.nbl || blData.nfact}
           </h1>
@@ -377,28 +381,28 @@ export default function BLDetailsPage() {
           gap: '15px'
         }}>
           <div>
-            <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>👤 Client</h3>
-            <p style={{ margin: '5px 0', fontSize: '16px', fontWeight: 'bold' }}>
+            <h3 style={{ margin: '0 0 10px 0', color: 'var(--text-primary)' }}>👤 Client</h3>
+            <p style={{ margin: '5px 0', fontSize: '16px', fontWeight: 'bold', color: 'var(--text-primary)' }}>
               {blData.client_name}
             </p>
             {blData.client_address && (
-              <p style={{ margin: '5px 0', color: '#666' }}>
+              <p style={{ margin: '5px 0', color: 'var(--text-secondary)' }}>
                 📍 {blData.client_address}
               </p>
             )}
             {blData.client_phone && (
-              <p style={{ margin: '5px 0', color: '#666' }}>
+              <p style={{ margin: '5px 0', color: 'var(--text-secondary)' }}>
                 📞 {blData.client_phone}
               </p>
             )}
           </div>
           
           <div>
-            <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>📅 Informations</h3>
-            <p style={{ margin: '5px 0' }}>
+            <h3 style={{ margin: '0 0 10px 0', color: 'var(--text-primary)' }}>📅 Informations</h3>
+            <p style={{ margin: '5px 0', color: 'var(--text-primary)' }}>
               <strong>Date:</strong> {formatDate(blData.date_fact)}
             </p>
-            <p style={{ margin: '5px 0' }}>
+            <p style={{ margin: '5px 0', color: 'var(--text-primary)' }}>
               <strong>N° BL:</strong> {blData.nbl || blData.nfact}
             </p>
           </div>
@@ -407,13 +411,14 @@ export default function BLDetailsPage() {
 
       {/* Articles */}
       <div style={{
-        background: 'white',
+        background: 'var(--card-background)',
         padding: isMobile ? '15px' : '20px',
         borderRadius: '10px',
         marginBottom: '20px',
-        boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.1)' : '0 2px 4px rgba(0,0,0,0.1)'
+        boxShadow: 'var(--shadow-md)',
+        border: '1px solid var(--border-color)'
       }}>
-        <h3 style={{ margin: '0 0 15px 0', color: '#333' }}>📦 Articles</h3>
+        <h3 style={{ margin: '0 0 15px 0', color: 'var(--text-primary)' }}>📦 Articles</h3>
         
         {blData.details && blData.details.length > 0 ? (
           <div>
@@ -421,11 +426,11 @@ export default function BLDetailsPage() {
               <div 
                 key={index}
                 style={{
-                  background: '#f8f9fa',
+                  background: 'var(--background-secondary)',
                   padding: '15px',
                   borderRadius: '8px',
                   marginBottom: '10px',
-                  border: '1px solid #dee2e6'
+                  border: '1px solid var(--border-color)'
                 }}
               >
                 <div style={{
@@ -438,14 +443,14 @@ export default function BLDetailsPage() {
                     <h4 style={{ 
                       margin: '0 0 5px 0', 
                       fontSize: '16px',
-                      color: '#007bff'
+                      color: 'var(--primary-color)'
                     }}>
                       {article.designation}
                     </h4>
                     <p style={{ 
                       margin: 0, 
                       fontSize: '12px', 
-                      color: '#666' 
+                      color: 'var(--text-tertiary)' 
                     }}>
                       Code: {article.narticle}
                     </p>
@@ -458,7 +463,7 @@ export default function BLDetailsPage() {
                       margin: 0, 
                       fontSize: '16px', 
                       fontWeight: 'bold',
-                      color: '#28a745'
+                      color: 'var(--success-color)'
                     }}>
                       {formatAmount(article.total_ligne)}
                     </p>
@@ -469,7 +474,8 @@ export default function BLDetailsPage() {
                   display: 'grid',
                   gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr',
                   gap: '10px',
-                  fontSize: '14px'
+                  fontSize: '14px',
+                  color: 'var(--text-primary)'
                 }}>
                   <div>
                     <strong>Quantité:</strong><br />
@@ -492,7 +498,7 @@ export default function BLDetailsPage() {
             ))}
           </div>
         ) : (
-          <p style={{ color: '#666', fontStyle: 'italic' }}>
+          <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
             Aucun détail d'article disponible
           </p>
         )}
@@ -500,25 +506,27 @@ export default function BLDetailsPage() {
 
       {/* Totaux */}
       <div style={{
-        background: 'white',
+        background: 'var(--card-background)',
         padding: isMobile ? '15px' : '20px',
         borderRadius: '10px',
         marginBottom: '20px',
-        boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.1)' : '0 2px 4px rgba(0,0,0,0.1)'
+        boxShadow: 'var(--shadow-md)',
+        border: '1px solid var(--border-color)'
       }}>
-        <h3 style={{ margin: '0 0 15px 0', color: '#333' }}>💰 Totaux</h3>
+        <h3 style={{ margin: '0 0 15px 0', color: 'var(--text-primary)' }}>💰 Totaux</h3>
         
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
           gap: '10px',
-          fontSize: '16px'
+          fontSize: '16px',
+          color: 'var(--text-primary)'
         }}>
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
             padding: '8px 0',
-            borderBottom: '1px solid #dee2e6'
+            borderBottom: '1px solid var(--border-color)'
           }}>
             <span>Montant HT:</span>
             <strong>{formatAmount(blData.montant_ht)}</strong>
@@ -528,7 +536,7 @@ export default function BLDetailsPage() {
             display: 'flex',
             justifyContent: 'space-between',
             padding: '8px 0',
-            borderBottom: '1px solid #dee2e6'
+            borderBottom: '1px solid var(--border-color)'
           }}>
             <span>TVA:</span>
             <strong>{formatAmount(blData.tva)}</strong>
@@ -541,8 +549,8 @@ export default function BLDetailsPage() {
           padding: '15px 0 0 0',
           fontSize: '18px',
           fontWeight: 'bold',
-          color: '#28a745',
-          borderTop: '2px solid #28a745',
+          color: 'var(--success-color)',
+          borderTop: '2px solid var(--success-color)',
           marginTop: '10px'
         }}>
           <span>Total TTC:</span>
@@ -553,12 +561,13 @@ export default function BLDetailsPage() {
       {/* Actions d'impression */}
       {blData && id && id !== 'undefined' && (
         <div style={{
-          background: 'white',
+          background: 'var(--card-background)',
           padding: isMobile ? '15px' : '20px',
           borderRadius: '10px',
-          boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.1)' : '0 2px 4px rgba(0,0,0,0.1)'
+          boxShadow: 'var(--shadow-md)',
+          border: '1px solid var(--border-color)'
         }}>
-          <h3 style={{ margin: '0 0 15px 0', color: '#333' }}>🖨️ Impression</h3>
+          <h3 style={{ margin: '0 0 15px 0', color: 'var(--text-primary)' }}>🖨️ Impression</h3>
           
           <div style={{
             display: 'grid',

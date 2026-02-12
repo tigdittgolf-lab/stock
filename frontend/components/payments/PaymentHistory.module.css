@@ -1,13 +1,14 @@
 .paymentHistory {
-    background: white;
+    background: var(--card-background);
     border-radius: 8px;
     padding: 20px;
+    border: 1px solid var(--border-color);
 }
 
 .title {
     margin: 0 0 16px 0;
     font-size: 18px;
-    color: #1f2937;
+    color: var(--text-primary);
 }
 
 .loading,
@@ -15,17 +16,17 @@
 .empty {
     text-align: center;
     padding: 40px 20px;
-    color: #6b7280;
+    color: var(--text-secondary);
 }
 
 .error {
-    color: #dc2626;
+    color: var(--error-color);
 }
 
 .retryButton {
     margin-top: 12px;
     padding: 8px 16px;
-    background: #3b82f6;
+    background: var(--primary-color);
     color: white;
     border: none;
     border-radius: 6px;
@@ -34,7 +35,7 @@
 }
 
 .retryButton:hover {
-    background: #2563eb;
+    background: var(--primary-color-hover);
 }
 
 .tableContainer {
@@ -49,30 +50,31 @@
 }
 
 .table thead {
-    background: #f3f4f6;
+    background: var(--background-secondary);
 }
 
 .table th {
     padding: 12px;
     text-align: left;
     font-weight: 600;
-    color: #374151;
-    border-bottom: 2px solid #e5e7eb;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border-color);
 }
 
 .table td {
     padding: 12px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border-color);
     vertical-align: middle;
+    color: var(--text-primary);
 }
 
 .table tbody tr:hover {
-    background: #f9fafb;
+    background: var(--card-background-hover);
 }
 
 .amount {
     font-weight: 600;
-    color: #059669;
+    color: var(--success-color);
 }
 
 .notes {
@@ -80,6 +82,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: var(--text-secondary);
 }
 
 .actions,
@@ -101,54 +104,62 @@
 }
 
 .editButton {
-    background: #eff6ff;
+    background: var(--info-color-light);
+    color: var(--info-color);
 }
 
 .editButton:hover {
-    background: #dbeafe;
+    background: var(--info-color);
+    color: white;
 }
 
 .deleteButton {
-    background: #fee2e2;
+    background: var(--error-color-light);
+    color: var(--error-color);
 }
 
 .deleteButton:hover {
-    background: #fecaca;
+    background: var(--error-color);
+    color: white;
 }
 
 .saveButton {
-    background: #d1fae5;
-    color: #065f46;
+    background: var(--success-color-light);
+    color: var(--success-color);
     font-weight: bold;
 }
 
 .saveButton:hover {
-    background: #a7f3d0;
+    background: var(--success-color);
+    color: white;
 }
 
 .cancelButton {
-    background: #f3f4f6;
-    color: #374151;
+    background: var(--background-secondary);
+    color: var(--text-primary);
     font-weight: bold;
 }
 
 .cancelButton:hover {
-    background: #e5e7eb;
+    background: var(--background-tertiary);
 }
 
 .editInput,
 .editSelect {
     width: 100%;
     padding: 6px 8px;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 13px;
+    background: var(--background);
+    color: var(--text-primary);
 }
 
 .editInput:focus,
 .editSelect:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-color-light);
 }
 
 .summary {
@@ -156,15 +167,16 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px;
-    background: #f3f4f6;
+    background: var(--background-secondary);
     border-radius: 6px;
     font-size: 16px;
+    color: var(--text-primary);
 }
 
 .totalAmount {
     font-size: 18px;
     font-weight: bold;
-    color: #059669;
+    color: var(--success-color);
 }
 
 @media (max-width: 768px) {
