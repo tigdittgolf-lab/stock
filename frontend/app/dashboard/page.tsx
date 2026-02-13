@@ -9,11 +9,16 @@ import styles from "../page.module.css";
 import dashboardStyles from "./dashboard.module.css";
 
 // Fonction de formatage personnalisée pour les montants: "999 999.99"
-const formatAmount = (amount: number | undefined): string => {
-  if (amount === undefined || amount === null) return '0.00';
+const formatAmount = (amount: number | undefined | null): string => {
+  if (amount === undefined || amount === null || isNaN(amount)) return '0.00';
+  
+  // Convertir en nombre si c'est une string
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  
+  if (isNaN(numAmount)) return '0.00';
   
   // Convertir en string avec 2 décimales
-  const fixed = amount.toFixed(2);
+  const fixed = numAmount.toFixed(2);
   const [integerPart, decimalPart] = fixed.split('.');
   
   // Ajouter des espaces pour les milliers
@@ -645,53 +650,88 @@ export default function Dashboard() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-          <div>
-            <h1>Système de Gestion de Stock</h1>
-            <div style={{ fontSize: '14px', color: '#666', marginTop: '5px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <span>
-                <strong>Contexte:</strong> {tenantInfo.business_unit.toUpperCase()} - Exercice {tenantInfo.year} ({tenantInfo.schema})
-              </span>
-              {companyInfo && (
-                <span style={{ 
-                  padding: '4px 12px', 
-                  background: '#e7f3ff', 
-                  borderRadius: '12px',
-                  color: '#004085',
-                  fontWeight: '500'
-                }}>
-                  🏢 {companyInfo.nom_entreprise || 'Activité non définie'}
-                </span>
-              )}
-              <DatabaseSelector />
-              <DatabaseTypeIndicator />
+      <header className={styles.header} style={{ 
+        position: 'sticky', 
+        top: 0, 
+        zIndex: 1000,
+        background: 'var(--background)',
+        padding: '16px 20px'
+      }}>
+        {/* Top Bar - Compact et professionnel */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          padding: '12px 24px',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '12px',
+          marginBottom: '16px',
+          boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+        }}>
+          {/* Left Section - Logo et Titre */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              background: 'rgba(255, 255, 255, 0.2)',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px',
+              backdropFilter: 'blur(10px)'
+            }}>
+              📦
+            </div>
+            <div>
+              <h1 style={{ 
+                margin: 0, 
+                fontSize: '20px', 
+                fontWeight: '700',
+                color: 'white',
+                letterSpacing: '-0.5px'
+              }}>
+                Gestion de Stock
+              </h1>
+              <div style={{ 
+                fontSize: '12px', 
+                color: 'rgba(255, 255, 255, 0.9)',
+                marginTop: '2px',
+                fontWeight: '500'
+              }}>
+                {companyInfo?.nom_entreprise || 'Système de gestion'}
+              </div>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Afficher le nom de l'utilisateur connecté */}
+
+          {/* Right Section - User et Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* User Info */}
             {(() => {
               try {
                 const userInfo = typeof window !== 'undefined' ? localStorage.getItem('user_info') : null;
                 const user = userInfo ? JSON.parse(userInfo) : null;
                 if (user) {
                   const roleIcon = user.role === 'admin' ? '👨‍💼' : user.role === 'manager' ? '👔' : '👤';
-                  const roleColor = user.role === 'admin' ? '#667eea' : user.role === 'manager' ? '#ffc107' : '#6c757d';
+                  const roleLabel = user.role === 'admin' ? 'Administrateur' : user.role === 'manager' ? 'Manager' : 'Utilisateur';
                   return (
                     <div style={{
-                      padding: '6px 14px',
-                      background: 'white',
-                      border: `2px solid ${roleColor}`,
-                      borderRadius: '20px',
+                      padding: '8px 16px',
+                      background: 'rgba(255, 255, 255, 0.95)',
+                      borderRadius: '10px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px',
+                      gap: '8px',
                       fontSize: '13px',
-                      fontWeight: '500',
-                      color: '#333'
+                      fontWeight: '600',
+                      color: '#333',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
                     }}>
-                      <span>{roleIcon}</span>
-                      <span>{user.full_name || user.username}</span>
+                      <span style={{ fontSize: '18px' }}>{roleIcon}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '600' }}>{user.full_name || user.username}</span>
+                        <span style={{ fontSize: '10px', color: '#666', fontWeight: '500' }}>{roleLabel}</span>
+                      </div>
                     </div>
                   );
                 }
@@ -700,45 +740,153 @@ export default function Dashboard() {
                 return null;
               }
             })()}
+
+            {/* Action Buttons */}
             <button 
               onClick={handleNewExercise}
               style={{
-                padding: '8px 16px',
-                backgroundColor: '#28a745',
+                padding: '8px 14px',
+                background: 'rgba(40, 167, 69, 0.95)',
                 color: 'white',
                 border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)'
               }}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              title="Créer un nouvel exercice"
             >
               ➕ Nouvel Exercice
             </button>
             <button 
               onClick={handleChangeTenant}
               style={{
-                padding: '8px 16px',
-                backgroundColor: '#6c757d',
+                padding: '8px 14px',
+                background: 'rgba(108, 117, 125, 0.95)',
                 color: 'white',
                 border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)'
               }}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              title="Changer de contexte"
             >
-              🔄 Changer Contexte
+              🔄 Changer
             </button>
             <button 
               onClick={handleLogout}
               style={{
-                padding: '8px 16px',
-                backgroundColor: '#dc3545',
+                padding: '8px 14px',
+                background: 'rgba(220, 53, 69, 0.95)',
                 color: 'white',
                 border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)'
               }}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              title="Se déconnecter"
             >
-              🚪 Déconnexion
+              🚪
             </button>
+          </div>
+        </div>
+
+        {/* Context Bar - Info et Sélecteurs */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '12px 20px',
+          background: 'white',
+          borderRadius: '10px',
+          marginBottom: '16px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+          border: '1px solid #e9ecef'
+        }}>
+          {/* Context Info */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{
+              padding: '6px 14px',
+              background: 'linear-gradient(135deg, #667eea15 0%, #764ba215 100%)',
+              borderRadius: '8px',
+              border: '1px solid #667eea30',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '16px' }}>🏢</span>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '11px', color: '#666', fontWeight: '500' }}>Business Unit</span>
+                <span style={{ fontSize: '13px', fontWeight: '700', color: '#667eea' }}>
+                  {tenantInfo.business_unit.toUpperCase()}
+                </span>
+              </div>
+            </div>
+            
+            <div style={{
+              padding: '6px 14px',
+              background: 'linear-gradient(135deg, #28a74515 0%, #20c99715 100%)',
+              borderRadius: '8px',
+              border: '1px solid #28a74530',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '16px' }}>📅</span>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '11px', color: '#666', fontWeight: '500' }}>Exercice</span>
+                <span style={{ fontSize: '13px', fontWeight: '700', color: '#28a745' }}>
+                  {tenantInfo.year}
+                </span>
+              </div>
+            </div>
+
+            <div style={{
+              padding: '6px 14px',
+              background: 'linear-gradient(135deg, #ffc10715 0%, #ff851515 100%)',
+              borderRadius: '8px',
+              border: '1px solid #ffc10730',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '16px' }}>🗄️</span>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '11px', color: '#666', fontWeight: '500' }}>Base de données</span>
+                <span style={{ fontSize: '13px', fontWeight: '700', color: '#ffc107' }}>
+                  {tenantInfo.schema}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Database Selectors */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <DatabaseSelector />
+            <DatabaseTypeIndicator />
           </div>
         </div>
         
