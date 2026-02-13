@@ -1241,6 +1241,19 @@ export class BackendDatabaseService {
         // Fonction d'authentification
         case 'authenticate_user':
           return this.authenticateUser(dbType, params.p_username, params.p_password);
+        // Fonctions pour l'administration
+        case 'get_all_users':
+          return this.getAllUsers(dbType);
+        case 'get_all_business_units':
+          return this.getAllBusinessUnits(dbType);
+        case 'list_available_tenants':
+          return this.listAvailableTenants(dbType);
+        case 'create_user':
+          return this.createUser(dbType, params);
+        case 'update_user':
+          return this.updateUser(dbType, params);
+        case 'delete_user':
+          return this.deleteUser(dbType, params);
         default:
           throw new Error(`RPC function ${functionName} not implemented for ${dbType}`);
       }
@@ -1329,6 +1342,354 @@ export class BackendDatabaseService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Erreur d\'authentification'
+      };
+    }
+  }
+
+  private async getAllUsers(dbType: 'mysql' | 'postgresql'): Promise<any> {
+    try {
+      console.log(`👥 Getting all users from ${dbType}`);
+      
+      let sql;
+      if (dbType === 'mysql') {
+        sql = `
+          SELECT id, username, email, full_name, role, business_units, 
+                 created_at, last_login, active
+          FROM stock_management_auth.users 
+          ORDER BY created_at DESC
+        `;
+      } else {
+        sql = `
+          SELECT id, username, email, full_name, role, business_units, 
+                 created_at, last_login, is_active as active
+          FROM public.users 
+          ORDER BY created_at DESC
+        `;
+      }
+      
+      const result = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(sql, [])
+        : await this.executePostgreSQLQuery(sql, []);
+      
+      if (!result.success) {
+        return result;
+      }
+      
+      // Parser business_units pour chaque utilisateur
+      const users = result.data.map((user: any) => {
+        let businessUnits = user.business_units;
+        if (typeof businessUnits === 'string') {
+          try {
+            businessUnits = JSON.parse(businessUnits);
+          } catch (e) {
+            businessUnits = [];
+          }
+        }
+        return {
+          ...user,
+          business_units: businessUnits
+        };
+      });
+      
+      return {
+        success: true,
+        data: users
+      };
+      
+    } catch (error) {
+      console.error(`❌ Error getting all users:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de la récupération des utilisateurs'
+      };
+    }
+  }
+
+  private async getAllBusinessUnits(dbType: 'mysql' | 'postgresql'): Promise<any> {
+    try {
+      console.log(`🏢 Getting all business units from ${dbType}`);
+      
+      let sql;
+      if (dbType === 'mysql') {
+        sql = `
+          SELECT DISTINCT 
+            SUBSTRING_INDEX(SCHEMA_NAME, '_', -1) as business_unit,
+            CAST(SUBSTRING_INDEX(SCHEMA_NAME, '_', 1) AS UNSIGNED) as year,
+            SCHEMA_NAME as schema_name
+          FROM information_schema.SCHEMATA 
+          WHERE SCHEMA_NAME REGEXP '^[0-9]{4}_bu[0-9]{2}$'
+          ORDER BY year DESC, business_unit
+        `;
+      } else {
+        sql = `
+          SELECT DISTINCT 
+            split_part(schema_name, '_', 2) as business_unit,
+            CAST(split_part(schema_name, '_', 1) AS INTEGER) as year,
+            schema_name
+          FROM information_schema.schemata 
+          WHERE schema_name ~ '^[0-9]{4}_bu[0-9]{2}$'
+          ORDER BY year DESC, business_unit
+        `;
+      }
+      
+      const result = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(sql, [])
+        : await this.executePostgreSQLQuery(sql, []);
+      
+      return result;
+      
+    } catch (error) {
+      console.error(`❌ Error getting business units:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de la récupération des business units'
+      };
+    }
+  }
+
+  private async listAvailableTenants(dbType: 'mysql' | 'postgresql'): Promise<any> {
+    try {
+      console.log(`📋 Listing available tenants from ${dbType}`);
+      
+      let sql;
+      if (dbType === 'mysql') {
+        sql = `
+          SELECT 
+            SUBSTRING_INDEX(SCHEMA_NAME, '_', -1) as business_unit,
+            CAST(SUBSTRING_INDEX(SCHEMA_NAME, '_', 1) AS UNSIGNED) as year,
+            SCHEMA_NAME as schema
+          FROM information_schema.SCHEMATA 
+          WHERE SCHEMA_NAME REGEXP '^[0-9]{4}_bu[0-9]{2}$'
+          ORDER BY year DESC, business_unit
+        `;
+      } else {
+        sql = `
+          SELECT 
+            split_part(schema_name, '_', 2) as business_unit,
+            CAST(split_part(schema_name, '_', 1) AS INTEGER) as year,
+            schema_name as schema
+          FROM information_schema.schemata 
+          WHERE schema_name ~ '^[0-9]{4}_bu[0-9]{2}$'
+          ORDER BY year DESC, business_unit
+        `;
+      }
+      
+      const result = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(sql, [])
+        : await this.executePostgreSQLQuery(sql, []);
+      
+      return result;
+      
+    } catch (error) {
+      console.error(`❌ Error listing tenants:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de la liste des tenants'
+      };
+    }
+  }
+
+  private async createUser(dbType: 'mysql' | 'postgresql', params: any): Promise<any> {
+    try {
+      console.log(`👤 Creating user in ${dbType}:`, params.p_username);
+      
+      const {
+        p_username,
+        p_email,
+        p_password,
+        p_full_name,
+        p_role,
+        p_business_units
+      } = params;
+
+      // Hasher le mot de passe avec SHA256
+      let sql;
+      let queryParams;
+      
+      if (dbType === 'mysql') {
+        sql = `
+          INSERT INTO stock_management_auth.users 
+            (username, email, password_hash, full_name, role, business_units, active, created_at)
+          VALUES 
+            (?, ?, SHA2(?, 256), ?, ?, ?, 1, NOW())
+        `;
+        queryParams = [
+          p_username,
+          p_email,
+          p_password,
+          p_full_name || '',
+          p_role || 'user',
+          JSON.stringify(p_business_units || [])
+        ];
+      } else {
+        sql = `
+          INSERT INTO public.users 
+            (username, email, password_hash, full_name, role, business_units, is_active, created_at)
+          VALUES 
+            ($1, $2, encode(digest($3, 'sha256'), 'hex'), $4, $5, $6, true, NOW())
+          RETURNING id, username, email, full_name, role, business_units
+        `;
+        queryParams = [
+          p_username,
+          p_email,
+          p_password,
+          p_full_name || '',
+          p_role || 'user',
+          JSON.stringify(p_business_units || [])
+        ];
+      }
+      
+      const result = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(sql, queryParams)
+        : await this.executePostgreSQLQuery(sql, queryParams);
+      
+      if (!result.success) {
+        return result;
+      }
+
+      console.log(`✅ User created: ${p_username}`);
+      
+      return {
+        success: true,
+        data: {
+          message: 'Utilisateur créé avec succès',
+          username: p_username
+        }
+      };
+      
+    } catch (error) {
+      console.error(`❌ Error creating user:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de la création de l\'utilisateur'
+      };
+    }
+  }
+
+  private async updateUser(dbType: 'mysql' | 'postgresql', params: any): Promise<any> {
+    try {
+      console.log(`🔄 Updating user in ${dbType}:`, params.p_user_id);
+      
+      const {
+        p_user_id,
+        p_username,
+        p_email,
+        p_full_name,
+        p_role,
+        p_business_units,
+        p_active
+      } = params;
+
+      let sql;
+      let queryParams;
+      
+      if (dbType === 'mysql') {
+        sql = `
+          UPDATE stock_management_auth.users 
+          SET 
+            username = ?,
+            email = ?,
+            full_name = ?,
+            role = ?,
+            business_units = ?,
+            active = ?
+          WHERE id = ?
+        `;
+        queryParams = [
+          p_username,
+          p_email,
+          p_full_name,
+          p_role,
+          JSON.stringify(p_business_units || []),
+          p_active ? 1 : 0,
+          p_user_id
+        ];
+      } else {
+        sql = `
+          UPDATE public.users 
+          SET 
+            username = $1,
+            email = $2,
+            full_name = $3,
+            role = $4,
+            business_units = $5,
+            is_active = $6
+          WHERE id = $7
+          RETURNING id, username, email, full_name, role, business_units
+        `;
+        queryParams = [
+          p_username,
+          p_email,
+          p_full_name,
+          p_role,
+          JSON.stringify(p_business_units || []),
+          p_active,
+          p_user_id
+        ];
+      }
+      
+      const result = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(sql, queryParams)
+        : await this.executePostgreSQLQuery(sql, queryParams);
+      
+      if (!result.success) {
+        return result;
+      }
+
+      console.log(`✅ User updated: ${p_user_id}`);
+      
+      return {
+        success: true,
+        data: {
+          message: 'Utilisateur mis à jour avec succès'
+        }
+      };
+      
+    } catch (error) {
+      console.error(`❌ Error updating user:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de la mise à jour de l\'utilisateur'
+      };
+    }
+  }
+
+  private async deleteUser(dbType: 'mysql' | 'postgresql', params: any): Promise<any> {
+    try {
+      console.log(`🗑️ Deleting user in ${dbType}:`, params.p_user_id);
+      
+      const { p_user_id } = params;
+
+      let sql;
+      
+      if (dbType === 'mysql') {
+        sql = `DELETE FROM stock_management_auth.users WHERE id = ?`;
+      } else {
+        sql = `DELETE FROM public.users WHERE id = $1`;
+      }
+      
+      const result = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(sql, [p_user_id])
+        : await this.executePostgreSQLQuery(sql, [p_user_id]);
+      
+      if (!result.success) {
+        return result;
+      }
+
+      console.log(`✅ User deleted: ${p_user_id}`);
+      
+      return {
+        success: true,
+        data: {
+          message: 'Utilisateur supprimé avec succès'
+        }
+      };
+      
+    } catch (error) {
+      console.error(`❌ Error deleting user:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de la suppression de l\'utilisateur'
       };
     }
   }

@@ -791,7 +791,7 @@ export default function Dashboard() {
             <button 
               onClick={handleLogout}
               style={{
-                padding: '8px 14px',
+                padding: '8px 16px',
                 background: 'rgba(220, 53, 69, 0.95)',
                 color: 'white',
                 border: 'none',
@@ -805,11 +805,18 @@ export default function Dashboard() {
                 transition: 'all 0.2s',
                 boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)'
               }}
-              onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-              onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-              title="Se déconnecter"
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.background = 'rgba(200, 35, 51, 0.95)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.background = 'rgba(220, 53, 69, 0.95)';
+              }}
+              title="Se déconnecter du système"
             >
-              🚪
+              <span style={{ fontSize: '16px' }}>🚪</span>
+              Déconnexion
             </button>
           </div>
         </div>
@@ -890,13 +897,19 @@ export default function Dashboard() {
           </div>
         </div>
         
-        <nav className={styles.nav}>
-          <button
-            className={activeTab === 'dashboard' ? styles.active : ''}
-            onClick={() => setActiveTab('dashboard')}
-          >
-            📊 Tableau de Bord
-          </button>
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '12px',
+          padding: '12px',
+          boxShadow: '0 2px 8px rgba(102, 126, 234, 0.2)'
+        }}>
+          <nav className={styles.nav} style={{ padding: 0 }}>
+            <button
+              className={activeTab === 'dashboard' ? styles.active : ''}
+              onClick={() => setActiveTab('dashboard')}
+            >
+              📊 Tableau de Bord
+            </button>
           <button
             className={activeTab === 'articles' ? styles.active : ''}
             onClick={() => setActiveTab('articles')}
@@ -961,7 +974,8 @@ export default function Dashboard() {
               return null;
             }
           })()}
-        </nav>
+          </nav>
+        </div>
       </header>
 
       <main className={styles.main}>
@@ -1241,7 +1255,7 @@ export default function Dashboard() {
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th style={{ width: '80px', maxWidth: '80px' }}>Code</th>
+                        <th style={{ width: '100px', maxWidth: '100px' }}>Code</th>
                         <th style={{ width: '300px', maxWidth: '300px' }}>Désignation</th>
                         <th style={{ width: '100px' }}>Famille</th>
                         <th style={{ width: '120px' }}>Fournisseur</th>
@@ -1275,7 +1289,7 @@ export default function Dashboard() {
                           
                           return (
                             <tr key={`${article.narticle}-${index}`}>
-                              <td style={{ fontWeight: 'bold', width: '80px', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{article.narticle}</td>
+                              <td style={{ fontWeight: 'bold', width: '100px', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{article.narticle}</td>
                               <td style={{ fontWeight: 'bold', color: '#007bff', width: '300px', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={article.designation}>
                                 {article.designation}
                               </td>
@@ -2152,22 +2166,22 @@ export default function Dashboard() {
                             
                             return (
                               <tr key={`low-${article.narticle}-${index}`} style={{ 
-                                backgroundColor: isZeroStock ? '#f8d7da' : '#fff3cd' 
+                                backgroundColor: isZeroStock ? 'var(--error-color-light)' : 'var(--warning-color-light)'
                               }}>
-                                <td style={{ fontWeight: 'bold' }}>{article.narticle}</td>
-                                <td style={{ fontWeight: 'bold', color: '#007bff' }}>{article.designation}</td>
+                                <td style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{article.narticle}</td>
+                                <td style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>{article.designation}</td>
                                 <td style={{ 
                                   fontWeight: 'bold', 
-                                  color: isZeroStock ? '#dc3545' : '#ffc107',
+                                  color: isZeroStock ? 'var(--error-color)' : 'var(--warning-color)',
                                   textAlign: 'center'
                                 }}>
                                   {stockTotal}
                                 </td>
-                                <td style={{ textAlign: 'center' }}>{article.stock_f}</td>
-                                <td style={{ textAlign: 'center' }}>{article.stock_bl}</td>
-                                <td style={{ textAlign: 'center' }}>{article.seuil}</td>
+                                <td style={{ textAlign: 'center', color: 'var(--text-primary)' }}>{article.stock_f}</td>
+                                <td style={{ textAlign: 'center', color: 'var(--text-primary)' }}>{article.stock_bl}</td>
+                                <td style={{ textAlign: 'center', color: 'var(--text-primary)' }}>{article.seuil}</td>
                                 <td style={{ 
-                                  color: difference < 0 ? '#dc3545' : '#28a745', 
+                                  color: difference < 0 ? 'var(--error-color)' : 'var(--success-color)', 
                                   fontWeight: 'bold',
                                   textAlign: 'center'
                                 }}>
@@ -2179,8 +2193,8 @@ export default function Dashboard() {
                                     borderRadius: '12px',
                                     fontSize: '12px',
                                     fontWeight: 'bold',
-                                    backgroundColor: isZeroStock ? '#dc3545' : '#ffc107',
-                                    color: isZeroStock ? 'white' : '#212529'
+                                    backgroundColor: isZeroStock ? 'var(--error-color)' : 'var(--warning-color)',
+                                    color: 'white'
                                   }}>
                                     {isZeroStock ? '❌ Rupture' : '⚠️ Faible'}
                                   </span>

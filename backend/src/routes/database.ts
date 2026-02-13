@@ -233,4 +233,73 @@ database.post('/test', async (c) => {
   }
 });
 
+/**
+ * API pour lister tous les tenants (business units et exercices) disponibles
+ */
+database.get('/tenants/list', async (c) => {
+  try {
+    console.log('📋 Backend: List tenants request');
+
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    
+    if (dbType === 'supabase') {
+      // Pour Supabase, lister les schémas disponibles via RPC
+      const result = await backendDatabaseService.executeRPC('list_available_tenants', {});
+      
+      if (result.success && result.data) {
+        return c.json({
+          success: true,
+          data: result.data,
+          source: 'supabase'
+        });
+      }
+    } else if (dbType === 'mysql' || dbType === 'postgresql') {
+      // Pour MySQL/PostgreSQL, lister les bases de données qui correspondent au pattern
+      const query = dbType === 'mysql' 
+        ? `SELECT SCHEMA_NAME as schema_name FROM information_schema.SCHEMATA 
+           WHERE SCHEMA_NAME REGEXP '^[0-9]{4}_bu[0-9]{2}$' 
+           ORDER BY SCHEMA_NAME DESC`
+        : `SELECT schema_name FROM information_schema.schemata 
+           WHERE schema_name ~ '^[0-9]{4}_bu[0-9]{2}$' 
+           ORDER BY schema_name DESC`;
+      
+      const result = await backendDatabaseService.executeQuery(query);
+      
+      if (result.success && result.data) {
+        // Transformer les résultats en format attendu
+        const tenants = result.data.map((row: any) => {
+          const schema = row.schema_name || row.SCHEMA_NAME;
+          const parts = schema.split('_');
+          return {
+            business_unit: parts[1],
+            year: parseInt(parts[0]),
+            schema: schema
+          };
+        });
+        
+        return c.json({
+          success: true,
+          data: tenants,
+          source: dbType
+        });
+      }
+    }
+
+    // Si aucune méthode n'a fonctionné, retourner une liste vide
+    return c.json({
+      success: true,
+      data: [],
+      message: 'Aucun tenant trouvé'
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur list tenants:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur lors de la récupération des tenants',
+      data: []
+    }, 500);
+  }
+});
+
 export default database;

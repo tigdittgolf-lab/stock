@@ -294,7 +294,7 @@ export default function StockManagement() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <div>
             <h1>📈 Gestion du Stock</h1>
-            <div style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
+            <div style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.9)', marginTop: '5px' }}>
               <strong>Contexte:</strong> {tenantInfo.business_unit.toUpperCase()} - Exercice {tenantInfo.year} ({tenantInfo.schema})
             </div>
           </div>
@@ -358,26 +358,26 @@ export default function StockManagement() {
                 <h2>📊 Vue d'ensemble du Stock</h2>
                 
                 <div style={{
-                  background: '#fff3cd',
-                  color: '#856404',
+                  background: 'var(--warning-color-light)',
+                  color: 'var(--text-primary)',
                   padding: '20px',
                   borderRadius: '8px',
                   margin: '20px 0',
-                  border: '1px solid #ffeaa7'
+                  border: '1px solid var(--border-color)'
                 }}>
                   <h3 style={{ margin: '0 0 15px 0' }}>⚠️ Configuration Requise</h3>
                   <p style={{ margin: '0 0 15px 0' }}>
                     Le système de gestion du stock nécessite l'exécution des fonctions RPC dans Supabase.
                   </p>
                   <div style={{ 
-                    background: '#f8f9fa', 
+                    background: 'var(--background-secondary)', 
                     padding: '15px', 
                     borderRadius: '5px',
-                    border: '1px solid #dee2e6',
+                    border: '1px solid var(--border-color)',
                     marginBottom: '15px'
                   }}>
-                    <h4 style={{ margin: '0 0 10px 0', color: '#495057' }}>📋 Instructions :</h4>
-                    <ol style={{ margin: '0', paddingLeft: '20px', color: '#495057' }}>
+                    <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-primary)' }}>📋 Instructions :</h4>
+                    <ol style={{ margin: '0', paddingLeft: '20px', color: 'var(--text-secondary)' }}>
                       <li>Ouvrez le fichier <code>EXECUTE_STOCK_RPC_FUNCTIONS.md</code></li>
                       <li>Suivez les instructions pour exécuter les fonctions RPC dans Supabase</li>
                       <li>Actualisez cette page après l'exécution</li>
@@ -417,68 +417,68 @@ export default function StockManagement() {
 
                     {/* Quantités de stock */}
                     <div style={{ 
-                      background: '#f8f9fa', 
+                      background: 'var(--card-background)', 
                       padding: '20px', 
                       borderRadius: '8px', 
                       margin: '20px 0',
-                      border: '1px solid #dee2e6'
+                      border: '1px solid var(--border-color)'
                     }}>
-                      <h3 style={{ marginBottom: '15px', color: '#495057' }}>📊 Quantités de Stock</h3>
+                      <h3 style={{ marginBottom: '15px', color: 'var(--text-primary)' }}>📊 Quantités de Stock</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-                        <div style={{ textAlign: 'center', padding: '15px', background: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#17a2b8' }}>
+                        <div style={{ textAlign: 'center', padding: '15px', background: 'var(--background-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--info-color)' }}>
                             {stockOverview.stock_quantities.total_stock_bl.toLocaleString('fr-FR')}
                           </div>
-                          <div style={{ fontSize: '14px', color: '#6c757d', marginTop: '5px' }}>Stock BL</div>
+                          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '5px' }}>Stock BL</div>
                         </div>
-                        <div style={{ textAlign: 'center', padding: '15px', background: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745' }}>
+                        <div style={{ textAlign: 'center', padding: '15px', background: 'var(--background-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--success-color)' }}>
                             {stockOverview.stock_quantities.total_stock_f.toLocaleString('fr-FR')}
                           </div>
-                          <div style={{ fontSize: '14px', color: '#6c757d', marginTop: '5px' }}>Stock Factures</div>
+                          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '5px' }}>Stock Factures</div>
                         </div>
-                        <div style={{ textAlign: 'center', padding: '15px', background: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#6f42c1' }}>
+                        <div style={{ textAlign: 'center', padding: '15px', background: 'var(--background-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--primary-color)' }}>
                             {stockOverview.stock_quantities.total_combined.toLocaleString('fr-FR')}
                           </div>
-                          <div style={{ fontSize: '14px', color: '#6c757d', marginTop: '5px' }}>Stock Total</div>
+                          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '5px' }}>Stock Total</div>
                         </div>
                       </div>
                     </div>
 
                     {/* Valorisation Globale */}
                     <div style={{ 
-                      background: '#f8f9fa', 
+                      background: 'var(--card-background)', 
                       padding: '20px', 
                       borderRadius: '8px', 
                       margin: '20px 0',
-                      border: '1px solid #dee2e6'
+                      border: '1px solid var(--border-color)'
                     }}>
-                      <h3 style={{ marginBottom: '15px', color: '#495057' }}>💰 Valorisation Globale du Stock</h3>
+                      <h3 style={{ marginBottom: '15px', color: 'var(--text-primary)' }}>💰 Valorisation Globale du Stock</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-                        <div style={{ textAlign: 'center', padding: '15px', background: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#dc3545' }}>
+                        <div style={{ textAlign: 'center', padding: '15px', background: 'var(--background-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--error-color)' }}>
                             {(stockOverview.stock_value.total_cost_value || 0).toLocaleString('fr-FR')} DA
                           </div>
-                          <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '5px' }}>Valeur Prix d'Achat</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '5px' }}>Valeur Prix d'Achat</div>
                         </div>
-                        <div style={{ textAlign: 'center', padding: '15px', background: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#28a745' }}>
+                        <div style={{ textAlign: 'center', padding: '15px', background: 'var(--background-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--success-color)' }}>
                             {(stockOverview.stock_value.total_sale_value || 0).toLocaleString('fr-FR')} DA
                           </div>
-                          <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '5px' }}>Valeur Prix de Vente</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '5px' }}>Valeur Prix de Vente</div>
                         </div>
-                        <div style={{ textAlign: 'center', padding: '15px', background: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#ffc107' }}>
+                        <div style={{ textAlign: 'center', padding: '15px', background: 'var(--background-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--warning-color)' }}>
                             {(stockOverview.stock_value.potential_margin || 0).toLocaleString('fr-FR')} DA
                           </div>
-                          <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '5px' }}>Marge Potentielle</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '5px' }}>Marge Potentielle</div>
                         </div>
-                        <div style={{ textAlign: 'center', padding: '15px', background: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#17a2b8' }}>
+                        <div style={{ textAlign: 'center', padding: '15px', background: 'var(--background-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--info-color)' }}>
                             {(stockOverview.stock_value.margin_percentage || 0)}%
                           </div>
-                          <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '5px' }}>Taux de Marge</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '5px' }}>Taux de Marge</div>
                         </div>
                       </div>
                     </div>
@@ -486,72 +486,72 @@ export default function StockManagement() {
                     {/* Valorisation par Type de Stock */}
                     {stockOverview.stock_value_by_type && (
                       <div style={{ 
-                        background: '#f8f9fa', 
+                        background: 'var(--card-background)', 
                         padding: '20px', 
                         borderRadius: '8px', 
                         margin: '20px 0',
-                        border: '1px solid #dee2e6'
+                        border: '1px solid var(--border-color)'
                       }}>
-                        <h3 style={{ marginBottom: '15px', color: '#495057' }}>📊 Valorisation par Type de Stock</h3>
+                        <h3 style={{ marginBottom: '15px', color: 'var(--text-primary)' }}>📊 Valorisation par Type de Stock</h3>
                       
                       {/* Stock BL */}
                       <div style={{ marginBottom: '20px' }}>
-                        <h4 style={{ color: '#17a2b8', marginBottom: '10px' }}>📦 Stock Bons de Livraison</h4>
+                        <h4 style={{ color: 'var(--info-color)', marginBottom: '10px' }}>📦 Stock Bons de Livraison</h4>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-                          <div style={{ textAlign: 'center', padding: '12px', background: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#dc3545' }}>
+                          <div style={{ textAlign: 'center', padding: '12px', background: 'var(--background-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--error-color)' }}>
                               {(stockOverview.stock_value_by_type?.bl_cost_value || 0).toLocaleString('fr-FR')} DA
                             </div>
-                            <div style={{ fontSize: '11px', color: '#6c757d' }}>Prix d'Achat</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Prix d'Achat</div>
                           </div>
-                          <div style={{ textAlign: 'center', padding: '12px', background: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#28a745' }}>
+                          <div style={{ textAlign: 'center', padding: '12px', background: 'var(--background-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--success-color)' }}>
                               {(stockOverview.stock_value_by_type?.bl_sale_value || 0).toLocaleString('fr-FR')} DA
                             </div>
-                            <div style={{ fontSize: '11px', color: '#6c757d' }}>Prix de Vente</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Prix de Vente</div>
                           </div>
-                          <div style={{ textAlign: 'center', padding: '12px', background: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#ffc107' }}>
+                          <div style={{ textAlign: 'center', padding: '12px', background: 'var(--background-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--warning-color)' }}>
                               {(stockOverview.stock_value_by_type?.bl_margin || 0).toLocaleString('fr-FR')} DA
                             </div>
-                            <div style={{ fontSize: '11px', color: '#6c757d' }}>Marge</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Marge</div>
                           </div>
-                          <div style={{ textAlign: 'center', padding: '12px', background: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#17a2b8' }}>
+                          <div style={{ textAlign: 'center', padding: '12px', background: 'var(--background-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--info-color)' }}>
                               {stockOverview.stock_value_by_type?.bl_margin_percentage || 0}%
                             </div>
-                            <div style={{ fontSize: '11px', color: '#6c757d' }}>Taux</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Taux</div>
                           </div>
                         </div>
                       </div>
 
                       {/* Stock Factures */}
                       <div>
-                        <h4 style={{ color: '#28a745', marginBottom: '10px' }}>📄 Stock Factures</h4>
+                        <h4 style={{ color: 'var(--success-color)', marginBottom: '10px' }}>📄 Stock Factures</h4>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-                          <div style={{ textAlign: 'center', padding: '12px', background: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#dc3545' }}>
+                          <div style={{ textAlign: 'center', padding: '12px', background: 'var(--background-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--error-color)' }}>
                               {(stockOverview.stock_value_by_type?.f_cost_value || 0).toLocaleString('fr-FR')} DA
                             </div>
-                            <div style={{ fontSize: '11px', color: '#6c757d' }}>Prix d'Achat</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Prix d'Achat</div>
                           </div>
-                          <div style={{ textAlign: 'center', padding: '12px', background: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#28a745' }}>
+                          <div style={{ textAlign: 'center', padding: '12px', background: 'var(--background-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--success-color)' }}>
                               {(stockOverview.stock_value_by_type?.f_sale_value || 0).toLocaleString('fr-FR')} DA
                             </div>
-                            <div style={{ fontSize: '11px', color: '#6c757d' }}>Prix de Vente</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Prix de Vente</div>
                           </div>
-                          <div style={{ textAlign: 'center', padding: '12px', background: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#ffc107' }}>
+                          <div style={{ textAlign: 'center', padding: '12px', background: 'var(--background-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--warning-color)' }}>
                               {(stockOverview.stock_value_by_type?.f_margin || 0).toLocaleString('fr-FR')} DA
                             </div>
-                            <div style={{ fontSize: '11px', color: '#6c757d' }}>Marge</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Marge</div>
                           </div>
-                          <div style={{ textAlign: 'center', padding: '12px', background: 'white', borderRadius: '6px', border: '1px solid #dee2e6' }}>
-                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#17a2b8' }}>
+                          <div style={{ textAlign: 'center', padding: '12px', background: 'var(--background-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--info-color)' }}>
                               {stockOverview.stock_value_by_type?.f_margin_percentage || 0}%
                             </div>
-                            <div style={{ fontSize: '11px', color: '#6c757d' }}>Taux</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Taux</div>
                           </div>
                         </div>
                       </div>
@@ -560,12 +560,12 @@ export default function StockManagement() {
 
                     {/* Actions rapides */}
                     <div style={{ 
-                      background: '#e9ecef', 
+                      background: 'var(--background-secondary)', 
                       padding: '20px', 
                       borderRadius: '8px', 
                       margin: '20px 0'
                     }}>
-                      <h3 style={{ marginBottom: '15px', color: '#495057' }}>🚀 Actions Rapides</h3>
+                      <h3 style={{ marginBottom: '15px', color: 'var(--text-primary)' }}>🚀 Actions Rapides</h3>
                       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                         <button 
                           onClick={() => setActiveTab('alerts')}
@@ -609,21 +609,21 @@ export default function StockManagement() {
                 {/* Résumé des alertes */}
                 {stockAlerts && (
                   <div style={{ 
-                    background: '#fff3cd', 
+                    background: 'var(--warning-color-light)', 
                     padding: '15px', 
                     borderRadius: '8px', 
                     margin: '20px 0',
-                    border: '1px solid #ffeaa7'
+                    border: '1px solid var(--border-color)'
                   }}>
-                    <h3 style={{ color: '#856404', margin: '0 0 10px 0' }}>📊 Résumé des Alertes</h3>
+                    <h3 style={{ color: 'var(--text-primary)', margin: '0 0 10px 0' }}>📊 Résumé des Alertes</h3>
                     <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                      <span style={{ color: '#856404' }}>
+                      <span style={{ color: 'var(--text-primary)' }}>
                         <strong>❌ Ruptures:</strong> {stockAlerts.counts.rupture}
                       </span>
-                      <span style={{ color: '#856404' }}>
+                      <span style={{ color: 'var(--text-primary)' }}>
                         <strong>⚠️ Stock Faible:</strong> {stockAlerts.counts.faible}
                       </span>
-                      <span style={{ color: '#856404' }}>
+                      <span style={{ color: 'var(--text-primary)' }}>
                         <strong>📈 Surstock:</strong> {stockAlerts.counts.surstock}
                       </span>
                     </div>
@@ -633,7 +633,7 @@ export default function StockManagement() {
                 {/* Articles en surstock */}
                 {stockAlerts && stockAlerts.surstock && stockAlerts.surstock.length > 0 && (
                   <div style={{ marginBottom: '30px' }}>
-                    <h3 style={{ color: '#17a2b8' }}>📈 Articles en Surstock</h3>
+                    <h3 style={{ color: 'var(--info-color)' }}>📈 Articles en Surstock</h3>
                     <div className={styles.tableContainer}>
                       <table className={styles.table}>
                         <thead>
@@ -649,16 +649,16 @@ export default function StockManagement() {
                         </thead>
                         <tbody>
                           {stockAlerts.surstock.map((alert) => (
-                            <tr key={alert.narticle} style={{ backgroundColor: '#d1ecf1' }}>
+                            <tr key={alert.narticle} style={{ backgroundColor: 'var(--info-color-light)' }}>
                               <td style={{ fontWeight: 'bold' }}>{alert.narticle}</td>
                               <td>{alert.designation}</td>
                               <td>{alert.famille}</td>
                               <td>{alert.nfournisseur}</td>
-                              <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#17a2b8' }}>
+                              <td style={{ textAlign: 'center', fontWeight: 'bold', color: 'var(--info-color)' }}>
                                 {alert.stock_total}
                               </td>
                               <td style={{ textAlign: 'center' }}>{alert.seuil}</td>
-                              <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#17a2b8' }}>
+                              <td style={{ textAlign: 'center', fontWeight: 'bold', color: 'var(--info-color)' }}>
                                 +{alert.stock_total - alert.seuil}
                               </td>
                             </tr>
@@ -672,12 +672,12 @@ export default function StockManagement() {
                 {/* Message si aucune alerte */}
                 {stockAlerts && stockAlerts.counts.rupture === 0 && stockAlerts.counts.faible === 0 && stockAlerts.counts.surstock === 0 && (
                   <div style={{
-                    background: '#d4edda',
-                    color: '#155724',
+                    background: 'var(--success-color-light)',
+                    color: 'var(--text-primary)',
                     padding: '20px',
                     borderRadius: '8px',
                     textAlign: 'center',
-                    border: '1px solid #c3e6cb'
+                    border: '1px solid var(--border-color)'
                   }}>
                     <h3>✅ Aucune Alerte de Stock</h3>
                     <p>Tous les articles sont dans des niveaux de stock normaux.</p>
@@ -686,23 +686,23 @@ export default function StockManagement() {
 
                 {/* Message d'information système */}
                 <div style={{
-                  background: '#d1ecf1',
-                  color: '#0c5460',
+                  background: 'var(--info-color-light)',
+                  color: 'var(--text-primary)',
                   padding: '20px',
                   borderRadius: '8px',
                   margin: '20px 0',
-                  border: '1px solid #bee5eb'
+                  border: '1px solid var(--border-color)'
                 }}>
                   <h3 style={{ margin: '0 0 15px 0' }}>ℹ️ Système d'Alertes</h3>
-                  <p style={{ margin: '0 0 15px 0' }}>
+                  <p style={{ margin: '0 0 15px 0', color: 'var(--text-secondary)' }}>
                     Le système d'alertes surveille automatiquement votre stock et vous avertit en cas de :
                   </p>
-                  <ul style={{ margin: '0 0 15px 0', paddingLeft: '20px' }}>
+                  <ul style={{ margin: '0 0 15px 0', paddingLeft: '20px', color: 'var(--text-secondary)' }}>
                     <li><strong>❌ Ruptures de stock</strong> - Articles avec quantité = 0</li>
                     <li><strong>⚠️ Stock faible</strong> - Articles sous le seuil minimum</li>
                     <li><strong>📈 Surstock</strong> - Articles avec stock excessif (&gt; seuil x 5)</li>
                   </ul>
-                  <p style={{ margin: '0', fontSize: '14px' }}>
+                  <p style={{ margin: '0', fontSize: '14px', color: 'var(--text-secondary)' }}>
                     <strong>Statut actuel :</strong> Système opérationnel avec données {stockAlerts ? 'en temps réel' : 'de fallback'}
                   </p>
                 </div>

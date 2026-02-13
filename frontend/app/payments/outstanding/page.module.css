@@ -14,12 +14,12 @@
 .title {
     margin: 0 0 8px 0;
     font-size: 28px;
-    color: #1f2937;
+    color: var(--text-primary);
 }
 
 .subtitle {
     margin: 0;
-    color: #6b7280;
+    color: var(--text-secondary);
     font-size: 14px;
 }
 
@@ -31,23 +31,23 @@
 }
 
 .statCard {
-    background: white;
-    border: 1px solid #e5e7eb;
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 20px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
 }
 
 .statLabel {
     font-size: 13px;
-    color: #6b7280;
+    color: var(--text-secondary);
     margin-bottom: 8px;
 }
 
 .statValue {
     font-size: 24px;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--text-primary);
 }
 
 .filters {
@@ -68,22 +68,24 @@
 .filterGroup label {
     font-size: 13px;
     font-weight: 500;
-    color: #374151;
+    color: var(--text-primary);
 }
 
 .select,
 .input {
     padding: 8px 12px;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border-color);
     border-radius: 6px;
     font-size: 14px;
+    background: var(--background);
+    color: var(--text-primary);
 }
 
 .select:focus,
 .input:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-color-light);
 }
 
 .loading,
@@ -91,19 +93,19 @@
 .empty {
     text-align: center;
     padding: 60px 20px;
-    background: white;
+    background: var(--card-background);
     border-radius: 8px;
-    color: #6b7280;
+    color: var(--text-secondary);
 }
 
 .error {
-    color: #dc2626;
+    color: var(--error-color);
 }
 
 .retryButton {
     margin-top: 16px;
     padding: 10px 20px;
-    background: #3b82f6;
+    background: var(--primary-color);
     color: white;
     border: none;
     border-radius: 6px;
@@ -112,14 +114,14 @@
 }
 
 .retryButton:hover {
-    background: #2563eb;
+    background: var(--primary-color-hover);
 }
 
 .tableContainer {
-    background: white;
+    background: var(--card-background);
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
 }
 
 .table {
@@ -129,15 +131,15 @@
 }
 
 .table thead {
-    background: #f9fafb;
-    border-bottom: 2px solid #e5e7eb;
+    background: var(--background-secondary);
+    border-bottom: 2px solid var(--border-color);
 }
 
 .table th {
     padding: 12px 16px;
     text-align: left;
     font-weight: 600;
-    color: #374151;
+    color: var(--text-primary);
     white-space: nowrap;
 }
 
@@ -147,12 +149,12 @@
 }
 
 .sortable:hover {
-    background: #f3f4f6;
+    background: var(--card-background-hover);
 }
 
 .table td {
     padding: 12px 16px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .clickableRow {
@@ -161,21 +163,22 @@
 }
 
 .clickableRow:hover {
-    background: #f9fafb;
+    background: var(--card-background-hover);
 }
 
 .docType {
     display: inline-block;
     padding: 4px 8px;
-    background: #eff6ff;
+    background: var(--primary-color-light);
     border-radius: 4px;
     font-size: 12px;
     font-weight: 500;
+    color: var(--text-primary);
 }
 
 .docNumber {
     font-weight: 600;
-    color: #1f2937;
+    color: var(--text-primary);
 }
 
 .amount,
@@ -186,11 +189,11 @@
 }
 
 .amountPaid {
-    color: #059669;
+    color: var(--success-color);
 }
 
 .balance {
-    color: #ef4444;
+    color: var(--error-color);
     font-size: 15px;
 }
 
@@ -206,11 +209,11 @@
 
 .paymentCount {
     text-align: center;
-    color: #6b7280;
+    color: var(--text-secondary);
 }
 
 .lastPayment {
-    color: #6b7280;
+    color: var(--text-secondary);
     font-size: 13px;
 }
 
