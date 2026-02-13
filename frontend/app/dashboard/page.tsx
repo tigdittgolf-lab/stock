@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { getApiUrl } from '@/lib/api';
 import DatabaseTypeIndicator from '@/components/DatabaseTypeIndicator';
 import DatabaseSelector from '@/components/DatabaseSelector';
+import DatabaseSelectorCompact from '@/components/DatabaseSelectorCompact';
+import ThemeToggle from '@/components/ThemeToggle';
 import styles from "../page.module.css";
 import dashboardStyles from "./dashboard.module.css";
 
@@ -650,12 +652,205 @@ export default function Dashboard() {
 
   return (
     <div className={styles.page}>
+      {/* Sidebar Navigation - Vertical à gauche */}
+      <aside className={styles.sidebar}>
+        <div className={styles.sidebarHeader}>
+          {/* Logo centré avec Theme Toggle compact à droite */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: '100%',
+            marginBottom: '12px',
+            position: 'relative'
+          }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '20px'
+            }}>
+              📦
+            </div>
+            {/* Theme Toggle en position absolue à droite */}
+            <div style={{
+              position: 'absolute',
+              right: 0,
+              transform: 'scale(0.85)' /* Réduit le toggle */
+            }}>
+              <ThemeToggle />
+            </div>
+          </div>
+          
+          <h2 style={{ 
+            margin: 0, 
+            fontSize: '16px', 
+            fontWeight: '700',
+            color: 'var(--text-primary)',
+            textAlign: 'center',
+            marginBottom: '16px'
+          }}>
+            Gestion Stock
+          </h2>
+          
+          {/* Business Unit et Exercice */}
+          {tenantInfo && (
+            <div style={{
+              display: 'flex',
+              gap: '6px',
+              width: '100%'
+            }}>
+              <div style={{
+                flex: 1,
+                padding: '6px 8px',
+                background: 'linear-gradient(135deg, #667eea15 0%, #764ba215 100%)',
+                borderRadius: '6px',
+                border: '1px solid var(--border-color)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '2px'
+              }}>
+                <span style={{ fontSize: '14px' }}>🏢</span>
+                <span style={{ fontSize: '9px', color: 'var(--text-tertiary)', fontWeight: '500' }}>BU</span>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--primary-color)' }}>
+                  {tenantInfo.business_unit.toUpperCase()}
+                </span>
+              </div>
+              
+              <div style={{
+                flex: 1,
+                padding: '6px 8px',
+                background: 'linear-gradient(135deg, #28a74515 0%, #20c99715 100%)',
+                borderRadius: '6px',
+                border: '1px solid var(--border-color)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '2px'
+              }}>
+                <span style={{ fontSize: '14px' }}>📅</span>
+                <span style={{ fontSize: '9px', color: 'var(--text-tertiary)', fontWeight: '500' }}>Année</span>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: '#28a745' }}>
+                  {tenantInfo.year}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <nav className={styles.sidebarNav}>
+          <button
+            className={activeTab === 'dashboard' ? styles.sidebarActive : ''}
+            onClick={() => setActiveTab('dashboard')}
+            title="Tableau de Bord"
+          >
+            <span className={styles.icon}>📊</span>
+            <span className={styles.label}>Tableau de Bord</span>
+          </button>
+          <button
+            className={activeTab === 'articles' ? styles.sidebarActive : ''}
+            onClick={() => setActiveTab('articles')}
+            title="Articles"
+          >
+            <span className={styles.icon}>📦</span>
+            <span className={styles.label}>Articles</span>
+            <span className={styles.badge}>{articles.length}</span>
+          </button>
+          <button
+            className={activeTab === 'clients' ? styles.sidebarActive : ''}
+            onClick={() => setActiveTab('clients')}
+            title="Clients"
+          >
+            <span className={styles.icon}>👥</span>
+            <span className={styles.label}>Clients</span>
+            <span className={styles.badge}>{clients.length}</span>
+          </button>
+          <button
+            className={activeTab === 'suppliers' ? styles.sidebarActive : ''}
+            onClick={() => setActiveTab('suppliers')}
+            title="Fournisseurs"
+          >
+            <span className={styles.icon}>🏭</span>
+            <span className={styles.label}>Fournisseurs</span>
+            <span className={styles.badge}>{suppliers.length}</span>
+          </button>
+          <button
+            className={activeTab === 'sales' ? styles.sidebarActive : ''}
+            onClick={() => setActiveTab('sales')}
+            title="Ventes"
+          >
+            <span className={styles.icon}>💰</span>
+            <span className={styles.label}>Ventes</span>
+          </button>
+          <button
+            className={activeTab === 'purchases' ? styles.sidebarActive : ''}
+            onClick={() => setActiveTab('purchases')}
+            title="Achats"
+          >
+            <span className={styles.icon}>🛒</span>
+            <span className={styles.label}>Achats</span>
+          </button>
+          <button
+            className={activeTab === 'stock' ? styles.sidebarActive : ''}
+            onClick={() => setActiveTab('stock')}
+            title="Stock"
+          >
+            <span className={styles.icon}>📈</span>
+            <span className={styles.label}>Stock</span>
+          </button>
+          <button
+            className={activeTab === 'settings' ? styles.sidebarActive : ''}
+            onClick={() => router.push('/settings')}
+            title="Réglages"
+          >
+            <span className={styles.icon}>⚙️</span>
+            <span className={styles.label}>Réglages</span>
+          </button>
+          {(() => {
+            try {
+              const userInfo = typeof window !== 'undefined' ? localStorage.getItem('user_info') : null;
+              const user = userInfo ? JSON.parse(userInfo) : null;
+              return user?.role === 'admin' ? (
+                <button
+                  className={activeTab === 'admin' ? styles.sidebarActive : ''}
+                  onClick={() => router.push('/admin')}
+                  title="Administration"
+                >
+                  <span className={styles.icon}>👨‍💼</span>
+                  <span className={styles.label}>Administration</span>
+                </button>
+              ) : null;
+            } catch {
+              return null;
+            }
+          })()}
+        </nav>
+        
+        {/* Database Selector en bas de la sidebar */}
+        <div style={{
+          padding: '12px',
+          borderTop: '1px solid var(--border-color)',
+          marginTop: 'auto'
+        }}>
+          <DatabaseSelectorCompact />
+        </div>
+      </aside>
+
+      {/* Header - Réduit en haut */}
       <header className={styles.header} style={{ 
-        position: 'sticky', 
-        top: 0, 
+        position: 'fixed', 
+        top: 0,
+        left: '240px', /* Décalé pour la sidebar */
+        right: 0,
         zIndex: 1000,
         background: 'var(--background)',
-        padding: '16px 20px'
+        padding: '12px 20px',
+        borderBottom: '1px solid var(--border-color)'
       }}>
         {/* Top Bar - Compact et professionnel */}
         <div style={{ 
@@ -820,165 +1015,9 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
-
-        {/* Context Bar - Info et Sélecteurs */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '12px 20px',
-          background: 'white',
-          borderRadius: '10px',
-          marginBottom: '16px',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-          border: '1px solid #e9ecef'
-        }}>
-          {/* Context Info */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-            <div style={{
-              padding: '6px 14px',
-              background: 'linear-gradient(135deg, #667eea15 0%, #764ba215 100%)',
-              borderRadius: '8px',
-              border: '1px solid #667eea30',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <span style={{ fontSize: '16px' }}>🏢</span>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '11px', color: '#666', fontWeight: '500' }}>Business Unit</span>
-                <span style={{ fontSize: '13px', fontWeight: '700', color: '#667eea' }}>
-                  {tenantInfo.business_unit.toUpperCase()}
-                </span>
-              </div>
-            </div>
-            
-            <div style={{
-              padding: '6px 14px',
-              background: 'linear-gradient(135deg, #28a74515 0%, #20c99715 100%)',
-              borderRadius: '8px',
-              border: '1px solid #28a74530',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <span style={{ fontSize: '16px' }}>📅</span>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '11px', color: '#666', fontWeight: '500' }}>Exercice</span>
-                <span style={{ fontSize: '13px', fontWeight: '700', color: '#28a745' }}>
-                  {tenantInfo.year}
-                </span>
-              </div>
-            </div>
-
-            <div style={{
-              padding: '6px 14px',
-              background: 'linear-gradient(135deg, #ffc10715 0%, #ff851515 100%)',
-              borderRadius: '8px',
-              border: '1px solid #ffc10730',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <span style={{ fontSize: '16px' }}>🗄️</span>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '11px', color: '#666', fontWeight: '500' }}>Base de données</span>
-                <span style={{ fontSize: '13px', fontWeight: '700', color: '#ffc107' }}>
-                  {tenantInfo.schema}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Database Selectors */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <DatabaseSelector />
-            <DatabaseTypeIndicator />
-          </div>
-        </div>
-        
-        <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: '12px',
-          padding: '12px',
-          boxShadow: '0 2px 8px rgba(102, 126, 234, 0.2)'
-        }}>
-          <nav className={styles.nav} style={{ padding: 0 }}>
-            <button
-              className={activeTab === 'dashboard' ? styles.active : ''}
-              onClick={() => setActiveTab('dashboard')}
-            >
-              📊 Tableau de Bord
-            </button>
-          <button
-            className={activeTab === 'articles' ? styles.active : ''}
-            onClick={() => setActiveTab('articles')}
-          >
-            📦 Articles ({articles.length})
-          </button>
-          <button
-            className={activeTab === 'clients' ? styles.active : ''}
-            onClick={() => setActiveTab('clients')}
-          >
-            👥 Clients ({clients.length})
-          </button>
-          <button
-            className={activeTab === 'suppliers' ? styles.active : ''}
-            onClick={() => setActiveTab('suppliers')}
-          >
-            🏭 Fournisseurs ({suppliers.length})
-          </button>
-          <button
-            className={activeTab === 'sales' ? styles.active : ''}
-            onClick={() => setActiveTab('sales')}
-          >
-            💰 Ventes
-          </button>
-          <button
-            className={activeTab === 'purchases' ? styles.active : ''}
-            onClick={() => setActiveTab('purchases')}
-          >
-            🛒 Achats
-          </button>
-          <button
-            className={activeTab === 'stock' ? styles.active : ''}
-            onClick={() => setActiveTab('stock')}
-          >
-            📈 Stock
-          </button>
-          <button
-            className={activeTab === 'settings' ? styles.active : ''}
-            onClick={() => router.push('/settings')}
-          >
-            ⚙️ Réglages
-          </button>
-          {/* Bouton Administration - Visible uniquement pour les admins */}
-          {(() => {
-            try {
-              const userInfo = typeof window !== 'undefined' ? localStorage.getItem('user_info') : null;
-              const user = userInfo ? JSON.parse(userInfo) : null;
-              return user?.role === 'admin' ? (
-                <button
-                  className={activeTab === 'admin' ? styles.active : ''}
-                  onClick={() => router.push('/admin')}
-                  style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: 'white',
-                    border: 'none'
-                  }}
-                >
-                  👨‍💼 Administration
-                </button>
-              ) : null;
-            } catch {
-              return null;
-            }
-          })()}
-          </nav>
-        </div>
       </header>
 
-      <main className={styles.main}>
+      <main className={styles.main} style={{ marginLeft: '240px' /* Décalé pour la sidebar */ }}>
         {loading && (
           <div style={{ textAlign: 'center', padding: '40px' }}>
             <div style={{

@@ -94,12 +94,32 @@
   --overlay-background: rgba(0, 0, 0, 0.7);
 }
 
-/* Transitions globales pour un changement de thème fluide */
-* {
-  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* Transitions optimisées pour un changement de thème fluide */
+/* Appliquer les transitions uniquement aux éléments de l'interface, pas aux données */
+body,
+nav,
+header,
+footer,
+aside,
+button,
+a,
+.card,
+[class*="card"],
+[class*="button"],
+[class*="nav"],
+[class*="header"],
+[class*="sidebar"],
+[class*="menu"] {
+  transition: background-color 0.2s ease,
+              color 0.2s ease,
+              border-color 0.2s ease,
+              box-shadow 0.2s ease;
+}
+
+/* Désactiver toutes les transitions pendant le changement de thème pour performance */
+.theme-transitioning,
+.theme-transitioning * {
+  transition: none !important;
 }
 
 html,

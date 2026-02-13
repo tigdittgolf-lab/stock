@@ -28,9 +28,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
+    
+    // Désactiver temporairement les transitions pour un changement instantané
+    document.documentElement.classList.add('theme-transitioning');
+    
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
+    
+    // Réactiver les transitions après un court délai
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove('theme-transitioning');
+      });
+    });
   };
 
   // Éviter le flash de contenu non stylisé
