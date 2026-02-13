@@ -1378,76 +1378,93 @@ sales.get('/suppliers', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    console.log(`Fetching suppliers for tenant: ${tenant}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔍 Fetching suppliers from ${dbType} database for tenant: ${tenant}`);
 
-    // Utiliser les vraies données des fournisseurs (comme pour les clients)
-    const realSupplierData = [
-      {
-        nfournisseur: 'F001',
-        nom_fournisseur: 'Fournisseur Droguerie',
-        resp_fournisseur: 'Ali Benaissa',
-        adresse_fourni: 'Alger, Bab Ezzouar',
-        tel: '021-444444',
-        email: 'contact@droguerie.dz',
-        caf: 80000,
-        cabl: 50000
-      },
-      {
-        nfournisseur: 'F002',
-        nom_fournisseur: 'Fournisseur Peinture',
-        resp_fournisseur: 'Karim Mansouri',
-        adresse_fourni: 'Oran, Bir El Djir',
-        tel: '041-555555',
-        email: 'info@peinture.dz',
-        caf: 120000,
-        cabl: 70000
-      },
-      {
-        nfournisseur: 'F003',
-        nom_fournisseur: 'Fournisseur Outillage',
-        resp_fournisseur: 'Nadia Cherif',
-        adresse_fourni: 'Constantine, Ali Mendjeli',
-        tel: '031-666666',
-        email: 'admin@outillage.dz',
-        caf: 100000,
-        cabl: 60000
-      },
-      {
-        nfournisseur: 'FOURNISSEUR 1',
-        nom_fournisseur: 'FOURNISSEUR 1',
-        resp_fournisseur: 'Responsable 1',
-        adresse_fourni: 'Adresse Fournisseur 1',
-        tel: '021-123456',
-        email: 'fournisseur1@email.com',
-        caf: 50000,
-        cabl: 25000
-      }
-    ];
-
-    // Appliquer les modifications du cache aux données réelles
-    const cachedSuppliers = createdSuppliersCache.get(tenant) || [];
-    const modifications = createdSuppliersCache.get(`${tenant}_modifications`) || new Map();
-    const deletedSuppliers = createdSuppliersCache.get(`${tenant}_deleted`) || new Set();
+    const result = await backendDatabaseService.executeRPC('get_suppliers_by_tenant', {
+      p_tenant: tenant
+    });
     
-    // Appliquer les modifications aux données de base et filtrer les supprimés
-    let modifiedData = realSupplierData
-      .filter(supplier => !deletedSuppliers.has(supplier.nfournisseur))
-      .map(supplier => {
-        const modification = modifications.get(supplier.nfournisseur);
-        return modification || supplier;
+    if (!result.success) {
+      console.error('❌ RPC Error:', result.error);
+      // Fallback to hardcoded data if RPC not available
+      const realSupplierData = [
+        {
+          nfournisseur: 'F001',
+          nom_fournisseur: 'Fournisseur Droguerie',
+          resp_fournisseur: 'Ali Benaissa',
+          adresse_fourni: 'Alger, Bab Ezzouar',
+          tel: '021-444444',
+          email: 'contact@droguerie.dz',
+          caf: 80000,
+          cabl: 50000
+        },
+        {
+          nfournisseur: 'F002',
+          nom_fournisseur: 'Fournisseur Peinture',
+          resp_fournisseur: 'Karim Mansouri',
+          adresse_fourni: 'Oran, Bir El Djir',
+          tel: '041-555555',
+          email: 'info@peinture.dz',
+          caf: 120000,
+          cabl: 70000
+        },
+        {
+          nfournisseur: 'F003',
+          nom_fournisseur: 'Fournisseur Outillage',
+          resp_fournisseur: 'Nadia Cherif',
+          adresse_fourni: 'Constantine, Ali Mendjeli',
+          tel: '031-666666',
+          email: 'admin@outillage.dz',
+          caf: 100000,
+          cabl: 60000
+        },
+        {
+          nfournisseur: 'FOURNISSEUR 1',
+          nom_fournisseur: 'FOURNISSEUR 1',
+          resp_fournisseur: 'Responsable 1',
+          adresse_fourni: 'Adresse Fournisseur 1',
+          tel: '021-123456',
+          email: 'fournisseur1@email.com',
+          caf: 50000,
+          cabl: 25000
+        }
+      ];
+
+      // Apply cache modifications
+      const cachedSuppliers = createdSuppliersCache.get(tenant) || [];
+      const modifications = createdSuppliersCache.get(`${tenant}_modifications`) || new Map();
+      const deletedSuppliers = createdSuppliersCache.get(`${tenant}_deleted`) || new Set();
+      
+      let modifiedData = realSupplierData
+        .filter(supplier => !deletedSuppliers.has(supplier.nfournisseur))
+        .map(supplier => {
+          const modification = modifications.get(supplier.nfournisseur);
+          return modification || supplier;
+        });
+      
+      const filteredCachedSuppliers = cachedSuppliers.filter(supplier => !deletedSuppliers.has(supplier.nfournisseur));
+      const allSuppliers = [...modifiedData, ...filteredCachedSuppliers];
+      
+      console.log(`✅ Using fallback data: ${allSuppliers.length} suppliers from ${dbType} fallback`);
+      return c.json({ 
+        success: true, 
+        data: allSuppliers,
+        tenant: tenant,
+        source: 'fallback_data_with_cache',
+        database_type: dbType
       });
+    }
     
-    // Ajouter les nouveaux fournisseurs du cache (non supprimés)
-    const filteredCachedSuppliers = cachedSuppliers.filter(supplier => !deletedSuppliers.has(supplier.nfournisseur));
-    const allSuppliers = [...modifiedData, ...filteredCachedSuppliers];
+    console.log(`✅ Found ${result.data?.length || 0} suppliers from ${dbType} database`);
     
-    console.log(`✅ Returning supplier data: ${realSupplierData.length} base - ${deletedSuppliers.size} deleted + ${modifications.size} modifications + ${filteredCachedSuppliers.length} cached = ${allSuppliers.length} total`);
     return c.json({ 
       success: true, 
-      data: allSuppliers,
+      data: result.data,
       tenant: tenant,
-      source: 'real_database_data_with_cache'
-    , database_type: backendDatabaseService.getActiveDatabaseType() });
+      source: 'database',
+      database_type: dbType
+    });
   } catch (error) {
     console.error('Error fetching suppliers:', error);
     return c.json({ success: false, error: 'Failed to fetch suppliers' }, 500);
@@ -1876,46 +1893,32 @@ sales.get('/invoices', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    console.log(`🧾 Fetching invoices from database for tenant: ${tenant}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🧾 Fetching invoices from ${dbType} database for tenant: ${tenant}`);
 
     try {
-      // CORRECTION: Utiliser exec_sql pour récupérer les vraies données factures avec tous les champs
-      const { data: invoicesRaw, error: fetchError } = await supabaseAdmin.rpc('exec_sql', {
-        sql: `SELECT * FROM "${tenant}".fact ORDER BY nfact DESC LIMIT 10;`
+      // Utiliser la fonction RPC dédiée pour récupérer les factures
+      const result = await backendDatabaseService.executeRPC('get_fact_list_by_tenant', {
+        p_tenant: tenant
       });
       
-      const invoices = invoicesRaw || [];
-      console.log(`📊 Raw invoices from SQL:`, invoicesRaw);
-      console.log(`📊 SQL Error:`, fetchError);
-      
-      if (fetchError) {
-        console.warn('Database fetch failed, using cache fallback:', fetchError);
+      if (!result.success) {
+        console.warn('Database fetch failed, using cache fallback:', result.error);
         const cachedInvoices = createdDocumentsCache.get(`${tenant}_invoices`) || [];
         console.log(`✅ Found ${cachedInvoices.length} invoices in cache (fallback)`);
-        return c.json({ success: true, data: cachedInvoices, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
+        return c.json({ success: true, data: cachedInvoices, source: 'cache_fallback', database_type: dbType });
       }
 
-      // Formater les données pour correspondre au format attendu
-      const formattedInvoices = Array.isArray(invoices) ? invoices.map(inv => ({
-        nfact: inv.nfact,
-        nclient: inv.nclient,
-        date_fact: inv.date_fact,
-        montant_ht: inv.montant_ht || 0,
-        tva: inv.tva || 0,
-        montant_ttc: inv.montant_ttc || (inv.montant_ht + inv.tva) || 0,
-        created_at: inv.created_at,
-        client_name: inv.client_name || inv.nclient
-      })) : [];
-
-      console.log(`✅ Found ${formattedInvoices.length} invoices in database`);
-      console.log(`📋 Sample invoice data:`, formattedInvoices[0]);
-      return c.json({ success: true, data: formattedInvoices, source: 'database' , database_type: backendDatabaseService.getActiveDatabaseType() });
+      const invoices = result.data || [];
+      console.log(`✅ Found ${invoices.length} invoices from ${dbType} database`);
+      
+      return c.json({ success: true, data: invoices, source: 'database', database_type: dbType });
 
     } catch (dbError) {
       console.warn('Database connection failed, using cache fallback:', dbError);
       const cachedInvoices = createdDocumentsCache.get(`${tenant}_invoices`) || [];
       console.log(`✅ Found ${cachedInvoices.length} invoices in cache (fallback)`);
-      return c.json({ success: true, data: cachedInvoices, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
+      return c.json({ success: true, data: cachedInvoices, source: 'cache_fallback', database_type: dbType });
     }
 
   } catch (error) {
@@ -2370,7 +2373,7 @@ sales.put('/invoices/:id', async (c) => {
     // Update invoice details if provided
     if (detail_fact) {
       // Delete existing details
-      await supabaseAdmin.from('detail_fact').delete().eq('nfact', id);
+      await databaseRouter.from('detail_fact').delete().eq('nfact', id);
 
       // Insert new details
       const processedDetails = detail_fact.map((detail: any) => ({
@@ -2468,21 +2471,28 @@ sales.get('/delivery-notes', async (c) => {
     console.log(`📋 Fetching delivery notes from database for tenant: ${tenant}`);
 
     try {
-      // CORRECTION: Utiliser exec_sql pour récupérer les vraies données BL avec tous les champs
-      const { data: deliveryNotesRaw, error: fetchError } = await supabaseAdmin.rpc('exec_sql', {
-        sql: `SELECT * FROM "${tenant}".bl ORDER BY nfact DESC LIMIT 10;`
+      // Utiliser databaseRouter pour supporter multi-base de données
+      const { data: deliveryNotesRaw, error: fetchError } = await databaseRouter.rpc('get_bl_list_by_tenant', {
+        p_tenant: tenant
       });
       
       const deliveryNotes = deliveryNotesRaw || [];
-      console.log(`📊 Raw delivery notes from SQL:`, deliveryNotesRaw);
-      console.log(`📊 SQL Error:`, fetchError);
-
+      console.log(`📊 Raw delivery notes from database:`, deliveryNotesRaw ? `${deliveryNotesRaw.length} rows` : 'null');
+      
       if (fetchError) {
-        console.warn('Database fetch failed, using cache fallback:', fetchError);
-        // Fallback vers le cache si la base de données échoue
+        console.warn('Database fetch failed:', fetchError);
+      }
+
+      if (fetchError || !deliveryNotes || deliveryNotes.length === 0) {
+        // Fallback vers le cache si la base de données échoue ou est vide
         const cachedDeliveryNotes = createdDocumentsCache.get(`${tenant}_bl`) || [];
         console.log(`✅ Found ${cachedDeliveryNotes.length} delivery notes in cache (fallback)`);
-        return c.json({ success: true, data: cachedDeliveryNotes, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
+        return c.json({ 
+          success: true, 
+          data: cachedDeliveryNotes, 
+          source: 'cache_fallback',
+          database_type: backendDatabaseService.getActiveDatabaseType() 
+        });
       }
 
       // Formater les données pour correspondre au format attendu
@@ -2498,16 +2508,25 @@ sales.get('/delivery-notes', async (c) => {
         client_name: bl.client_name || bl.raison_sociale || bl.nclient
       })) : [];
 
-      console.log(`✅ Found ${formattedDeliveryNotes.length} delivery notes in database`);
-      console.log(`📋 Sample BL data:`, formattedDeliveryNotes[0]);
-      return c.json({ success: true, data: formattedDeliveryNotes, source: 'database' , database_type: backendDatabaseService.getActiveDatabaseType() });
+      console.log(`✅ Found ${formattedDeliveryNotes.length} delivery notes from ${backendDatabaseService.getActiveDatabaseType()} database`);
+      return c.json({ 
+        success: true, 
+        data: formattedDeliveryNotes, 
+        source: 'database',
+        database_type: backendDatabaseService.getActiveDatabaseType() 
+      });
 
     } catch (dbError) {
       console.warn('Database connection failed, using cache fallback:', dbError);
       // Fallback vers le cache si la base de données échoue
       const cachedDeliveryNotes = createdDocumentsCache.get(`${tenant}_bl`) || [];
       console.log(`✅ Found ${cachedDeliveryNotes.length} delivery notes in cache (fallback)`);
-      return c.json({ success: true, data: cachedDeliveryNotes, source: 'cache_fallback' , database_type: backendDatabaseService.getActiveDatabaseType() });
+      return c.json({ 
+        success: true, 
+        data: cachedDeliveryNotes, 
+        source: 'cache_fallback',
+        database_type: backendDatabaseService.getActiveDatabaseType() 
+      });
     }
 
   } catch (error) {
@@ -2984,37 +3003,23 @@ sales.get('/proforma', async (c) => {
 
     console.log(`📋 Fetching proforma invoices from database for tenant: ${tenant}`);
 
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+
     try {
-      // CORRECTION: Utiliser exec_sql pour récupérer les vraies données proformas avec tous les champs
-      const { data: proformasRaw, error: fetchError } = await supabaseAdmin.rpc('exec_sql', {
-        sql: `SELECT * FROM "${tenant}".fprof ORDER BY nfact DESC LIMIT 10;`
+      // Utiliser la fonction RPC dédiée pour récupérer les proformas
+      const result = await backendDatabaseService.executeRPC('get_proforma_list_by_tenant', {
+        p_tenant: tenant
       });
       
-      const proformas = proformasRaw || [];
-      console.log(`📊 Raw proformas from SQL:`, proformasRaw);
-      console.log(`📊 SQL Error:`, fetchError);
-
-      if (fetchError) {
-        console.warn('Database fetch failed, using fallback data:', fetchError);
-        throw fetchError;
+      if (!result.success) {
+        console.warn('Database fetch failed, using fallback data:', result.error);
+        throw new Error(result.error);
       }
 
-      // Formater les données pour correspondre au format attendu
-      const formattedProformas = Array.isArray(proformas) ? proformas.map(pf => ({
-        nfact: pf.nfact,
-        nfprof: pf.nfprof || pf.nfact,
-        nclient: pf.nclient,
-        date_fact: pf.date_fact,
-        montant_ht: pf.montant_ht || 0,
-        tva: pf.tva || 0,
-        montant_ttc: pf.montant_ttc || (pf.montant_ht + pf.tva) || 0,
-        created_at: pf.created_at,
-        client_name: pf.client_name || pf.nclient
-      })) : [];
-
-      console.log(`✅ Found ${formattedProformas.length} proforma invoices in database`);
-      console.log(`📋 Sample proforma data:`, formattedProformas[0]);
-      return c.json({ success: true, data: formattedProformas, source: 'database', database_type: backendDatabaseService.getActiveDatabaseType() });
+      const proformas = result.data || [];
+      console.log(`✅ Found ${proformas.length} proforma invoices from ${dbType} database`);
+      
+      return c.json({ success: true, data: proformas, source: 'database', database_type: dbType });
 
     } catch (dbError) {
       console.warn('Database access failed, falling back to real data:', dbError);
@@ -3503,7 +3508,7 @@ sales.post('/convert-bl/:id', async (c) => {
 // Get all purchase invoices
 sales.get('/purchases/invoices', async (c) => {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await databaseRouter
       .from('fachat')
       .select(`
         *,
@@ -3522,7 +3527,7 @@ sales.get('/purchases/invoices', async (c) => {
 
     if (error) throw error;
 
-    return c.json({ success: true, data });
+    return c.json({ success: true, data, database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching purchase invoices:', error);
     return c.json({ success: false, error: 'Failed to fetch purchase invoices' }, 500);
@@ -3532,7 +3537,7 @@ sales.get('/purchases/invoices', async (c) => {
 // Get all purchase delivery notes
 sales.get('/purchases/delivery-notes', async (c) => {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await databaseRouter
       .from('bachat')
       .select(`
         *,
@@ -3552,7 +3557,7 @@ sales.get('/purchases/delivery-notes', async (c) => {
 
     if (error) throw error;
 
-    return c.json({ success: true, data });
+    return c.json({ success: true, data, database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching purchase delivery notes:', error);
     return c.json({ success: false, error: 'Failed to fetch purchase delivery notes' }, 500);
@@ -4033,7 +4038,7 @@ sales.get('/stock/movements/:articleId', async (c) => {
 // Get low stock alerts
 sales.get('/stock/low-stock', async (c) => {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await databaseRouter
       .from('article')
       .select(`
         *,

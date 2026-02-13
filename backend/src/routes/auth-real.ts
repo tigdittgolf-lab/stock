@@ -17,8 +17,11 @@ authReal.post('/login', async (c) => {
   try {
     const body = await c.req.json();
     const { username, password } = body;
+    
+    // Récupérer le type de base de données depuis l'en-tête
+    const dbType = c.req.header('X-Database-Type') || 'mysql'; // CHANGÉ: mysql par défaut
 
-    console.log(`🔐 Tentative de connexion: ${username}`);
+    console.log(`🔐 Tentative de connexion: ${username} sur base: ${dbType}`);
 
     if (!username || !password) {
       return c.json({ 
@@ -27,16 +30,68 @@ authReal.post('/login', async (c) => {
       }, 400);
     }
 
-    // Authentifier directement via Supabase (toujours disponible)
-    console.log('🔐 Authentification via Supabase...');
+    // Configurer la base de données active avant l'authentification
+    const dbConfigs: Record<string, any> = {
+      supabase: {
+        type: 'supabase',
+        name: 'Supabase Cloud',
+        supabaseUrl: process.env.SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co',
+        supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY
+      },
+      mysql: {
+        type: 'mysql',
+        name: 'MySQL Local',
+        host: process.env.MYSQL_HOST || 'localhost',
+        port: parseInt(process.env.MYSQL_PORT || '3306'),
+        database: process.env.MYSQL_DATABASE || 'stock_management',
+        username: process.env.MYSQL_USER || 'root',
+        password: process.env.MYSQL_PASSWORD || ''
+      },
+      postgresql: {
+        type: 'postgresql',
+        name: 'PostgreSQL Local',
+        host: process.env.POSTGRES_HOST || 'localhost',
+        port: parseInt(process.env.POSTGRES_PORT || '5432'),
+        database: process.env.POSTGRES_DATABASE || 'stock_management',
+        username: process.env.POSTGRES_USER || 'postgres',
+        password: process.env.POSTGRES_PASSWORD || 'postgres'
+      }
+    };
+
+    const dbConfig = dbConfigs[dbType];
+    if (!dbConfig) {
+      return c.json({ 
+        success: false, 
+        error: `Type de base de données invalide: ${dbType}` 
+      }, 400);
+    }
+
+    // Importer backendDatabaseService
+    const { backendDatabaseService } = await import('../services/databaseService.js');
     
-    const { data, error } = await supabaseAdmin.rpc('authenticate_user', {
+    // Changer la base de données active
+    console.log(`📊 Configuration de ${dbConfig.name} comme base active...`);
+    const switched = await backendDatabaseService.switchDatabase(dbConfig);
+    
+    if (!switched) {
+      return c.json({ 
+        success: false, 
+        error: `Impossible de se connecter à ${dbConfig.name}` 
+      }, 500);
+    }
+
+    // Authentifier via le databaseRouter (qui route vers la bonne base)
+    console.log(`🔐 Authentification via ${dbType.toUpperCase()}...`);
+    
+    const { data, error } = await databaseRouter.rpc('authenticate_user', {
       p_username: username,
       p_password: password
     });
 
+    console.log(`🔍 Auth response: data=${JSON.stringify(data)}, error=${JSON.stringify(error)}`);
+
     if (error) {
-      console.error('❌ Supabase Auth Error:', error);
+      console.error('❌ Auth Error:', error);
       return c.json({ 
         success: false, 
         error: 'Erreur lors de l\'authentification' 
@@ -46,11 +101,13 @@ authReal.post('/login', async (c) => {
     // Parser la réponse JSON
     const authResult = typeof data === 'string' ? JSON.parse(data) : data;
 
-    if (!authResult.success) {
-      console.log(`❌ Authentification échouée: ${authResult.error}`);
+    console.log(`🔍 Auth result: ${JSON.stringify(authResult)}`);
+
+    if (!authResult || !authResult.success) {
+      console.log(`❌ Authentification échouée: ${authResult?.error || 'Unknown error'}`);
       return c.json({ 
         success: false, 
-        error: authResult.error 
+        error: authResult?.error || 'Authentification échouée'
       }, 401);
     }
 

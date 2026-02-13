@@ -6,7 +6,7 @@ import { supabaseAdmin } from '../supabaseClient.js';
  */
 export class DynamicDatabaseService {
   private static instance: DynamicDatabaseService;
-  private currentDatabaseType: 'supabase' | 'mysql' | 'postgresql' = 'supabase';
+  private currentDatabaseType: 'supabase' | 'mysql' | 'postgresql' = 'mysql'; // CHANGÉ: mysql par défaut
   private currentConfig: any = null;
 
   private constructor() {}

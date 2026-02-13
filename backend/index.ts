@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { setupDatabase } from './src/setupDatabase.js';
+import { databaseMiddleware } from './src/middleware/databaseMiddleware.js';
 import articles from './src/routes/articles-clean.js';
 import clients from './src/routes/clients-clean.js';
 import suppliers from './src/routes/suppliers-clean.js';
@@ -58,7 +59,7 @@ app.use('/*', cors({
     /^https:\/\/.*\.loca\.lt$/,
     /^https:\/\/.*\.tail.*\.ts\.net$/
   ],
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Tenant', 'Cache-Control', 'Pragma'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Tenant', 'X-Database-Type', 'Cache-Control', 'Pragma'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: false // Important pour les requêtes cross-origin
 }));
@@ -73,6 +74,9 @@ app.use('/*', async (c, next) => {
   
   await next();
 });
+
+// IMPORTANT: Database middleware - Configure la base de données pour chaque requête
+app.use('/api/*', databaseMiddleware);
 
 // API Routes
 app.route('/api/articles', articles);

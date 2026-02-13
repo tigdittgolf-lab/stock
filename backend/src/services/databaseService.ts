@@ -120,12 +120,15 @@ export class BackendDatabaseService {
     
     // Configuration par défaut si aucun fichier trouvé
     this.activeConfig = {
-      type: 'supabase',
-      name: 'Supabase Production',
-      supabaseUrl: process.env.SUPABASE_URL,
-      supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY
+      type: 'mysql',
+      name: 'MySQL Local',
+      host: process.env.MYSQL_HOST || 'localhost',
+      port: parseInt(process.env.MYSQL_PORT || '3306'),
+      database: process.env.MYSQL_DATABASE || 'stock_management',
+      username: process.env.MYSQL_USER || 'root',
+      password: process.env.MYSQL_PASSWORD || ''
     };
-    console.log('📊 Configuration par défaut: Supabase');
+    console.log('📊 Configuration par défaut: MySQL Local');
   }
 
   private saveActiveConfig(): void {
@@ -148,6 +151,7 @@ export class BackendDatabaseService {
   public async switchDatabase(config: DatabaseConfig): Promise<boolean> {
     try {
       console.log(`🔄 Backend switching to database: ${config.type} (${config.name})`);
+      console.log(`📊 Config details: host=${config.host}, port=${config.port}, database=${config.database}`);
       
       // Fermer les connexions existantes
       await this.closeConnections();
@@ -172,11 +176,13 @@ export class BackendDatabaseService {
         throw new Error('Connection test failed');
       }
       
-      // Sauvegarder la nouvelle configuration
+      // Sauvegarder la nouvelle configuration EN MÉMOIRE UNIQUEMENT
       this.activeConfig = config;
-      this.saveActiveConfig(); // Ajouter la sauvegarde persistante
+      // NE PAS sauvegarder dans un fichier - la config doit venir du header X-Database-Type à chaque requête
+      // this.saveActiveConfig(); // ❌ DÉSACTIVÉ - cause des problèmes de synchronisation
       
       console.log(`✅ Backend database switched to: ${config.type}`);
+      console.log(`📊 Active config: host=${this.activeConfig.host}, port=${this.activeConfig.port}`);
       return true;
     } catch (error) {
       console.error('❌ Backend database switch failed:', error);
@@ -202,7 +208,7 @@ export class BackendDatabaseService {
           // Test MySQL connection
           const mysqlConn = await mysql.createConnection({
             host: config.host || 'localhost',
-            port: config.port || 3307,  // CORRECTION: WAMP utilise 3307
+            port: config.port || 3306,  // CORRECTION: MySQL standard utilise 3306
             user: config.username || 'root',
             password: config.password || '',
             database: config.database || 'stock_management'  // CORRECTION: utiliser stock_management
@@ -939,15 +945,16 @@ export class BackendDatabaseService {
         this.mysqlConnection = null;
       }
       
+      // CORRECTION: Ne pas spécifier de database pour permettre les requêtes cross-database
       this.mysqlConnection = await mysql.createConnection({
         host: this.activeConfig?.host || 'localhost',
         port: this.activeConfig?.port || 3306,  // CORRECTION: MySQL standard utilise 3306
         user: this.activeConfig?.username || 'root',
-        password: this.activeConfig?.password || '',
-        database: this.activeConfig?.database || '2025_bu01'  // CORRECTION: utiliser 2025_bu01 par défaut
+        password: this.activeConfig?.password || ''
+        // database: pas de database par défaut pour permettre les requêtes cross-database
       });
       
-      console.log(`🐬 MySQL: Connecting to database: ${this.activeConfig?.database || '2025_bu01'}`);
+      console.log(`🐬 MySQL: Connecting to ${this.activeConfig?.host || 'localhost'}:${this.activeConfig?.port || 3306}`);
       console.log(`🐬 MySQL: Executing query: ${sql.substring(0, 100)}...`);
       
       const [rows] = await this.mysqlConnection.execute(sql, params);
@@ -967,7 +974,7 @@ export class BackendDatabaseService {
       if (!this.mysqlConnection) {
         this.mysqlConnection = await mysql.createConnection({
           host: this.activeConfig?.host || 'localhost',
-          port: this.activeConfig?.port || 3307,  // CORRECTION: WAMP utilise 3307
+          port: this.activeConfig?.port || 3306,  // CORRECTION: MySQL standard utilise 3306
           user: this.activeConfig?.username || 'root',
           password: this.activeConfig?.password || '',
           database: this.activeConfig?.database || 'stock_management'
@@ -1231,6 +1238,9 @@ export class BackendDatabaseService {
         // Fonction exec_sql générique
         case 'exec_sql':
           return this.executeDirectSQL(dbType, params.sql);
+        // Fonction d'authentification
+        case 'authenticate_user':
+          return this.authenticateUser(dbType, params.p_username, params.p_password);
         default:
           throw new Error(`RPC function ${functionName} not implemented for ${dbType}`);
       }
@@ -1240,11 +1250,109 @@ export class BackendDatabaseService {
     }
   }
 
+  private async authenticateUser(dbType: 'mysql' | 'postgresql', username: string, password: string): Promise<any> {
+    try {
+      console.log(`🔐 Authenticating user ${username} on ${dbType}`);
+      
+      let sql;
+      if (dbType === 'mysql') {
+        // Pour MySQL, chercher dans la table users de stock_management_auth
+        // ET hasher le mot de passe avec SHA2 pour la comparaison
+        sql = `
+          SELECT id, username, email, full_name, role, business_units, password_hash,
+                 SHA2(?, 256) as input_hash
+          FROM stock_management_auth.users 
+          WHERE (username = ? OR email = ?) AND active = 1
+        `;
+      } else {
+        // Pour PostgreSQL, chercher dans public.users
+        sql = `
+          SELECT id, username, email, full_name, role, business_units, password_hash,
+                 encode(digest($1, 'sha256'), 'hex') as input_hash
+          FROM public.users 
+          WHERE (username = $2 OR email = $3) AND is_active = true
+        `;
+      }
+      
+      const result = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(sql, [password, username, username])
+        : await this.executePostgreSQLQuery(sql, [password, username, username]);
+      
+      if (!result.success || !result.data || result.data.length === 0) {
+        return {
+          success: false,
+          error: 'Utilisateur non trouvé'
+        };
+      }
+      
+      const user = result.data[0];
+      
+      // Vérifier le mot de passe hashé
+      if (user.password_hash !== user.input_hash) {
+        console.log(`❌ Password mismatch for user ${username}`);
+        console.log(`   Expected: ${user.password_hash}`);
+        console.log(`   Got: ${user.input_hash}`);
+        return {
+          success: false,
+          error: 'Mot de passe incorrect'
+        };
+      }
+      
+      console.log(`✅ Password verified for user ${username}`);
+      
+      // Parser business_units si c'est une chaîne JSON
+      let businessUnits = user.business_units;
+      if (typeof businessUnits === 'string') {
+        try {
+          businessUnits = JSON.parse(businessUnits);
+        } catch (e) {
+          businessUnits = [];
+        }
+      }
+      
+      // Retourner les infos utilisateur (sans le password_hash et input_hash)
+      const { password_hash, input_hash, ...userInfo } = user;
+      
+      return {
+        success: true,
+        data: {
+          success: true,
+          user: {
+            ...userInfo,
+            business_units: businessUnits
+          }
+        }
+      };
+      
+    } catch (error) {
+      console.error(`❌ Authentication error:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur d\'authentification'
+      };
+    }
+  }
+
   private async getArticlesByTenant(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
     let sql;
     if (dbType === 'mysql') {
-      // Pour MySQL, la base de données est déjà sélectionnée dans la connexion
-      sql = `SELECT * FROM article ORDER BY narticle`;
+      // CORRECTION: MySQL utilise Narticle (majuscule), Nfournisseur, etc.
+      sql = `
+        SELECT 
+          Narticle as narticle,
+          famille,
+          designation,
+          Nfournisseur as nfournisseur,
+          prix_unitaire,
+          marge,
+          tva,
+          prix_vente,
+          seuil,
+          stock_f,
+          stock_bl
+        FROM \`${tenant}\`.article 
+        ORDER BY Narticle
+      `;
     } else {
       // PostgreSQL: utiliser des guillemets pour les schémas
       sql = `SELECT * FROM "${tenant}".article ORDER BY narticle`;
@@ -1359,7 +1467,23 @@ export class BackendDatabaseService {
   private async getSuppliersByTenant(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
     let sql;
     if (dbType === 'mysql') {
-      sql = `SELECT * FROM \`${tenant}\`.fournisseur ORDER BY nfournisseur`;
+      // Mapper les colonnes MySQL vers les noms attendus par le frontend
+      sql = `
+        SELECT 
+          Nfournisseur as nfournisseur,
+          Nom_fournisseur as nom_fournisseur,
+          Resp_fournisseur as resp_fournisseur,
+          Adresse_fourni as adresse_fourni,
+          Tel as tel,
+          tel1,
+          tel2,
+          CAF as caf,
+          CABL as cabl,
+          EMAIL as email,
+          commentaire
+        FROM \`${tenant}\`.fournisseur 
+        ORDER BY Nfournisseur
+      `;
     } else {
       sql = `SELECT * FROM "${tenant}".fournisseur ORDER BY nfournisseur`;
     }
@@ -1456,7 +1580,26 @@ export class BackendDatabaseService {
   private async getClientsByTenant(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
     let sql;
     if (dbType === 'mysql') {
-      sql = `SELECT * FROM \`${tenant}\`.client ORDER BY nclient`;
+      // Mapper les colonnes MySQL vers les noms attendus par le frontend
+      sql = `
+        SELECT 
+          Nclient as nclient,
+          Raison_sociale as raison_sociale,
+          adresse,
+          contact_person,
+          C_affaire_fact as c_affaire_fact,
+          C_affaire_bl as c_affaire_bl,
+          NRC as nrc,
+          Date_RC as date_rc,
+          Lieu_RC as lieu_rc,
+          I_Fiscal as i_fiscal,
+          N_article as n_article,
+          Tel as tel,
+          email,
+          Commentaire as commentaire
+        FROM \`${tenant}\`.client 
+        ORDER BY Nclient
+      `;
     } else {
       sql = `SELECT * FROM "${tenant}".client ORDER BY nclient`;
     }
@@ -1553,9 +1696,27 @@ export class BackendDatabaseService {
   private async getBLList(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
     let sql;
     if (dbType === 'mysql') {
-      sql = `SELECT * FROM \`${tenant}\`.bl ORDER BY nfact DESC`;
+      sql = `
+        SELECT 
+          bl.*,
+          bl.nfact as nbl,
+          bl.nfact as id,
+          c.raison_sociale as client_name
+        FROM \`${tenant}\`.bl bl
+        LEFT JOIN \`${tenant}\`.client c ON bl.nclient = c.nclient
+        ORDER BY bl.nfact DESC
+      `;
     } else {
-      sql = `SELECT * FROM "${tenant}".bl ORDER BY nfact DESC`;
+      sql = `
+        SELECT 
+          bl.*,
+          bl.nfact as nbl,
+          bl.nfact as id,
+          c.raison_sociale as client_name
+        FROM "${tenant}".bl bl
+        LEFT JOIN "${tenant}".client c ON bl.nclient = c.nclient
+        ORDER BY bl.nfact DESC
+      `;
     }
     return dbType === 'mysql' ? this.executeMySQLQuery(sql, []) : this.executePostgreSQLQuery(sql, []);
   }
@@ -1696,9 +1857,23 @@ export class BackendDatabaseService {
   private async getFactList(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
     let sql;
     if (dbType === 'mysql') {
-      sql = `SELECT * FROM \`${tenant}\`.fact ORDER BY nfact DESC`;
+      sql = `
+        SELECT 
+          f.*,
+          c.raison_sociale as client_name
+        FROM \`${tenant}\`.fact f
+        LEFT JOIN \`${tenant}\`.client c ON f.nclient = c.nclient
+        ORDER BY f.nfact DESC
+      `;
     } else {
-      sql = `SELECT * FROM "${tenant}".fact ORDER BY nfact DESC`;
+      sql = `
+        SELECT 
+          f.*,
+          c.raison_sociale as client_name
+        FROM "${tenant}".fact f
+        LEFT JOIN "${tenant}".client c ON f.nclient = c.nclient
+        ORDER BY f.nfact DESC
+      `;
     }
     return dbType === 'mysql' ? this.executeMySQLQuery(sql, []) : this.executePostgreSQLQuery(sql, []);
   }
@@ -2002,8 +2177,8 @@ export class BackendDatabaseService {
         SELECT 
           f.*, 
           c.raison_sociale as client_name
-        FROM fprof f
-        LEFT JOIN client c ON f.nclient = c.nclient
+        FROM \`${tenant}\`.fprof f
+        LEFT JOIN \`${tenant}\`.client c ON f.nclient = c.nclient
         ORDER BY f.nfact DESC
       `;
     } else {

@@ -1,24 +1,26 @@
 .themeToggle {
   position: fixed;
-  top: 20px;
+  bottom: 20px;
   right: 20px;
-  width: 50px;
-  height: 50px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  border: 2px solid var(--border-color);
+  border: 1px solid var(--border-color);
   background: var(--card-background);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-md);
-  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 9999;
+  opacity: 0.7;
 }
 
 .themeToggle:hover {
-  transform: scale(1.1) rotate(10deg);
-  box-shadow: var(--shadow-lg);
+  opacity: 1;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   border-color: var(--primary-color);
 }
 
@@ -27,8 +29,8 @@
 }
 
 .iconWrapper {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -42,36 +44,53 @@
 }
 
 .themeToggle:hover .icon {
-  transform: rotate(20deg);
+  transform: rotate(180deg);
 }
 
-/* Animation d'entrée */
-@keyframes slideIn {
+/* Animation d'entrée discrète */
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateX(100px);
+    transform: scale(0.8);
   }
   to {
-    opacity: 1;
-    transform: translateX(0);
+    opacity: 0.7;
+    transform: scale(1);
   }
 }
 
 .themeToggle {
-  animation: slideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeIn 0.3s ease-out;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .themeToggle {
-    width: 45px;
-    height: 45px;
-    top: 15px;
+    width: 36px;
+    height: 36px;
+    bottom: 15px;
     right: 15px;
   }
   
   .iconWrapper {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
   }
 }
+
+/* Sur les petits écrans, le rendre encore plus discret */
+@media (max-width: 480px) {
+  .themeToggle {
+    width: 32px;
+    height: 32px;
+    bottom: 10px;
+    right: 10px;
+    opacity: 0.6;
+  }
+  
+  .iconWrapper {
+    width: 16px;
+    height: 16px;
+  }
+}
+

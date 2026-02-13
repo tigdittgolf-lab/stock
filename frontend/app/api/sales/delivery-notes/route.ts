@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   try {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    const dbType = request.headers.get('X-Database-Type') || 'supabase';
     
-    console.log(`🔍 Frontend API: Proxying to backend for tenant ${tenant}`);
+    console.log(`🔍 Frontend API: Proxying to backend for tenant ${tenant}, DB: ${dbType}`);
     
     // Faire la requête vers le backend local via Tailscale
     const backendUrl = process.env.NODE_ENV === 'production' 
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
       method: 'GET',
       headers: {
         'X-Tenant': tenant,
+        'X-Database-Type': dbType,
         'Content-Type': 'application/json'
       }
     });
@@ -28,7 +30,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log(`✅ Frontend API: Proxied ${data.data?.length || 0} delivery notes from backend`);
+    console.log(`✅ Frontend API: Proxied ${data.data?.length || 0} delivery notes from backend (${data.database_type || 'unknown'} database)`);
 
     return NextResponse.json(data);
 
@@ -44,9 +46,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    const dbType = request.headers.get('X-Database-Type') || 'supabase';
     const body = await request.json();
     
-    console.log(`📝 Frontend API: Proxying POST to backend for tenant ${tenant}`);
+    console.log(`📝 Frontend API: Proxying POST to backend for tenant ${tenant}, DB: ${dbType}`);
     
     // Faire la requête vers le backend local via Tailscale
     const backendUrl = process.env.NODE_ENV === 'production' 
@@ -57,6 +60,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'X-Tenant': tenant,
+        'X-Database-Type': dbType,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(body)
@@ -71,7 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log(`✅ Frontend API: POST proxied successfully`);
+    console.log(`✅ Frontend API: POST proxied successfully (${data.database_type || 'unknown'} database)`);
 
     return NextResponse.json(data);
 

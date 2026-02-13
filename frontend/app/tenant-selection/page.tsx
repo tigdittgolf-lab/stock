@@ -54,11 +54,21 @@ export default function TenantSelection() {
 
       console.log('🔐 BU autorisées pour cet utilisateur:', userBusinessUnits);
 
-      // Charger TOUS les BU disponibles depuis l'API
-      const response = await fetch(getApiUrl('auth/exercises'));
+      // Récupérer la config de la base de données active
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+      
+      console.log('📊 Base de données active:', dbType);
+
+      // Charger TOUS les BU disponibles depuis l'API avec le bon type de base
+      const response = await fetch(getApiUrl('auth/exercises'), {
+        headers: {
+          'X-Database-Type': dbType
+        }
+      });
       const data = await response.json();
       
-      console.log('📊 Tous les BU disponibles:', data);
+      console.log('📊 Tous les BU disponibles depuis', dbType, ':', data);
       
       if (data.success && data.data && data.data.length > 0) {
         // FILTRER uniquement les BU auxquelles l'utilisateur a accès
@@ -109,7 +119,15 @@ export default function TenantSelection() {
 
   const loadExercises = async () => {
     try {
-      const response = await fetch(getApiUrl('auth/exercises'));
+      // Récupérer la config de la base de données active
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+      
+      const response = await fetch(getApiUrl('auth/exercises'), {
+        headers: {
+          'X-Database-Type': dbType
+        }
+      });
       const data = await response.json();
       if (data.success) {
         setExercises(data.data);
@@ -183,6 +201,53 @@ export default function TenantSelection() {
           <div style={{ textAlign: 'center', marginBottom: '30px' }}>
             <h1 style={{ color: '#333', marginBottom: '10px' }}>Système de Gestion de Stock</h1>
             <p style={{ color: '#666', fontSize: '14px' }}>Sélectionnez votre unité d'affaires</p>
+            
+            {/* Indicateur de base de données active */}
+            {(() => {
+              try {
+                const dbConfig = typeof window !== 'undefined' ? localStorage.getItem('activeDbConfig') : null;
+                const config = dbConfig ? JSON.parse(dbConfig) : null;
+                if (config) {
+                  const dbIcons: Record<string, string> = {
+                    'supabase': '☁️',
+                    'mysql': '🐬',
+                    'mariadb': '🦭',
+                    'postgresql': '🐘'
+                  };
+                  const dbColors: Record<string, string> = {
+                    'supabase': '#3ecf8e',
+                    'mysql': '#00758f',
+                    'mariadb': '#c0765a',
+                    'postgresql': '#336791'
+                  };
+                  // Déterminer l'icône et la couleur basée sur le port pour MariaDB
+                  let displayType = config.type;
+                  if (config.type === 'mysql' && config.port === 3307) {
+                    displayType = 'mariadb';
+                  }
+                  
+                  return (
+                    <div style={{ 
+                      marginTop: '10px',
+                      padding: '8px 16px',
+                      background: `${dbColors[displayType]}15`,
+                      border: `1px solid ${dbColors[displayType]}`,
+                      borderRadius: '20px',
+                      display: 'inline-block',
+                      fontSize: '13px',
+                      color: dbColors[displayType],
+                      fontWeight: '500'
+                    }}>
+                      {dbIcons[displayType]} Base de données: <strong>{config.name}</strong>
+                    </div>
+                  );
+                }
+                return null;
+              } catch {
+                return null;
+              }
+            })()}
+            
             {(() => {
               try {
                 const userInfo = typeof window !== 'undefined' ? localStorage.getItem('user_info') : null;

@@ -15,7 +15,7 @@ router.get('/admin/users', async (req, res) => {
     console.log('🔍 GET /admin/users - Récupération utilisateurs');
     
     const dbService = BackendDatabaseService.getInstance();
-    const dbType = dbService.getActiveConfig()?.type || 'supabase';
+    const dbType = dbService.getActiveConfig()?.type || 'mysql';
     
     console.log(`📊 Base de données active: ${dbType}`);
 
@@ -75,7 +75,7 @@ router.post('/admin/users', async (req, res) => {
 
     const password_hash = hashPassword(password);
     const dbService = BackendDatabaseService.getInstance();
-    const dbType = dbService.getActiveConfig()?.type || 'supabase';
+    const dbType = dbService.getActiveConfig()?.type || 'mysql';
 
     console.log(`📊 Base de données active: ${dbType}`);
 
@@ -156,7 +156,7 @@ router.get('/admin/users/:id', async (req, res) => {
     console.log('🔍 GET /admin/users/:id - ID:', userId);
 
     const dbService = BackendDatabaseService.getInstance();
-    const dbType = dbService.getActiveConfig()?.type || 'supabase';
+    const dbType = dbService.getActiveConfig()?.type || 'mysql';
 
     let user = null;
 
@@ -223,7 +223,7 @@ router.put('/admin/users/:id', async (req, res) => {
     console.log('🔄 PUT /admin/users/:id - ID:', userId, 'Password change:', !!password);
 
     const dbService = BackendDatabaseService.getInstance();
-    const dbType = dbService.getActiveConfig()?.type || 'supabase';
+    const dbType = dbService.getActiveConfig()?.type || 'mysql';
 
     const updateData: any = {
       username,
@@ -336,7 +336,7 @@ router.delete('/admin/users/:id', async (req, res) => {
     console.log('🗑️ DELETE /admin/users/:id - ID:', userId);
 
     const dbService = BackendDatabaseService.getInstance();
-    const dbType = dbService.getActiveConfig()?.type || 'supabase';
+    const dbType = dbService.getActiveConfig()?.type || 'mysql';
 
     if (dbType === 'supabase') {
       const { supabaseAdmin } = await import('../supabaseClient.js');

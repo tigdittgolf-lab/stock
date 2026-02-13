@@ -6,8 +6,9 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3005';
 export async function GET(request: NextRequest) {
   try {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    const dbType = request.headers.get('X-Database-Type') || 'supabase';
     
-    console.log(`🔄 Frontend API: Forwarding clients request to backend for tenant ${tenant}`);
+    console.log(`🔄 Frontend API: Forwarding clients request to backend for tenant ${tenant}, DB: ${dbType}`);
     console.log(`🌐 BACKEND_URL configured: ${BACKEND_URL}`);
     console.log(`🎯 Full URL: ${BACKEND_URL}/api/sales/clients`);
     
@@ -16,6 +17,7 @@ export async function GET(request: NextRequest) {
       method: 'GET',
       headers: {
         'X-Tenant': tenant,
+        'X-Database-Type': dbType,
         'Content-Type': 'application/json'
       }
     });
@@ -42,15 +44,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    const dbType = request.headers.get('X-Database-Type') || 'supabase';
     const body = await request.json();
     
-    console.log(`🔄 Frontend API: Forwarding client creation to backend for tenant ${tenant}`);
+    console.log(`🔄 Frontend API: Forwarding client creation to backend for tenant ${tenant}, DB: ${dbType}`);
     
     // Forwarder la requête vers le backend
     const backendResponse = await fetch(`${BACKEND_URL}/api/sales/clients`, {
       method: 'POST',
       headers: {
         'X-Tenant': tenant,
+        'X-Database-Type': dbType,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(body)

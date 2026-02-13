@@ -124,7 +124,37 @@ auth.get('/business-units', async (c) => {
 // Get available exercises (years)
 auth.get('/exercises', async (c) => {
   try {
-    // Retourner les vraies business units avec les schémas
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`📊 Fetching exercises from ${dbType}`);
+    
+    // Lire depuis la base de données active
+    if (dbType === 'mysql' || dbType === 'postgresql') {
+      // Pour MySQL/PostgreSQL, lire depuis la table business_units
+      const result = await backendDatabaseService.executeQuery(
+        'SELECT schema_name, bu_code, year, nom_entreprise, active FROM stock_management_auth.business_units WHERE active = 1 ORDER BY year DESC, bu_code',
+        []
+      );
+      
+      if (result.success && result.data) {
+        const businessUnits = result.data.map((bu: any) => ({
+          year: bu.year,
+          status: bu.year === new Date().getFullYear() ? 'active' : (bu.year < new Date().getFullYear() ? 'closed' : 'active'),
+          schema_name: bu.schema_name,
+          bu_code: bu.bu_code,
+          nom_entreprise: bu.nom_entreprise
+        }));
+        
+        console.log(`✅ Found ${businessUnits.length} business units from ${dbType}`);
+        
+        return c.json({ 
+          success: true, 
+          data: businessUnits, 
+          database_type: dbType 
+        });
+      }
+    }
+    
+    // Fallback pour Supabase ou si la requête échoue
     const businessUnits = [
       {
         year: 2025,
@@ -159,7 +189,7 @@ auth.get('/exercises', async (c) => {
     return c.json({ 
       success: true, 
       data: businessUnits, 
-      database_type: backendDatabaseService.getActiveDatabaseType() 
+      database_type: dbType 
     });
   } catch (error) {
     console.error('Error fetching exercises:', error);

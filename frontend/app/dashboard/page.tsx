@@ -173,9 +173,14 @@ export default function Dashboard() {
       setLoading(true);
       setError(null);
 
+      // Récupérer le type de base de données depuis localStorage
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'mysql';
+
       const headers = {
         'Content-Type': 'application/json',
-        'X-Tenant': tenant.schema
+        'X-Tenant': tenant.schema,
+        'X-Database-Type': dbType
       };
 
       // Charger les données en parallèle
@@ -1074,26 +1079,25 @@ export default function Dashboard() {
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th>Code</th>
-                        <th>Désignation</th>
-                        <th>Famille</th>
-                        <th>Fournisseur</th>
-                        <th>Prix Unit.</th>
-                        <th>Marge %</th>
-                        <th>TVA %</th>
-                        <th>Prix Vente</th>
-                        <th>Stock F</th>
-                        <th>Stock BL</th>
-                        <th>Stock Total</th>
-                        <th>Seuil</th>
-                        <th>Statut</th>
-                        <th>Actions</th>
+                        <th style={{ width: '80px', maxWidth: '80px' }}>Code</th>
+                        <th style={{ width: '300px', maxWidth: '300px' }}>Désignation</th>
+                        <th style={{ width: '100px' }}>Famille</th>
+                        <th style={{ width: '120px' }}>Fournisseur</th>
+                        <th style={{ width: '90px' }}>Prix Unit.</th>
+                        <th style={{ width: '70px' }}>Marge %</th>
+                        <th style={{ width: '90px' }}>Prix Vente</th>
+                        <th style={{ width: '70px' }}>Stock F</th>
+                        <th style={{ width: '70px' }}>Stock BL</th>
+                        <th style={{ width: '90px' }}>Stock Total</th>
+                        <th style={{ width: '60px' }}>Seuil</th>
+                        <th style={{ width: '80px' }}>Statut</th>
+                        <th style={{ width: '140px', minWidth: '140px', position: 'sticky', right: 0, backgroundColor: 'var(--background-secondary)', zIndex: 1 }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {getFilteredArticles().length === 0 ? (
                         <tr>
-                          <td colSpan={14} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                          <td colSpan={13} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
                             {articles.length === 0 
                               ? `Aucun article trouvé pour ${tenantInfo.schema}`
                               : 'Aucun article ne correspond aux filtres sélectionnés'
@@ -1101,33 +1105,30 @@ export default function Dashboard() {
                           </td>
                         </tr>
                       ) : (
-                        getFilteredArticles().map((article) => {
+                        getFilteredArticles().map((article, index) => {
                           const stockTotal = (article.stock_f || 0) + (article.stock_bl || 0);
                           const isLowStock = stockTotal <= article.seuil;
                           const isZeroStock = stockTotal === 0;
                           const supplierName = suppliers.find(s => s.nfournisseur === article.nfournisseur)?.nom_fournisseur || article.nfournisseur || '-';
                           
                           return (
-                            <tr key={article.narticle}>
-                              <td style={{ fontWeight: 'bold' }}>{article.narticle}</td>
-                              <td style={{ fontWeight: 'bold', color: '#007bff', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={article.designation}>
+                            <tr key={`${article.narticle}-${index}`}>
+                              <td style={{ fontWeight: 'bold', width: '80px', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{article.narticle}</td>
+                              <td style={{ fontWeight: 'bold', color: '#007bff', width: '300px', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={article.designation}>
                                 {article.designation}
                               </td>
-                              <td style={{ fontSize: '12px' }}>{article.famille}</td>
-                              <td style={{ fontSize: '11px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={supplierName}>
+                              <td style={{ fontSize: '12px', width: '100px' }}>{article.famille}</td>
+                              <td style={{ fontSize: '11px', width: '120px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={supplierName}>
                                 {supplierName}
                               </td>
                               <td style={{ textAlign: 'right', fontSize: '12px' }}>
-                                {article.prix_unitaire?.toLocaleString('fr-FR')} DA
+                                {article.prix_unitaire?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                               <td style={{ textAlign: 'center', fontSize: '12px' }}>
                                 {article.marge}%
                               </td>
-                              <td style={{ textAlign: 'center', fontSize: '12px' }}>
-                                {article.tva}%
-                              </td>
                               <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#28a745' }}>
-                                {article.prix_vente?.toLocaleString('fr-FR')} DA
+                                {article.prix_vente?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                               <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{article.stock_f}</td>
                               <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{article.stock_bl}</td>
@@ -1144,21 +1145,21 @@ export default function Dashboard() {
                                    isLowStock ? '⚠️ Faible' : '✅ OK'}
                                 </span>
                               </td>
-                              <td>
-                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                              <td style={{ position: 'sticky', right: 0, backgroundColor: 'var(--card-background)', zIndex: 1, boxShadow: '-2px 0 4px rgba(0,0,0,0.1)' }}>
+                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                                   <button 
                                     onClick={() => handleEditArticle(article)}
                                     style={{
-                                      padding: '4px 8px',
+                                      padding: '6px 10px',
                                       backgroundColor: '#007bff',
                                       color: 'white',
                                       border: 'none',
-                                      borderRadius: '3px',
+                                      borderRadius: '4px',
                                       cursor: 'pointer',
-                                      fontSize: '11px',
+                                      fontSize: '12px',
                                       display: 'flex',
                                       alignItems: 'center',
-                                      gap: '2px'
+                                      gap: '3px'
                                     }}
                                     title="Modifier l'article"
                                   >
@@ -1167,16 +1168,16 @@ export default function Dashboard() {
                                   <button 
                                     onClick={() => handleDeleteArticle(article)}
                                     style={{
-                                      padding: '4px 8px',
+                                      padding: '6px 10px',
                                       backgroundColor: '#dc3545',
                                       color: 'white',
                                       border: 'none',
-                                      borderRadius: '3px',
+                                      borderRadius: '4px',
                                       cursor: 'pointer',
-                                      fontSize: '11px',
+                                      fontSize: '12px',
                                       display: 'flex',
                                       alignItems: 'center',
-                                      gap: '2px'
+                                      gap: '3px'
                                     }}
                                     title="Supprimer l'article (vérifiez qu'il n'a jamais été facturé)"
                                   >
@@ -1320,7 +1321,7 @@ export default function Dashboard() {
                         <th>CA Bons Livraison</th>
                         <th>CA Total</th>
                         <th>Statut</th>
-                        <th>Actions</th>
+                        <th style={{ width: '140px', minWidth: '140px', position: 'sticky', right: 0, backgroundColor: 'var(--background-secondary)', zIndex: 1 }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1334,10 +1335,10 @@ export default function Dashboard() {
                           </td>
                         </tr>
                       ) : (
-                        getFilteredClients().map((client) => {
+                        getFilteredClients().map((client, index) => {
                           const totalCA = (client.c_affaire_fact || 0) + (client.c_affaire_bl || 0);
                           return (
-                            <tr key={client.nclient}>
+                            <tr key={`${client.nclient}-${index}`}>
                               <td style={{ fontWeight: 'bold', fontSize: '14px' }}>{client.nclient}</td>
                               <td style={{ fontWeight: 'bold', color: '#007bff', fontSize: '14px' }}>{client.raison_sociale}</td>
                               <td style={{ fontSize: '13px' }}>{client.contact_person}</td>
@@ -1347,13 +1348,13 @@ export default function Dashboard() {
                                 {client.adresse}
                               </td>
                               <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#28a745', fontSize: '13px' }}>
-                                {client.c_affaire_fact?.toLocaleString('fr-FR')} DA
+                                {client.c_affaire_fact?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                               <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#17a2b8', fontSize: '13px' }}>
-                                {client.c_affaire_bl?.toLocaleString('fr-FR')} DA
+                                {client.c_affaire_bl?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                               <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#6f42c1', fontSize: '15px' }}>
-                                {totalCA.toLocaleString('fr-FR')} DA
+                                {totalCA.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                               <td>
                                 <span className={
@@ -1362,7 +1363,7 @@ export default function Dashboard() {
                                   {totalCA > 0 ? '✅ Actif' : '⚠️ Inactif'}
                                 </span>
                               </td>
-                              <td>
+                              <td style={{ position: 'sticky', right: 0, backgroundColor: 'var(--card-background)', zIndex: 1, boxShadow: '-2px 0 4px rgba(0,0,0,0.1)' }}>
                                 <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                                   <button 
                                     onClick={() => handleEditClient(client)}
@@ -1538,7 +1539,7 @@ export default function Dashboard() {
                         <th>CA BL</th>
                         <th>CA Total</th>
                         <th>Statut</th>
-                        <th>Actions</th>
+                        <th style={{ width: '140px', minWidth: '140px', position: 'sticky', right: 0, backgroundColor: 'var(--background-secondary)', zIndex: 1 }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1552,10 +1553,10 @@ export default function Dashboard() {
                           </td>
                         </tr>
                       ) : (
-                        getFilteredSuppliers().map((supplier) => {
+                        getFilteredSuppliers().map((supplier, index) => {
                           const totalCA = (supplier.caf || 0) + (supplier.cabl || 0);
                           return (
-                            <tr key={supplier.nfournisseur}>
+                            <tr key={`${supplier.nfournisseur}-${index}`}>
                               <td style={{ fontWeight: 'bold' }}>{supplier.nfournisseur}</td>
                               <td style={{ fontWeight: 'bold', color: '#007bff' }}>{supplier.nom_fournisseur}</td>
                               <td>{supplier.resp_fournisseur}</td>
@@ -1565,13 +1566,13 @@ export default function Dashboard() {
                               <td>{supplier.tel}</td>
                               <td style={{ fontSize: '12px' }}>{supplier.email}</td>
                               <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#28a745' }}>
-                                {supplier.caf?.toLocaleString('fr-FR')} DA
+                                {supplier.caf?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                               <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#17a2b8' }}>
-                                {supplier.cabl?.toLocaleString('fr-FR')} DA
+                                {supplier.cabl?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                               <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#6f42c1', fontSize: '14px' }}>
-                                {totalCA.toLocaleString('fr-FR')} DA
+                                {totalCA.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                               <td>
                                 <span className={
@@ -1580,21 +1581,21 @@ export default function Dashboard() {
                                   {totalCA > 0 ? '✅ Actif' : '⚠️ Inactif'}
                                 </span>
                               </td>
-                              <td>
-                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                              <td style={{ position: 'sticky', right: 0, backgroundColor: 'var(--card-background)', zIndex: 1, boxShadow: '-2px 0 4px rgba(0,0,0,0.1)' }}>
+                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                                   <button 
                                     onClick={() => handleEditSupplier(supplier)}
                                     style={{
-                                      padding: '4px 8px',
+                                      padding: '6px 10px',
                                       backgroundColor: '#007bff',
                                       color: 'white',
                                       border: 'none',
-                                      borderRadius: '3px',
+                                      borderRadius: '4px',
                                       cursor: 'pointer',
-                                      fontSize: '11px',
+                                      fontSize: '12px',
                                       display: 'flex',
                                       alignItems: 'center',
-                                      gap: '2px'
+                                      gap: '3px'
                                     }}
                                     title="Modifier le fournisseur"
                                   >
@@ -1603,16 +1604,16 @@ export default function Dashboard() {
                                   <button 
                                     onClick={() => handleDeleteSupplier(supplier)}
                                     style={{
-                                      padding: '4px 8px',
+                                      padding: '6px 10px',
                                       backgroundColor: '#dc3545',
                                       color: 'white',
                                       border: 'none',
-                                      borderRadius: '3px',
+                                      borderRadius: '4px',
                                       cursor: 'pointer',
-                                      fontSize: '11px',
+                                      fontSize: '12px',
                                       display: 'flex',
                                       alignItems: 'center',
-                                      gap: '2px'
+                                      gap: '3px'
                                     }}
                                     title="Supprimer le fournisseur (vérifiez qu'il n'a aucun article associé)"
                                   >
@@ -1982,13 +1983,13 @@ export default function Dashboard() {
                           </tr>
                         </thead>
                         <tbody>
-                          {getLowStockArticles().map((article) => {
+                          {getLowStockArticles().map((article, index) => {
                             const stockTotal = (article.stock_f || 0) + (article.stock_bl || 0);
                             const difference = stockTotal - article.seuil;
                             const isZeroStock = stockTotal === 0;
                             
                             return (
-                              <tr key={article.narticle} style={{ 
+                              <tr key={`low-${article.narticle}-${index}`} style={{ 
                                 backgroundColor: isZeroStock ? '#f8d7da' : '#fff3cd' 
                               }}>
                                 <td style={{ fontWeight: 'bold' }}>{article.narticle}</td>

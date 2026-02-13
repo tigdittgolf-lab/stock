@@ -35,8 +35,11 @@ export class DatabaseRouter {
       const result = await backendDatabaseService.executeRPC(functionName, params);
       
       if (result.success) {
+        // Pour authenticate_user, le résultat est dans result.user
+        // Pour les autres fonctions, le résultat est dans result.data
+        const data = result.data !== undefined ? result.data : result.user || result;
         return {
-          data: result.data,
+          data: data,
           error: null
         };
       } else {

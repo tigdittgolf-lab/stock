@@ -1,48 +1,26 @@
 // API Route: /api/database/status
 // Returns the current database type from the backend
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Get the actual database type from the backend
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3005';
+    // Lire le type de base de données depuis le header
+    const dbType = request.headers.get('X-Database-Type') || 'supabase';
     
-    try {
-      const response = await fetch(`${backendUrl}/api/database/current`, {
-        cache: 'no-store'
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Backend returns { success: true, currentType: 'mysql' | 'postgresql' | 'supabase' }
-        if (data.success && data.currentType) {
-          return NextResponse.json({
-            success: true,
-            currentType: data.currentType,
-            config: {
-              connected: true
-            },
-            message: `${data.currentType} actif`
-          });
-        }
-      }
-    } catch (backendError) {
-      console.warn('Could not fetch database type from backend, using default');
-    }
+    console.log(`📊 [database/status] Checking status for: ${dbType}`);
     
-    // Fallback: Return supabase as default
+    // Retourner directement le type de base de données du frontend
+    // Pas besoin d'interroger le backend car le frontend connaît déjà le type actif
     return NextResponse.json({
       success: true,
-      currentType: 'supabase',
+      currentType: dbType,
       config: {
-        url: process.env.SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co',
         connected: true
       },
-      message: 'Supabase actif (fallback)'
+      message: `${dbType} actif`
     });
   } catch (error: any) {
     console.error('Error in GET /api/database/status:', error);

@@ -98,7 +98,25 @@ articles.get('/:id', async (c) => {
     }
     
     if (result.data && result.data.length > 0) {
-      const foundArticle = result.data[0];
+      let foundArticle = result.data[0];
+      
+      // Mapper les colonnes MySQL (majuscules) vers minuscules pour le frontend
+      if (dbType === 'mysql' && foundArticle.Narticle) {
+        foundArticle = {
+          narticle: foundArticle.Narticle,
+          famille: foundArticle.famille,
+          designation: foundArticle.designation,
+          nfournisseur: foundArticle.Nfournisseur,
+          prix_unitaire: parseFloat(foundArticle.prix_unitaire),
+          marge: foundArticle.marge,
+          tva: parseFloat(foundArticle.tva),
+          prix_vente: parseFloat(foundArticle.prix_vente),
+          seuil: foundArticle.seuil,
+          stock_f: foundArticle.stock_f,
+          stock_bl: foundArticle.stock_bl
+        };
+      }
+      
       console.log(`✅ Found article ${id} in ${dbType} database:`, foundArticle);
       return c.json({ success: true, data: foundArticle, database_type: dbType });
     }

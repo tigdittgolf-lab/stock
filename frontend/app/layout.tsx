@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import ClientOnly from "@/components/ClientOnly";
+import FetchInterceptor from "@/lib/fetch-interceptor";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,6 +31,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider>
           <ClientOnly>
+            <FetchInterceptor />
             <ThemeToggle />
           </ClientOnly>
           {children}

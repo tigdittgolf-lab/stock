@@ -1,54 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
-// Utiliser SUPABASE_URL (pas NEXT_PUBLIC_SUPABASE_URL) car c'est une route API côté serveur
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3005';
 
 export async function GET(request: NextRequest) {
   try {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
-    console.log(`🔍 Récupération infos entreprise pour le tenant: ${tenant}`);
+    const dbType = request.headers.get('X-Database-Type') || 'supabase';
+    
+    console.log(`🔍 Récupération infos entreprise pour le tenant: ${tenant}, DB: ${dbType}`);
 
-    try {
-      const { data, error } = await supabase.rpc('get_tenant_activite', {
-        p_tenant: tenant
-      });
-
-      if (!error && data) {
-        return NextResponse.json({
-          success: true,
-          data: data
-        });
-      } else {
-        return NextResponse.json({
-          success: true,
-          data: {
-            nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR',
-            adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
-            telephone: '(213)045.42.35.20',
-            email: 'outillagesaada@gmail.com'
-          }
-        });
+    // Forwarder la requête vers le backend
+    const backendResponse = await fetch(`${BACKEND_URL}/api/company/info`, {
+      method: 'GET',
+      headers: {
+        'X-Tenant': tenant,
+        'X-Database-Type': dbType,
+        'Content-Type': 'application/json'
       }
-    } catch (rpcError) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR',
-          adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
-          telephone: '(213)045.42.35.20',
-          email: 'outillagesaada@gmail.com'
-        }
-      });
+    });
+
+    if (!backendResponse.ok) {
+      throw new Error(`Backend responded with status ${backendResponse.status}`);
     }
 
+    const data = await backendResponse.json();
+    
+    console.log(`✅ Company info received from backend (${data.database_type || 'unknown'} database)`);
+    
+    return NextResponse.json(data);
+
   } catch (error) {
+    console.error('❌ Error forwarding to backend:', error);
+    
+    // Fallback data
     return NextResponse.json({
-      success: false,
-      error: 'Erreur interne du serveur'
-    }, { status: 500 });
+      success: true,
+      data: {
+        nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR',
+        adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
+        telephone: '(213)045.42.35.20',
+        email: 'outillagesaada@gmail.com'
+      }
+    });
   }
 }
