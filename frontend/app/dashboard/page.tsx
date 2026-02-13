@@ -8,6 +8,20 @@ import DatabaseSelector from '@/components/DatabaseSelector';
 import styles from "../page.module.css";
 import dashboardStyles from "./dashboard.module.css";
 
+// Fonction de formatage personnalisée pour les montants: "999 999.99"
+const formatAmount = (amount: number | undefined): string => {
+  if (amount === undefined || amount === null) return '0.00';
+  
+  // Convertir en string avec 2 décimales
+  const fixed = amount.toFixed(2);
+  const [integerPart, decimalPart] = fixed.split('.');
+  
+  // Ajouter des espaces pour les milliers
+  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  
+  return `${formattedInteger}.${decimalPart}`;
+};
+
 interface TenantInfo {
   business_unit: string;
   year: number;
@@ -1122,13 +1136,13 @@ export default function Dashboard() {
                                 {supplierName}
                               </td>
                               <td style={{ textAlign: 'right', fontSize: '12px' }}>
-                                {article.prix_unitaire?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {formatAmount(article.prix_unitaire)}
                               </td>
                               <td style={{ textAlign: 'center', fontSize: '12px' }}>
                                 {article.marge}%
                               </td>
                               <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#28a745' }}>
-                                {article.prix_vente?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {formatAmount(article.prix_vente)}
                               </td>
                               <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{article.stock_f}</td>
                               <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{article.stock_bl}</td>
@@ -1348,13 +1362,13 @@ export default function Dashboard() {
                                 {client.adresse}
                               </td>
                               <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#28a745', fontSize: '13px' }}>
-                                {client.c_affaire_fact?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {formatAmount(client.c_affaire_fact)}
                               </td>
                               <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#17a2b8', fontSize: '13px' }}>
-                                {client.c_affaire_bl?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {formatAmount(client.c_affaire_bl)}
                               </td>
                               <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#6f42c1', fontSize: '15px' }}>
-                                {totalCA.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {formatAmount(totalCA)}
                               </td>
                               <td>
                                 <span className={
@@ -1566,13 +1580,13 @@ export default function Dashboard() {
                               <td>{supplier.tel}</td>
                               <td style={{ fontSize: '12px' }}>{supplier.email}</td>
                               <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#28a745' }}>
-                                {supplier.caf?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {formatAmount(supplier.caf)}
                               </td>
                               <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#17a2b8' }}>
-                                {supplier.cabl?.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {formatAmount(supplier.cabl)}
                               </td>
                               <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#6f42c1', fontSize: '14px' }}>
-                                {totalCA.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {formatAmount(totalCA)}
                               </td>
                               <td>
                                 <span className={
