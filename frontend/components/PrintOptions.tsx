@@ -42,6 +42,7 @@ export default function PrintOptions({
   const [manualPhone, setManualPhone] = useState('');
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [selectedPdfFormat, setSelectedPdfFormat] = useState<'complet' | 'reduit' | 'ticket'>('complet');
   
   const getDocumentLabel = () => {
     switch (documentType) {
@@ -123,16 +124,33 @@ export default function PrintOptions({
 
   const loadWhatsAppContacts = async () => {
     console.log('🔄 Loading WhatsApp contacts...');
-    console.log('📊 Tenant info:', tenant);
     
-    if (!tenant?.id) {
+    // Récupérer le tenant depuis localStorage si useTenant ne fonctionne pas
+    let tenantId = tenant?.id;
+    
+    if (!tenantId && typeof window !== 'undefined') {
+      const tenantInfoStr = localStorage.getItem('tenant_info');
+      if (tenantInfoStr) {
+        try {
+          const tenantInfo = JSON.parse(tenantInfoStr);
+          tenantId = tenantInfo.schema;
+          console.log('📦 Tenant récupéré depuis localStorage:', tenantId);
+        } catch (e) {
+          console.error('❌ Error parsing tenant_info:', e);
+        }
+      }
+    }
+    
+    console.log('📊 Tenant info:', { id: tenantId });
+    
+    if (!tenantId) {
       console.error('❌ No tenant ID for loading contacts');
       return;
     }
     
     setIsLoadingContacts(true);
     try {
-      const url = `/api/whatsapp/contacts?tenantId=${tenant.id}&clientId=${clientId}`;
+      const url = `/api/whatsapp/contacts?tenantId=${tenantId}&clientId=${clientId}`;
       console.log('🌐 Fetching:', url);
       
       const response = await fetch(url);
@@ -181,11 +199,18 @@ export default function PrintOptions({
     setIsSending(true);
     
     try {
-      // Générer l'URL du PDF
+      // Générer l'URL du PDF selon le format sélectionné
       let pdfPath = '';
       switch (documentType) {
         case 'bl':
-          pdfPath = `/api/pdf/delivery-note/${documentId}`;
+          // Utiliser le format sélectionné pour les BL
+          if (selectedPdfFormat === 'complet') {
+            pdfPath = `/api/pdf/delivery-note/${documentId}`;
+          } else if (selectedPdfFormat === 'reduit') {
+            pdfPath = `/api/pdf/delivery-note-small/${documentId}`;
+          } else if (selectedPdfFormat === 'ticket') {
+            pdfPath = `/api/pdf/delivery-note-ticket/${documentId}`;
+          }
           break;
         case 'invoice':
           pdfPath = `/api/pdf/invoice/${documentId}`;
@@ -195,7 +220,7 @@ export default function PrintOptions({
           break;
       }
       
-      console.log('📥 Téléchargement du PDF depuis:', pdfPath);
+      console.log('📥 Téléchargement du PDF depuis:', pdfPath, '(format:', selectedPdfFormat, ')');
       
       // Télécharger le PDF
       const pdfResponse = await fetch(pdfPath);
@@ -207,18 +232,50 @@ export default function PrintOptions({
       console.log('✅ PDF téléchargé:', pdfBlob.size, 'bytes');
       
       // Uploader via notre API
-      console.log('☁️ Upload du PDF...');
+      console.log('☁️ Upload du PDF vers tmpfiles.org (avec fallback automatique)...');
+      setIsSending(true);
+      
       const uploadFormData = new FormData();
       const docLabel = getDocumentLabel().replace(/\s+/g, '_');
       uploadFormData.append('file', pdfBlob, `${docLabel}_${documentNumber}.pdf`);
       
-      const uploadResponse = await fetch('/api/upload-temp-pdf', {
-        method: 'POST',
-        body: uploadFormData
-      });
+      // Timeout côté client de 60 secondes (pour permettre les 3 services de fallback)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.error('❌ Client timeout after 60 seconds');
+      }, 60000);
+      
+      let uploadResponse;
+      try {
+        uploadResponse = await fetch('/api/upload-temp-pdf', {
+          method: 'POST',
+          body: uploadFormData,
+          signal: controller.signal
+        });
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          throw new Error('⏱️ Timeout: Le serveur tmpfiles.org ne répond pas. Veuillez réessayer dans quelques instants.');
+        }
+        throw fetchError;
+      }
+      
+      clearTimeout(timeoutId);
+      console.log('📡 Upload response status:', uploadResponse.status);
       
       if (!uploadResponse.ok) {
-        throw new Error('Erreur lors de l\'upload du document');
+        const errorText = await uploadResponse.text();
+        console.error('❌ Upload error:', errorText);
+        
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        
+        throw new Error(errorData.error || `Erreur lors de l'upload du document (${uploadResponse.status})`);
       }
       
       const uploadData = await uploadResponse.json();
@@ -229,7 +286,9 @@ export default function PrintOptions({
       }
       
       const publicUrl = uploadData.url;
-      console.log('✅ Lien public:', publicUrl);
+      const expiresIn = uploadData.expiresIn || '1 heure';
+      const service = uploadData.service || 'tmpfiles.org';
+      console.log(`✅ Lien public (${service}):`, publicUrl, `- Expire dans: ${expiresIn}`);
       
       // Message de base
       const baseMessage = customMessage || `Voici votre ${getDocumentLabel().toLowerCase()} N° ${documentNumber}`;
@@ -237,7 +296,7 @@ export default function PrintOptions({
       // Message complet avec le lien
       const fullMessage = `${baseMessage}
 
-📄 Télécharger le document (lien valide 1h):
+📄 Télécharger le document (lien valide ${expiresIn}):
 ${publicUrl}
 
 💡 Cliquez sur le lien pour télécharger le PDF`;
@@ -305,7 +364,7 @@ ${publicUrl}
 
 📱 Cliquez sur "Envoyer" dans WhatsApp.
 💡 Le destinataire recevra le lien pour télécharger le PDF.
-⏰ Le lien expire dans 1 heure.`);
+⏰ Le lien expire dans ${expiresIn}.`);
         
         setShowWhatsAppModal(false);
         setSelectedContacts([]);
@@ -460,24 +519,15 @@ ${publicUrl}
               
               <div className={styles.modalBody}>
                 {/* Info banner */}
-                <div style={{
-                  padding: '12px',
-                  backgroundColor: '#e3f2fd',
-                  border: '1px solid #2196f3',
-                  borderRadius: '6px',
-                  marginBottom: '16px',
-                  fontSize: '13px',
-                  color: '#1565c0',
-                  lineHeight: '1.6'
-                }}>
+                <div className={styles.infoBanner}>
                   <strong>📱 Comment ça marche:</strong>
                   <ol style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
                     <li>WhatsApp s'ouvrira avec un message contenant le <strong>lien vers le PDF</strong></li>
                     <li>Vérifiez le message et cliquez sur <strong>"Envoyer"</strong> dans WhatsApp</li>
                     <li>Le destinataire recevra le lien et pourra <strong>télécharger le document</strong></li>
                   </ol>
-                  <div style={{ marginTop: '8px', padding: '6px', backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: '4px' }}>
-                    💡 <strong>Astuce:</strong> Le document reste accessible via le lien tant que vous êtes connecté.
+                  <div className={styles.infoTip}>
+                    💡 <strong>Astuce:</strong> Le lien reste valide pendant la durée indiquée dans le message.
                   </div>
                 </div>
 
@@ -485,6 +535,50 @@ ${publicUrl}
                   <p><strong>{getDocumentLabel()} N° {documentNumber}</strong></p>
                   {clientName && <p>Client: {clientName}</p>}
                 </div>
+
+                {/* Sélecteur de format PDF pour les BL */}
+                {documentType === 'bl' && (
+                  <div className={styles.pdfFormatSelector}>
+                    <h4>📄 Format du document:</h4>
+                    <div className={styles.formatOptions}>
+                      <label className={`${styles.formatOption} ${selectedPdfFormat === 'complet' ? styles.formatOptionActive : ''}`}>
+                        <input
+                          type="radio"
+                          name="pdfFormat"
+                          value="complet"
+                          checked={selectedPdfFormat === 'complet'}
+                          onChange={(e) => setSelectedPdfFormat(e.target.value as 'complet' | 'reduit' | 'ticket')}
+                        />
+                        <span>📄 BL Complet</span>
+                      </label>
+                      
+                      <label className={`${styles.formatOption} ${selectedPdfFormat === 'reduit' ? styles.formatOptionActive : ''}`}>
+                        <input
+                          type="radio"
+                          name="pdfFormat"
+                          value="reduit"
+                          checked={selectedPdfFormat === 'reduit'}
+                          onChange={(e) => setSelectedPdfFormat(e.target.value as 'complet' | 'reduit' | 'ticket')}
+                        />
+                        <span>📄 BL Réduit</span>
+                      </label>
+                      
+                      <label className={`${styles.formatOption} ${selectedPdfFormat === 'ticket' ? styles.formatOptionActive : ''}`}>
+                        <input
+                          type="radio"
+                          name="pdfFormat"
+                          value="ticket"
+                          checked={selectedPdfFormat === 'ticket'}
+                          onChange={(e) => setSelectedPdfFormat(e.target.value as 'complet' | 'reduit' | 'ticket')}
+                        />
+                        <span>🎫 Ticket</span>
+                      </label>
+                    </div>
+                    <small className={styles.formatHint}>
+                      💡 Sélectionnez le format de document à envoyer
+                    </small>
+                  </div>
+                )}
 
                 <div className={styles.contactsSection}>
                   <h4>Contacts WhatsApp:</h4>
@@ -551,7 +645,7 @@ ${publicUrl}
                   disabled={isSending || (selectedContacts.length === 0 && !manualPhone)}
                   className={styles.sendButton}
                 >
-                  {isSending ? 'Envoi...' : 'Envoyer'}
+                  {isSending ? '⏳ Upload en cours...' : 'Envoyer'}
                 </button>
               </div>
             </div>
@@ -584,24 +678,15 @@ ${publicUrl}
             
             <div className={styles.modalBody}>
               {/* Info banner */}
-              <div style={{
-                padding: '12px',
-                backgroundColor: '#e3f2fd',
-                border: '1px solid #2196f3',
-                borderRadius: '6px',
-                marginBottom: '16px',
-                fontSize: '13px',
-                color: '#1565c0',
-                lineHeight: '1.6'
-              }}>
+              <div className={styles.infoBanner}>
                 <strong>📱 Comment ça marche:</strong>
                 <ol style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
                   <li>WhatsApp s'ouvrira avec un message contenant le <strong>lien vers le PDF</strong></li>
                   <li>Vérifiez le message et cliquez sur <strong>"Envoyer"</strong> dans WhatsApp</li>
                   <li>Le destinataire recevra le lien et pourra <strong>télécharger le document</strong></li>
                 </ol>
-                <div style={{ marginTop: '8px', padding: '6px', backgroundColor: 'rgba(255,255,255,0.5)', borderRadius: '4px' }}>
-                  💡 <strong>Astuce:</strong> Le document reste accessible via le lien pendant 1 heure.
+                <div className={styles.infoTip}>
+                  💡 <strong>Astuce:</strong> Le lien reste valide pendant la durée indiquée dans le message.
                 </div>
               </div>
 
@@ -609,6 +694,50 @@ ${publicUrl}
                 <p><strong>{getDocumentLabel()} N° {documentNumber}</strong></p>
                 {clientName && <p>Client: {clientName}</p>}
               </div>
+
+              {/* Sélecteur de format PDF pour les BL */}
+              {documentType === 'bl' && (
+                <div className={styles.pdfFormatSelector}>
+                  <h4>📄 Format du document:</h4>
+                  <div className={styles.formatOptions}>
+                    <label className={`${styles.formatOption} ${selectedPdfFormat === 'complet' ? styles.formatOptionActive : ''}`}>
+                      <input
+                        type="radio"
+                        name="pdfFormat"
+                        value="complet"
+                        checked={selectedPdfFormat === 'complet'}
+                        onChange={(e) => setSelectedPdfFormat(e.target.value as 'complet' | 'reduit' | 'ticket')}
+                      />
+                      <span>📄 BL Complet</span>
+                    </label>
+                    
+                    <label className={`${styles.formatOption} ${selectedPdfFormat === 'reduit' ? styles.formatOptionActive : ''}`}>
+                      <input
+                        type="radio"
+                        name="pdfFormat"
+                        value="reduit"
+                        checked={selectedPdfFormat === 'reduit'}
+                        onChange={(e) => setSelectedPdfFormat(e.target.value as 'complet' | 'reduit' | 'ticket')}
+                      />
+                      <span>📄 BL Réduit</span>
+                    </label>
+                    
+                    <label className={`${styles.formatOption} ${selectedPdfFormat === 'ticket' ? styles.formatOptionActive : ''}`}>
+                      <input
+                        type="radio"
+                        name="pdfFormat"
+                        value="ticket"
+                        checked={selectedPdfFormat === 'ticket'}
+                        onChange={(e) => setSelectedPdfFormat(e.target.value as 'complet' | 'reduit' | 'ticket')}
+                      />
+                      <span>🎫 Ticket</span>
+                    </label>
+                  </div>
+                  <small className={styles.formatHint}>
+                    💡 Sélectionnez le format de document à envoyer
+                  </small>
+                </div>
+              )}
 
               <div className={styles.contactsSection}>
                 <h4>Contacts WhatsApp:</h4>
@@ -643,7 +772,7 @@ ${publicUrl}
                   onChange={(e) => setManualPhone(e.target.value)}
                   className={styles.phoneInput}
                 />
-                <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                <small className={styles.hint}>
                   Format international avec indicatif pays (ex: +213 pour l'Algérie, +33 pour la France)
                 </small>
               </div>
@@ -657,7 +786,7 @@ ${publicUrl}
                   rows={3}
                   placeholder={`Voici votre ${getDocumentLabel().toLowerCase()} N° ${documentNumber}`}
                 />
-                <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                <small className={styles.hint}>
                   💡 Le lien de téléchargement du PDF sera automatiquement ajouté à votre message
                 </small>
               </div>
@@ -675,7 +804,7 @@ ${publicUrl}
                 disabled={isSending || (selectedContacts.length === 0 && !manualPhone)}
                 className={styles.sendButton}
               >
-                {isSending ? 'Envoi...' : 'Envoyer'}
+                {isSending ? '⏳ Upload en cours...' : 'Envoyer'}
               </button>
             </div>
           </div>

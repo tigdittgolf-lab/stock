@@ -27,44 +27,62 @@ export async function POST(request: NextRequest) {
     
     console.log('☁️ Uploading to tmpfiles.org...');
     
-    // Upload vers tmpfiles.org depuis le backend
-    const uploadResponse = await fetch('https://tmpfiles.org/api/v1/upload', {
-      method: 'POST',
-      body: uploadFormData
-    });
+    // Upload vers tmpfiles.org avec timeout de 15 secondes (plus rapide pour fallback)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 secondes
     
-    console.log('📡 Upload response:', uploadResponse.status, uploadResponse.statusText);
-    
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      console.error('❌ Upload failed:', errorText);
-      return NextResponse.json(
-        { success: false, error: `Upload failed: ${uploadResponse.statusText}` },
-        { status: uploadResponse.status }
-      );
+    try {
+      const uploadResponse = await fetch('https://tmpfiles.org/api/v1/upload', {
+        method: 'POST',
+        body: uploadFormData,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      console.log('📡 Upload response:', uploadResponse.status, uploadResponse.statusText);
+      
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error('❌ tmpfiles.org failed:', errorText);
+        
+        // Fallback vers file.io
+        console.log('🔄 Trying fallback service: file.io...');
+        return await uploadToFileIo(blob, file.name);
+      }
+      
+      const uploadData = await uploadResponse.json();
+      console.log('📦 Upload data:', uploadData);
+      
+      if (!uploadData.data || !uploadData.data.url) {
+        console.error('❌ No URL in tmpfiles.org response');
+        // Fallback vers file.io
+        console.log('🔄 Trying fallback service: file.io...');
+        return await uploadToFileIo(blob, file.name);
+      }
+      
+      // Convertir l'URL pour téléchargement direct
+      let publicUrl = uploadData.data.url;
+      publicUrl = publicUrl.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
+      
+      console.log('✅ Public URL (tmpfiles.org):', publicUrl);
+      
+      return NextResponse.json({
+        success: true,
+        url: publicUrl,
+        expiresIn: '1 hour',
+        service: 'tmpfiles.org'
+      });
+      
+    } catch (uploadError) {
+      clearTimeout(timeoutId);
+      
+      console.error('❌ tmpfiles.org error:', uploadError);
+      
+      // Fallback vers file.io pour TOUTES les erreurs
+      console.log('🔄 Trying fallback service: file.io...');
+      return await uploadToFileIo(blob, file.name);
     }
-    
-    const uploadData = await uploadResponse.json();
-    console.log('📦 Upload data:', uploadData);
-    
-    if (!uploadData.data || !uploadData.data.url) {
-      return NextResponse.json(
-        { success: false, error: 'No URL in response' },
-        { status: 500 }
-      );
-    }
-    
-    // Convertir l'URL pour téléchargement direct
-    let publicUrl = uploadData.data.url;
-    publicUrl = publicUrl.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
-    
-    console.log('✅ Public URL:', publicUrl);
-    
-    return NextResponse.json({
-      success: true,
-      url: publicUrl,
-      expiresIn: '1 hour'
-    });
     
   } catch (error) {
     console.error('❌ API Error:', error);
@@ -74,6 +92,101 @@ export async function POST(request: NextRequest) {
         error: error instanceof Error ? error.message : 'Unknown error' 
       },
       { status: 500 }
+    );
+  }
+}
+
+// Fonction de fallback pour file.io
+async function uploadToFileIo(blob: Blob, filename: string) {
+  try {
+    const formData = new FormData();
+    formData.append('file', blob, filename);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    const response = await fetch('https://file.io', {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      throw new Error(`file.io upload failed: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('📦 file.io response:', data);
+    
+    if (!data.success || !data.link) {
+      throw new Error('No URL in file.io response');
+    }
+    
+    console.log('✅ Public URL (file.io):', data.link);
+    
+    return NextResponse.json({
+      success: true,
+      url: data.link,
+      expiresIn: '14 jours',
+      service: 'file.io'
+    });
+    
+  } catch (error) {
+    console.error('❌ file.io error:', error);
+    
+    // Dernier fallback: 0x0.st
+    console.log('🔄 Trying last fallback service: 0x0.st...');
+    return await uploadTo0x0(blob, filename);
+  }
+}
+
+// Dernier fallback: 0x0.st (expire après 365 jours)
+async function uploadTo0x0(blob: Blob, filename: string) {
+  try {
+    const formData = new FormData();
+    formData.append('file', blob, filename);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    const response = await fetch('https://0x0.st', {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      throw new Error(`0x0.st upload failed: ${response.statusText}`);
+    }
+    
+    const url = await response.text();
+    console.log('📦 0x0.st response:', url);
+    
+    if (!url || !url.startsWith('http')) {
+      throw new Error('Invalid URL from 0x0.st');
+    }
+    
+    console.log('✅ Public URL (0x0.st):', url.trim());
+    
+    return NextResponse.json({
+      success: true,
+      url: url.trim(),
+      expiresIn: '1 an',
+      service: '0x0.st'
+    });
+    
+  } catch (error) {
+    console.error('❌ 0x0.st error:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Tous les services d\'upload sont indisponibles. Veuillez réessayer plus tard.' 
+      },
+      { status: 503 }
     );
   }
 }

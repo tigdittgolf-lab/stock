@@ -5,66 +5,75 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  backdrop-filter: blur(4px);
 }
 
 .modalContent {
-  background: white;
-  border-radius: 8px;
+  background: var(--card-background);
+  border-radius: 12px;
   padding: 24px;
   max-width: 500px;
   width: 90%;
-  max-height: 80vh;
+  max-height: 85vh;
   overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
 }
 
-/* WhatsApp Modal */
+/* WhatsApp Modal - Optimisé et Dark Mode */
 .whatsappModal {
-  background: white;
-  border-radius: 8px;
-  padding: 24px;
-  max-width: 600px;
+  background: var(--card-background);
+  border-radius: 12px;
+  padding: 0;
+  max-width: 550px;
   width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
 }
 
 .modalHeader {
-  text-align: center;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #eee;
+  padding: 20px 24px;
+  border-bottom: 2px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: var(--background-secondary);
+  flex-shrink: 0;
 }
 
 .modalHeader h3 {
-  color: #28a745;
+  color: var(--primary-color);
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
+  font-weight: 600;
 }
 
 .modalHeader p {
   margin: 0;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
 .modalBody {
-  margin-bottom: 20px;
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .modalBody h4 {
-  margin: 0 0 16px 0;
-  color: #333;
-  font-size: 16px;
+  margin: 0 0 12px 0;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .printOptionsGrid {
@@ -74,89 +83,248 @@
 }
 
 .modalFooter {
-  text-align: center;
-  padding-top: 16px;
-  border-top: 1px solid #eee;
+  padding: 16px 24px;
+  border-top: 2px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   gap: 12px;
+  background: var(--background-secondary);
+  flex-shrink: 0;
 }
 
 /* WhatsApp specific styles */
-.documentInfo {
-  background: #f8f9fa;
-  padding: 12px;
+.infoBanner {
+  padding: 14px;
+  background: var(--info-color-light);
+  border: 2px solid var(--info-color);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.infoBanner strong {
+  color: var(--info-color);
+}
+
+.infoBanner ol {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.infoBanner li {
+  margin: 4px 0;
+}
+
+.infoTip {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: var(--background-secondary);
   border-radius: 6px;
+  border-left: 3px solid var(--success-color);
+}
+
+.documentInfo {
+  background: var(--background-secondary);
+  padding: 14px;
+  border-radius: 8px;
   margin-bottom: 20px;
+  border: 1px solid var(--border-color);
 }
 
 .documentInfo p {
   margin: 4px 0;
-  color: #333;
+  color: var(--text-primary);
+  font-size: 14px;
 }
 
 .contactsSection {
   margin-bottom: 20px;
 }
 
+.contactsSection h4 {
+  color: var(--text-primary);
+}
+
 .contactsList {
-  max-height: 150px;
+  max-height: 180px;
   overflow-y: auto;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
   padding: 8px;
+  background: var(--background-secondary);
 }
 
 .contactItem {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px;
+  gap: 10px;
+  padding: 10px;
   cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  border-radius: 6px;
+  transition: all 0.2s;
+  color: var(--text-primary);
 }
 
 .contactItem:hover {
-  background-color: #f8f9fa;
+  background-color: var(--primary-color-light);
 }
 
 .contactItem input[type="checkbox"] {
   margin: 0;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.contactItem span {
+  font-size: 14px;
 }
 
 .manualPhoneSection {
   margin-bottom: 20px;
 }
 
+.manualPhoneSection h4 {
+  color: var(--text-primary);
+}
+
 .phoneInput {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  padding: 10px 14px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
   font-size: 14px;
+  background: var(--background-secondary);
+  color: var(--text-primary);
+  transition: border-color 0.2s;
+}
+
+.phoneInput:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.phoneInput::placeholder {
+  color: var(--text-secondary);
 }
 
 .messageSection {
   margin-bottom: 20px;
 }
 
+.messageSection h4 {
+  color: var(--text-primary);
+}
+
 .messageInput {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  padding: 10px 14px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
   font-size: 14px;
   resize: vertical;
   font-family: inherit;
+  background: var(--background-secondary);
+  color: var(--text-primary);
+  transition: border-color 0.2s;
+  min-height: 80px;
+}
+
+.messageInput:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.messageInput::placeholder {
+  color: var(--text-secondary);
+}
+
+/* PDF Format Selector */
+.pdfFormatSelector {
+  padding: 14px;
+  background: var(--background-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.pdfFormatSelector h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.formatOptions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.formatOption {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  background: var(--card-background);
+  transition: all 0.2s;
+  flex: 1;
+  min-width: 120px;
+}
+
+.formatOption:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-color-light);
+}
+
+.formatOption input[type="radio"] {
+  margin-right: 10px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.formatOption span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.formatOptionActive {
+  border-color: var(--primary-color);
+  background: var(--primary-color-light);
+}
+
+.formatOptionActive span {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.formatHint {
+  display: block;
+  margin-top: 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.hint {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 /* Print button styles */
 .printButton {
-  background: #007bff;
-  color: white;
+  background: var(--primary-color);
+  color: var(--text-inverse);
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 10px 16px;
   font-size: 13px;
   cursor: pointer;
@@ -166,12 +334,13 @@
   justify-content: center;
   gap: 6px;
   min-height: 40px;
+  font-weight: 500;
 }
 
 .printButton:hover {
-  background: #0056b3;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+  filter: brightness(1.1);
 }
 
 .printButton:active {
@@ -184,58 +353,63 @@
 
 .whatsappButton:hover {
   background: #1da851;
-  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
 }
 
 .closeButton {
-  background: #6c757d;
-  color: white;
+  background: var(--text-secondary);
+  color: var(--text-inverse);
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 10px 24px;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .closeButton:hover {
-  background: #545b62;
+  filter: brightness(0.9);
 }
 
 .cancelButton {
-  background: #6c757d;
-  color: white;
+  background: var(--text-secondary);
+  color: var(--text-inverse);
   border: none;
-  border-radius: 6px;
-  padding: 10px 24px;
-  font-size: 14px;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
   flex: 1;
 }
 
 .cancelButton:hover {
-  background: #545b62;
+  filter: brightness(0.9);
 }
 
 .sendButton {
   background: #25d366;
   color: white;
   border: none;
-  border-radius: 6px;
-  padding: 10px 24px;
-  font-size: 14px;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
   flex: 1;
 }
 
 .sendButton:hover:not(:disabled) {
   background: #1da851;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
 }
 
 .sendButton:disabled {
-  background: #ccc;
+  background: var(--text-secondary);
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -254,6 +428,35 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+  .whatsappModal {
+    max-width: 95%;
+    max-height: 95vh;
+  }
+  
+  .modalHeader {
+    padding: 16px 20px;
+  }
+  
+  .modalHeader h3 {
+    font-size: 18px;
+  }
+  
+  .modalBody {
+    padding: 16px 20px;
+  }
+  
+  .modalFooter {
+    padding: 14px 20px;
+  }
+  
+  .formatOptions {
+    flex-direction: column;
+  }
+  
+  .formatOption {
+    min-width: 100%;
+  }
+  
   .modalContent {
     margin: 20px;
     padding: 20px;
@@ -273,4 +476,41 @@
     padding: 3px 6px;
     min-height: 24px;
   }
+}
+
+/* Scrollbar styling for modal body */
+.modalBody::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modalBody::-webkit-scrollbar-track {
+  background: var(--background-secondary);
+  border-radius: 4px;
+}
+
+.modalBody::-webkit-scrollbar-thumb {
+  background: var(--text-secondary);
+  border-radius: 4px;
+}
+
+.modalBody::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
+}
+
+.contactsList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.contactsList::-webkit-scrollbar-track {
+  background: var(--background-secondary);
+  border-radius: 3px;
+}
+
+.contactsList::-webkit-scrollbar-thumb {
+  background: var(--text-secondary);
+  border-radius: 3px;
+}
+
+.contactsList::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
 }

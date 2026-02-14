@@ -57,42 +57,79 @@ export default function DeliveryNotesList() {
     // Récupérer le tenant depuis localStorage
     const tenantInfo = localStorage.getItem('tenant_info');
     if (!tenantInfo) {
+      console.error('❌ No tenant info in localStorage, redirecting to login');
       router.push('/login');
       return;
     }
 
     try {
       const tenant = JSON.parse(tenantInfo);
+      console.log('✅ Tenant loaded from localStorage:', tenant);
+      
+      if (!tenant.schema) {
+        console.error('❌ No schema in tenant info:', tenant);
+        router.push('/login');
+        return;
+      }
+      
       setTenant(tenant.schema);
+      console.log('🔄 Loading delivery notes for tenant:', tenant.schema);
       loadDeliveryNotes(tenant.schema);
     } catch (error) {
-      console.error('Error parsing tenant info:', error);
+      console.error('❌ Error parsing tenant info:', error);
       router.push('/login');
     }
   }, [router]);
 
-  const loadDeliveryNotes = async (tenantSchema: string) => {
+  const loadDeliveryNotes = async (tenantSchema: string, retryCount = 0) => {
     try {
+      console.log(`📡 Loading delivery notes for tenant: ${tenantSchema} (attempt ${retryCount + 1})`);
       setLoading(true);
       setError(null);
+
+      // Récupérer la config DB depuis localStorage
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'mysql';
+      
+      console.log('📊 DB Config:', { dbType, tenant: tenantSchema });
 
       const response = await fetch('/api/sales/delivery-notes', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'X-Tenant': tenantSchema
+          'X-Tenant': tenantSchema,
+          'X-Database-Type': dbType
         }
       });
 
+      console.log('📡 Response status:', response.status);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ API Error:', errorText);
+        
+        // Retry once if it's the first attempt
+        if (retryCount === 0) {
+          console.log('🔄 Retrying in 500ms...');
+          await new Promise(resolve => setTimeout(resolve, 500));
+          return loadDeliveryNotes(tenantSchema, retryCount + 1);
+        }
+        
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('📦 Data received:', {
+        success: data.success,
+        count: data.data?.length || 0,
+        dbType: data.database_type
+      });
 
       if (data.success) {
-        setDeliveryNotes(data.data || []);
-        setFilteredDeliveryNotes(data.data || []);
+        const notes = data.data || [];
+        setDeliveryNotes(notes);
+        setFilteredDeliveryNotes(notes);
+        console.log(`✅ Delivery notes loaded successfully: ${notes.length} BL`);
         
         // NE PLUS charger les statuts de paiement automatiquement
         // C'est trop lourd et cause des boucles infinies
@@ -103,6 +140,8 @@ export default function DeliveryNotesList() {
     } catch (error) {
       console.error('❌ Error loading delivery notes:', error);
       setError(error instanceof Error ? error.message : 'Unknown error');
+      setDeliveryNotes([]);
+      setFilteredDeliveryNotes([]);
     } finally {
       setLoading(false);
     }
@@ -909,6 +948,33 @@ export default function DeliveryNotesList() {
           gap: '10px',
           flexDirection: isMobile ? 'column' : 'row'
         }}>
+          <button
+            onClick={() => {
+              console.log('🔄 Manual refresh triggered');
+              if (tenant) {
+                loadDeliveryNotes(tenant);
+              } else {
+                const tenantInfo = localStorage.getItem('tenant_info');
+                if (tenantInfo) {
+                  const parsed = JSON.parse(tenantInfo);
+                  loadDeliveryNotes(parsed.schema);
+                }
+              }
+            }}
+            style={{
+              padding: isMobile ? '12px 20px' : '12px 20px',
+              backgroundColor: 'var(--success-color)',
+              color: 'var(--text-inverse)',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: isMobile ? '16px' : '16px',
+              fontWeight: 'bold'
+            }}
+            disabled={loading}
+          >
+            {loading ? '⏳ Chargement...' : '🔄 Actualiser'}
+          </button>
           <button
             onClick={() => router.push('/delivery-notes')}
             style={{
