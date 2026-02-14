@@ -330,15 +330,17 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
       <main className={styles.main}>
         <div>
           {/* Widget de statut de paiement */}
-          <div style={{ marginBottom: '30px' }}>
-            <PaymentSummary
-              documentType="delivery_note"
-              documentId={deliveryNote.nbl}
-              totalAmount={calculateTotalTTC()}
-              onViewHistory={() => setShowPaymentHistory(true)}
-              refreshTrigger={refreshPaymentTrigger}
-            />
-          </div>
+          {deliveryNote.nbl && (
+            <div style={{ marginBottom: '30px' }}>
+              <PaymentSummary
+                documentType="delivery_note"
+                documentId={deliveryNote.nbl}
+                totalAmount={calculateTotalTTC()}
+                onViewHistory={() => setShowPaymentHistory(true)}
+                refreshTrigger={refreshPaymentTrigger}
+              />
+            </div>
+          )}
 
           {/* En-tête du document */}
           <div className={styles.formSection}>
@@ -360,8 +362,9 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           {/* Informations client */}
           <div className={styles.formSection}>
             <h2>Client :</h2>
-            <p><strong>Code :</strong> {deliveryNote.nclient}</p>
-            <p><strong>Raison sociale :</strong> {deliveryNote.client_name || deliveryNote.nclient}</p>
+            <p><strong>Code :</strong> {deliveryNote.nclient || 'N/A'}</p>
+            <p><strong>Raison sociale :</strong> {deliveryNote.client_name || deliveryNote.nclient || 'Client non spécifié'}</p>
+            {/* Debug: {JSON.stringify({ nclient: deliveryNote.nclient, client_name: deliveryNote.client_name })} */}
           </div>
 
           {/* Détails des articles */}
@@ -454,7 +457,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
 
           {/* Informations de création */}
           <div className={styles.formSection} style={{ textAlign: 'center', color: '#666' }}>
-            <p><small>Document créé le : {new Date(deliveryNote.created_at).toLocaleString('fr-FR')}</small></p>
+            <p><small>Document créé le : {deliveryNote.created_at ? new Date(deliveryNote.created_at).toLocaleString('fr-FR') : new Date(deliveryNote.date_fact).toLocaleString('fr-FR')}</small></p>
           </div>
         </div>
       </main>

@@ -60,12 +60,14 @@ export default function PaymentSummary({
             // Récupérer la config de la base de données active
             const dbConfig = localStorage.getItem('activeDbConfig');
             const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+            const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
             
             const response = await fetch(
                 `/api/payments/balance?documentType=${documentType}&documentId=${documentId}`,
                 {
                     headers: {
-                        'X-Database-Type': dbType
+                        'X-Database-Type': dbType,
+                        'X-Tenant': tenant
                     }
                 }
             );
@@ -89,12 +91,14 @@ export default function PaymentSummary({
             // Récupérer la config de la base de données active
             const dbConfig = localStorage.getItem('activeDbConfig');
             const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+            const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
             
             const response = await fetch(
                 `/api/payments?documentType=${documentType}&documentId=${documentId}`,
                 {
                     headers: {
-                        'X-Database-Type': dbType
+                        'X-Database-Type': dbType,
+                        'X-Tenant': tenant
                     }
                 }
             );

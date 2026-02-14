@@ -208,8 +208,8 @@ export class PDFService {
         yPos = 20;
       }
 
-      doc.text(item.article.narticle.substring(0, 8), 20, yPos);
-      doc.text(item.article.designation.substring(0, 25), 45, yPos);
+      doc.text((item.article?.narticle || item.narticle || '').substring(0, 8), 20, yPos);
+      doc.text((item.article?.designation || item.designation || '').substring(0, 25), 45, yPos);
       doc.text(formatQuantity(item.qte), 110, yPos, { align: 'right' });
       doc.text(formatNumber(item.prix), 140, yPos, { align: 'right' });
       doc.text(formatPercentage(item.tva), 165, yPos, { align: 'right' });
@@ -434,14 +434,26 @@ export class PDFService {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
 
-    deliveryData.detail_bl.forEach((item) => {
+    deliveryData.detail_bl.forEach((item, index) => {
+      if (index === 0) {
+        console.log('🔍 PDF Debug - First item structure:', JSON.stringify(item, null, 2));
+      }
+      
       if (yPos > 240) {
         doc.addPage();
         yPos = 20;
       }
 
-      doc.text(item.article.narticle.substring(0, 8), 20, yPos);
-      doc.text(item.article.designation.substring(0, 25), 45, yPos);
+      // Support both formats: item.article.narticle and item.narticle
+      const narticle = item.article?.narticle || item.narticle || '';
+      const designation = item.article?.designation || item.designation || '';
+      
+      if (index === 0) {
+        console.log('🔍 PDF Debug - Extracted values:', { narticle, designation });
+      }
+      
+      doc.text(narticle.substring(0, 8), 20, yPos);
+      doc.text(designation.substring(0, 25), 45, yPos);
       doc.text(formatQuantity(item.qte), 110, yPos, { align: 'right' });
       
       if (item.prix) {
@@ -610,8 +622,12 @@ export class PDFService {
         yPos = 20;
       }
 
-      doc.text(item.article.narticle.substring(0, 6), 20, yPos);
-      doc.text(item.article.designation.substring(0, 20), 50, yPos);
+      // Support both formats: item.article.narticle and item.narticle
+      const narticle = item.article?.narticle || item.narticle || '';
+      const designation = item.article?.designation || item.designation || '';
+
+      doc.text(narticle.substring(0, 6), 20, yPos);
+      doc.text(designation.substring(0, 20), 50, yPos);
       doc.text(formatQuantity(item.qte), 135, yPos, { align: 'right' });
       
       if (item.prix) {
@@ -726,7 +742,7 @@ export class PDFService {
 
     deliveryData.detail_bl.forEach((item) => {
       // Désignation sur une ligne
-      const designation = item.article.designation.substring(0, 20); // Raccourci pour laisser plus de place
+      const designation = (item.article?.designation || item.designation || '').substring(0, 20); // Raccourci pour laisser plus de place
       doc.text(designation, 5, yPos);
       yPos += 3;
 
@@ -935,8 +951,8 @@ export class PDFService {
         yPos = 20;
       }
 
-      doc.text(item.article.narticle.substring(0, 8), 20, yPos);
-      doc.text(item.article.designation.substring(0, 25), 45, yPos);
+      doc.text((item.article?.narticle || item.narticle || '').substring(0, 8), 20, yPos);
+      doc.text((item.article?.designation || item.designation || '').substring(0, 25), 45, yPos);
       doc.text(formatQuantity(item.qte), 110, yPos, { align: 'right' });
       doc.text(formatNumber(item.prix), 140, yPos, { align: 'right' });
       doc.text(formatPercentage(item.tva), 165, yPos, { align: 'right' });

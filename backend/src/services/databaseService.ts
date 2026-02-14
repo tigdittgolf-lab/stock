@@ -86,7 +86,7 @@ export async function getDatabaseConnection(): Promise<any> {
 export class BackendDatabaseService {
   private static instance: BackendDatabaseService;
   private activeConfig: DatabaseConfig | null = null;
-  private mysqlConnection: mysql.Connection | null = null;
+  private mysqlPool: any = null;
   private pgClient: Client | null = null;
 
   private constructor() {
@@ -205,17 +205,15 @@ export class BackendDatabaseService {
           }
           
         case 'mysql':
-          // Test MySQL connection
-          const mysqlConn = await mysql.createConnection({
-            host: config.host || 'localhost',
-            port: config.port || 3306,  // CORRECTION: MySQL standard utilise 3306
-            user: config.username || 'root',
-            password: config.password || '',
-            database: config.database || 'stock_management'  // CORRECTION: utiliser stock_management
-          });
-          await mysqlConn.ping();
-          await mysqlConn.end();
-          return true;
+          // Test MySQL connection using pool
+          try {
+            const pool = this.getMySQLPool();
+            await pool.query('SELECT 1');
+            return true;
+          } catch (error) {
+            console.error('❌ MySQL connection test failed:', error);
+            return false;
+          }
           
         case 'postgresql':
           // Test PostgreSQL connection
@@ -242,9 +240,11 @@ export class BackendDatabaseService {
 
   private async closeConnections(): Promise<void> {
     try {
-      if (this.mysqlConnection) {
-        await this.mysqlConnection.end();
-        this.mysqlConnection = null;
+      // Ne pas fermer le pool MySQL car il est réutilisé
+      // Le pool gère lui-même ses connexions
+      if (this.mysqlPool) {
+        // On ne ferme pas le pool, on le garde actif
+        console.log('🔗 MySQL Pool kept alive for reuse');
       }
       if (this.pgClient) {
         await this.pgClient.end();
@@ -577,7 +577,7 @@ export class BackendDatabaseService {
 
             if (!detailsError && detailsData && detailsData.length > 0) {
               blDetails = detailsData.map(detail => ({
-                narticle: detail.narticle,
+                narticle: detail.narticle || detail.Narticle || '',
                 designation: detail.designation || `Article ${detail.narticle}`,
                 qte: detail.qte || 0,
                 prix: detail.prix || 0,
@@ -657,7 +657,7 @@ export class BackendDatabaseService {
 
         if (!detailsError && detailsData && detailsData.length > 0) {
           proformaDetails = detailsData.map(detail => ({
-            narticle: detail.narticle,
+            narticle: detail.narticle || detail.Narticle || '',
             designation: detail.designation || `Article ${detail.narticle}`,
             qte: detail.qte || 0,
             prix: detail.prix || 0,
@@ -746,7 +746,7 @@ export class BackendDatabaseService {
 
         if (!detailsError && detailsData && detailsData.length > 0) {
           invoiceDetails = detailsData.map(detail => ({
-            narticle: detail.narticle,
+            narticle: detail.narticle || detail.Narticle || '',
             designation: detail.designation || `Article ${detail.narticle}`,
             qte: detail.qte || 0,
             prix: detail.prix || 0,
@@ -937,27 +937,37 @@ export class BackendDatabaseService {
     }
   }
 
+  private mysqlPool: any = null;
+
+  private getMySQLPool() {
+    if (!this.mysqlPool) {
+      const config = {
+        host: this.activeConfig?.host || 'localhost',
+        port: this.activeConfig?.port || 3306,
+        database: this.activeConfig?.database || 'stock_management',
+        user: this.activeConfig?.username || 'root',
+        password: this.activeConfig?.password || '',
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 0
+      };
+      console.log(`🔗 Creating MySQL Pool:`, { host: config.host, port: config.port, database: config.database, user: config.user });
+      console.log(`📍 Stack trace:`, new Error().stack?.split('\n').slice(1, 4).join('\n'));
+      this.mysqlPool = mysql.createPool(config);
+      console.log(`✅ MySQL Pool created with 10 connections max`);
+    }
+    return this.mysqlPool;
+  }
+
   private async executeMySQLQuery(sql: string, params: any[]): Promise<any> {
     try {
-      // Forcer une nouvelle connexion avec la bonne configuration
-      if (this.mysqlConnection) {
-        await this.mysqlConnection.end();
-        this.mysqlConnection = null;
-      }
+      const pool = this.getMySQLPool();
       
-      // CORRECTION: Ne pas spécifier de database pour permettre les requêtes cross-database
-      this.mysqlConnection = await mysql.createConnection({
-        host: this.activeConfig?.host || 'localhost',
-        port: this.activeConfig?.port || 3306,  // CORRECTION: MySQL standard utilise 3306
-        user: this.activeConfig?.username || 'root',
-        password: this.activeConfig?.password || ''
-        // database: pas de database par défaut pour permettre les requêtes cross-database
-      });
-      
-      console.log(`🐬 MySQL: Connecting to ${this.activeConfig?.host || 'localhost'}:${this.activeConfig?.port || 3306}`);
       console.log(`🐬 MySQL: Executing query: ${sql.substring(0, 100)}...`);
       
-      const [rows] = await this.mysqlConnection.execute(sql, params);
+      const [rows] = await pool.execute(sql, params);
       console.log(`✅ MySQL: Query successful, ${Array.isArray(rows) ? rows.length : 0} rows returned`);
       return { success: true, data: rows };
     } catch (error) {
@@ -971,15 +981,7 @@ export class BackendDatabaseService {
     console.log(`🐬 MySQL: Trying real stored procedure ${functionName}...`);
     
     try {
-      if (!this.mysqlConnection) {
-        this.mysqlConnection = await mysql.createConnection({
-          host: this.activeConfig?.host || 'localhost',
-          port: this.activeConfig?.port || 3306,  // CORRECTION: MySQL standard utilise 3306
-          user: this.activeConfig?.username || 'root',
-          password: this.activeConfig?.password || '',
-          database: this.activeConfig?.database || 'stock_management'
-        });
-      }
+      const pool = this.getMySQLPool();
       
       // Essayer d'abord d'appeler la vraie procédure stockée
       let procedureName = '';
@@ -1022,7 +1024,7 @@ export class BackendDatabaseService {
       }
       
       // Essayer d'exécuter la vraie procédure stockée
-      const [rows] = await this.mysqlConnection.execute(`CALL ${procedureName}(?)`, procedureParams);
+      const [rows] = await pool.execute(`CALL ${procedureName}(?)`, procedureParams);
       console.log(`✅ MySQL: Real stored procedure ${functionName} succeeded with ${Array.isArray(rows) ? rows.length : 0} results`);
       
       return { 
@@ -2157,7 +2159,7 @@ export class BackendDatabaseService {
       // Formater les détails avec les valeurs numériques converties
       const details = detailsResult.success && detailsResult.data ? 
         detailsResult.data.map((detail: any) => ({
-          narticle: detail.narticle,
+          narticle: detail.narticle || detail.Narticle || '',
           designation: detail.designation || `Article ${detail.narticle}`,
           qte: parseFloat(detail.qte_numeric?.toString() || detail.qte?.toString() || '0') || 0,
           prix: parseFloat(detail.prix_numeric?.toString() || detail.prix?.toString() || '0') || 0,
@@ -2195,9 +2197,12 @@ export class BackendDatabaseService {
       
       const result = {
         ...blData,
-        details: details,
         // Normaliser les champs pour compatibilité avec conversion numérique
-        nbl: blData.nfact,
+        // MySQL retourne NFact, Nclient (majuscule), on normalise APRÈS le spread
+        details: details,
+        nbl: blData.NFact || blData.nfact,
+        nclient: blData.Nclient || blData.nclient,
+        client_name: blData.client_name, // Garder tel quel
         date_bl: blData.date_fact,
         montant_ht: montant_ht,
         tva: tva,
@@ -2314,7 +2319,7 @@ export class BackendDatabaseService {
       // Formater les détails avec les valeurs numériques converties
       const details = detailsResult.success && detailsResult.data ? 
         detailsResult.data.map((detail: any) => ({
-          narticle: detail.narticle,
+          narticle: detail.narticle || detail.Narticle || '',
           designation: detail.designation || `Article ${detail.narticle}`,
           qte: parseFloat(detail.qte_numeric?.toString() || detail.qte?.toString() || '0') || 0,
           prix: parseFloat(detail.prix_numeric?.toString() || detail.prix?.toString() || '0') || 0,
@@ -2630,7 +2635,7 @@ export class BackendDatabaseService {
       // Formater les détails avec les valeurs numériques converties
       const details = detailsResult.success && detailsResult.data ? 
         detailsResult.data.map((detail: any) => ({
-          narticle: detail.narticle,
+          narticle: detail.narticle || detail.Narticle || '',
           designation: detail.designation || `Article ${detail.narticle}`,
           qte: parseFloat(detail.qte_numeric?.toString() || detail.qte?.toString() || '0') || 0,
           prix: parseFloat(detail.prix_numeric?.toString() || detail.prix?.toString() || '0') || 0,
@@ -2734,14 +2739,15 @@ export class BackendDatabaseService {
 
   private async executeMySQLUpdateBL(params: Record<string, any>): Promise<any> {
     try {
-      if (!this.mysqlConnection) {
+      const pool = this.getMySQLPool();
+      if (!pool) {
         throw new Error('MySQL connection not established');
       }
 
       console.log(`🐬 MySQL: Executing update_bl procedure with params:`, params);
 
       // Appeler la procédure stockée update_bl avec paramètres OUT
-      const [rows] = await this.mysqlConnection.execute(
+      const [rows] = await pool.execute(
         'CALL update_bl(?, ?, ?, ?, ?, ?, ?, @success, @message, @error)',
         [
           params.p_tenant,
@@ -2755,7 +2761,7 @@ export class BackendDatabaseService {
       );
 
       // Récupérer les variables de sortie
-      const [resultRows] = await this.mysqlConnection.execute(
+      const [resultRows] = await pool.execute(
         'SELECT @success as success, @message as message, @error as error'
       );
 
@@ -2781,20 +2787,21 @@ export class BackendDatabaseService {
 
   private async executeMySQLDeleteBLDetails(params: Record<string, any>): Promise<any> {
     try {
-      if (!this.mysqlConnection) {
+      const pool = this.getMySQLPool();
+      if (!pool) {
         throw new Error('MySQL connection not established');
       }
 
       console.log(`🐬 MySQL: Executing delete_bl_details procedure with params:`, params);
 
       // Appeler la procédure stockée delete_bl_details avec paramètres OUT
-      const [rows] = await this.mysqlConnection.execute(
+      const [rows] = await pool.execute(
         'CALL delete_bl_details(?, ?, @success, @message, @error, @deleted_count)',
         [params.p_tenant, params.p_nfact]
       );
 
       // Récupérer les variables de sortie
-      const [resultRows] = await this.mysqlConnection.execute(
+      const [resultRows] = await pool.execute(
         'SELECT @success as success, @message as message, @error as error, @deleted_count as deleted_count'
       );
 
@@ -2820,14 +2827,15 @@ export class BackendDatabaseService {
 
   private async executeMySQLInsertBLDetail(params: Record<string, any>): Promise<any> {
     try {
-      if (!this.mysqlConnection) {
+      const pool = this.getMySQLPool();
+      if (!pool) {
         throw new Error('MySQL connection not established');
       }
 
       console.log(`🐬 MySQL: Executing insert_bl_detail procedure with params:`, params);
 
       // Appeler la procédure stockée insert_bl_detail avec paramètres OUT
-      const [rows] = await this.mysqlConnection.execute(
+      const [rows] = await pool.execute(
         'CALL insert_bl_detail(?, ?, ?, ?, ?, ?, ?, @success, @message, @error)',
         [
           params.p_tenant,
@@ -2841,7 +2849,7 @@ export class BackendDatabaseService {
       );
 
       // Récupérer les variables de sortie
-      const [resultRows] = await this.mysqlConnection.execute(
+      const [resultRows] = await pool.execute(
         'SELECT @success as success, @message as message, @error as error'
       );
 

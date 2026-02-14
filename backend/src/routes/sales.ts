@@ -2597,16 +2597,16 @@ sales.get('/delivery-notes/:id', async (c) => {
       }
       
       const formattedDeliveryNote = {
-        nbl: deliveryNote.nfact,
-        nclient: deliveryNote.nclient,
+        nbl: deliveryNote.nfact || deliveryNote.nbl,
+        nclient: deliveryNote.nclient || deliveryNote.Nclient,
         date_fact: deliveryNote.date_fact,
         montant_ht: montant_ht,
         tva: tva,
-        montant_ttc: montant_ttc, // Utiliser montant_ttc calculé au lieu de total_ttc
+        montant_ttc: montant_ttc,
         timbre: timbre,
         autre_taxe: autre_taxe,
         created_at: deliveryNote.created_at,
-        client_name: deliveryNote.raison_sociale || deliveryNote.nclient,
+        client_name: deliveryNote.client_name || deliveryNote.raison_sociale || deliveryNote.nclient,
         details: deliveryNote.details?.map(detail => ({
           narticle: detail.narticle,
           designation: detail.designation || detail.narticle,

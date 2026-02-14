@@ -60,6 +60,31 @@ export function getActiveDatabaseType(explicitType?: DatabaseType): DatabaseType
   return 'supabase'; // Par défaut
 }
 
+// Connection pool pour MySQL (côté serveur uniquement)
+let mysqlPool: any = null;
+
+/**
+ * Obtient ou crée le pool de connexions MySQL
+ */
+function getMySQLPool() {
+  if (!mysqlPool && typeof window === 'undefined') {
+    const mysql = require('mysql2/promise');
+    mysqlPool = mysql.createPool({
+      host: 'localhost',
+      port: 3306,
+      user: 'root',
+      password: '',
+      database: 'stock_management',
+      waitForConnections: true,
+      connectionLimit: 10, // Limite à 10 connexions simultanées
+      queueLimit: 0,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 0
+    });
+  }
+  return mysqlPool;
+}
+
 /**
  * Exécute une requête MySQL directement (côté serveur uniquement)
  */
@@ -113,22 +138,10 @@ async function executeMySQLQuery(sql: string, params: any[] = [], database?: str
     return result.data;
   }
   
-  // Développement local : utiliser mysql2 directement
-  const mysql = require('mysql2/promise');
-  const connection = await mysql.createConnection({
-    host: 'localhost',
-    port: 3306,
-    user: 'root',
-    password: '',
-    database: database || 'stock_management'
-  });
-  
-  try {
-    const [rows] = await connection.execute(sql, params);
-    return rows;
-  } finally {
-    await connection.end();
-  }
+  // Développement local : utiliser le pool de connexions
+  const pool = getMySQLPool();
+  const [rows] = await pool.execute(sql, params);
+  return rows;
 }
 
 /**

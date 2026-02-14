@@ -1,8 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import PrintOptions from '../../../components/PrintOptions';
+import LoadingSpinner from '../../../components/LoadingSpinner';
+import ErrorMessage from '../../../components/ErrorMessage';
+import EmptyState from '../../../components/EmptyState';
 
 interface Invoice {
   nfact: number;
@@ -72,8 +75,6 @@ export default function InvoicesList() {
       setLoading(true);
       setError(null);
 
-      console.log('🔄 Loading invoices for tenant:', tenantSchema);
-
       const response = await fetch('/api/sales/invoices', {
         method: 'GET',
         headers: {
@@ -82,23 +83,19 @@ export default function InvoicesList() {
         }
       });
 
-      console.log('📊 Response status:', response.status);
-
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('🧾 Invoices data:', data);
 
       if (data.success) {
         setInvoices(data.data || []);
         setFilteredInvoices(data.data || []);
         
-        // Charger les statuts de paiement pour chaque facture
-        loadPaymentStatuses(data.data || [], tenantSchema);
-        
-        console.log('✅ Loaded', data.data?.length || 0, 'invoices');
+        // NE PLUS charger les statuts de paiement automatiquement
+        // C'est trop lourd et cause des boucles infinies
+        // loadPaymentStatusesInBackground(data.data || [], tenantSchema);
       } else {
         throw new Error(data.error || 'Failed to load invoices');
       }
@@ -110,45 +107,53 @@ export default function InvoicesList() {
     }
   };
 
-  // Fonction pour charger les statuts de paiement
-  const loadPaymentStatuses = async (invoices: Invoice[], tenantSchema: string) => {
+  // Fonction pour charger les statuts de paiement en arrière-plan (non bloquant)
+  const loadPaymentStatusesInBackground = async (invoices: Invoice[], tenantSchema: string) => {
+    const batchSize = 3;
     const statuses: Record<number, string> = {};
     
-    // Charger les statuts en parallèle
-    await Promise.all(
-      invoices.map(async (invoice) => {
-        try {
-          // Récupérer la config de la base de données active
-          const dbConfig = localStorage.getItem('activeDbConfig');
-          const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
-          
-          const response = await fetch(
-            `/api/payments/balance?documentType=invoice&documentId=${invoice.nfact}`,
-            {
-              headers: {
-                'X-Tenant': tenantSchema,
-                'X-Database-Type': dbType
+    const dbConfig = localStorage.getItem('activeDbConfig');
+    const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+    
+    // Traiter par lots de 3
+    for (let i = 0; i < invoices.length; i += batchSize) {
+      const batch = invoices.slice(i, i + batchSize);
+      
+      await Promise.all(
+        batch.map(async (invoice) => {
+          try {
+            const response = await fetch(
+              `/api/payments/balance?documentType=invoice&documentId=${invoice.nfact}`,
+              {
+                headers: {
+                  'X-Tenant': tenantSchema,
+                  'X-Database-Type': dbType
+                }
+              }
+            );
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.data) {
+                statuses[invoice.nfact] = data.data.status;
               }
             }
-          );
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data) {
-              statuses[invoice.nfact] = data.data.status;
-            }
+          } catch (error) {
+            // Ignorer les erreurs silencieusement
           }
-        } catch (error) {
-          console.error(`Error loading payment status for invoice ${invoice.nfact}:`, error);
-        }
-      })
-    );
-    
-    setPaymentStatuses(statuses);
+        })
+      );
+      
+      // Mettre à jour l'état après chaque lot
+      setPaymentStatuses(prev => ({ ...prev, ...statuses }));
+      
+      // Petite pause entre les lots pour éviter de surcharger
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
   };
 
   // Fonction de filtrage
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...invoices];
 
     // Filtre par terme de recherche (numéro facture, client)
@@ -195,12 +200,12 @@ export default function InvoicesList() {
     }
 
     setFilteredInvoices(filtered);
-  };
+  }, [invoices, searchTerm, selectedClient, dateFrom, dateTo, minAmount, maxAmount, paymentStatus, paymentStatuses]);
 
   // Effet pour appliquer les filtres quand ils changent
   useEffect(() => {
     applyFilters();
-  }, [searchTerm, dateFrom, dateTo, minAmount, maxAmount, selectedClient, paymentStatus, invoices, paymentStatuses]);
+  }, [applyFilters]);
 
   // Fonction pour réinitialiser les filtres
   const resetFilters = () => {
@@ -601,8 +606,8 @@ export default function InvoicesList() {
                       }}
                       style={{
                         padding: '6px 12px',
-                        backgroundColor: '#dc3545',
-                        color: 'white',
+                        backgroundColor: 'var(--error-color)',
+                        color: 'var(--text-inverse)',
                         border: 'none',
                         borderRadius: '4px',
                         cursor: 'pointer',
@@ -630,8 +635,8 @@ export default function InvoicesList() {
                       }}
                       style={{
                         padding: '6px 12px',
-                        backgroundColor: '#28a745',
-                        color: 'white',
+                        backgroundColor: 'var(--success-color)',
+                        color: 'var(--text-inverse)',
                         border: 'none',
                         borderRadius: '4px',
                         cursor: 'pointer',
@@ -672,7 +677,7 @@ export default function InvoicesList() {
       maxWidth: isMobile ? '100%' : '1200px', 
       margin: '0 auto',
       minHeight: '100vh',
-      background: isMobile ? '#f5f5f5' : 'white'
+      background: isMobile ? 'var(--background-secondary)' : 'var(--background)'
     }}>
       {/* En-tête responsive */}
       <div style={{ 
@@ -681,23 +686,23 @@ export default function InvoicesList() {
         justifyContent: 'space-between', 
         alignItems: isMobile ? 'stretch' : 'center', 
         marginBottom: '20px',
-        background: 'white',
+        background: 'var(--card-background)',
         padding: isMobile ? '15px' : '20px',
         borderRadius: '10px',
-        boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.1)' : 'none',
-        borderBottom: isMobile ? 'none' : '2px solid #eee'
+        boxShadow: isMobile ? 'var(--shadow-md)' : 'none',
+        borderBottom: isMobile ? 'none' : '2px solid var(--border-color)'
       }}>
         <div style={{ marginBottom: isMobile ? '15px' : '0' }}>
           <h1 style={{ 
             margin: 0, 
-            color: '#333',
+            color: 'var(--text-primary)',
             fontSize: isMobile ? '20px' : '28px'
           }}>
             🧾 Liste des Factures
           </h1>
           <p style={{ 
             margin: '5px 0 0 0', 
-            color: '#666',
+            color: 'var(--text-secondary)',
             fontSize: isMobile ? '14px' : '16px'
           }}>
             {isMobile ? `${filteredInvoices.length} factures` : `Tenant: ${tenant} • ${filteredInvoices.length} factures trouvées`}
@@ -712,8 +717,8 @@ export default function InvoicesList() {
             onClick={() => router.push('/invoices')}
             style={{
               padding: isMobile ? '12px 20px' : '10px 20px',
-              backgroundColor: '#28a745',
-              color: 'white',
+              backgroundColor: 'var(--success-color)',
+              color: 'var(--text-inverse)',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
@@ -727,8 +732,8 @@ export default function InvoicesList() {
             onClick={() => router.push('/dashboard')}
             style={{
               padding: isMobile ? '12px 20px' : '10px 20px',
-              backgroundColor: '#6c757d',
-              color: 'white',
+              backgroundColor: 'var(--text-secondary)',
+              color: 'var(--text-inverse)',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
@@ -743,11 +748,11 @@ export default function InvoicesList() {
 
       {/* Interface de filtres */}
       <div style={{
-        background: 'white',
+        background: 'var(--card-background)',
         borderRadius: '10px',
         padding: isMobile ? '15px' : '20px',
         marginBottom: '20px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        boxShadow: 'var(--shadow-md)'
       }}>
         {/* Bouton pour afficher/masquer les filtres */}
         <div style={{
@@ -758,7 +763,7 @@ export default function InvoicesList() {
         }}>
           <h3 style={{
             margin: 0,
-            color: '#333',
+            color: 'var(--text-primary)',
             fontSize: isMobile ? '16px' : '18px'
           }}>
             🔍 Filtres de recherche
@@ -767,8 +772,8 @@ export default function InvoicesList() {
             onClick={() => setShowFilters(!showFilters)}
             style={{
               padding: '8px 16px',
-              backgroundColor: showFilters ? '#dc3545' : '#28a745',
-              color: 'white',
+              backgroundColor: showFilters ? 'var(--error-color)' : 'var(--success-color)',
+              color: 'var(--text-inverse)',
               border: 'none',
               borderRadius: '6px',
               cursor: 'pointer',
@@ -797,18 +802,20 @@ export default function InvoicesList() {
                 style={{
                   flex: 1,
                   padding: '12px',
-                  border: '2px solid #e0e0e0',
+                  border: '2px solid var(--border-color)',
                   borderRadius: '8px',
                   fontSize: '14px',
-                  outline: 'none'
+                  outline: 'none',
+                  background: 'var(--background)',
+                  color: 'var(--text-primary)'
                 }}
               />
               <button
                 onClick={resetFilters}
                 style={{
                   padding: '12px 20px',
-                  backgroundColor: '#6c757d',
-                  color: 'white',
+                  backgroundColor: 'var(--text-secondary)',
+                  color: 'var(--text-inverse)',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
@@ -834,7 +841,7 @@ export default function InvoicesList() {
                   display: 'block',
                   marginBottom: '5px',
                   fontWeight: 'bold',
-                  color: '#333',
+                  color: 'var(--text-primary)',
                   fontSize: '14px'
                 }}>
                   👤 Client
@@ -845,10 +852,12 @@ export default function InvoicesList() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    border: '2px solid #e0e0e0',
+                    border: '2px solid var(--border-color)',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    outline: 'none'
+                    outline: 'none',
+                    background: 'var(--background)',
+                    color: 'var(--text-primary)'
                   }}
                 >
                   <option value="">Tous les clients</option>
@@ -864,7 +873,7 @@ export default function InvoicesList() {
                   display: 'block',
                   marginBottom: '5px',
                   fontWeight: 'bold',
-                  color: '#333',
+                  color: 'var(--text-primary)',
                   fontSize: '14px'
                 }}>
                   💰 Statut de paiement
@@ -875,10 +884,12 @@ export default function InvoicesList() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    border: '2px solid #e0e0e0',
+                    border: '2px solid var(--border-color)',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    outline: 'none'
+                    outline: 'none',
+                    background: 'var(--background)',
+                    color: 'var(--text-primary)'
                   }}
                 >
                   <option value="all">Tous (payés + partiellement payés + non payés)</option>
@@ -893,7 +904,7 @@ export default function InvoicesList() {
                   display: 'block',
                   marginBottom: '5px',
                   fontWeight: 'bold',
-                  color: '#333',
+                  color: 'var(--text-primary)',
                   fontSize: '14px'
                 }}>
                   📅 Date de début
@@ -905,10 +916,12 @@ export default function InvoicesList() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    border: '2px solid #e0e0e0',
+                    border: '2px solid var(--border-color)',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    outline: 'none'
+                    outline: 'none',
+                    background: 'var(--background)',
+                    color: 'var(--text-primary)'
                   }}
                 />
               </div>
@@ -919,7 +932,7 @@ export default function InvoicesList() {
                   display: 'block',
                   marginBottom: '5px',
                   fontWeight: 'bold',
-                  color: '#333',
+                  color: 'var(--text-primary)',
                   fontSize: '14px'
                 }}>
                   📅 Date de fin
@@ -931,10 +944,12 @@ export default function InvoicesList() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    border: '2px solid #e0e0e0',
+                    border: '2px solid var(--border-color)',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    outline: 'none'
+                    outline: 'none',
+                    background: 'var(--background)',
+                    color: 'var(--text-primary)'
                   }}
                 />
               </div>
@@ -945,7 +960,7 @@ export default function InvoicesList() {
                   display: 'block',
                   marginBottom: '5px',
                   fontWeight: 'bold',
-                  color: '#333',
+                  color: 'var(--text-primary)',
                   fontSize: '14px'
                 }}>
                   💰 Montant min (DA)
@@ -958,10 +973,12 @@ export default function InvoicesList() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    border: '2px solid #e0e0e0',
+                    border: '2px solid var(--border-color)',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    outline: 'none'
+                    outline: 'none',
+                    background: 'var(--background)',
+                    color: 'var(--text-primary)'
                   }}
                 />
               </div>
@@ -972,7 +989,7 @@ export default function InvoicesList() {
                   display: 'block',
                   marginBottom: '5px',
                   fontWeight: 'bold',
-                  color: '#333',
+                  color: 'var(--text-primary)',
                   fontSize: '14px'
                 }}>
                   💰 Montant max (DA)
@@ -985,10 +1002,12 @@ export default function InvoicesList() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    border: '2px solid #e0e0e0',
+                    border: '2px solid var(--border-color)',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    outline: 'none'
+                    outline: 'none',
+                    background: 'var(--background)',
+                    color: 'var(--text-primary)'
                   }}
                 />
               </div>
@@ -1021,105 +1040,34 @@ export default function InvoicesList() {
       </div>
 
       {loading && (
-        <div style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '4px solid #f3f3f3',
-            borderTop: '4px solid #28a745',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 20px'
-          }}></div>
-          <p>Chargement des factures...</p>
-        </div>
+        <LoadingSpinner message="Chargement des factures..." />
       )}
 
       {error && (
-        <div style={{
-          background: '#f8d7da',
-          color: '#721c24',
-          padding: '15px',
-          borderRadius: '8px',
-          marginBottom: '20px',
-          textAlign: 'center'
-        }}>
-          <p>❌ Erreur: {error}</p>
-          <button 
-            onClick={() => tenant && loadInvoices(tenant)}
-            style={{
-              marginTop: '10px',
-              padding: '8px 16px',
-              backgroundColor: '#dc3545',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            Réessayer
-          </button>
-        </div>
+        <ErrorMessage 
+          message={error} 
+          onRetry={() => tenant && loadInvoices(tenant)} 
+        />
       )}
 
       {!loading && !error && filteredInvoices.length === 0 && invoices.length > 0 && (
-        <div style={{
-          textAlign: 'center',
-          padding: isMobile ? '40px 20px' : '60px 20px',
-          background: 'white',
-          borderRadius: '10px',
-          border: '2px dashed #ffc107'
-        }}>
-          <h3 style={{ color: '#856404', marginBottom: '15px' }}>🔍 Aucun résultat trouvé</h3>
-          <p style={{ color: '#856404', marginBottom: '20px' }}>
-            Aucune facture ne correspond aux critères de recherche.
-          </p>
-          <button
-            onClick={resetFilters}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: '#ffc107',
-              color: '#212529',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: 'bold'
-            }}
-          >
-            🔄 Réinitialiser les filtres
-          </button>
-        </div>
+        <EmptyState
+          icon="🔍"
+          title="Aucun résultat trouvé"
+          message="Aucune facture ne correspond aux critères de recherche."
+          actionLabel="🔄 Réinitialiser les filtres"
+          onAction={resetFilters}
+        />
       )}
 
       {!loading && !error && invoices.length === 0 && (
-        <div style={{
-          textAlign: 'center',
-          padding: isMobile ? '40px 20px' : '60px 20px',
-          background: 'white',
-          borderRadius: '10px',
-          border: '2px dashed #dee2e6'
-        }}>
-          <h3 style={{ color: '#6c757d', marginBottom: '15px' }}>🧾 Aucune facture</h3>
-          <p style={{ color: '#6c757d', marginBottom: '20px' }}>
-            Vous n'avez pas encore créé de factures.
-          </p>
-          <button
-            onClick={() => router.push('/invoices')}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: 'bold'
-            }}
-          >
-            ➕ Créer la première facture
-          </button>
-        </div>
+        <EmptyState
+          icon="🧾"
+          title="Aucune facture"
+          message="Vous n'avez pas encore créé de factures."
+          actionLabel="➕ Créer la première facture"
+          onAction={() => router.push('/invoices')}
+        />
       )}
 
       {!loading && !error && filteredInvoices.length > 0 && (

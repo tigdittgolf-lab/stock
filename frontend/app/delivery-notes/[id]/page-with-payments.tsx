@@ -441,7 +441,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
 
           {/* Informations de création */}
           <div className={styles.formSection} style={{ textAlign: 'center', color: '#666' }}>
-            <p><small>Document créé le : {new Date(deliveryNote.created_at).toLocaleString('fr-FR')}</small></p>
+            <p><small>Document créé le : {deliveryNote.created_at ? new Date(deliveryNote.created_at).toLocaleString('fr-FR') : new Date(deliveryNote.date_fact).toLocaleString('fr-FR')}</small></p>
           </div>
         </div>
       </main>

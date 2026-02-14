@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import LoadingSpinner from '../../../components/LoadingSpinner';
+import ErrorMessage from '../../../components/ErrorMessage';
+import EmptyState from '../../../components/EmptyState';
 import PrintOptions from '../../../components/PrintOptions';
 import styles from '../../page.module.css';
 
@@ -22,6 +25,7 @@ export default function ProformaList() {
   const [proformas, setProformas] = useState<Proforma[]>([]);
   const [filteredProformas, setFilteredProformas] = useState<Proforma[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
   // États pour les filtres
@@ -51,6 +55,7 @@ export default function ProformaList() {
 
   const fetchProformas = async () => {
     try {
+      setLoading(true);
       const tenantInfo = localStorage.getItem('tenant_info');
       if (!tenantInfo) {
         router.push('/login');
@@ -72,43 +77,28 @@ export default function ProformaList() {
       }
     } catch (error) {
       console.error('Error fetching proformas:', error);
+      setError('Erreur lors du chargement des factures proforma');
     } finally {
       setLoading(false);
     }
   };
 
-  // Fonction de filtrage améliorée - MÊME LOGIQUE QUE LES BL
+  // Fonction de filtrage améliorée
   const applyFilters = () => {
     let filtered = [...proformas];
 
-    // Filtre par terme de recherche - LOGIQUE CORRIGÉE
+    // Filtre par terme de recherche
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(proforma => {
-        // Si le terme de recherche est un nombre, chercher SEULEMENT dans les numéros de proforma
+        // Si le terme de recherche est un nombre, chercher dans les numéros de proforma
         if (/^\d+$/.test(searchTerm.trim())) {
           const proformaNumber = String(proforma.nfact || proforma.nfprof || '').trim();
-          const exactMatch = proformaNumber === searchTerm.trim();
-          
-          console.log(`🔍 Numeric search for "${searchTerm.trim()}":`, {
-            proformaNumber,
-            searchTerm: searchTerm.trim(),
-            exactMatch
-          });
-          
-          return exactMatch;
+          return proformaNumber === searchTerm.trim();
         } else {
-          // Si ce n'est pas un nombre, chercher dans client et code client
+          // Sinon, chercher dans client et code client
           const clientMatch = proforma.client_name?.toLowerCase().includes(searchLower);
           const clientCodeMatch = proforma.nclient?.toLowerCase().includes(searchLower);
-          
-          console.log(`🔍 Text search for "${searchLower}":`, {
-            clientName: proforma.client_name,
-            clientCode: proforma.nclient,
-            clientMatch,
-            clientCodeMatch
-          });
-          
           return clientMatch || clientCodeMatch;
         }
       });
@@ -134,20 +124,8 @@ export default function ProformaList() {
       filtered = filtered.filter(proforma => parseFloat(proforma.montant_ttc || 0) >= parseFloat(minAmount));
     }
     if (maxAmount) {
-      filtered = filtered.filter(proforma => parseFloat(proforma.montant_ttc || 0) <= parseFloat(maxAmount));
+      filtered = filtered.filter(proforma => parseFloat(proforma.montant_ttc?.toString() || '0') <= parseFloat(maxAmount));
     }
-
-    console.log(`🎯 Filtres appliqués:`, {
-      original: proformas.length,
-      filtered: filtered.length,
-      searchTerm,
-      isNumericSearch: /^\d+$/.test(searchTerm.trim()),
-      selectedClient,
-      dateFrom,
-      dateTo,
-      minAmount,
-      maxAmount
-    });
 
     setFilteredProformas(filtered);
   };
@@ -193,8 +171,24 @@ export default function ProformaList() {
       </header>
 
       <main className={styles.main}>
-        {/* Interface de filtrage */}
-        <div style={{ marginBottom: '20px' }}>
+        {/* Loading state */}
+        {loading && (
+          <LoadingSpinner message="Chargement des factures proforma..." />
+        )}
+
+        {/* Error state */}
+        {error && (
+          <ErrorMessage 
+            message={error} 
+            onRetry={fetchProformas} 
+          />
+        )}
+
+        {/* Content - only show when not loading and no error */}
+        {!loading && !error && (
+          <>
+            {/* Interface de filtrage */}
+            <div style={{ marginBottom: '20px' }}>
           {/* Barre de recherche principale */}
           <div style={{ 
             display: 'flex', 
@@ -536,8 +530,8 @@ export default function ProformaList() {
                             }}
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: '#17a2b8',
-                              color: 'white',
+                              backgroundColor: 'var(--info-color)',
+                              color: 'var(--text-inverse)',
                               border: 'none',
                               borderRadius: '4px',
                               cursor: 'pointer',
@@ -557,8 +551,8 @@ export default function ProformaList() {
                             }}
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: '#28a745',
-                              color: 'white',
+                              backgroundColor: 'var(--success-color)',
+                              color: 'var(--text-inverse)',
                               border: 'none',
                               borderRadius: '4px',
                               cursor: 'pointer',
@@ -580,8 +574,8 @@ export default function ProformaList() {
                             }}
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: '#dc3545',
-                              color: 'white',
+                              backgroundColor: 'var(--error-color)',
+                              color: 'var(--text-inverse)',
                               border: 'none',
                               borderRadius: '4px',
                               cursor: 'pointer',
@@ -609,8 +603,8 @@ export default function ProformaList() {
                             }}
                             style={{
                               padding: '6px 12px',
-                              backgroundColor: '#6f42c1',
-                              color: 'white',
+                              backgroundColor: 'var(--primary-color)',
+                              color: 'var(--text-inverse)',
                               border: 'none',
                               borderRadius: '4px',
                               cursor: 'pointer',
@@ -642,6 +636,8 @@ export default function ProformaList() {
               </tbody>
             </table>
           </div>
+        )}
+          </>
         )}
       </main>
     </div>

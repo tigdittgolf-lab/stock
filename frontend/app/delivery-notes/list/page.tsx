@@ -1,8 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import PrintOptions from '../../../components/PrintOptions';
+import LoadingSpinner from '../../../components/LoadingSpinner';
+import ErrorMessage from '../../../components/ErrorMessage';
+import EmptyState from '../../../components/EmptyState';
 
 interface DeliveryNote {
   nfact: number;
@@ -73,8 +76,6 @@ export default function DeliveryNotesList() {
       setLoading(true);
       setError(null);
 
-      console.log('🔄 Loading delivery notes for tenant:', tenantSchema);
-
       const response = await fetch('/api/sales/delivery-notes', {
         method: 'GET',
         headers: {
@@ -83,36 +84,19 @@ export default function DeliveryNotesList() {
         }
       });
 
-      console.log('📊 Response status:', response.status);
-
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('📋 Delivery notes data:', data);
 
       if (data.success) {
-        console.log('📋 Raw BL data received:', data.data);
-        data.data.forEach((bl: any, index: number) => {
-          console.log(`BL ${index} DETAILED:`, {
-            nfact: bl.nfact,
-            nbl: bl.nbl,
-            id: bl.id,
-            nfact_type: typeof bl.nfact,
-            nbl_type: typeof bl.nbl,
-            id_type: typeof bl.id,
-            allFields: Object.keys(bl),
-            fullObject: bl
-          });
-        });
         setDeliveryNotes(data.data || []);
         setFilteredDeliveryNotes(data.data || []);
         
-        // Charger les statuts de paiement pour chaque BL
-        loadPaymentStatuses(data.data || [], tenantSchema);
-        
-        console.log('✅ Loaded', data.data?.length || 0, 'delivery notes');
+        // NE PLUS charger les statuts de paiement automatiquement
+        // C'est trop lourd et cause des boucles infinies
+        // loadPaymentStatusesInBackground(data.data || [], tenantSchema);
       } else {
         throw new Error(data.error || 'Failed to load delivery notes');
       }
@@ -124,75 +108,68 @@ export default function DeliveryNotesList() {
     }
   };
 
-  // Fonction pour charger les statuts de paiement
-  const loadPaymentStatuses = async (notes: DeliveryNote[], tenantSchema: string) => {
+  // Fonction pour charger les statuts de paiement en arrière-plan (non bloquant)
+  const loadPaymentStatusesInBackground = async (notes: DeliveryNote[], tenantSchema: string) => {
+    // Limiter à 3 requêtes simultanées pour ne pas surcharger MySQL
+    const batchSize = 3;
     const statuses: Record<number, string> = {};
     
-    // Charger les statuts en parallèle
-    await Promise.all(
-      notes.map(async (note) => {
-        try {
-          // Récupérer la config de la base de données active
-          const dbConfig = localStorage.getItem('activeDbConfig');
-          const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
-          
-          const response = await fetch(
-            `/api/payments/balance?documentType=delivery_note&documentId=${note.nbl}`,
-            {
-              headers: {
-                'X-Tenant': tenantSchema,
-                'X-Database-Type': dbType
+    const dbConfig = localStorage.getItem('activeDbConfig');
+    const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+    
+    // Traiter par lots de 3
+    for (let i = 0; i < notes.length; i += batchSize) {
+      const batch = notes.slice(i, i + batchSize);
+      
+      await Promise.all(
+        batch.map(async (note) => {
+          try {
+            const response = await fetch(
+              `/api/payments/balance?documentType=delivery_note&documentId=${note.nbl}`,
+              {
+                headers: {
+                  'X-Tenant': tenantSchema,
+                  'X-Database-Type': dbType
+                }
+              }
+            );
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.data) {
+                statuses[note.nbl] = data.data.status;
               }
             }
-          );
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data) {
-              statuses[note.nbl] = data.data.status;
-            }
+          } catch (error) {
+            // Ignorer les erreurs silencieusement
           }
-        } catch (error) {
-          console.error(`Error loading payment status for BL ${note.nbl}:`, error);
-        }
-      })
-    );
-    
-    setPaymentStatuses(statuses);
+        })
+      );
+      
+      // Mettre à jour l'état après chaque lot
+      setPaymentStatuses(prev => ({ ...prev, ...statuses }));
+      
+      // Petite pause entre les lots pour éviter de surcharger
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
   };
 
-  // Fonction de filtrage améliorée - CORRECTION MAJEURE
-  const applyFilters = () => {
+  // Fonction de filtrage améliorée
+  const applyFilters = useCallback(() => {
     let filtered = [...deliveryNotes];
 
-    // Filtre par terme de recherche - LOGIQUE CORRIGÉE
+    // Filtre par terme de recherche
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(bl => {
-        // Si le terme de recherche est un nombre, chercher SEULEMENT dans les numéros de BL
+        // Si le terme de recherche est un nombre, chercher dans les numéros de BL
         if (/^\d+$/.test(searchTerm.trim())) {
           const blNumber = String(bl.nfact || bl.nbl || '').trim();
-          const exactMatch = blNumber === searchTerm.trim();
-          
-          console.log(`🔍 Numeric search for "${searchTerm.trim()}":`, {
-            blNumber,
-            searchTerm: searchTerm.trim(),
-            exactMatch
-          });
-          
-          return exactMatch;
+          return blNumber === searchTerm.trim();
         } else {
-          // Si ce n'est pas un nombre, chercher dans client et code client
+          // Sinon, chercher dans client et code client
           const clientMatch = bl.client_name?.toLowerCase().includes(searchLower);
           const clientCodeMatch = bl.nclient?.toLowerCase().includes(searchLower);
-          
-          console.log(`🔍 Text search for "${searchLower}":`, {
-            clientName: bl.client_name,
-            clientCode: bl.nclient,
-            clientMatch,
-            clientCodeMatch
-          });
-          
           return clientMatch || clientCodeMatch;
         }
       });
@@ -246,7 +223,7 @@ export default function DeliveryNotesList() {
     });
 
     setFilteredDeliveryNotes(filtered);
-  };
+  }, [deliveryNotes, searchTerm, selectedClient, dateFrom, dateTo, minAmount, maxAmount, paymentStatus, paymentStatuses]);
 
   // Fonction pour calculer les totaux
   const calculateTotals = () => {
@@ -269,7 +246,7 @@ export default function DeliveryNotesList() {
   // Effet pour appliquer les filtres quand ils changent
   useEffect(() => {
     applyFilters();
-  }, [searchTerm, dateFrom, dateTo, minAmount, maxAmount, selectedClient, paymentStatus, deliveryNotes, paymentStatuses]);
+  }, [applyFilters]);
 
   // Fonction pour réinitialiser les filtres
   const resetFilters = () => {
@@ -353,12 +330,12 @@ export default function DeliveryNotesList() {
           <div 
             key={`${validId}-${index}`}
             style={{
-              background: 'white',
+              background: 'var(--card-background)',
               borderRadius: '10px',
               padding: '15px',
               marginBottom: '15px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              border: '1px solid #e0e0e0'
+              boxShadow: 'var(--shadow-md)',
+              border: '1px solid var(--border-color)'
             }}
           >
             {/* En-tête BL */}
@@ -368,12 +345,12 @@ export default function DeliveryNotesList() {
               alignItems: 'center',
               marginBottom: '12px',
               paddingBottom: '10px',
-              borderBottom: '2px solid #f0f0f0'
+              borderBottom: '2px solid var(--border-color)'
             }}>
               <div style={{
                 fontSize: '18px',
                 fontWeight: 'bold',
-                color: '#007bff'
+                color: 'var(--primary-color)'
               }}>
                 📋 BL {displayId}
               </div>
@@ -384,14 +361,14 @@ export default function DeliveryNotesList() {
                 }}
                 style={{
                   padding: '8px 15px',
-                  backgroundColor: '#17a2b8',
-                  color: 'white',
+                  backgroundColor: 'var(--info-color)',
+                  color: 'var(--text-inverse)',
                   border: 'none',
                   borderRadius: '20px',
                   cursor: 'pointer',
                   fontSize: '14px',
                   fontWeight: 'bold',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                  boxShadow: 'var(--shadow-sm)'
                 }}
               >
                 👁️ Voir
@@ -403,14 +380,14 @@ export default function DeliveryNotesList() {
               <div style={{
                 fontSize: '16px',
                 fontWeight: 'bold',
-                color: '#333',
+                color: 'var(--text-primary)',
                 marginBottom: '4px'
               }}>
                 👤 {bl.client_name}
               </div>
               <div style={{
                 fontSize: '12px',
-                color: '#666'
+                color: 'var(--text-secondary)'
               }}>
                 Code client: {bl.nclient}
               </div>
@@ -424,19 +401,19 @@ export default function DeliveryNotesList() {
             }}>
               <span style={{
                 fontSize: '14px',
-                color: '#666',
+                color: 'var(--text-secondary)',
                 marginRight: '8px'
               }}>
                 📅
               </span>
-              <span style={{ fontSize: '14px', color: '#333' }}>
+              <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
                 {formatDate(bl.date_fact)}
               </span>
             </div>
 
             {/* Montants */}
             <div style={{
-              background: '#f8f9fa',
+              background: 'var(--background-secondary)',
               borderRadius: '8px',
               padding: '12px',
               marginBottom: '12px'
@@ -446,8 +423,8 @@ export default function DeliveryNotesList() {
                 justifyContent: 'space-between',
                 marginBottom: '6px'
               }}>
-                <span style={{ fontSize: '14px', color: '#666' }}>Montant HT:</span>
-                <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Montant HT:</span>
+                <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)' }}>
                   {formatAmount(bl.montant_ht)}
                 </span>
               </div>
@@ -456,8 +433,8 @@ export default function DeliveryNotesList() {
                 justifyContent: 'space-between',
                 marginBottom: '6px'
               }}>
-                <span style={{ fontSize: '14px', color: '#666' }}>TVA:</span>
-                <span style={{ fontSize: '14px' }}>
+                <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>TVA:</span>
+                <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
                   {formatAmount(bl.tva)}
                 </span>
               </div>
@@ -465,12 +442,12 @@ export default function DeliveryNotesList() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 paddingTop: '6px',
-                borderTop: '1px solid #dee2e6'
+                borderTop: '1px solid var(--border-color)'
               }}>
-                <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#28a745' }}>
+                <span style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--success-color)' }}>
                   Total TTC:
                 </span>
-                <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#28a745' }}>
+                <span style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--success-color)' }}>
                   {formatAmount(bl.montant_ttc || (bl.montant_ht + bl.tva))}
                 </span>
               </div>
@@ -492,8 +469,8 @@ export default function DeliveryNotesList() {
                   flex: 1,
                   minWidth: '100px',
                   padding: '10px',
-                  backgroundColor: '#17a2b8',
-                  color: 'white',
+                  backgroundColor: 'var(--info-color)',
+                  color: 'var(--text-inverse)',
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer',
@@ -513,8 +490,8 @@ export default function DeliveryNotesList() {
                   flex: 1,
                   minWidth: '100px',
                   padding: '10px',
-                  backgroundColor: '#28a745',
-                  color: 'white',
+                  backgroundColor: 'var(--success-color)',
+                  color: 'var(--text-inverse)',
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer',
@@ -535,8 +512,8 @@ export default function DeliveryNotesList() {
                   flex: 1,
                   minWidth: '100px',
                   padding: '10px',
-                  backgroundColor: '#dc3545',
-                  color: 'white',
+                  backgroundColor: 'var(--error-color)',
+                  color: 'var(--text-inverse)',
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer',
@@ -564,8 +541,8 @@ export default function DeliveryNotesList() {
                   flex: 1,
                   minWidth: '100px',
                   padding: '10px',
-                  backgroundColor: '#007bff',
-                  color: 'white',
+                  backgroundColor: 'var(--primary-color)',
+                  color: 'var(--text-inverse)',
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer',
@@ -585,8 +562,8 @@ export default function DeliveryNotesList() {
                   flex: 1,
                   minWidth: '100px',
                   padding: '10px',
-                  backgroundColor: '#17a2b8',
-                  color: 'white',
+                  backgroundColor: 'var(--info-color)',
+                  color: 'var(--text-inverse)',
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer',
@@ -606,8 +583,8 @@ export default function DeliveryNotesList() {
                   flex: 1,
                   minWidth: '100px',
                   padding: '10px',
-                  backgroundColor: '#6f42c1',
-                  color: 'white',
+                  backgroundColor: 'var(--primary-color)',
+                  color: 'var(--text-inverse)',
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer',
@@ -645,17 +622,17 @@ export default function DeliveryNotesList() {
 
   // Version desktop avec tableau
   const DesktopView = () => (
-    <div style={{ background: 'white', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+    <div style={{ background: 'var(--card-background)', borderRadius: '10px', overflow: 'hidden', boxShadow: 'var(--shadow-md)' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
-          <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
-            <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>N° BL</th>
-            <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>Client</th>
-            <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold' }}>Date</th>
-            <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>Montant HT</th>
-            <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>TVA</th>
-            <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>Total TTC</th>
-            <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', minWidth: '300px' }}>Actions</th>
+          <tr style={{ background: 'var(--background-secondary)', borderBottom: '2px solid var(--border-color)' }}>
+            <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold', color: 'var(--text-primary)' }}>N° BL</th>
+            <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold', color: 'var(--text-primary)' }}>Client</th>
+            <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold', color: 'var(--text-primary)' }}>Date</th>
+            <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: 'var(--text-primary)' }}>Montant HT</th>
+            <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: 'var(--text-primary)' }}>TVA</th>
+            <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: 'var(--text-primary)' }}>Total TTC</th>
+            <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', minWidth: '300px', color: 'var(--text-primary)' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -694,29 +671,29 @@ export default function DeliveryNotesList() {
               <tr 
                 key={`${validId}-${index}`}
                 style={{ 
-                  borderBottom: '1px solid #dee2e6',
-                  backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa'
+                  borderBottom: '1px solid var(--border-color)',
+                  backgroundColor: index % 2 === 0 ? 'var(--card-background)' : 'var(--background-secondary)'
                 }}
               >
-                <td style={{ padding: '15px', fontWeight: 'bold', color: '#007bff' }}>
+                <td style={{ padding: '15px', fontWeight: 'bold', color: 'var(--primary-color)' }}>
                   {displayId}
                 </td>
                 <td style={{ padding: '15px' }}>
                   <div>
-                    <div style={{ fontWeight: 'bold' }}>{bl.client_name}</div>
-                    <div style={{ fontSize: '12px', color: '#666' }}>{bl.nclient}</div>
+                    <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{bl.client_name}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{bl.nclient}</div>
                   </div>
                 </td>
-                <td style={{ padding: '15px' }}>
+                <td style={{ padding: '15px', color: 'var(--text-primary)' }}>
                   {formatDate(bl.date_fact)}
                 </td>
-                <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>
+                <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: 'var(--text-primary)' }}>
                   {formatAmount(bl.montant_ht)}
                 </td>
-                <td style={{ padding: '15px', textAlign: 'right' }}>
+                <td style={{ padding: '15px', textAlign: 'right', color: 'var(--text-primary)' }}>
                   {formatAmount(bl.tva)}
                 </td>
-                <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: '#28a745' }}>
+                <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: 'var(--success-color)' }}>
                   {formatAmount(bl.montant_ttc || (bl.montant_ht + bl.tva))}
                 </td>
                 <td style={{ padding: '15px', textAlign: 'center' }}>
@@ -740,8 +717,8 @@ export default function DeliveryNotesList() {
                         }}
                         style={{
                           padding: '6px 12px',
-                          backgroundColor: '#17a2b8',
-                          color: 'white',
+                          backgroundColor: 'var(--info-color)',
+                          color: 'var(--text-inverse)',
                           border: 'none',
                           borderRadius: '4px',
                           cursor: 'pointer',
@@ -761,8 +738,8 @@ export default function DeliveryNotesList() {
                         }}
                         style={{
                           padding: '6px 12px',
-                          backgroundColor: '#28a745',
-                          color: 'white',
+                          backgroundColor: 'var(--success-color)',
+                          color: 'var(--text-inverse)',
                           border: 'none',
                           borderRadius: '4px',
                           cursor: 'pointer',
@@ -783,8 +760,8 @@ export default function DeliveryNotesList() {
                         }}
                         style={{
                           padding: '6px 12px',
-                          backgroundColor: '#dc3545',
-                          color: 'white',
+                          backgroundColor: 'var(--error-color)',
+                          color: 'var(--text-inverse)',
                           border: 'none',
                           borderRadius: '4px',
                           cursor: 'pointer',
@@ -812,8 +789,8 @@ export default function DeliveryNotesList() {
                         }}
                         style={{
                           padding: '6px 12px',
-                          backgroundColor: '#007bff',
-                          color: 'white',
+                          backgroundColor: 'var(--primary-color)',
+                          color: 'var(--text-inverse)',
                           border: 'none',
                           borderRadius: '4px',
                           cursor: 'pointer',
@@ -833,8 +810,8 @@ export default function DeliveryNotesList() {
                         }}
                         style={{
                           padding: '6px 12px',
-                          backgroundColor: '#17a2b8',
-                          color: 'white',
+                          backgroundColor: 'var(--info-color)',
+                          color: 'var(--text-inverse)',
                           border: 'none',
                           borderRadius: '4px',
                           cursor: 'pointer',
@@ -854,8 +831,8 @@ export default function DeliveryNotesList() {
                         }}
                         style={{
                           padding: '6px 12px',
-                          backgroundColor: '#6f42c1',
-                          color: 'white',
+                          backgroundColor: 'var(--primary-color)',
+                          color: 'var(--text-inverse)',
                           border: 'none',
                           borderRadius: '4px',
                           cursor: 'pointer',
@@ -897,7 +874,7 @@ export default function DeliveryNotesList() {
       maxWidth: isMobile ? '100%' : '1200px', 
       margin: '0 auto',
       minHeight: '100vh',
-      background: '#f5f5f5'
+      background: 'var(--background-secondary)'
     }}>
       {/* En-tête responsive */}
       <div style={{ 
@@ -906,22 +883,22 @@ export default function DeliveryNotesList() {
         justifyContent: 'space-between', 
         alignItems: isMobile ? 'stretch' : 'center', 
         marginBottom: '20px',
-        background: 'white',
+        background: 'var(--card-background)',
         padding: isMobile ? '15px' : '20px',
         borderRadius: '10px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        boxShadow: 'var(--shadow-md)'
       }}>
         <div style={{ marginBottom: isMobile ? '15px' : '0' }}>
           <h1 style={{ 
             margin: 0, 
-            color: '#333',
+            color: 'var(--text-primary)',
             fontSize: isMobile ? '20px' : '24px'
           }}>
             📋 Liste des Bons de Livraison
           </h1>
           <p style={{ 
             margin: '5px 0 0 0', 
-            color: '#666',
+            color: 'var(--text-secondary)',
             fontSize: isMobile ? '14px' : '16px'
           }}>
             {isMobile ? `${filteredDeliveryNotes.length} BL trouvés` : `Tenant: ${tenant} • ${filteredDeliveryNotes.length} BL trouvés`}
@@ -936,8 +913,8 @@ export default function DeliveryNotesList() {
             onClick={() => router.push('/delivery-notes')}
             style={{
               padding: isMobile ? '12px 20px' : '12px 20px',
-              backgroundColor: '#007bff',
-              color: 'white',
+              backgroundColor: 'var(--primary-color)',
+              color: 'var(--text-inverse)',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
@@ -951,8 +928,8 @@ export default function DeliveryNotesList() {
             onClick={() => router.push('/dashboard')}
             style={{
               padding: isMobile ? '12px 20px' : '12px 20px',
-              backgroundColor: '#6c757d',
-              color: 'white',
+              backgroundColor: 'var(--text-secondary)',
+              color: 'var(--text-inverse)',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
@@ -967,11 +944,11 @@ export default function DeliveryNotesList() {
 
       {/* Interface de filtres */}
       <div style={{
-        background: 'white',
+        background: 'var(--card-background)',
         borderRadius: '10px',
         padding: isMobile ? '15px' : '20px',
         marginBottom: '20px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        boxShadow: 'var(--shadow-md)'
       }}>
         {/* Bouton pour afficher/masquer les filtres */}
         <div style={{
@@ -982,7 +959,7 @@ export default function DeliveryNotesList() {
         }}>
           <h3 style={{
             margin: 0,
-            color: '#333',
+            color: 'var(--text-primary)',
             fontSize: isMobile ? '16px' : '18px'
           }}>
             🔍 Filtres de recherche
@@ -991,8 +968,8 @@ export default function DeliveryNotesList() {
             onClick={() => setShowFilters(!showFilters)}
             style={{
               padding: '8px 16px',
-              backgroundColor: showFilters ? '#dc3545' : '#007bff',
-              color: 'white',
+              backgroundColor: showFilters ? 'var(--error-color)' : 'var(--primary-color)',
+              color: 'var(--text-inverse)',
               border: 'none',
               borderRadius: '6px',
               cursor: 'pointer',
@@ -1021,18 +998,20 @@ export default function DeliveryNotesList() {
                 style={{
                   flex: 1,
                   padding: '12px',
-                  border: '2px solid #e0e0e0',
+                  border: '2px solid var(--border-color)',
                   borderRadius: '8px',
                   fontSize: '14px',
-                  outline: 'none'
+                  outline: 'none',
+                  background: 'var(--background)',
+                  color: 'var(--text-primary)'
                 }}
               />
               <button
                 onClick={resetFilters}
                 style={{
                   padding: '12px 20px',
-                  backgroundColor: '#6c757d',
-                  color: 'white',
+                  backgroundColor: 'var(--text-secondary)',
+                  color: 'var(--text-inverse)',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
@@ -1058,7 +1037,7 @@ export default function DeliveryNotesList() {
                   display: 'block',
                   marginBottom: '5px',
                   fontWeight: 'bold',
-                  color: '#333',
+                  color: 'var(--text-primary)',
                   fontSize: '14px'
                 }}>
                   👤 Client
@@ -1069,10 +1048,12 @@ export default function DeliveryNotesList() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    border: '2px solid #e0e0e0',
+                    border: '2px solid var(--border-color)',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    outline: 'none'
+                    outline: 'none',
+                    background: 'var(--background)',
+                    color: 'var(--text-primary)'
                   }}
                 >
                   <option value="">Tous les clients</option>
@@ -1088,7 +1069,7 @@ export default function DeliveryNotesList() {
                   display: 'block',
                   marginBottom: '5px',
                   fontWeight: 'bold',
-                  color: '#333',
+                  color: 'var(--text-primary)',
                   fontSize: '14px'
                 }}>
                   💰 Statut de paiement
@@ -1099,10 +1080,12 @@ export default function DeliveryNotesList() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    border: '2px solid #e0e0e0',
+                    border: '2px solid var(--border-color)',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    outline: 'none'
+                    outline: 'none',
+                    background: 'var(--background)',
+                    color: 'var(--text-primary)'
                   }}
                 >
                   <option value="all">Tous (payés + partiellement payés + non payés)</option>
@@ -1117,7 +1100,7 @@ export default function DeliveryNotesList() {
                   display: 'block',
                   marginBottom: '5px',
                   fontWeight: 'bold',
-                  color: '#333',
+                  color: 'var(--text-primary)',
                   fontSize: '14px'
                 }}>
                   📅 Date de début
@@ -1129,10 +1112,12 @@ export default function DeliveryNotesList() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    border: '2px solid #e0e0e0',
+                    border: '2px solid var(--border-color)',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    outline: 'none'
+                    outline: 'none',
+                    background: 'var(--background)',
+                    color: 'var(--text-primary)'
                   }}
                 />
               </div>
@@ -1143,7 +1128,7 @@ export default function DeliveryNotesList() {
                   display: 'block',
                   marginBottom: '5px',
                   fontWeight: 'bold',
-                  color: '#333',
+                  color: 'var(--text-primary)',
                   fontSize: '14px'
                 }}>
                   📅 Date de fin
@@ -1155,10 +1140,12 @@ export default function DeliveryNotesList() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    border: '2px solid #e0e0e0',
+                    border: '2px solid var(--border-color)',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    outline: 'none'
+                    outline: 'none',
+                    background: 'var(--background)',
+                    color: 'var(--text-primary)'
                   }}
                 />
               </div>
@@ -1169,7 +1156,7 @@ export default function DeliveryNotesList() {
                   display: 'block',
                   marginBottom: '5px',
                   fontWeight: 'bold',
-                  color: '#333',
+                  color: 'var(--text-primary)',
                   fontSize: '14px'
                 }}>
                   💰 Montant min (DA)
@@ -1182,10 +1169,12 @@ export default function DeliveryNotesList() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    border: '2px solid #e0e0e0',
+                    border: '2px solid var(--border-color)',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    outline: 'none'
+                    outline: 'none',
+                    background: 'var(--background)',
+                    color: 'var(--text-primary)'
                   }}
                 />
               </div>
@@ -1196,7 +1185,7 @@ export default function DeliveryNotesList() {
                   display: 'block',
                   marginBottom: '5px',
                   fontWeight: 'bold',
-                  color: '#333',
+                  color: 'var(--text-primary)',
                   fontSize: '14px'
                 }}>
                   💰 Montant max (DA)
@@ -1209,10 +1198,12 @@ export default function DeliveryNotesList() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    border: '2px solid #e0e0e0',
+                    border: '2px solid var(--border-color)',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    outline: 'none'
+                    outline: 'none',
+                    background: 'var(--background)',
+                    color: 'var(--text-primary)'
                   }}
                 />
               </div>
@@ -1221,23 +1212,24 @@ export default function DeliveryNotesList() {
             {/* Résumé des filtres actifs */}
             {(searchTerm || selectedClient || dateFrom || dateTo || minAmount || maxAmount || paymentStatus !== 'all') && (
               <div style={{
-                background: '#e7f3ff',
-                border: '1px solid #b3d9ff',
+                background: 'var(--info-color-light)',
+                border: '1px solid var(--info-color)',
                 borderRadius: '6px',
                 padding: '10px',
-                fontSize: '14px'
+                fontSize: '14px',
+                color: 'var(--text-primary)'
               }}>
                 <strong>🎯 Filtres actifs :</strong>
-                {searchTerm && <span style={{ marginLeft: '10px', background: '#007bff', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Recherche: "{searchTerm}"</span>}
-                {selectedClient && <span style={{ marginLeft: '10px', background: '#28a745', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Client: {selectedClient}</span>}
-                {paymentStatus !== 'all' && <span style={{ marginLeft: '10px', background: '#10b981', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>
+                {searchTerm && <span style={{ marginLeft: '10px', background: 'var(--primary-color)', color: 'var(--text-inverse)', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Recherche: "{searchTerm}"</span>}
+                {selectedClient && <span style={{ marginLeft: '10px', background: 'var(--success-color)', color: 'var(--text-inverse)', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Client: {selectedClient}</span>}
+                {paymentStatus !== 'all' && <span style={{ marginLeft: '10px', background: 'var(--success-color)', color: 'var(--text-inverse)', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>
                   {paymentStatus === 'paid' && '🟢 Payés totalement'}
                   {paymentStatus === 'partially_paid' && '🟡 Partiellement payés'}
                 </span>}
-                {dateFrom && <span style={{ marginLeft: '10px', background: '#17a2b8', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Depuis: {dateFrom}</span>}
-                {dateTo && <span style={{ marginLeft: '10px', background: '#17a2b8', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Jusqu'à: {dateTo}</span>}
-                {minAmount && <span style={{ marginLeft: '10px', background: '#ffc107', color: 'black', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Min: {minAmount} DA</span>}
-                {maxAmount && <span style={{ marginLeft: '10px', background: '#ffc107', color: 'black', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Max: {maxAmount} DA</span>}
+                {dateFrom && <span style={{ marginLeft: '10px', background: 'var(--info-color)', color: 'var(--text-inverse)', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Depuis: {dateFrom}</span>}
+                {dateTo && <span style={{ marginLeft: '10px', background: 'var(--info-color)', color: 'var(--text-inverse)', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Jusqu'à: {dateTo}</span>}
+                {minAmount && <span style={{ marginLeft: '10px', background: 'var(--warning-color)', color: 'var(--text-inverse)', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Min: {minAmount} DA</span>}
+                {maxAmount && <span style={{ marginLeft: '10px', background: 'var(--warning-color)', color: 'var(--text-inverse)', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>Max: {maxAmount} DA</span>}
               </div>
             )}
           </div>
@@ -1384,105 +1376,34 @@ export default function DeliveryNotesList() {
       )}
 
       {loading && (
-        <div style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '4px solid #f3f3f3',
-            borderTop: '4px solid #007bff',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 20px'
-          }}></div>
-          <p>Chargement des bons de livraison...</p>
-        </div>
+        <LoadingSpinner message="Chargement des bons de livraison..." />
       )}
 
       {error && (
-        <div style={{
-          background: '#f8d7da',
-          color: '#721c24',
-          padding: '15px',
-          borderRadius: '8px',
-          marginBottom: '20px',
-          textAlign: 'center'
-        }}>
-          <p>❌ Erreur: {error}</p>
-          <button 
-            onClick={() => tenant && loadDeliveryNotes(tenant)}
-            style={{
-              marginTop: '10px',
-              padding: '8px 16px',
-              backgroundColor: '#dc3545',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            Réessayer
-          </button>
-        </div>
+        <ErrorMessage 
+          message={error} 
+          onRetry={() => tenant && loadDeliveryNotes(tenant)} 
+        />
       )}
 
       {!loading && !error && filteredDeliveryNotes.length === 0 && deliveryNotes.length > 0 && (
-        <div style={{
-          textAlign: 'center',
-          padding: isMobile ? '40px 20px' : '60px 20px',
-          background: 'white',
-          borderRadius: '10px',
-          border: '2px dashed #ffc107'
-        }}>
-          <h3 style={{ color: '#856404', marginBottom: '15px' }}>🔍 Aucun résultat trouvé</h3>
-          <p style={{ color: '#856404', marginBottom: '20px' }}>
-            Aucun bon de livraison ne correspond aux critères de recherche.
-          </p>
-          <button
-            onClick={resetFilters}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: '#ffc107',
-              color: '#212529',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: 'bold'
-            }}
-          >
-            🔄 Réinitialiser les filtres
-          </button>
-        </div>
+        <EmptyState
+          icon="🔍"
+          title="Aucun résultat trouvé"
+          message="Aucun bon de livraison ne correspond aux critères de recherche."
+          actionLabel="🔄 Réinitialiser les filtres"
+          onAction={resetFilters}
+        />
       )}
 
       {!loading && !error && deliveryNotes.length === 0 && (
-        <div style={{
-          textAlign: 'center',
-          padding: isMobile ? '40px 20px' : '60px 20px',
-          background: 'white',
-          borderRadius: '10px',
-          border: '2px dashed #dee2e6'
-        }}>
-          <h3 style={{ color: '#6c757d', marginBottom: '15px' }}>📋 Aucun bon de livraison</h3>
-          <p style={{ color: '#6c757d', marginBottom: '20px' }}>
-            Vous n'avez pas encore créé de bons de livraison.
-          </p>
-          <button
-            onClick={() => router.push('/delivery-notes')}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: 'bold'
-            }}
-          >
-            ➕ Créer le premier BL
-          </button>
-        </div>
+        <EmptyState
+          icon="📋"
+          title="Aucun bon de livraison"
+          message="Vous n'avez pas encore créé de bons de livraison."
+          actionLabel="➕ Créer le premier BL"
+          onAction={() => router.push('/delivery-notes')}
+        />
       )}
 
       {!loading && !error && filteredDeliveryNotes.length > 0 && (
