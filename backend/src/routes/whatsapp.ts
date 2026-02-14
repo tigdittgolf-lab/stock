@@ -36,6 +36,8 @@ app.post('/send-document', async (c) => {
       customMessage 
     } = body;
 
+    console.log('📱 WhatsApp send-document request:', { tenantId, documentId, documentType, filename, recipientsCount: recipients?.length });
+
     // Validate required fields
     if (!tenantId || !documentId || !documentType || !filename || !recipients) {
       return c.json({ 
@@ -51,9 +53,60 @@ app.post('/send-document', async (c) => {
       }, 400);
     }
 
-    // Get document buffer (this would typically come from your PDF service)
-    // For now, we'll simulate getting the document
-    const documentBuffer = Buffer.from('PDF content placeholder'); // Replace with actual PDF generation
+    // Get the PDF service
+    const dbService = BackendDatabaseService.getInstance();
+    const pdfService = dbService.getPDFService();
+    
+    let documentBuffer: Buffer;
+    
+    try {
+      // Generate the actual PDF based on document type
+      console.log('📄 Generating PDF for WhatsApp...');
+      
+      if (documentType === 'delivery_note') {
+        // Get BL data
+        const blData = await dbService.getBLById(documentId);
+        if (!blData) {
+          throw new Error(`Delivery note ${documentId} not found`);
+        }
+        
+        // Generate PDF (using "complet" format by default)
+        documentBuffer = await pdfService.generateDeliveryNotePDF(blData, 'complet');
+        console.log('✅ BL PDF generated:', documentBuffer.length, 'bytes');
+        
+      } else if (documentType === 'invoice') {
+        // Get invoice data
+        const invoiceData = await dbService.getInvoiceById(documentId);
+        if (!invoiceData) {
+          throw new Error(`Invoice ${documentId} not found`);
+        }
+        
+        // Generate PDF
+        documentBuffer = await pdfService.generateInvoicePDF(invoiceData);
+        console.log('✅ Invoice PDF generated:', documentBuffer.length, 'bytes');
+        
+      } else if (documentType === 'proforma') {
+        // Get proforma data
+        const proformaData = await dbService.getProformaById(documentId);
+        if (!proformaData) {
+          throw new Error(`Proforma ${documentId} not found`);
+        }
+        
+        // Generate PDF
+        documentBuffer = await pdfService.generateProformaPDF(proformaData);
+        console.log('✅ Proforma PDF generated:', documentBuffer.length, 'bytes');
+        
+      } else {
+        throw new Error(`Unknown document type: ${documentType}`);
+      }
+      
+    } catch (pdfError) {
+      console.error('❌ Error generating PDF:', pdfError);
+      return c.json({ 
+        success: false, 
+        error: `Failed to generate PDF: ${pdfError instanceof Error ? pdfError.message : 'Unknown error'}` 
+      }, 500);
+    }
 
     const documentMetadata = {
       id: documentId,
@@ -67,6 +120,7 @@ app.post('/send-document', async (c) => {
     const whatsappService = new WhatsAppService(tenantId);
 
     // Send document
+    console.log('📤 Sending document via WhatsApp to', recipients.length, 'recipients...');
     const result = await whatsappService.sendDocument({
       tenantId,
       document: documentBuffer,
@@ -77,9 +131,7 @@ app.post('/send-document', async (c) => {
     });
 
     // Log the send attempt
-    const dbService = BackendDatabaseService.getInstance();
-    // For now, just log - we'll implement database logging later
-    console.log(`📝 WhatsApp send logged: ${result.results.length} attempts`);
+    console.log(`📝 WhatsApp send completed: ${result.results.length} attempts, ${result.results.filter(r => r.success).length} successful`);
 
     return c.json({
       success: result.success,
@@ -93,10 +145,10 @@ app.post('/send-document', async (c) => {
     });
 
   } catch (error) {
-    console.error('Error sending WhatsApp document:', error);
+    console.error('❌ Error sending WhatsApp document:', error);
     return c.json({ 
       success: false, 
-      error: 'Internal server error' 
+      error: error instanceof Error ? error.message : 'Internal server error' 
     }, 500);
   }
 });

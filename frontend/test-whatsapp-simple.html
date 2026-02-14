@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test WhatsApp Simple</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 2px solid #25d366;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        button {
+            background: #25d366;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #20b358;
+        }
+        input {
+            padding: 10px;
+            width: 100%;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .log {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test WhatsApp - Envoi de Document</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Lien WhatsApp Simple</h2>
+        <p>Ce test ouvre WhatsApp avec un message simple</p>
+        <input type="text" id="phone1" placeholder="Numéro (ex: +213674768390)" value="+213674768390">
+        <button onclick="testSimpleWhatsApp()">📱 Test Simple</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Lien WhatsApp avec URL de Document</h2>
+        <p>Ce test ouvre WhatsApp avec un message contenant un lien vers un PDF</p>
+        <input type="text" id="phone2" placeholder="Numéro (ex: +213674768390)" value="+213674768390">
+        <input type="text" id="docUrl" placeholder="URL du document" value="http://localhost:3000/api/pdf/delivery-note/8703">
+        <button onclick="testWhatsAppWithDocument()">📱 Test avec Document</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Vérifier l'accessibilité du PDF</h2>
+        <input type="text" id="pdfUrl" placeholder="URL du PDF" value="http://localhost:3000/api/pdf/delivery-note/8703">
+        <button onclick="testPDFAccess()">🔍 Tester le PDF</button>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 Logs</h2>
+        <div class="log" id="logs"></div>
+        <button onclick="clearLogs()">🧹 Effacer les logs</button>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const emoji = type === 'error' ? '❌' : type === 'success' ? '✅' : '📝';
+            const color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'black';
+            
+            const logEntry = document.createElement('div');
+            logEntry.style.color = color;
+            logEntry.textContent = `[${timestamp}] ${emoji} ${message}`;
+            logsDiv.appendChild(logEntry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            
+            console.log(message);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        function testSimpleWhatsApp() {
+            const phone = document.getElementById('phone1').value;
+            log('🚀 Test 1: Lien WhatsApp simple');
+            log(`📞 Numéro: ${phone}`);
+            
+            if (!phone) {
+                log('❌ Veuillez saisir un numéro', 'error');
+                return;
+            }
+
+            // Nettoyer le numéro
+            const cleanPhone = phone.replace(/[^0-9+]/g, '');
+            log(`📞 Numéro nettoyé: ${cleanPhone}`);
+
+            // Message simple
+            const message = "Test d'envoi WhatsApp - Si vous recevez ce message, le système fonctionne !";
+            const encodedMessage = encodeURIComponent(message);
+            
+            // Créer le lien WhatsApp
+            const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+            log(`🔗 URL WhatsApp: ${whatsappUrl}`);
+            
+            // Ouvrir WhatsApp
+            const newWindow = window.open(whatsappUrl, '_blank');
+            
+            if (newWindow) {
+                log('✅ WhatsApp ouvert avec succès !', 'success');
+            } else {
+                log('❌ Impossible d\'ouvrir WhatsApp - Popups bloqués ?', 'error');
+            }
+        }
+
+        function testWhatsAppWithDocument() {
+            const phone = document.getElementById('phone2').value;
+            const docUrl = document.getElementById('docUrl').value;
+            
+            log('🚀 Test 2: WhatsApp avec lien document');
+            log(`📞 Numéro: ${phone}`);
+            log(`📄 URL document: ${docUrl}`);
+            
+            if (!phone || !docUrl) {
+                log('❌ Veuillez remplir tous les champs', 'error');
+                return;
+            }
+
+            // Nettoyer le numéro
+            const cleanPhone = phone.replace(/[^0-9+]/g, '');
+            log(`📞 Numéro nettoyé: ${cleanPhone}`);
+
+            // Message avec lien
+            const message = `Voici votre document
+
+📄 Télécharger le document:
+${docUrl}`;
+            
+            const encodedMessage = encodeURIComponent(message);
+            log(`📝 Message encodé (${encodedMessage.length} caractères)`);
+            
+            // Créer le lien WhatsApp
+            const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+            log(`🔗 URL WhatsApp: ${whatsappUrl.substring(0, 100)}...`);
+            
+            // Ouvrir WhatsApp
+            const newWindow = window.open(whatsappUrl, '_blank');
+            
+            if (newWindow) {
+                log('✅ WhatsApp ouvert avec le lien du document !', 'success');
+                log('💡 Le destinataire pourra cliquer sur le lien pour télécharger le PDF', 'success');
+            } else {
+                log('❌ Impossible d\'ouvrir WhatsApp - Popups bloqués ?', 'error');
+            }
+        }
+
+        async function testPDFAccess() {
+            const pdfUrl = document.getElementById('pdfUrl').value;
+            
+            log('🚀 Test 3: Vérification de l\'accessibilité du PDF');
+            log(`📄 URL: ${pdfUrl}`);
+            
+            if (!pdfUrl) {
+                log('❌ Veuillez saisir une URL', 'error');
+                return;
+            }
+
+            try {
+                log('⏳ Envoi de la requête HEAD...');
+                const response = await fetch(pdfUrl, { method: 'HEAD' });
+                
+                log(`📡 Statut HTTP: ${response.status} ${response.statusText}`);
+                log(`📋 Content-Type: ${response.headers.get('content-type')}`);
+                log(`📏 Content-Length: ${response.headers.get('content-length')} bytes`);
+                
+                if (response.ok) {
+                    log('✅ Le PDF est accessible !', 'success');
+                    log('💡 Vous pouvez maintenant tester l\'envoi WhatsApp', 'success');
+                    
+                    // Proposer d'ouvrir le PDF
+                    if (confirm('Voulez-vous ouvrir le PDF dans un nouvel onglet ?')) {
+                        window.open(pdfUrl, '_blank');
+                    }
+                } else {
+                    log(`❌ Le PDF n'est pas accessible (erreur ${response.status})`, 'error');
+                    log('💡 Vérifiez que le backend est démarré et que l\'ID du document est correct', 'error');
+                }
+            } catch (error) {
+                log(`❌ Erreur lors de la requête: ${error.message}`, 'error');
+                log('💡 Vérifiez que le backend est démarré sur le bon port', 'error');
+            }
+        }
+
+        // Log initial
+        log('🎯 Page de test chargée - Prêt pour les tests !', 'success');
+        log('💡 Conseil: Ouvrez la console du navigateur (F12) pour voir plus de détails', 'info');
+    </script>
+</body>
+</html>

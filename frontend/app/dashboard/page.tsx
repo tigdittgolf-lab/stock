@@ -93,6 +93,10 @@ export default function Dashboard() {
   // États pour les filtres clients
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [selectedClientStatus, setSelectedClientStatus] = useState('');
+  
+  // États pour le tri
+  const [sortColumn, setSortColumn] = useState<string>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     // Vérifier l'authentification et les informations de tenant
@@ -371,8 +375,64 @@ export default function Dashboard() {
     });
   };
 
+  // Fonction de tri
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      // Inverser la direction si on clique sur la même colonne
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Nouvelle colonne, tri ascendant par défaut
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortedArticles = (filteredArticles: Article[]) => {
+    if (!sortColumn) return filteredArticles;
+
+    console.log('🔄 Sorting by:', sortColumn, 'Direction:', sortDirection);
+    
+    const sorted = [...filteredArticles].sort((a, b) => {
+      let aValue: any = a[sortColumn as keyof Article];
+      let bValue: any = b[sortColumn as keyof Article];
+
+      // Colonnes numériques - forcer la conversion en nombre
+      const numericColumns = ['prix_unitaire', 'marge', 'tva', 'prix_vente', 'seuil', 'stock_f', 'stock_bl'];
+      if (numericColumns.includes(sortColumn)) {
+        // Convertir en nombre, gérer null/undefined
+        const aNum = aValue === null || aValue === undefined ? 0 : parseFloat(String(aValue).replace(/,/g, '.'));
+        const bNum = bValue === null || bValue === undefined ? 0 : parseFloat(String(bValue).replace(/,/g, '.'));
+        
+        // Debug pour les 3 premiers éléments
+        if (filteredArticles.indexOf(a) < 3) {
+          console.log(`  ${sortColumn}: "${aValue}" (${typeof aValue}) → ${aNum}`);
+        }
+        
+        const result = sortDirection === 'asc' ? aNum - bNum : bNum - aNum;
+        return result;
+      }
+
+      // Gérer les valeurs nulles/undefined pour les strings
+      if (aValue === null || aValue === undefined) aValue = '';
+      if (bValue === null || bValue === undefined) bValue = '';
+
+      // Comparaison alphabétique pour les strings
+      const aStr = String(aValue).toLowerCase();
+      const bStr = String(bValue).toLowerCase();
+      
+      if (sortDirection === 'asc') {
+        return aStr.localeCompare(bStr, 'fr');
+      } else {
+        return bStr.localeCompare(aStr, 'fr');
+      }
+    });
+
+    console.log('✅ Sorted', sorted.length, 'articles');
+    return sorted;
+  };
+
   const getFilteredArticles = () => {
-    return articles.filter(article => {
+    const filtered = articles.filter(article => {
       // Filtre par recherche (code ou désignation)
       const matchesSearch = searchTerm === '' || 
         article.narticle.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -395,6 +455,8 @@ export default function Dashboard() {
 
       return matchesSearch && matchesFamily && matchesSupplier && matchesStatus;
     });
+
+    return getSortedArticles(filtered);
   };
 
   const clearFilters = () => {
@@ -1291,20 +1353,204 @@ export default function Dashboard() {
                 </div>
 
                 <div className={styles.tableContainer}>
+                  {/* Bannière d'information sur le tri */}
+                  <div style={{ 
+                    padding: '12px 16px', 
+                    marginBottom: '12px', 
+                    backgroundColor: sortColumn ? 'var(--primary-color)' : 'rgba(108, 117, 125, 0.1)', 
+                    color: sortColumn ? 'white' : 'var(--text-secondary)', 
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    border: sortColumn ? 'none' : '1px dashed var(--border-color)'
+                  }}>
+                    {sortColumn ? (
+                      <>
+                        <span style={{ fontSize: '18px' }}>📊</span>
+                        <span>
+                          Trié par: <strong>{
+                            sortColumn === 'narticle' ? 'Code' :
+                            sortColumn === 'designation' ? 'Désignation' :
+                            sortColumn === 'famille' ? 'Famille' :
+                            sortColumn === 'nfournisseur' ? 'Fournisseur' :
+                            sortColumn === 'prix_unitaire' ? 'Prix Unitaire' :
+                            sortColumn === 'marge' ? 'Marge %' :
+                            sortColumn === 'prix_vente' ? 'Prix Vente' :
+                            sortColumn === 'stock_f' ? 'Stock F' :
+                            sortColumn === 'stock_bl' ? 'Stock BL' :
+                            sortColumn === 'seuil' ? 'Seuil' : sortColumn
+                          }</strong> ({sortDirection === 'asc' ? 'Croissant ↑' : 'Décroissant ↓'})
+                        </span>
+                        <button 
+                          onClick={() => { setSortColumn(''); setSortDirection('asc'); }}
+                          style={{ 
+                            marginLeft: 'auto',
+                            padding: '4px 12px', 
+                            backgroundColor: 'rgba(255,255,255,0.2)',
+                            border: 'none',
+                            borderRadius: '4px',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'}
+                        >
+                          ✕ Réinitialiser le tri
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span style={{ fontSize: '18px' }}>💡</span>
+                        <span>
+                          Cliquez sur n'importe quel en-tête de colonne pour trier le tableau. 
+                          Cliquez à nouveau pour inverser l'ordre.
+                        </span>
+                      </>
+                    )}
+                  </div>
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th style={{ width: '100px', maxWidth: '100px' }}>Code</th>
-                        <th style={{ width: '300px', maxWidth: '300px' }}>Désignation</th>
-                        <th style={{ width: '100px' }}>Famille</th>
-                        <th style={{ width: '120px' }}>Fournisseur</th>
-                        <th style={{ width: '90px' }}>Prix Unit.</th>
-                        <th style={{ width: '70px' }}>Marge %</th>
-                        <th style={{ width: '90px' }}>Prix Vente</th>
-                        <th style={{ width: '70px' }}>Stock F</th>
-                        <th style={{ width: '70px' }}>Stock BL</th>
-                        <th style={{ width: '90px' }}>Stock Total</th>
-                        <th style={{ width: '60px' }}>Seuil</th>
+                        <th 
+                          style={{ 
+                            width: '100px', 
+                            maxWidth: '100px', 
+                            cursor: 'pointer',
+                            backgroundColor: sortColumn === 'narticle' ? 'var(--primary-color)' : undefined,
+                            color: sortColumn === 'narticle' ? 'white' : undefined,
+                            userSelect: 'none'
+                          }} 
+                          onClick={() => handleSort('narticle')}
+                          title="Cliquez pour trier par Code"
+                        >
+                          Code {sortColumn === 'narticle' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          style={{ 
+                            width: '300px', 
+                            maxWidth: '300px', 
+                            cursor: 'pointer',
+                            backgroundColor: sortColumn === 'designation' ? 'var(--primary-color)' : undefined,
+                            color: sortColumn === 'designation' ? 'white' : undefined,
+                            userSelect: 'none'
+                          }} 
+                          onClick={() => handleSort('designation')}
+                          title="Cliquez pour trier par Désignation"
+                        >
+                          Désignation {sortColumn === 'designation' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          style={{ 
+                            width: '100px', 
+                            cursor: 'pointer',
+                            backgroundColor: sortColumn === 'famille' ? 'var(--primary-color)' : undefined,
+                            color: sortColumn === 'famille' ? 'white' : undefined,
+                            userSelect: 'none'
+                          }} 
+                          onClick={() => handleSort('famille')}
+                          title="Cliquez pour trier par Famille"
+                        >
+                          Famille {sortColumn === 'famille' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          style={{ 
+                            width: '120px', 
+                            cursor: 'pointer',
+                            backgroundColor: sortColumn === 'nfournisseur' ? 'var(--primary-color)' : undefined,
+                            color: sortColumn === 'nfournisseur' ? 'white' : undefined,
+                            userSelect: 'none'
+                          }} 
+                          onClick={() => handleSort('nfournisseur')}
+                          title="Cliquez pour trier par Fournisseur"
+                        >
+                          Fournisseur {sortColumn === 'nfournisseur' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          style={{ 
+                            width: '90px', 
+                            cursor: 'pointer',
+                            backgroundColor: sortColumn === 'prix_unitaire' ? 'var(--primary-color)' : undefined,
+                            color: sortColumn === 'prix_unitaire' ? 'white' : undefined,
+                            userSelect: 'none'
+                          }} 
+                          onClick={() => handleSort('prix_unitaire')}
+                          title="Cliquez pour trier par Prix Unitaire"
+                        >
+                          Prix Unit. {sortColumn === 'prix_unitaire' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          style={{ 
+                            width: '70px', 
+                            cursor: 'pointer',
+                            backgroundColor: sortColumn === 'marge' ? 'var(--primary-color)' : undefined,
+                            color: sortColumn === 'marge' ? 'white' : undefined,
+                            userSelect: 'none'
+                          }} 
+                          onClick={() => handleSort('marge')}
+                          title="Cliquez pour trier par Marge %"
+                        >
+                          Marge % {sortColumn === 'marge' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          style={{ 
+                            width: '90px', 
+                            cursor: 'pointer',
+                            backgroundColor: sortColumn === 'prix_vente' ? 'var(--primary-color)' : undefined,
+                            color: sortColumn === 'prix_vente' ? 'white' : undefined,
+                            userSelect: 'none'
+                          }} 
+                          onClick={() => handleSort('prix_vente')}
+                          title="Cliquez pour trier par Prix de Vente"
+                        >
+                          Prix Vente {sortColumn === 'prix_vente' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          style={{ 
+                            width: '70px', 
+                            cursor: 'pointer',
+                            backgroundColor: sortColumn === 'stock_f' ? 'var(--primary-color)' : undefined,
+                            color: sortColumn === 'stock_f' ? 'white' : undefined,
+                            userSelect: 'none'
+                          }} 
+                          onClick={() => handleSort('stock_f')}
+                          title="Cliquez pour trier par Stock F"
+                        >
+                          Stock F {sortColumn === 'stock_f' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th 
+                          style={{ 
+                            width: '70px', 
+                            cursor: 'pointer',
+                            backgroundColor: sortColumn === 'stock_bl' ? 'var(--primary-color)' : undefined,
+                            color: sortColumn === 'stock_bl' ? 'white' : undefined,
+                            userSelect: 'none'
+                          }} 
+                          onClick={() => handleSort('stock_bl')}
+                          title="Cliquez pour trier par Stock BL"
+                        >
+                          Stock BL {sortColumn === 'stock_bl' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
+                        <th style={{ width: '90px' }}>
+                          Stock Total
+                        </th>
+                        <th 
+                          style={{ 
+                            width: '60px', 
+                            cursor: 'pointer',
+                            backgroundColor: sortColumn === 'seuil' ? 'var(--primary-color)' : undefined,
+                            color: sortColumn === 'seuil' ? 'white' : undefined,
+                            userSelect: 'none'
+                          }} 
+                          onClick={() => handleSort('seuil')}
+                          title="Cliquez pour trier par Seuil"
+                        >
+                          Seuil {sortColumn === 'seuil' && (sortDirection === 'asc' ? '↑' : '↓')}
+                        </th>
                         <th style={{ width: '80px' }}>Statut</th>
                         <th style={{ width: '140px', minWidth: '140px', position: 'sticky', right: 0, backgroundColor: 'var(--background-secondary)', zIndex: 1 }}>Actions</th>
                       </tr>
