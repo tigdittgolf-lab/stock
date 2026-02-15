@@ -1,0 +1,5 @@
+# Ignorer tous les fichiers PDF temporaires
+*.pdf
+
+# Garder le dossier
+!.gitignore

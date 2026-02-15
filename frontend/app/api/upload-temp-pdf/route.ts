@@ -181,6 +181,35 @@ async function uploadTo0x0(blob: Blob, filename: string) {
     
   } catch (error) {
     console.error('❌ 0x0.st error:', error);
+    
+    // Dernier fallback: stockage local
+    console.log('🔄 Trying local storage fallback...');
+    return await uploadToLocal(blob, filename);
+  }
+}
+
+// Fallback ultime: stockage local
+async function uploadToLocal(blob: Blob, filename: string) {
+  try {
+    const formData = new FormData();
+    formData.append('file', blob, filename);
+    
+    const response = await fetch('/api/upload-temp-pdf-local', {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error('Local storage failed');
+    }
+    
+    const data = await response.json();
+    console.log('✅ File stored locally');
+    
+    return NextResponse.json(data);
+    
+  } catch (error) {
+    console.error('❌ Local storage error:', error);
     return NextResponse.json(
       { 
         success: false, 
