@@ -6,6 +6,7 @@ import LoadingSpinner from '../../../components/LoadingSpinner';
 import ErrorMessage from '../../../components/ErrorMessage';
 import EmptyState from '../../../components/EmptyState';
 import PrintOptions from '../../../components/PrintOptions';
+import ProformaActions from '../../../components/ProformaActions';
 import styles from '../../page.module.css';
 
 interface Proforma {
@@ -470,166 +471,24 @@ export default function ProformaList() {
               <tbody>
                 {filteredProformas.map((proforma) => (
                   <tr key={proforma.nfact || proforma.nfprof}>
-                    <td><strong>{proforma.nfact || proforma.nfprof}</strong></td>
-                    <td>
-                      <div>
-                        <div style={{ fontWeight: 'bold' }}>{proforma.client_name || proforma.nclient}</div>
+                    <td style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 'bold', color: 'var(--primary-color)' }}>{proforma.nfact || proforma.nfprof}</td>
+                    <td style={{ padding: '6px 12px', fontSize: '13px' }}>
+                      <div style={{ lineHeight: '1.3' }}>
+                        <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{proforma.client_name || proforma.nclient}</div>
                         {proforma.client_name && (
-                          <div style={{ fontSize: '12px', color: '#666' }}>{proforma.nclient}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{proforma.nclient}</div>
                         )}
                       </div>
                     </td>
-                    <td>{new Date(proforma.date_fact).toLocaleDateString('fr-FR')}</td>
-                    <td style={{ textAlign: 'right' }}>{parseFloat(proforma.montant_ht?.toString() || '0').toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
-                    <td style={{ textAlign: 'right' }}>{parseFloat(proforma.tva?.toString() || '0').toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
-                    <td style={{ textAlign: 'right' }}><strong>{(parseFloat(proforma.montant_ht?.toString() || '0') + parseFloat(proforma.tva?.toString() || '0')).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</strong></td>
-                    <td>
-                      <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                        alignItems: 'center'
-                      }}>
-                        {/* Première ligne - Actions principales */}
-                        <div style={{
-                          display: 'flex',
-                          gap: '5px',
-                          justifyContent: 'center',
-                          flexWrap: 'wrap'
-                        }}>
-                          <button 
-                            onClick={() => {
-                              // Essayer plusieurs champs d'ID possibles
-                              const proformaId = proforma.nfact || proforma.nfprof || (proforma as any).id;
-                              
-                              console.log('🔍 Navigating to proforma details:', { 
-                                nfact: proforma.nfact, 
-                                nfprof: proforma.nfprof, 
-                                id: (proforma as any).id,
-                                finalId: proformaId,
-                                fullProforma: proforma
-                              });
-                              
-                              // Validation stricte de l'ID
-                              if (!proformaId || proformaId === 'undefined' || proformaId === undefined) {
-                                console.error('❌ ID proforma invalide:', { proformaId, proforma });
-                                alert(`Erreur: ID du proforma non trouvé ou invalide (${proformaId}). Vérifiez les données.`);
-                                return;
-                              }
-                              
-                              // Vérifier que l'ID est un nombre valide et entier
-                              const numericId = parseInt(String(proformaId));
-                              if (isNaN(numericId) || numericId <= 0 || !Number.isInteger(parseFloat(String(proformaId)))) {
-                                console.error('❌ ID proforma non numérique ou non entier:', { proformaId, numericId });
-                                alert(`Erreur: ID du proforma invalide (${proformaId}). L'ID doit être un nombre entier positif.`);
-                                return;
-                              }
-                              
-                              console.log('✅ Navigating to proforma with valid ID:', numericId);
-                              router.push(`/proforma/${numericId}`);
-                            }}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: 'var(--info-color)',
-                              color: 'var(--text-inverse)',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              fontWeight: 'bold',
-                              minWidth: '70px'
-                            }}
-                            title="Voir les détails du proforma"
-                          >
-                            👁️ Voir
-                          </button>
-                          
-                          <button
-                            onClick={() => {
-                              const proformaId = proforma.nfact || proforma.nfprof || (proforma as any).id;
-                              router.push(`/proforma/${proformaId}/edit`);
-                            }}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: 'var(--success-color)',
-                              color: 'var(--text-inverse)',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              fontWeight: 'bold',
-                              minWidth: '70px'
-                            }}
-                            title="Modifier le proforma"
-                          >
-                            ✏️ Modifier
-                          </button>
-                          
-                          <button
-                            onClick={() => {
-                              const proformaId = proforma.nfact || proforma.nfprof || (proforma as any).id;
-                              if (confirm(`Êtes-vous sûr de vouloir supprimer le proforma ${proformaId} ?`)) {
-                                alert('Fonction de suppression à implémenter');
-                              }
-                            }}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: 'var(--error-color)',
-                              color: 'var(--text-inverse)',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              fontWeight: 'bold',
-                              minWidth: '70px'
-                            }}
-                            title="Supprimer le proforma"
-                          >
-                            🗑️ Supprimer
-                          </button>
-                        </div>
-                        
-                        {/* Deuxième ligne - Actions d'impression */}
-                        <div style={{
-                          display: 'flex',
-                          gap: '5px',
-                          justifyContent: 'center',
-                          flexWrap: 'wrap'
-                        }}>
-                          <button
-                            onClick={() => {
-                              const proformaId = proforma.nfact || proforma.nfprof || (proforma as any).id;
-                              window.open(`/api/pdf/proforma/${proformaId}`, '_blank');
-                            }}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: 'var(--primary-color)',
-                              color: 'var(--text-inverse)',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              fontWeight: 'bold',
-                              minWidth: '120px'
-                            }}
-                            title="Imprimer Proforma PDF"
-                          >
-                            📄 Imprimer Proforma
-                          </button>
-                          
-                          {/* WhatsApp Button */}
-                          <div style={{ minWidth: '150px' }}>
-                            <PrintOptions
-                              documentType="proforma"
-                              documentId={proforma.nfact || proforma.nfprof || (proforma as any).id}
-                              documentNumber={proforma.nfact || proforma.nfprof || (proforma as any).id}
-                              clientName={(proforma as any).client_name || (proforma as any).clientName || proforma.nclient || 'Client'}
-                              isModal={false}
-                              whatsappOnly={true}
-                            />
-                          </div>
-                        </div>
-                      </div>
+                    <td style={{ padding: '6px 12px', fontSize: '13px', color: 'var(--text-primary)' }}>{new Date(proforma.date_fact).toLocaleDateString('fr-FR')}</td>
+                    <td style={{ padding: '6px 12px', fontSize: '13px', textAlign: 'right', fontWeight: 'bold', color: 'var(--text-primary)' }}>{parseFloat(proforma.montant_ht?.toString() || '0').toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
+                    <td style={{ padding: '6px 12px', fontSize: '13px', textAlign: 'right', color: 'var(--text-primary)' }}>{parseFloat(proforma.tva?.toString() || '0').toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
+                    <td style={{ padding: '6px 12px', fontSize: '13px', textAlign: 'right', fontWeight: 'bold', color: 'var(--success-color)' }}>{(parseFloat(proforma.montant_ht?.toString() || '0') + parseFloat(proforma.tva?.toString() || '0')).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} DA</td>
+                    <td style={{ padding: '6px 12px', textAlign: 'center' }}>
+                      <ProformaActions
+                        proformaId={proforma.nfact || proforma.nfprof || (proforma as any).id}
+                        clientName={proforma.client_name || proforma.nclient}
+                      />
                     </td>
                   </tr>
                 ))}

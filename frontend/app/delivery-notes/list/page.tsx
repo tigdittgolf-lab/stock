@@ -41,6 +41,10 @@ export default function DeliveryNotesList() {
   
   // État pour stocker les statuts de paiement
   const [paymentStatuses, setPaymentStatuses] = useState<Record<number, string>>({});
+  
+  // États pour la pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
 
   useEffect(() => {
     // Détecter si on est sur mobile
@@ -286,7 +290,22 @@ export default function DeliveryNotesList() {
   // Effet pour appliquer les filtres quand ils changent
   useEffect(() => {
     applyFilters();
+    setCurrentPage(1); // Réinitialiser à la page 1 quand les filtres changent
   }, [applyFilters]);
+  
+  // Calculer la pagination
+  const totalPages = Math.ceil(filteredDeliveryNotes.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedDeliveryNotes = filteredDeliveryNotes.slice(startIndex, endIndex);
+  
+  // Fonction pour changer de page
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   // Fonction pour réinitialiser les filtres
   const resetFilters = () => {
@@ -297,6 +316,7 @@ export default function DeliveryNotesList() {
     setMaxAmount('');
     setSelectedClient('');
     setPaymentStatus('all');
+    setCurrentPage(1);
   };
 
   // Obtenir la liste unique des clients pour le filtre
@@ -335,7 +355,7 @@ export default function DeliveryNotesList() {
   // Version mobile avec cartes
   const MobileView = () => (
     <div style={{ padding: '10px' }}>
-      {filteredDeliveryNotes.map((bl, index) => {
+      {paginatedDeliveryNotes.map((bl, index) => {
         // DEBUG: Logs détaillés pour diagnostiquer le problème
         console.log(`🔍 MOBILE BL ${index} RAW DATA:`, {
           bl: bl,
@@ -666,17 +686,17 @@ export default function DeliveryNotesList() {
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ background: 'var(--background-secondary)', borderBottom: '2px solid var(--border-color)' }}>
-            <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold', color: 'var(--text-primary)' }}>N° BL</th>
-            <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold', color: 'var(--text-primary)' }}>Client</th>
-            <th style={{ padding: '15px', textAlign: 'left', fontWeight: 'bold', color: 'var(--text-primary)' }}>Date</th>
-            <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: 'var(--text-primary)' }}>Montant HT</th>
-            <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: 'var(--text-primary)' }}>TVA</th>
-            <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: 'var(--text-primary)' }}>Total TTC</th>
-            <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', minWidth: '150px', color: 'var(--text-primary)' }}>Actions</th>
+            <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: 'var(--text-primary)', fontSize: '13px' }}>N° BL</th>
+            <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: 'var(--text-primary)', fontSize: '13px' }}>Client</th>
+            <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: 'var(--text-primary)', fontSize: '13px' }}>Date</th>
+            <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: 'var(--text-primary)', fontSize: '13px' }}>Montant HT</th>
+            <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: 'var(--text-primary)', fontSize: '13px' }}>TVA</th>
+            <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: 'var(--text-primary)', fontSize: '13px' }}>Total TTC</th>
+            <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: '600', minWidth: '150px', color: 'var(--text-primary)', fontSize: '13px' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {filteredDeliveryNotes.map((bl, index) => {
+          {paginatedDeliveryNotes.map((bl, index) => {
             // DEBUG: Logs détaillés pour diagnostiquer le problème
             console.log(`🔍 DESKTOP BL ${index} RAW DATA:`, {
               bl: bl,
@@ -715,28 +735,28 @@ export default function DeliveryNotesList() {
                   backgroundColor: index % 2 === 0 ? 'var(--card-background)' : 'var(--background-secondary)'
                 }}
               >
-                <td style={{ padding: '15px', fontWeight: 'bold', color: 'var(--primary-color)' }}>
+                <td style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 'bold', color: 'var(--primary-color)' }}>
                   {displayId}
                 </td>
-                <td style={{ padding: '15px' }}>
-                  <div>
+                <td style={{ padding: '6px 12px', fontSize: '13px' }}>
+                  <div style={{ lineHeight: '1.3' }}>
                     <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{bl.client_name}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{bl.nclient}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{bl.nclient}</div>
                   </div>
                 </td>
-                <td style={{ padding: '15px', color: 'var(--text-primary)' }}>
+                <td style={{ padding: '6px 12px', fontSize: '13px', color: 'var(--text-primary)' }}>
                   {formatDate(bl.date_fact)}
                 </td>
-                <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                <td style={{ padding: '6px 12px', fontSize: '13px', textAlign: 'right', fontWeight: 'bold', color: 'var(--text-primary)' }}>
                   {formatAmount(bl.montant_ht)}
                 </td>
-                <td style={{ padding: '15px', textAlign: 'right', color: 'var(--text-primary)' }}>
+                <td style={{ padding: '6px 12px', fontSize: '13px', textAlign: 'right', color: 'var(--text-primary)' }}>
                   {formatAmount(bl.tva)}
                 </td>
-                <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: 'var(--success-color)' }}>
+                <td style={{ padding: '6px 12px', fontSize: '13px', textAlign: 'right', fontWeight: 'bold', color: 'var(--success-color)' }}>
                   {formatAmount(bl.montant_ttc || (bl.montant_ht + bl.tva))}
                 </td>
-                <td style={{ padding: '15px', textAlign: 'center' }}>
+                <td style={{ padding: '6px 12px', textAlign: 'center' }}>
                   <DeliveryNoteActions
                     validId={validId}
                     displayId={displayId}
@@ -1173,50 +1193,66 @@ export default function DeliveryNotesList() {
             flexWrap: 'wrap'
           }}>
             {/* Nombre de BL */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: isMobile ? '13px' : '14px'
-            }}>
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: isMobile ? '13px' : '14px',
+                cursor: 'help'
+              }}
+              title="Nombre de Bons de Livraison affichés"
+            >
               <span style={{ opacity: 0.9 }}>📋</span>
               <span style={{ fontWeight: '600' }}>{calculateTotals().count}</span>
               <span style={{ opacity: 0.8 }}>BL</span>
             </div>
 
             {/* Total HT */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: isMobile ? '13px' : '14px'
-            }}>
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: isMobile ? '13px' : '14px',
+                cursor: 'help'
+              }}
+              title="Total Hors Taxes"
+            >
               <span style={{ opacity: 0.9 }}>💰</span>
               <span style={{ fontWeight: '600' }}>{formatAmount(calculateTotals().totalHT)}</span>
             </div>
 
             {/* Total TVA */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: isMobile ? '13px' : '14px'
-            }}>
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: isMobile ? '13px' : '14px',
+                cursor: 'help'
+              }}
+              title="Total TVA (Taxe sur la Valeur Ajoutée)"
+            >
               <span style={{ opacity: 0.9 }}>🏛️</span>
               <span style={{ fontWeight: '600' }}>{formatAmount(calculateTotals().totalTVA)}</span>
             </div>
 
             {/* Total TTC */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              background: 'rgba(255,255,255,0.2)',
-              borderRadius: '6px',
-              fontSize: isMobile ? '14px' : '15px',
-              fontWeight: '700'
-            }}>
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                background: 'rgba(255,255,255,0.2)',
+                borderRadius: '6px',
+                fontSize: isMobile ? '14px' : '15px',
+                fontWeight: '700',
+                cursor: 'help'
+              }}
+              title="Total Toutes Taxes Comprises"
+            >
               <span>💎</span>
               <span>{formatAmount(calculateTotals().totalTTC)}</span>
             </div>
@@ -1275,7 +1311,178 @@ export default function DeliveryNotesList() {
       )}
 
       {!loading && !error && filteredDeliveryNotes.length > 0 && (
-        isMobile ? <MobileView /> : <DesktopView />
+        <>
+          {isMobile ? <MobileView /> : <DesktopView />}
+          
+          {/* Pagination */}
+          <div style={{
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            justifyContent: 'space-between',
+            alignItems: isMobile ? 'stretch' : 'center',
+            gap: '16px',
+            marginTop: '16px',
+            padding: '16px',
+            background: 'var(--card-background)',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)'
+          }}>
+            {/* Info pagination */}
+            <div style={{
+              fontSize: '13px',
+              color: 'var(--text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              flexWrap: 'wrap'
+            }}>
+              <span>
+                Affichage de <strong style={{ color: 'var(--text-primary)' }}>{startIndex + 1}</strong> à{' '}
+                <strong style={{ color: 'var(--text-primary)' }}>{Math.min(endIndex, filteredDeliveryNotes.length)}</strong> sur{' '}
+                <strong style={{ color: 'var(--text-primary)' }}>{filteredDeliveryNotes.length}</strong> résultats
+              </span>
+              
+              {/* Sélecteur nombre par page */}
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                style={{
+                  padding: '6px 10px',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  background: 'var(--background)',
+                  color: 'var(--text-primary)',
+                  fontSize: '13px',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value={25}>25 / page</option>
+                <option value={50}>50 / page</option>
+                <option value={100}>100 / page</option>
+                <option value={200}>200 / page</option>
+              </select>
+            </div>
+            
+            {/* Boutons de navigation */}
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              justifyContent: isMobile ? 'center' : 'flex-end',
+              flexWrap: 'wrap'
+            }}>
+              <button
+                onClick={() => goToPage(1)}
+                disabled={currentPage === 1}
+                style={{
+                  padding: '8px 12px',
+                  background: currentPage === 1 ? 'var(--background-secondary)' : 'var(--primary-color)',
+                  color: currentPage === 1 ? 'var(--text-secondary)' : 'var(--text-inverse)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '600'
+                }}
+              >
+                ⏮️ Début
+              </button>
+              
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                style={{
+                  padding: '8px 12px',
+                  background: currentPage === 1 ? 'var(--background-secondary)' : 'var(--primary-color)',
+                  color: currentPage === 1 ? 'var(--text-secondary)' : 'var(--text-inverse)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '600'
+                }}
+              >
+                ◀️ Préc
+              </button>
+              
+              {/* Numéros de pages */}
+              <div style={{
+                display: 'flex',
+                gap: '4px',
+                alignItems: 'center'
+              }}>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => goToPage(pageNum)}
+                      style={{
+                        padding: '8px 12px',
+                        background: currentPage === pageNum ? 'var(--primary-color)' : 'var(--background-secondary)',
+                        color: currentPage === pageNum ? 'var(--text-inverse)' : 'var(--text-primary)',
+                        border: currentPage === pageNum ? 'none' : '1px solid var(--border-color)',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: currentPage === pageNum ? '700' : '500',
+                        minWidth: '36px'
+                      }}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                style={{
+                  padding: '8px 12px',
+                  background: currentPage === totalPages ? 'var(--background-secondary)' : 'var(--primary-color)',
+                  color: currentPage === totalPages ? 'var(--text-secondary)' : 'var(--text-inverse)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '600'
+                }}
+              >
+                Suiv ▶️
+              </button>
+              
+              <button
+                onClick={() => goToPage(totalPages)}
+                disabled={currentPage === totalPages}
+                style={{
+                  padding: '8px 12px',
+                  background: currentPage === totalPages ? 'var(--background-secondary)' : 'var(--primary-color)',
+                  color: currentPage === totalPages ? 'var(--text-secondary)' : 'var(--text-inverse)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '600'
+                }}
+              >
+                Fin ⏭️
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       <style jsx>{`

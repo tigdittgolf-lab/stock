@@ -2,23 +2,16 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import PrintOptions from './PrintOptions';
 
-interface DeliveryNoteActionsProps {
-  validId: number;
-  displayId: number;
+interface ProformaActionsProps {
+  proformaId: number;
   clientName: string;
-  clientId: string;
-  onOpenPDF: (id: number, type: 'complete' | 'small' | 'ticket') => void;
 }
 
-export default function DeliveryNoteActions({
-  validId,
-  displayId,
-  clientName,
-  clientId,
-  onOpenPDF
-}: DeliveryNoteActionsProps) {
+export default function ProformaActions({
+  proformaId,
+  clientName
+}: ProformaActionsProps) {
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
   const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
@@ -34,12 +27,11 @@ export default function DeliveryNoteActions({
       const spaceBelow = viewportHeight - buttonRect.bottom;
       const spaceAbove = buttonRect.top;
       
-      // Marges de sécurité
       const margin = 20;
       const menuWidth = 220;
       
       let style: React.CSSProperties = {
-        position: 'fixed', // Fixed au lieu d'absolute pour positionner par rapport au viewport
+        position: 'fixed',
         backgroundColor: 'var(--card-background)',
         border: '2px solid var(--border-color)',
         borderRadius: '8px',
@@ -52,17 +44,13 @@ export default function DeliveryNoteActions({
         scrollbarColor: 'var(--primary-color) var(--background-secondary)'
       };
       
-      // Position horizontale : aligner à droite du bouton
       const rightPosition = viewportWidth - buttonRect.right;
       style.right = `${rightPosition}px`;
       
-      // Position verticale : toujours visible dans le viewport
       if (spaceBelow >= spaceAbove) {
-        // Plus d'espace en bas : ouvrir vers le bas
         style.top = `${buttonRect.bottom + 4}px`;
         style.maxHeight = `${spaceBelow - margin}px`;
       } else {
-        // Plus d'espace en haut : ouvrir vers le haut
         style.bottom = `${viewportHeight - buttonRect.top + 4}px`;
         style.maxHeight = `${spaceAbove - margin}px`;
       }
@@ -71,7 +59,6 @@ export default function DeliveryNoteActions({
     }
   }, [showMenu]);
 
-  // Fermer le menu si on clique en dehors
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -95,11 +82,14 @@ export default function DeliveryNoteActions({
       justifyContent: 'center',
       alignItems: 'center'
     }}>
-      {/* Bouton Voir - Action principale */}
       <button
         onClick={() => {
-          console.log(`🔗 Navigating to details with REAL ID: ${validId} for BL ${displayId}`);
-          router.push(`/delivery-notes/${validId}`);
+          if (!proformaId || proformaId === undefined) {
+            console.error('❌ ID proforma invalide:', proformaId);
+            alert(`Erreur: ID du proforma non trouvé`);
+            return;
+          }
+          router.push(`/proforma/${proformaId}`);
         }}
         style={{
           padding: '8px 16px',
@@ -117,12 +107,11 @@ export default function DeliveryNoteActions({
         }}
         onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
         onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-        title={`Voir les détails du BL ${displayId}`}
+        title={`Voir les détails du proforma ${proformaId}`}
       >
         👁️ Voir
       </button>
       
-      {/* Menu déroulant pour les autres actions */}
       <div ref={menuRef} style={{ position: 'relative', display: 'inline-block' }}>
         <button
           ref={buttonRef}
@@ -148,14 +137,11 @@ export default function DeliveryNoteActions({
           ⋮
         </button>
         
-        {/* Menu déroulant */}
         {showMenu && (
           <div style={menuStyle}>
-            {/* Modifier */}
             <button
               onClick={() => {
-                console.log(`✏️ Navigating to edit with REAL ID: ${validId} for BL ${displayId}`);
-                router.push(`/delivery-notes/${validId}/edit`);
+                router.push(`/proforma/${proformaId}/edit`);
                 setShowMenu(false);
               }}
               style={{
@@ -180,138 +166,6 @@ export default function DeliveryNoteActions({
               ✏️ Modifier
             </button>
             
-            {/* Divider - PDF */}
-            <div style={{
-              padding: '8px 16px',
-              fontSize: '11px',
-              fontWeight: '600',
-              color: 'var(--text-secondary)',
-              backgroundColor: 'var(--background-secondary)',
-              borderBottom: '1px solid var(--border-color)'
-            }}>
-              📄 IMPRIMER
-            </div>
-            
-            {/* BL Complet */}
-            <button
-              onClick={() => {
-                console.log(`📄 PDF Complet - Using REAL ID: ${validId} for BL ${displayId}`);
-                onOpenPDF(validId, 'complete');
-                setShowMenu(false);
-              }}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                backgroundColor: 'transparent',
-                color: 'var(--text-primary)',
-                border: 'none',
-                borderBottom: '1px solid var(--border-color)',
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: '500',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                transition: 'background-color 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-color-light)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              📄 BL Complet
-            </button>
-            
-            {/* BL Réduit */}
-            <button
-              onClick={() => {
-                console.log(`📄 PDF Réduit - Using REAL ID: ${validId} for BL ${displayId}`);
-                onOpenPDF(validId, 'small');
-                setShowMenu(false);
-              }}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                backgroundColor: 'transparent',
-                color: 'var(--text-primary)',
-                border: 'none',
-                borderBottom: '1px solid var(--border-color)',
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: '500',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                transition: 'background-color 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-color-light)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              📄 BL Réduit
-            </button>
-            
-            {/* Ticket */}
-            <button
-              onClick={() => {
-                console.log(`🎫 PDF Ticket - Using REAL ID: ${validId} for BL ${displayId}`);
-                onOpenPDF(validId, 'ticket');
-                setShowMenu(false);
-              }}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                backgroundColor: 'transparent',
-                color: 'var(--text-primary)',
-                border: 'none',
-                borderBottom: '1px solid var(--border-color)',
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: '500',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                transition: 'background-color 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-color-light)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              🎫 Ticket
-            </button>
-            
-            {/* Divider - Partage */}
-            <div style={{
-              padding: '8px 16px',
-              fontSize: '11px',
-              fontWeight: '600',
-              color: 'var(--text-secondary)',
-              backgroundColor: 'var(--background-secondary)',
-              borderBottom: '1px solid var(--border-color)'
-            }}>
-              📱 PARTAGER
-            </div>
-            
-            {/* WhatsApp */}
-            <div
-              style={{
-                width: '100%',
-                padding: '0'
-              }}
-            >
-              <div style={{ padding: '4px 8px' }}>
-                <PrintOptions
-                  documentType="bl"
-                  documentId={validId}
-                  documentNumber={displayId}
-                  clientName={clientName}
-                  clientId={clientId}
-                  isModal={false}
-                  whatsappOnly={true}
-                />
-              </div>
-            </div>
-            
-            {/* Divider - Danger */}
             <div style={{
               padding: '8px 16px',
               fontSize: '11px',
@@ -323,10 +177,9 @@ export default function DeliveryNoteActions({
               ⚠️ DANGER
             </div>
             
-            {/* Supprimer */}
             <button
               onClick={() => {
-                if (confirm(`Êtes-vous sûr de vouloir supprimer le BL ${displayId} ?`)) {
+                if (confirm(`Êtes-vous sûr de vouloir supprimer le proforma ${proformaId} ?`)) {
                   alert('Fonction de suppression à implémenter');
                 }
                 setShowMenu(false);

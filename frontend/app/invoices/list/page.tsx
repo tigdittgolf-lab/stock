@@ -6,6 +6,7 @@ import PrintOptions from '../../../components/PrintOptions';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import ErrorMessage from '../../../components/ErrorMessage';
 import EmptyState from '../../../components/EmptyState';
+import InvoiceActions from '../../../components/InvoiceActions';
 
 interface Invoice {
   nfact: number;
@@ -519,150 +520,37 @@ export default function InvoicesList() {
             <tr 
               key={fact.nfact || index}
               style={{ 
-                borderBottom: '1px solid #dee2e6',
-                backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa'
+                borderBottom: '1px solid var(--border-color)',
+                backgroundColor: index % 2 === 0 ? 'var(--card-background)' : 'var(--background-secondary)'
               }}
             >
-              <td style={{ padding: '15px', fontWeight: 'bold', color: '#28a745' }}>
+              <td style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 'bold', color: 'var(--primary-color)' }}>
                 Facture {fact.nfact}
               </td>
-              <td style={{ padding: '15px' }}>
-                <div>
-                  <div style={{ fontWeight: 'bold' }}>{fact.client_name || 'Client'}</div>
-                  <div style={{ fontSize: '12px', color: '#666' }}>Code: {fact.nclient}</div>
+              <td style={{ padding: '6px 12px', fontSize: '13px' }}>
+                <div style={{ lineHeight: '1.3' }}>
+                  <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{fact.client_name || 'Client'}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Code: {fact.nclient}</div>
                 </div>
               </td>
-              <td style={{ padding: '15px' }}>
+              <td style={{ padding: '6px 12px', fontSize: '13px', color: 'var(--text-primary)' }}>
                 {formatDate(fact.date_fact)}
               </td>
-              <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>
+              <td style={{ padding: '6px 12px', fontSize: '13px', textAlign: 'right', fontWeight: 'bold', color: 'var(--text-primary)' }}>
                 {formatAmount(fact.montant_ht)}
               </td>
-              <td style={{ padding: '15px', textAlign: 'right' }}>
+              <td style={{ padding: '6px 12px', fontSize: '13px', textAlign: 'right', color: 'var(--text-primary)' }}>
                 {formatAmount(fact.tva)}
               </td>
-              <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: '#28a745' }}>
+              <td style={{ padding: '6px 12px', fontSize: '13px', textAlign: 'right', fontWeight: 'bold', color: 'var(--success-color)' }}>
                 {formatAmount(fact.montant_ttc || (fact.montant_ht + fact.tva))}
               </td>
-              <td style={{ padding: '15px', textAlign: 'center' }}>
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  alignItems: 'center'
-                }}>
-                  {/* Première ligne - Actions principales */}
-                  <div style={{
-                    display: 'flex',
-                    gap: '5px',
-                    justifyContent: 'center',
-                    flexWrap: 'wrap'
-                  }}>
-                    <button
-                      onClick={() => {
-                        router.push(`/invoices/details/${fact.nfact}`);
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#17a2b8',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        minWidth: '70px'
-                      }}
-                      title="Voir les détails de la facture"
-                    >
-                      👁️ Voir
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        router.push(`/invoices/${fact.nfact}/edit`);
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#28a745',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        minWidth: '70px'
-                      }}
-                      title="Modifier la facture"
-                    >
-                      ✏️ Modifier
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        if (confirm(`Êtes-vous sûr de vouloir supprimer la facture ${fact.nfact} ?`)) {
-                          alert('Fonction de suppression à implémenter');
-                        }
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: 'var(--error-color)',
-                        color: 'var(--text-inverse)',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        minWidth: '70px'
-                      }}
-                      title="Supprimer la facture"
-                    >
-                      🗑️ Supprimer
-                    </button>
-                  </div>
-                  
-                  {/* Deuxième ligne - Actions d'impression */}
-                  <div style={{
-                    display: 'flex',
-                    gap: '5px',
-                    justifyContent: 'center',
-                    flexWrap: 'wrap'
-                  }}>
-                    <button
-                      onClick={() => {
-                        console.log(`📄 PDF Invoice - ID: ${fact.nfact}`);
-                        openPDFPreview(fact.nfact, 'invoice');
-                      }}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: 'var(--success-color)',
-                        color: 'var(--text-inverse)',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        minWidth: '120px'
-                      }}
-                      title="Imprimer Facture PDF"
-                    >
-                      📄 Imprimer Facture
-                    </button>
-                    
-                    {/* WhatsApp Button */}
-                    <div style={{ minWidth: '150px' }}>
-                      <PrintOptions
-                        documentType="invoice"
-                        documentId={fact.nfact}
-                        documentNumber={fact.nfact}
-                        clientName={fact.client_name}
-                        clientId={fact.nclient}
-                        isModal={false}
-                        whatsappOnly={true}
-                      />
-                    </div>
-                  </div>
-                </div>
+              <td style={{ padding: '6px 12px', textAlign: 'center' }}>
+                <InvoiceActions
+                  invoiceId={fact.nfact}
+                  clientName={fact.client_name}
+                  onOpenPDF={openPDFPreview}
+                />
               </td>
             </tr>
           ))}
