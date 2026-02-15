@@ -3537,27 +3537,52 @@ sales.get('/purchases/invoices', async (c) => {
 // Get all purchase delivery notes
 sales.get('/purchases/delivery-notes', async (c) => {
   try {
-    const { data, error } = await databaseRouter
+    // Récupérer les BL d'achat depuis bachat
+    const { data: bachatData, error: bachatError } = await databaseRouter
       .from('bachat')
-      .select(`
-        *,
-        fournisseur!fk_bachat_fournisseur(nfournisseur, nom_fournisseur),
-        bachat_detail:bachat_detail(
-          id,
-          narticle,
-          qte,
-          tva,
-          prix,
-          total_ligne,
-          facturer,
-          article:article(narticle, designation)
-        )
-      `)
+      .select('*')
       .order('date_fact', { ascending: false });
 
-    if (error) throw error;
+    if (bachatError) throw bachatError;
 
-    return c.json({ success: true, data, database_type: backendDatabaseService.getActiveDatabaseType() });
+    // Pour chaque BL, récupérer les détails et enrichir avec les infos fournisseur et article
+    const enrichedData = await Promise.all((bachatData || []).map(async (bl) => {
+      // Récupérer les détails du BL
+      const { data: details, error: detailsError } = await databaseRouter
+        .from('bachat_detail')
+        .select('*')
+        .eq('NFact', bl.nfact)
+        .eq('nfournisseur', bl.nfournisseur);
+
+      // Récupérer les infos fournisseur
+      const { data: fournisseur } = await databaseRouter
+        .from('fournisseur')
+        .select('nfournisseur, nom_fournisseur')
+        .eq('nfournisseur', bl.nfournisseur)
+        .single();
+
+      // Enrichir chaque détail avec les infos article
+      const enrichedDetails = await Promise.all((details || []).map(async (detail) => {
+        const { data: article } = await databaseRouter
+          .from('article')
+          .select('narticle, designation')
+          .eq('narticle', detail.Narticle)
+          .single();
+
+        return {
+          ...detail,
+          article: article || { narticle: detail.Narticle, designation: '' }
+        };
+      }));
+
+      return {
+        ...bl,
+        fournisseur: fournisseur || { nfournisseur: bl.nfournisseur, nom_fournisseur: '' },
+        bachat_detail: enrichedDetails
+      };
+    }));
+
+    return c.json({ success: true, data: enrichedData, database_type: backendDatabaseService.getActiveDatabaseType() });
   } catch (error) {
     console.error('Error fetching purchase delivery notes:', error);
     return c.json({ success: false, error: 'Failed to fetch purchase delivery notes' }, 500);
@@ -3570,8 +3595,8 @@ sales.post('/purchases/invoices', async (c) => {
     const body = await c.req.json();
     const { Nfournisseur, date_fact, fachat_detail, ...invoiceData } = body;
 
-    // Get next purchase invoice number
-    const { data: maxFact, error: maxError } = await supabaseAdmin
+    // Get next purchase invoice number - utiliser la valeur string directement
+    const { data: maxFact, error: maxError } = await databaseRouter
       .from('fachat')
       .select('nfact')
       .order('nfact', { ascending: false })
@@ -3579,7 +3604,12 @@ sales.post('/purchases/invoices', async (c) => {
 
     if (maxError) throw maxError;
 
-    const nextNFact = (maxFact && maxFact.length > 0 && maxFact[0]?.nfact) ? maxFact[0].nfact + 1 : 1;
+    // Générer le prochain numéro (format string)
+    let nextNFact = '1';
+    if (maxFact && maxFact.length > 0 && maxFact[0]?.nfact) {
+      const currentNum = parseInt(maxFact[0].nfact) || 0;
+      nextNFact = String(currentNum + 1);
+    }
 
     // Calculate totals
     let montant_ht = 0;
@@ -3594,28 +3624,30 @@ sales.post('/purchases/invoices', async (c) => {
       TVA += tva_amount;
 
       processedDetails.push({
-        nfact: nextNFact,
-        narticle: detail.Narticle,
-        qte: detail.Qte,
-        tva: detail.tva,
-        prix: detail.prix,
-        total_ligne: total_ligne
+        NFact: nextNFact,
+        nfournisseur: Nfournisseur,
+        Narticle: detail.Narticle,
+        Qte: String(detail.Qte),
+        tva: String(detail.tva),
+        prix: String(detail.prix),
+        total_ligne: String(total_ligne)
       });
     }
 
-    // Create purchase invoice header
+    // Create purchase invoice header - adapter aux types MySQL
     const invoice = {
       nfact: nextNFact,
+      date_fact: date_fact || new Date().toISOString().split('T')[0],
       nfournisseur: Nfournisseur,
-      date_fact,
       montant_ht,
-      timbre: 0,
+      ncheque: invoiceData.ncheque || null,
+      banque: invoiceData.banque || null,
       tva: TVA,
-      autre_taxe: 0,
-      ...invoiceData
+      timbre: invoiceData.timbre || 0,
+      autre_taxe: invoiceData.autre_taxe || 0
     };
 
-    const { data: invoiceData_result, error: invoiceError } = await supabaseAdmin
+    const { data: invoiceData_result, error: invoiceError } = await databaseRouter
       .from('fachat')
       .insert(invoice)
       .select()
@@ -3624,23 +3656,27 @@ sales.post('/purchases/invoices', async (c) => {
     if (invoiceError) throw invoiceError;
 
     // Create purchase invoice details
-    const { data: detailsData, error: detailsError } = await supabaseAdmin
+    const { data: detailsData, error: detailsError } = await databaseRouter
       .from('fachat_detail')
       .insert(processedDetails)
       .select();
 
     if (detailsError) throw detailsError;
 
-    // Update stock levels
+    // Mettre à jour le stock (stock_f pour les factures)
     for (const detail of processedDetails) {
-      const { error: stockError } = await databaseRouter.rpc('update_stock_on_purchase', {
-        p_narticle: detail.narticle,
-        p_quantity: detail.qte
-      });
+      const { data: currentArticle } = await databaseRouter
+        .from('article')
+        .select('stock_f')
+        .eq('narticle', detail.Narticle)
+        .single();
 
-      if (stockError) {
-        console.error('Error updating stock:', stockError);
-        // Continue processing but log error
+      if (currentArticle) {
+        const newStock = (currentArticle.stock_f || 0) + parseInt(detail.Qte);
+        await databaseRouter
+          .from('article')
+          .update({ stock_f: newStock })
+          .eq('narticle', detail.Narticle);
       }
     }
 
@@ -3660,8 +3696,8 @@ sales.post('/purchases/delivery-notes', async (c) => {
     const body = await c.req.json();
     const { Nfournisseur, date_fact, bachat_detail, ...blData } = body;
 
-    // Get next purchase BL number
-    const { data: maxBl, error: maxError } = await supabaseAdmin
+    // Get next purchase BL number - utiliser la valeur string directement
+    const { data: maxBl, error: maxError } = await databaseRouter
       .from('bachat')
       .select('nfact')
       .order('nfact', { ascending: false })
@@ -3669,7 +3705,12 @@ sales.post('/purchases/delivery-notes', async (c) => {
 
     if (maxError) throw maxError;
 
-    const nextNBl = (maxBl && maxBl.length > 0 && maxBl[0]?.nfact) ? maxBl[0].nfact + 1 : 1;
+    // Générer le prochain numéro (format string)
+    let nextNBl = '1';
+    if (maxBl && maxBl.length > 0 && maxBl[0]?.nfact) {
+      const currentNum = parseInt(maxBl[0].nfact) || 0;
+      nextNBl = String(currentNum + 1);
+    }
 
     // Calculate totals
     let montant_ht = 0;
@@ -3685,33 +3726,29 @@ sales.post('/purchases/delivery-notes', async (c) => {
 
       processedDetails.push({
         NFact: nextNBl,
+        nfournisseur: Nfournisseur,
         Narticle: detail.Narticle,
         Qte: detail.Qte,
         tva: detail.tva,
         prix: detail.prix,
-        total_ligne: total_ligne,
-        facturer: detail.facturer || false,
-        tenant_id: 'default', // Default tenant (max 20 chars)
-        year: new Date().getFullYear()
+        total_ligne: total_ligne
       });
     }
 
-    // Create purchase BL header with default tenant_id and year
+    // Create purchase BL header - adapter aux types MySQL
     const bl = {
       nfact: nextNBl,
+      date_fact: date_fact || new Date().toISOString().split('T')[0],
       nfournisseur: Nfournisseur,
-      date_fact,
       montant_ht,
-      timbre: 0,
+      ncheque: blData.ncheque || null,
+      banque: blData.banque || null,
       tva: TVA,
-      autre_taxe: 0,
-      facturer: false,
-      tenant_id: 'default', // Default tenant (max 20 chars)
-      year: new Date().getFullYear(),
-      ...blData
+      timbre: blData.timbre || 0,
+      autre_taxe: blData.autre_taxe || 0
     };
 
-    const { data: blData_result, error: blError } = await supabaseAdmin
+    const { data: blData_result, error: blError } = await databaseRouter
       .from('bachat')
       .insert(bl)
       .select()
@@ -3720,12 +3757,29 @@ sales.post('/purchases/delivery-notes', async (c) => {
     if (blError) throw blError;
 
     // Create purchase BL details
-    const { data: detailsData, error: detailsError } = await supabaseAdmin
+    const { data: detailsData, error: detailsError } = await databaseRouter
       .from('bachat_detail')
       .insert(processedDetails)
       .select();
 
     if (detailsError) throw detailsError;
+
+    // Mettre à jour le stock (stock_bl)
+    for (const detail of processedDetails) {
+      const { data: currentArticle } = await databaseRouter
+        .from('article')
+        .select('stock_bl')
+        .eq('narticle', detail.Narticle)
+        .single();
+
+      if (currentArticle) {
+        const newStock = (currentArticle.stock_bl || 0) + detail.Qte;
+        await databaseRouter
+          .from('article')
+          .update({ stock_bl: newStock })
+          .eq('narticle', detail.Narticle);
+      }
+    }
 
     return c.json({
       success: true,
@@ -3743,39 +3797,25 @@ sales.post('/purchases/convert-bl/:id', async (c) => {
     const blId = c.req.param('id');
 
     // Get purchase BL data
-    const { data: blData, error: blError } = await supabaseAdmin
+    const { data: blData, error: blError } = await databaseRouter
       .from('bachat')
-      .select(`
-        *,
-        bachat_detail:bachat_detail(*, article:article(*))
-      `)
+      .select('*')
       .eq('nfact', blId)
       .single();
 
     if (blError) throw blError;
 
-    // Create purchase invoice from BL data
-    const invoiceData = {
-      nfournisseur: blData.nfournisseur,
-      date_fact: new Date().toISOString().split('T')[0],
-      montant_ht: blData.montant_ht,
-      timbre: blData.timbre,
-      tva: blData.tva,
-      autre_taxe: blData.autre_taxe
-    };
+    // Get BL details
+    const { data: blDetails, error: detailsError } = await databaseRouter
+      .from('bachat_detail')
+      .select('*')
+      .eq('NFact', blId)
+      .eq('nfournisseur', blData.nfournisseur);
 
-    const invoicePayload = {
-      ...invoiceData,
-      fachat_detail: blData.bachat_detail.map((detail: any) => ({
-        narticle: detail.narticle,
-        qte: detail.qte,
-        tva: detail.tva,
-        prix: detail.prix
-      }))
-    };
+    if (detailsError) throw detailsError;
 
-    // Create purchase invoice directly
-    const { data: maxFact, error: maxError } = await supabaseAdmin
+    // Get next purchase invoice number
+    const { data: maxFact, error: maxError } = await databaseRouter
       .from('fachat')
       .select('nfact')
       .order('nfact', { ascending: false })
@@ -3783,14 +3823,27 @@ sales.post('/purchases/convert-bl/:id', async (c) => {
 
     if (maxError) throw maxError;
 
-    const nextNFact = (maxFact && maxFact.length > 0 && maxFact[0]?.nfact) ? maxFact[0].nfact + 1 : 1;
+    // Générer le prochain numéro (format string)
+    let nextNFact = '1';
+    if (maxFact && maxFact.length > 0 && maxFact[0]?.nfact) {
+      const currentNum = parseInt(maxFact[0].nfact) || 0;
+      nextNFact = String(currentNum + 1);
+    }
 
+    // Create purchase invoice from BL data
     const invoice = {
       nfact: nextNFact,
-      ...invoiceData
+      date_fact: new Date().toISOString().split('T')[0],
+      nfournisseur: blData.nfournisseur,
+      montant_ht: blData.montant_ht,
+      ncheque: blData.ncheque || null,
+      banque: blData.banque || null,
+      tva: blData.tva,
+      timbre: blData.timbre || 0,
+      autre_taxe: blData.autre_taxe || 0
     };
 
-    const { data: invoiceResult, error: invoiceError } = await supabaseAdmin
+    const { data: invoiceResult, error: invoiceError } = await databaseRouter
       .from('fachat')
       .insert(invoice)
       .select()
@@ -3798,34 +3851,46 @@ sales.post('/purchases/convert-bl/:id', async (c) => {
 
     if (invoiceError) throw invoiceError;
 
-    // Create purchase invoice details
-    const processedDetails = invoicePayload.fachat_detail.map((detail: any) => ({
-      nfact: nextNFact,
-      narticle: detail.narticle,
-      qte: detail.qte,
-      tva: detail.tva,
-      prix: detail.prix,
-      total_ligne: detail.qte * detail.prix
+    // Create purchase invoice details - adapter aux types MySQL (tout en varchar)
+    const processedDetails = (blDetails || []).map((detail: any) => ({
+      NFact: nextNFact,
+      nfournisseur: blData.nfournisseur,
+      Narticle: detail.Narticle,
+      Qte: String(detail.Qte),
+      tva: String(detail.tva),
+      prix: String(detail.prix),
+      total_ligne: String(detail.total_ligne)
     }));
 
-    const { data: detailsData, error: detailsError } = await supabaseAdmin
+    const { data: detailsData, error: detailsInsertError } = await databaseRouter
       .from('fachat_detail')
       .insert(processedDetails)
       .select();
 
-    if (detailsError) throw detailsError;
+    if (detailsInsertError) throw detailsInsertError;
 
-    // Mark purchase BL as invoiced
-    await supabaseAdmin
-      .from('bachat')
-      .update({ facturer: true })
-      .eq('nfact', blId);
+    // Mettre à jour le stock (transférer de stock_bl vers stock_f)
+    for (const detail of blDetails || []) {
+      const { data: currentArticle } = await databaseRouter
+        .from('article')
+        .select('stock_bl, stock_f')
+        .eq('narticle', detail.Narticle)
+        .single();
 
-    // Mark purchase BL details as invoiced
-    await supabaseAdmin
-      .from('bachat_detail')
-      .update({ facturer: true })
-      .eq('nfact', blId);
+      if (currentArticle) {
+        const qty = parseInt(detail.Qte) || 0;
+        const newStockBl = Math.max(0, (currentArticle.stock_bl || 0) - qty);
+        const newStockF = (currentArticle.stock_f || 0) + qty;
+        
+        await databaseRouter
+          .from('article')
+          .update({ 
+            stock_bl: newStockBl,
+            stock_f: newStockF 
+          })
+          .eq('narticle', detail.Narticle);
+      }
+    }
 
     return c.json({
       success: true,

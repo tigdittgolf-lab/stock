@@ -30,73 +30,65 @@ purchases.get('/delivery-notes', async (c) => {
 
     console.log(`📋 Fetching purchase delivery notes for tenant: ${tenant}`);
 
-    // Utiliser la fonction RPC pour récupérer les BL d'achat
-    const { data: blData, error: blError } = await databaseRouter.rpc('get_purchase_bl_list', {
-      p_tenant: tenant
-    });
+    // Utiliser executeQuery directement au lieu de databaseRouter.from()
+    const bachatResult = await backendDatabaseService.executeQuery(
+      'SELECT * FROM bachat ORDER BY date_fact DESC',
+      []
+    );
 
-    if (blError) {
-      console.error('❌ Failed to fetch purchase delivery notes:', blError);
-      console.log('📋 Using fallback: returning sample purchase delivery notes');
-      
-      // Fallback avec des données d'exemple
-      const fallbackBLs = [
-        {
-          nbl_achat: 1,
-          nfournisseur: 'FOURNISSEUR 1',
-          numero_bl_fournisseur: 'BL-FOURNISSEUR-2025-001',
-          date_bl: '2025-12-16',
-          montant_ht: 12000.00,
-          tva: 2280.00,
-          total_ttc: 14280.00,
-          created_at: new Date().toISOString()
-        }
-      ];
-      
-      // Enrichir avec les données fournisseurs
-      const { data: suppliersData } = await databaseRouter.rpc('get_suppliers_by_tenant', {
-        p_tenant: tenant
-      });
-
-      const enrichedBLs = fallbackBLs.map(bl => {
-        const supplier = suppliersData?.find(s => s.nfournisseur === bl.nfournisseur);
-        return {
-          ...bl,
-          supplier_name: supplier?.nom_fournisseur || bl.nfournisseur,
-          type: 'purchase_delivery_note'
-        };
-      });
-
-      return c.json({
-        success: true,
-        data: enrichedBLs,
-        tenant: tenant,
-        source: 'fallback'
-      , database_type: backendDatabaseService.getActiveDatabaseType() });
+    if (!bachatResult.success) {
+      console.error('❌ Failed to fetch from bachat:', bachatResult.error);
+      return c.json({ 
+        success: false, 
+        error: 'Erreur lors de la récupération des BL d\'achat'
+      }, 500);
     }
 
-    // Enrichir avec les données fournisseurs
-    const { data: suppliersData } = await databaseRouter.rpc('get_suppliers_by_tenant', {
-      p_tenant: tenant
-    });
+    const bachatData = bachatResult.data;
+    console.log(`✅ Found ${bachatData?.length || 0} records in bachat table`);
 
-    const enrichedBLs = (blData || []).map(bl => {
+    // Récupérer les fournisseurs
+    const suppliersResult = await backendDatabaseService.executeQuery(
+      'SELECT * FROM fournisseur',
+      []
+    );
+
+    const suppliersData = suppliersResult.success ? suppliersResult.data : [];
+    console.log(`✅ Found ${suppliersData?.length || 0} suppliers`);
+
+    // Formater les données
+    const enrichedBLs = (bachatData || []).map(bl => {
       const supplier = suppliersData?.find(s => s.nfournisseur === bl.nfournisseur);
+      
+      const montant_ht = parseFloat(bl.montant_ht) || 0;
+      const tva = parseFloat(bl.tva) || 0;
+      const timbre = parseFloat(bl.timbre) || 0;
+      const autre_taxe = parseFloat(bl.autre_taxe) || 0;
+      const total_ttc = montant_ht + tva + timbre + autre_taxe;
+
       return {
-        ...bl,
+        nbl_achat: parseInt(bl.nfact) || 0,
+        nfournisseur: bl.nfournisseur,
+        numero_bl_fournisseur: bl.nfact,
         supplier_name: supplier?.nom_fournisseur || bl.nfournisseur,
+        date_bl: bl.date_fact,
+        montant_ht: montant_ht,
+        tva: tva,
+        total_ttc: total_ttc,
+        created_at: bl.date_fact,
         type: 'purchase_delivery_note'
       };
     });
 
-    console.log(`✅ Found ${enrichedBLs.length} purchase delivery notes for tenant ${tenant}`);
+    console.log(`✅ Returning ${enrichedBLs.length} purchase delivery notes`);
     
     return c.json({
       success: true,
       data: enrichedBLs,
       tenant: tenant,
-      source: 'database'
-    , database_type: backendDatabaseService.getActiveDatabaseType() });
+      source: 'database',
+      database_type: backendDatabaseService.getActiveDatabaseType()
+    });
 
   } catch (error) {
     console.error('❌ Error fetching purchase delivery notes:', error);
@@ -313,85 +305,94 @@ purchases.get('/delivery-notes/:id', async (c) => {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    const blId = parseInt(id);
-    if (isNaN(blId)) {
-      return c.json({ success: false, error: 'Invalid purchase BL ID' }, 400);
-    }
-
+    const blId = id; // Garder comme string car nfact est varchar
     console.log(`📋 Fetching purchase BL ${blId} for tenant: ${tenant}`);
 
-    // Utiliser la fonction RPC pour récupérer le BL d'achat avec détails
-    const { data: blResult, error: blError } = await databaseRouter.rpc('get_purchase_bl_with_details', {
-      p_tenant: tenant,
-      p_nbl_achat: blId
-    });
+    // Récupérer le BL depuis bachat
+    const { data: blData, error: blError } = await databaseRouter
+      .from('bachat')
+      .select('*')
+      .eq('nfact', blId)
+      .single();
 
-    if (blError || !blResult) {
+    if (blError || !blData) {
       console.error('❌ Failed to fetch purchase BL:', blError);
-      console.log('📋 Using fallback: returning sample purchase BL data');
-      
-      // Fallback avec des données d'exemple
-      const fallbackBL = {
-        nbl_achat: blId,
-        nfournisseur: 'FOURNISSEUR 1',
-        numero_bl_fournisseur: 'BL-FOURNISSEUR-2025-001',
-        date_bl: '2025-12-16',
-        montant_ht: 12000.00,
-        tva: 2280.00,
-        total_ttc: 14280.00,
-        created_at: new Date().toISOString(),
-        details: [
-          {
-            narticle: '1000',
-            designation: 'Gillet jaune',
-            qte: 15,
-            prix: 800.00,
-            tva: 19.00,
-            total_ligne: 12000.00
-          }
-        ]
-      };
-
-      // Enrichir avec les informations fournisseur
-      const { data: suppliersData } = await databaseRouter.rpc('get_suppliers_by_tenant', {
-        p_tenant: tenant
-      });
-
-      const supplier = suppliersData?.find(s => s.nfournisseur === fallbackBL.nfournisseur);
-
-      const result = {
-        ...fallbackBL,
-        supplier_name: supplier?.nom_fournisseur || fallbackBL.nfournisseur,
-        supplier_address: supplier?.adresse_fourni || ''
-      };
-
-      return c.json({
-        success: true,
-        data: result,
-        source: 'fallback'
-      , database_type: backendDatabaseService.getActiveDatabaseType() });
+      return c.json({ 
+        success: false, 
+        error: 'BL d\'achat non trouvé'
+      }, 404);
     }
 
-    // Enrichir les données de la base avec les informations fournisseur
-    const { data: suppliersData } = await databaseRouter.rpc('get_suppliers_by_tenant', {
-      p_tenant: tenant
-    });
+    console.log(`✅ Found purchase BL ${blId}`);
 
-    const supplier = suppliersData?.find(s => s.nfournisseur === blResult.nfournisseur);
+    // Récupérer les détails depuis bachat_detail
+    const { data: detailsData, error: detailsError } = await databaseRouter
+      .from('bachat_detail')
+      .select('*')
+      .eq('NFact', blId)
+      .eq('nfournisseur', blData.nfournisseur);
+
+    if (detailsError) {
+      console.error('❌ Failed to fetch BL details:', detailsError);
+    }
+
+    // Récupérer les infos fournisseur
+    const { data: supplierData } = await databaseRouter
+      .from('fournisseur')
+      .select('*')
+      .eq('nfournisseur', blData.nfournisseur)
+      .single();
+
+    // Enrichir les détails avec les infos articles
+    const enrichedDetails = await Promise.all((detailsData || []).map(async (detail) => {
+      const { data: article } = await databaseRouter
+        .from('article')
+        .select('*')
+        .eq('narticle', detail.Narticle)
+        .single();
+
+      return {
+        narticle: detail.Narticle,
+        designation: article?.designation || detail.Narticle,
+        qte: parseFloat(detail.Qte) || 0,
+        prix: parseFloat(detail.prix) || 0,
+        tva: parseFloat(detail.tva) || 0,
+        total_ligne: parseFloat(detail.total_ligne) || 0
+      };
+    }));
+
+    // Calculer le total TTC
+    const montant_ht = parseFloat(blData.montant_ht) || 0;
+    const tva = parseFloat(blData.tva) || 0;
+    const timbre = parseFloat(blData.timbre) || 0;
+    const autre_taxe = parseFloat(blData.autre_taxe) || 0;
+    const total_ttc = montant_ht + tva + timbre + autre_taxe;
 
     const enrichedResult = {
-      ...blResult,
-      supplier_name: supplier?.nom_fournisseur || blResult.nfournisseur,
-      supplier_address: supplier?.adresse_fourni || ''
+      nbl_achat: parseInt(blData.nfact) || 0,
+      nfournisseur: blData.nfournisseur,
+      numero_bl_fournisseur: blData.nfact,
+      supplier_name: supplierData?.nom_fournisseur || blData.nfournisseur,
+      supplier_address: supplierData?.adresse_fourni || '',
+      date_bl: blData.date_fact,
+      montant_ht: montant_ht,
+      tva: tva,
+      timbre: timbre,
+      autre_taxe: autre_taxe,
+      total_ttc: total_ttc,
+      ncheque: blData.ncheque,
+      banque: blData.banque,
+      details: enrichedDetails
     };
 
-    console.log(`✅ Found purchase BL ${blId} with ${enrichedResult.details?.length || 0} article details`);
+    console.log(`✅ Returning purchase BL ${blId} with ${enrichedDetails.length} article details`);
 
     return c.json({
       success: true,
       data: enrichedResult,
-      source: 'database'
-    , database_type: backendDatabaseService.getActiveDatabaseType() });
+      source: 'database',
+      database_type: backendDatabaseService.getActiveDatabaseType()
+    });
 
   } catch (error) {
     console.error('❌ Error fetching purchase BL:', error);

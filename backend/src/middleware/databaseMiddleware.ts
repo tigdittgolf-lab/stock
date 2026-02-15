@@ -2,13 +2,14 @@ import { Context, Next } from 'hono';
 import { backendDatabaseService } from '../services/databaseService.js';
 
 /**
- * Middleware pour configurer la base de données selon l'en-tête X-Database-Type
+ * Middleware pour configurer la base de données selon l'en-tête X-Database-Type et X-Tenant
  * Ce middleware s'exécute AVANT chaque requête et configure la bonne base
  */
 export async function databaseMiddleware(c: Context, next: Next) {
   const dbType = c.req.header('X-Database-Type') || 'mysql'; // CHANGÉ: mysql par défaut
+  const tenant = c.req.header('X-Tenant'); // Récupérer le tenant
   
-  console.log(`🔀 [Middleware] Database Type: ${dbType}`);
+  console.log(`🔀 [Middleware] Database Type: ${dbType}, Tenant: ${tenant || 'none'}`);
 
   // Configuration des bases de données
   const dbConfigs: Record<string, any> = {
@@ -23,7 +24,8 @@ export async function databaseMiddleware(c: Context, next: Next) {
       name: 'MySQL Local',
       host: process.env.MYSQL_HOST || 'localhost',
       port: parseInt(process.env.MYSQL_PORT || '3306'),
-      database: process.env.MYSQL_DATABASE || 'stock_management',
+      // CORRECTION: Utiliser le tenant comme nom de base de données
+      database: tenant || process.env.MYSQL_DATABASE || 'stock_management',
       username: process.env.MYSQL_USER || 'root',
       password: process.env.MYSQL_PASSWORD || ''
     },
@@ -46,7 +48,7 @@ export async function databaseMiddleware(c: Context, next: Next) {
       const switched = await backendDatabaseService.switchDatabase(dbConfig);
       
       if (switched) {
-        console.log(`✅ [Middleware] Switched to ${dbConfig.name}`);
+        console.log(`✅ [Middleware] Switched to ${dbConfig.name} (database: ${dbConfig.database})`);
       } else {
         console.warn(`⚠️ [Middleware] Failed to switch to ${dbConfig.name}, using current database`);
       }

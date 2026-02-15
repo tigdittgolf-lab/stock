@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { getApiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
-import styles from '../../../page.module.css';
+import styles from '../../../../page.module.css';
 
 interface PurchaseBLDetail {
   nbl_achat: number;
@@ -28,28 +28,29 @@ interface PurchaseBLDetail {
 }
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{ numero: string; fournisseur: string }>;
 }
 
 export default function PurchaseBLDetailPage({ params }: PageProps) {
   const router = useRouter();
   const resolvedParams = use(params);
-  const blId = resolvedParams.id;
+  const numero = resolvedParams.numero;
+  const fournisseur = resolvedParams.fournisseur;
   
   const [bl, setBl] = useState<PurchaseBLDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (blId) {
+    if (numero && fournisseur) {
       fetchBL();
     }
-  }, [blId]);
+  }, [numero, fournisseur]);
 
   const fetchBL = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(getApiUrl(`purchases/delivery-notes/${blId}`), {
+      const response = await fetch(getApiUrl(`purchases/delivery-notes/${encodeURIComponent(numero)}/${encodeURIComponent(fournisseur)}`), {
         headers: {
           'X-Tenant': tenant
         }
@@ -101,7 +102,7 @@ export default function PurchaseBLDetailPage({ params }: PageProps) {
         <h1>BL d'Achat - {bl.numero_bl_fournisseur || `ID-${bl.nbl_achat}`}</h1>
         <div>
           <button 
-            onClick={() => router.push(`/purchases/delivery-notes/${bl.nbl_achat}/edit`)}
+            onClick={() => router.push(`/purchases/delivery-notes/${encodeURIComponent(numero)}/${encodeURIComponent(fournisseur)}/edit`)}
             className={styles.primaryButton}
           >
             Modifier

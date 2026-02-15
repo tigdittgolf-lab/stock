@@ -1,83 +1,74 @@
-// Vérifier directement ce qui existe dans MySQL
-async function checkMySQLTables() {
-    console.log('🔍 Vérification directe MySQL...');
+// Script pour vérifier les tables MySQL existantes
+import mysql from 'mysql2/promise';
+
+const checkTables = async () => {
+  console.log('🔍 Vérification des tables MySQL\n');
+  
+  const connection = await mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: '2025_bu01'
+  });
+
+  try {
+    // Lister toutes les tables
+    const [tables] = await connection.query('SHOW TABLES');
+    console.log('📋 Tables disponibles:');
+    tables.forEach((table, index) => {
+      const tableName = Object.values(table)[0];
+      console.log(`   ${index + 1}. ${tableName}`);
+    });
+
+    console.log('\n');
+
+    // Vérifier la structure de fachat
+    console.log('📊 Structure de la table fachat:');
+    const [fachatColumns] = await connection.query('DESCRIBE fachat');
+    fachatColumns.forEach(col => {
+      console.log(`   - ${col.Field} (${col.Type}) ${col.Key ? '[' + col.Key + ']' : ''}`);
+    });
+
+    console.log('\n');
+
+    // Vérifier si bachat existe
+    const [bachatCheck] = await connection.query(
+      "SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = '2025_bu01' AND table_name = 'bachat'"
+    );
     
-    try {
-        // 1. Lister toutes les bases de données
-        console.log('📋 Bases de données existantes:');
-        const dbResponse = await fetch('http://localhost:3000/api/database/mysql', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                config: {
-                    type: 'mysql',
-                    host: 'localhost',
-                    port: 3306,
-                    username: 'root',
-                    password: '',
-                    database: 'mysql'
-                },
-                sql: 'SHOW DATABASES',
-                params: []
-            })
-        });
-
-        const dbResult = await dbResponse.json();
-        
-        if (dbResult.success) {
-            const databases = dbResult.data.map(row => row.Database);
-            console.log('✅ Bases trouvées:', databases.length);
-            
-            // Filtrer les bases tenant
-            const tenantDbs = databases.filter(db => /^\d{4}_bu\d{2}$/.test(db));
-            console.log('📁 Bases tenant:', tenantDbs);
-            
-            // 2. Pour chaque base tenant, lister les tables
-            for (const db of tenantDbs.slice(0, 2)) { // Limiter à 2 pour le test
-                console.log(`\\n🔍 Tables dans ${db}:`);
-                
-                const tablesResponse = await fetch('http://localhost:3000/api/database/mysql', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        config: {
-                            type: 'mysql',
-                            host: 'localhost',
-                            port: 3306,
-                            username: 'root',
-                            password: '',
-                            database: db
-                        },
-                        sql: 'SHOW TABLES',
-                        params: []
-                    })
-                });
-
-                const tablesResult = await tablesResponse.json();
-                
-                if (tablesResult.success) {
-                    const tables = tablesResult.data.map(row => Object.values(row)[0]);
-                    console.log(`  📊 ${tables.length} tables trouvées:`, tables);
-                    
-                    if (tables.length === 0) {
-                        console.log('  ❌ AUCUNE table dans cette base!');
-                    }
-                } else {
-                    console.error(`  ❌ Erreur listage tables ${db}:`, tablesResult.error);
-                }
-            }
-        } else {
-            console.error('❌ Erreur listage bases:', dbResult.error);
-        }
-        
-    } catch (error) {
-        console.error('💥 Erreur vérification MySQL:', error.message);
+    if (bachatCheck[0].count > 0) {
+      console.log('📊 Structure de la table bachat:');
+      const [bachatColumns] = await connection.query('DESCRIBE bachat');
+      bachatColumns.forEach(col => {
+        console.log(`   - ${col.Field} (${col.Type}) ${col.Key ? '[' + col.Key + ']' : ''}`);
+      });
+    } else {
+      console.log('❌ La table bachat n\'existe pas');
+      console.log('💡 Suggestion: Créer la table bachat ou utiliser une table existante pour les BL');
     }
-}
 
-// Exécuter la vérification
-checkMySQLTables();
+    console.log('\n');
+
+    // Vérifier fachat_detail
+    const [fachatDetailCheck] = await connection.query(
+      "SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = '2025_bu01' AND table_name = 'fachat_detail'"
+    );
+    
+    if (fachatDetailCheck[0].count > 0) {
+      console.log('📊 Structure de la table fachat_detail:');
+      const [fachatDetailColumns] = await connection.query('DESCRIBE fachat_detail');
+      fachatDetailColumns.forEach(col => {
+        console.log(`   - ${col.Field} (${col.Type}) ${col.Key ? '[' + col.Key + ']' : ''}`);
+      });
+    } else {
+      console.log('❌ La table fachat_detail n\'existe pas');
+    }
+
+  } catch (error) {
+    console.error('❌ Erreur:', error.message);
+  } finally {
+    await connection.end();
+  }
+};
+
+checkTables();

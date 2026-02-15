@@ -938,13 +938,27 @@ export class BackendDatabaseService {
   }
 
   private mysqlPool: any = null;
+  private currentMySQLDatabase: string = '';
 
   private getMySQLPool() {
+    const targetDatabase = this.activeConfig?.database || 'stock_management';
+    
+    // Si le pool existe ET que la base de données a changé, fermer l'ancien pool
+    if (this.mysqlPool && this.currentMySQLDatabase !== targetDatabase) {
+      console.log(`🔄 Database changed from ${this.currentMySQLDatabase} to ${targetDatabase}, recreating pool...`);
+      try {
+        this.mysqlPool.end();
+      } catch (e) {
+        console.warn('⚠️ Error closing old pool:', e);
+      }
+      this.mysqlPool = null;
+    }
+    
     if (!this.mysqlPool) {
       const config = {
         host: this.activeConfig?.host || 'localhost',
         port: this.activeConfig?.port || 3306,
-        database: this.activeConfig?.database || 'stock_management',
+        database: targetDatabase,
         user: this.activeConfig?.username || 'root',
         password: this.activeConfig?.password || '',
         waitForConnections: true,
@@ -956,7 +970,8 @@ export class BackendDatabaseService {
       console.log(`🔗 Creating MySQL Pool:`, { host: config.host, port: config.port, database: config.database, user: config.user });
       console.log(`📍 Stack trace:`, new Error().stack?.split('\n').slice(1, 4).join('\n'));
       this.mysqlPool = mysql.createPool(config);
-      console.log(`✅ MySQL Pool created with 10 connections max`);
+      this.currentMySQLDatabase = targetDatabase;
+      console.log(`✅ MySQL Pool created with 10 connections max for database: ${targetDatabase}`);
     }
     return this.mysqlPool;
   }
