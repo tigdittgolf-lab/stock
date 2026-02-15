@@ -103,19 +103,19 @@ export default function PurchaseStats() {
       
       // Fetch all stats in parallel
       const [overviewRes, suppliersRes, articlesRes, trendsRes, recentRes] = await Promise.all([
-        fetch(`getApiUrl('purchases/stats/overview?start_date=${startDate}&end_date=${endDate}')`, {
+        fetch(getApiUrl(`purchases/stats/overview?start_date=${startDate}&end_date=${endDate}`), {
           headers: { 'X-Tenant': tenant }
         }),
-        fetch(`getApiUrl('purchases/stats/suppliers?start_date=${startDate}&end_date=${endDate}')`, {
+        fetch(getApiUrl(`purchases/stats/suppliers?start_date=${startDate}&end_date=${endDate}`), {
           headers: { 'X-Tenant': tenant }
         }),
-        fetch(`getApiUrl('purchases/stats/articles?start_date=${startDate}&end_date=${endDate}')`, {
+        fetch(getApiUrl(`purchases/stats/articles?start_date=${startDate}&end_date=${endDate}`), {
           headers: { 'X-Tenant': tenant }
         }),
-        fetch(`getApiUrl('purchases/stats/trends?year=${selectedYear}')`, {
+        fetch(getApiUrl(`purchases/stats/trends?year=${selectedYear}`), {
           headers: { 'X-Tenant': tenant }
         }),
-        fetch(`getApiUrl('purchases/stats/recent?limit=10')`, {
+        fetch(getApiUrl('purchases/stats/recent?limit=10'), {
           headers: { 'X-Tenant': tenant }
         })
       ]);

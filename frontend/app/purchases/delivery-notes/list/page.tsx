@@ -30,7 +30,7 @@ export default function PurchaseBLList() {
   const fetchBLs = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`getApiUrl('purchases/delivery-notes')`, {
+      const response = await fetch(getApiUrl('purchases/delivery-notes'), {
         headers: {
           'X-Tenant': tenant
         }

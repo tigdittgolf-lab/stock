@@ -49,7 +49,7 @@ export default function PurchaseBLDetailPage({ params }: PageProps) {
   const fetchBL = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`getApiUrl('purchases/delivery-notes/${blId}')`, {
+      const response = await fetch(getApiUrl(`purchases/delivery-notes/${blId}`), {
         headers: {
           'X-Tenant': tenant
         }

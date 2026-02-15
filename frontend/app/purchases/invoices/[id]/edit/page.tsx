@@ -84,7 +84,7 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
   const fetchInvoice = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`getApiUrl('purchases/invoices/${invoiceId}')`, {
+      const response = await fetch(getApiUrl(`purchases/invoices/${invoiceId}`), {
         headers: {
           'X-Tenant': tenant
         }
