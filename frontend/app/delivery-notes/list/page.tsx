@@ -6,6 +6,7 @@ import PrintOptions from '../../../components/PrintOptions';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 import ErrorMessage from '../../../components/ErrorMessage';
 import EmptyState from '../../../components/EmptyState';
+import DeliveryNoteActions from '../../../components/DeliveryNoteActions';
 
 interface DeliveryNote {
   nfact: number;
@@ -671,7 +672,7 @@ export default function DeliveryNotesList() {
             <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: 'var(--text-primary)' }}>Montant HT</th>
             <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: 'var(--text-primary)' }}>TVA</th>
             <th style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: 'var(--text-primary)' }}>Total TTC</th>
-            <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', minWidth: '300px', color: 'var(--text-primary)' }}>Actions</th>
+            <th style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', minWidth: '150px', color: 'var(--text-primary)' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -736,168 +737,13 @@ export default function DeliveryNotesList() {
                   {formatAmount(bl.montant_ttc || (bl.montant_ht + bl.tva))}
                 </td>
                 <td style={{ padding: '15px', textAlign: 'center' }}>
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                    alignItems: 'center'
-                  }}>
-                    {/* Première ligne - Actions principales */}
-                    <div style={{
-                      display: 'flex',
-                      gap: '5px',
-                      justifyContent: 'center',
-                      flexWrap: 'wrap'
-                    }}>
-                      <button
-                        onClick={() => {
-                          console.log(`🔗 Navigating to details with REAL ID: ${validId} for BL ${displayId}`);
-                          router.push(`/delivery-notes/${validId}`);
-                        }}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: 'var(--info-color)',
-                          color: 'var(--text-inverse)',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          minWidth: '70px'
-                        }}
-                        title={`Voir les détails du BL ${displayId}`}
-                      >
-                        👁️ Voir
-                      </button>
-                      
-                      <button
-                        onClick={() => {
-                          console.log(`✏️ Navigating to edit with REAL ID: ${validId} for BL ${displayId}`);
-                          router.push(`/delivery-notes/${validId}/edit`);
-                        }}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: 'var(--success-color)',
-                          color: 'var(--text-inverse)',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          minWidth: '70px'
-                        }}
-                        title={`Modifier le BL ${displayId}`}
-                      >
-                        ✏️ Modifier
-                      </button>
-                      
-                      <button
-                        onClick={() => {
-                          if (confirm(`Êtes-vous sûr de vouloir supprimer le BL ${displayId} ?`)) {
-                            alert('Fonction de suppression à implémenter');
-                          }
-                        }}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: 'var(--error-color)',
-                          color: 'var(--text-inverse)',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          minWidth: '70px'
-                        }}
-                        title={`Supprimer le BL ${displayId}`}
-                      >
-                        🗑️ Supprimer
-                      </button>
-                    </div>
-                    
-                    {/* Deuxième ligne - Actions d'impression */}
-                    <div style={{
-                      display: 'flex',
-                      gap: '5px',
-                      justifyContent: 'center',
-                      flexWrap: 'wrap'
-                    }}>
-                      <button
-                        onClick={() => {
-                          console.log(`📄 PDF Complete - Using REAL ID: ${validId} for BL ${displayId}`);
-                          openPDFPreview(validId, 'complete');
-                        }}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: 'var(--primary-color)',
-                          color: 'var(--text-inverse)',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          minWidth: '90px'
-                        }}
-                        title={`Prévisualiser BL Complet ${displayId}`}
-                      >
-                        📄 BL Complet
-                      </button>
-                      
-                      <button
-                        onClick={() => {
-                          console.log(`📄 PDF Small - Using REAL ID: ${validId} for BL ${displayId}`);
-                          openPDFPreview(validId, 'small');
-                        }}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: 'var(--info-color)',
-                          color: 'var(--text-inverse)',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          minWidth: '90px'
-                        }}
-                        title={`Prévisualiser BL Réduit ${displayId}`}
-                      >
-                        📄 BL Réduit
-                      </button>
-                      
-                      <button
-                        onClick={() => {
-                          console.log(`🎫 PDF Ticket - Using REAL ID: ${validId} for BL ${displayId}`);
-                          openPDFPreview(validId, 'ticket');
-                        }}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: 'var(--primary-color)',
-                          color: 'var(--text-inverse)',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          minWidth: '70px'
-                        }}
-                        title={`Prévisualiser Ticket ${displayId}`}
-                      >
-                        🎫 Ticket
-                      </button>
-                      
-                      {/* WhatsApp Button */}
-                      <div style={{ minWidth: '120px' }}>
-                        <PrintOptions
-                          documentType="bl"
-                          documentId={validId}
-                          documentNumber={displayId}
-                          clientName={bl.client_name}
-                          clientId={bl.nclient}
-                          isModal={false}
-                          whatsappOnly={true}
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  <DeliveryNoteActions
+                    validId={validId}
+                    displayId={displayId}
+                    clientName={bl.client_name}
+                    clientId={bl.nclient}
+                    onOpenPDF={openPDFPreview}
+                  />
                 </td>
               </tr>
             );
@@ -909,43 +755,45 @@ export default function DeliveryNotesList() {
 
   return (
     <div style={{ 
-      padding: isMobile ? '10px' : '20px', 
+      padding: isMobile ? '8px' : '16px', 
       maxWidth: isMobile ? '100%' : '1200px', 
       margin: '0 auto',
       minHeight: '100vh',
       background: 'var(--background-secondary)'
     }}>
-      {/* En-tête responsive */}
+      {/* En-tête responsive - Version compacte */}
       <div style={{ 
         display: 'flex', 
         flexDirection: isMobile ? 'column' : 'row',
         justifyContent: 'space-between', 
         alignItems: isMobile ? 'stretch' : 'center', 
-        marginBottom: '20px',
+        marginBottom: '16px',
         background: 'var(--card-background)',
-        padding: isMobile ? '15px' : '20px',
-        borderRadius: '10px',
-        boxShadow: 'var(--shadow-md)'
+        padding: isMobile ? '12px' : '16px',
+        borderRadius: '8px',
+        boxShadow: 'var(--shadow-sm)',
+        border: '1px solid var(--border-color)'
       }}>
-        <div style={{ marginBottom: isMobile ? '15px' : '0' }}>
+        <div style={{ marginBottom: isMobile ? '12px' : '0' }}>
           <h1 style={{ 
             margin: 0, 
             color: 'var(--text-primary)',
-            fontSize: isMobile ? '20px' : '24px'
+            fontSize: isMobile ? '18px' : '20px',
+            fontWeight: '600'
           }}>
-            📋 Liste des Bons de Livraison
+            📋 Bons de Livraison
           </h1>
           <p style={{ 
-            margin: '5px 0 0 0', 
+            margin: '4px 0 0 0', 
             color: 'var(--text-secondary)',
-            fontSize: isMobile ? '14px' : '16px'
+            fontSize: isMobile ? '12px' : '13px'
           }}>
-            {isMobile ? `${filteredDeliveryNotes.length} BL trouvés` : `Tenant: ${tenant} • ${filteredDeliveryNotes.length} BL trouvés`}
+            {isMobile ? `${filteredDeliveryNotes.length} BL` : `${tenant} • ${filteredDeliveryNotes.length} BL`}
           </p>
         </div>
         <div style={{ 
           display: 'flex', 
-          gap: '10px',
+          gap: '8px',
           flexDirection: isMobile ? 'column' : 'row'
         }}>
           <button
@@ -962,88 +810,93 @@ export default function DeliveryNotesList() {
               }
             }}
             style={{
-              padding: isMobile ? '12px 20px' : '12px 20px',
+              padding: isMobile ? '10px 16px' : '10px 16px',
               backgroundColor: 'var(--success-color)',
               color: 'var(--text-inverse)',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '6px',
               cursor: 'pointer',
-              fontSize: isMobile ? '16px' : '16px',
-              fontWeight: 'bold'
+              fontSize: isMobile ? '13px' : '14px',
+              fontWeight: '600'
             }}
             disabled={loading}
           >
-            {loading ? '⏳ Chargement...' : '🔄 Actualiser'}
+            {loading ? '⏳' : '🔄'}
           </button>
           <button
             onClick={() => router.push('/delivery-notes')}
             style={{
-              padding: isMobile ? '12px 20px' : '12px 20px',
+              padding: isMobile ? '10px 16px' : '10px 16px',
               backgroundColor: 'var(--primary-color)',
               color: 'var(--text-inverse)',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '6px',
               cursor: 'pointer',
-              fontSize: isMobile ? '16px' : '16px',
-              fontWeight: 'bold'
+              fontSize: isMobile ? '13px' : '14px',
+              fontWeight: '600'
             }}
           >
-            ➕ Nouveau BL
+            ➕ Nouveau
           </button>
           <button
             onClick={() => router.push('/dashboard')}
             style={{
-              padding: isMobile ? '12px 20px' : '12px 20px',
+              padding: isMobile ? '10px 16px' : '10px 16px',
               backgroundColor: 'var(--text-secondary)',
               color: 'var(--text-inverse)',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '6px',
               cursor: 'pointer',
-              fontSize: isMobile ? '16px' : '16px',
-              fontWeight: 'bold'
+              fontSize: isMobile ? '13px' : '14px',
+              fontWeight: '600'
             }}
           >
-            ← Retour Dashboard
+            ← Retour
           </button>
         </div>
       </div>
 
-      {/* Interface de filtres */}
+      {/* Interface de filtres - Version compacte */}
       <div style={{
         background: 'var(--card-background)',
-        borderRadius: '10px',
-        padding: isMobile ? '15px' : '20px',
-        marginBottom: '20px',
-        boxShadow: 'var(--shadow-md)'
+        borderRadius: '8px',
+        padding: isMobile ? '12px' : '16px',
+        marginBottom: '16px',
+        boxShadow: 'var(--shadow-sm)',
+        border: '1px solid var(--border-color)'
       }}>
         {/* Bouton pour afficher/masquer les filtres */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: showFilters ? '20px' : '0'
+          marginBottom: showFilters ? '16px' : '0'
         }}>
           <h3 style={{
             margin: 0,
             color: 'var(--text-primary)',
-            fontSize: isMobile ? '16px' : '18px'
+            fontSize: isMobile ? '14px' : '15px',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
           }}>
-            🔍 Filtres de recherche
+            🔍 Filtres
           </h3>
           <button
             onClick={() => setShowFilters(!showFilters)}
             style={{
-              padding: '8px 16px',
-              backgroundColor: showFilters ? 'var(--error-color)' : 'var(--primary-color)',
+              padding: '6px 12px',
+              backgroundColor: showFilters ? 'var(--text-secondary)' : 'var(--primary-color)',
               color: 'var(--text-inverse)',
               border: 'none',
               borderRadius: '6px',
               cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 'bold'
+              fontSize: '12px',
+              fontWeight: '600'
             }}
           >
-            {showFilters ? '🔼 Masquer' : '🔽 Afficher'}
+            {showFilters ? '▲' : '▼'}
           </button>
         </div>
 
@@ -1058,15 +911,15 @@ export default function DeliveryNotesList() {
             }}>
               <input
                 type="text"
-                placeholder="🔍 N° BL exact (ex: 1, 5) ou nom client (ex: Kaddour)..."
+                placeholder="🔍 N° BL ou client..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
                   flex: 1,
-                  padding: '12px',
-                  border: '2px solid var(--border-color)',
-                  borderRadius: '8px',
-                  fontSize: '14px',
+                  padding: '10px 12px',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  fontSize: '13px',
                   outline: 'none',
                   background: 'var(--background)',
                   color: 'var(--text-primary)'
@@ -1075,18 +928,18 @@ export default function DeliveryNotesList() {
               <button
                 onClick={resetFilters}
                 style={{
-                  padding: '12px 20px',
+                  padding: '10px 16px',
                   backgroundColor: 'var(--text-secondary)',
                   color: 'var(--text-inverse)',
                   border: 'none',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  minWidth: isMobile ? 'auto' : '120px'
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  minWidth: isMobile ? 'auto' : '100px'
                 }}
               >
-                🔄 Réinitialiser
+                🔄
               </button>
             </div>
 
@@ -1302,121 +1155,70 @@ export default function DeliveryNotesList() {
         )}
       </div>
 
-      {/* Résumé des totaux */}
+      {/* Résumé des totaux - Version compacte */}
       {!loading && !error && filteredDeliveryNotes.length > 0 && (
         <div style={{
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: '10px',
-          padding: isMobile ? '15px' : '20px',
-          marginBottom: '20px',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+          borderRadius: '8px',
+          padding: isMobile ? '12px' : '14px',
+          marginBottom: '16px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           color: 'white'
         }}>
-          <h3 style={{
-            margin: '0 0 15px 0',
-            color: 'white',
-            fontSize: isMobile ? '16px' : '18px',
-            textAlign: 'center'
-          }}>
-            📊 Résumé des Totaux
-          </h3>
-          
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
-            gap: isMobile ? '10px' : '20px',
-            textAlign: 'center'
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: isMobile ? '8px' : '12px',
+            flexWrap: 'wrap'
           }}>
             {/* Nombre de BL */}
             <div style={{
-              background: 'rgba(255,255,255,0.2)',
-              borderRadius: '8px',
-              padding: isMobile ? '10px' : '15px',
-              backdropFilter: 'blur(10px)'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: isMobile ? '13px' : '14px'
             }}>
-              <div style={{
-                fontSize: isMobile ? '20px' : '24px',
-                fontWeight: 'bold',
-                marginBottom: '5px'
-              }}>
-                {calculateTotals().count}
-              </div>
-              <div style={{
-                fontSize: isMobile ? '12px' : '14px',
-                opacity: 0.9
-              }}>
-                📋 BL Affichés
-              </div>
+              <span style={{ opacity: 0.9 }}>📋</span>
+              <span style={{ fontWeight: '600' }}>{calculateTotals().count}</span>
+              <span style={{ opacity: 0.8 }}>BL</span>
             </div>
 
             {/* Total HT */}
             <div style={{
-              background: 'rgba(255,255,255,0.2)',
-              borderRadius: '8px',
-              padding: isMobile ? '10px' : '15px',
-              backdropFilter: 'blur(10px)'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: isMobile ? '13px' : '14px'
             }}>
-              <div style={{
-                fontSize: isMobile ? '16px' : '20px',
-                fontWeight: 'bold',
-                marginBottom: '5px'
-              }}>
-                {formatAmount(calculateTotals().totalHT)}
-              </div>
-              <div style={{
-                fontSize: isMobile ? '12px' : '14px',
-                opacity: 0.9
-              }}>
-                💰 Total HT
-              </div>
+              <span style={{ opacity: 0.9 }}>💰</span>
+              <span style={{ fontWeight: '600' }}>{formatAmount(calculateTotals().totalHT)}</span>
             </div>
 
             {/* Total TVA */}
             <div style={{
-              background: 'rgba(255,255,255,0.2)',
-              borderRadius: '8px',
-              padding: isMobile ? '10px' : '15px',
-              backdropFilter: 'blur(10px)'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: isMobile ? '13px' : '14px'
             }}>
-              <div style={{
-                fontSize: isMobile ? '16px' : '20px',
-                fontWeight: 'bold',
-                marginBottom: '5px'
-              }}>
-                {formatAmount(calculateTotals().totalTVA)}
-              </div>
-              <div style={{
-                fontSize: isMobile ? '12px' : '14px',
-                opacity: 0.9
-              }}>
-                🏛️ Total TVA
-              </div>
+              <span style={{ opacity: 0.9 }}>🏛️</span>
+              <span style={{ fontWeight: '600' }}>{formatAmount(calculateTotals().totalTVA)}</span>
             </div>
 
             {/* Total TTC */}
             <div style={{
-              background: 'rgba(255,255,255,0.3)',
-              borderRadius: '8px',
-              padding: isMobile ? '10px' : '15px',
-              backdropFilter: 'blur(10px)',
-              border: '2px solid rgba(255,255,255,0.3)',
-              gridColumn: isMobile ? '1 / -1' : 'auto'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              background: 'rgba(255,255,255,0.2)',
+              borderRadius: '6px',
+              fontSize: isMobile ? '14px' : '15px',
+              fontWeight: '700'
             }}>
-              <div style={{
-                fontSize: isMobile ? '20px' : '24px',
-                fontWeight: 'bold',
-                marginBottom: '5px',
-                textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-              }}>
-                {formatAmount(calculateTotals().totalTTC)}
-              </div>
-              <div style={{
-                fontSize: isMobile ? '14px' : '16px',
-                opacity: 0.9,
-                fontWeight: 'bold'
-              }}>
-                💎 TOTAL TTC
-              </div>
+              <span>💎</span>
+              <span>{formatAmount(calculateTotals().totalTTC)}</span>
             </div>
           </div>
 

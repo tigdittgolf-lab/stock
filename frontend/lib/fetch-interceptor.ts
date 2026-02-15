@@ -34,16 +34,23 @@ export default function FetchInterceptor() {
         }
         
         // Récupérer le tenant
-        let tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
+        let tenant = '2009_bu02'; // Valeur par défaut
         
-        // Fallback: essayer de récupérer depuis tenant_info si selectedTenant n'existe pas
-        if (!localStorage.getItem('selectedTenant')) {
+        // Essayer de récupérer depuis selectedTenant
+        const selectedTenant = localStorage.getItem('selectedTenant');
+        if (selectedTenant) {
+          tenant = selectedTenant;
+          console.log('✅ FetchInterceptor - Using selectedTenant:', tenant);
+        } else {
+          // Fallback: essayer de récupérer depuis tenant_info
           try {
             const tenantInfo = localStorage.getItem('tenant_info');
             if (tenantInfo) {
               const parsed = JSON.parse(tenantInfo);
               tenant = parsed.schema || tenant;
               console.log('🔄 FetchInterceptor - Using tenant from tenant_info:', tenant);
+            } else {
+              console.warn('⚠️ FetchInterceptor - No tenant found, using default:', tenant);
             }
           } catch (e) {
             console.error('❌ FetchInterceptor - Failed to parse tenant_info:', e);
