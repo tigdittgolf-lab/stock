@@ -101,6 +101,14 @@ export default function Dashboard() {
   // États pour la pagination des articles
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
+  
+  // États pour la pagination des clients
+  const [currentPageClients, setCurrentPageClients] = useState(1);
+  const [itemsPerPageClients, setItemsPerPageClients] = useState(50);
+  
+  // États pour la pagination des fournisseurs
+  const [currentPageSuppliers, setCurrentPageSuppliers] = useState(1);
+  const [itemsPerPageSuppliers, setItemsPerPageSuppliers] = useState(50);
 
   useEffect(() => {
     // Vérifier l'authentification et les informations de tenant
@@ -508,6 +516,21 @@ export default function Dashboard() {
     setClientSearchTerm('');
     setSelectedClientStatus('');
   };
+  
+  // Pagination des clients
+  const getPaginatedClients = () => {
+    const filtered = getFilteredClients();
+    const startIndex = (currentPageClients - 1) * itemsPerPageClients;
+    const endIndex = startIndex + itemsPerPageClients;
+    return filtered.slice(startIndex, endIndex);
+  };
+  
+  const totalPagesClients = Math.ceil(getFilteredClients().length / itemsPerPageClients);
+  
+  // Réinitialiser à la page 1 quand les filtres clients changent
+  useEffect(() => {
+    setCurrentPageClients(1);
+  }, [clientSearchTerm, selectedClientStatus]);
 
   // États pour les filtres fournisseurs
   const [supplierSearchTerm, setSupplierSearchTerm] = useState('');
@@ -535,6 +558,21 @@ export default function Dashboard() {
     setSupplierSearchTerm('');
     setSelectedSupplierStatus('');
   };
+  
+  // Pagination des fournisseurs
+  const getPaginatedSuppliers = () => {
+    const filtered = getFilteredSuppliers();
+    const startIndex = (currentPageSuppliers - 1) * itemsPerPageSuppliers;
+    const endIndex = startIndex + itemsPerPageSuppliers;
+    return filtered.slice(startIndex, endIndex);
+  };
+  
+  const totalPagesSuppliers = Math.ceil(getFilteredSuppliers().length / itemsPerPageSuppliers);
+  
+  // Réinitialiser à la page 1 quand les filtres fournisseurs changent
+  useEffect(() => {
+    setCurrentPageSuppliers(1);
+  }, [supplierSearchTerm, selectedSupplierStatus]);
 
   // Fonctions pour les actions sur les fournisseurs
   const handleEditSupplier = (supplier: Supplier) => {
@@ -1935,7 +1973,7 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {getFilteredClients().length === 0 ? (
+                      {getPaginatedClients().length === 0 ? (
                         <tr>
                           <td colSpan={11} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
                             {clients.length === 0 
@@ -1945,28 +1983,28 @@ export default function Dashboard() {
                           </td>
                         </tr>
                       ) : (
-                        getFilteredClients().map((client, index) => {
+                        getPaginatedClients().map((client, index) => {
                           const totalCA = (client.c_affaire_fact || 0) + (client.c_affaire_bl || 0);
                           return (
-                            <tr key={`${client.nclient}-${index}`}>
-                              <td style={{ fontWeight: 'bold', fontSize: '14px' }}>{client.nclient}</td>
-                              <td style={{ fontWeight: 'bold', color: '#007bff', fontSize: '14px' }}>{client.raison_sociale}</td>
-                              <td style={{ fontSize: '13px' }}>{client.contact_person}</td>
-                              <td style={{ fontSize: '13px' }}>{client.tel}</td>
-                              <td style={{ fontSize: '13px' }}>{client.email}</td>
-                              <td style={{ fontSize: '13px', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={client.adresse}>
+                            <tr key={`${client.nclient}-${index}`} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                              <td style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 'bold' }}>{client.nclient}</td>
+                              <td style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 'bold', color: '#007bff' }}>{client.raison_sociale}</td>
+                              <td style={{ padding: '6px 12px', fontSize: '12px' }}>{client.contact_person}</td>
+                              <td style={{ padding: '6px 12px', fontSize: '12px' }}>{client.tel}</td>
+                              <td style={{ padding: '6px 12px', fontSize: '12px' }}>{client.email}</td>
+                              <td style={{ padding: '6px 12px', fontSize: '12px', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={client.adresse}>
                                 {client.adresse}
                               </td>
-                              <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#28a745', fontSize: '13px' }}>
+                              <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '12px', fontWeight: 'bold', color: '#28a745' }}>
                                 {formatAmount(client.c_affaire_fact)}
                               </td>
-                              <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#17a2b8', fontSize: '13px' }}>
+                              <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '12px', fontWeight: 'bold', color: '#17a2b8' }}>
                                 {formatAmount(client.c_affaire_bl)}
                               </td>
-                              <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#6f42c1', fontSize: '15px' }}>
+                              <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '13px', fontWeight: 'bold', color: '#6f42c1' }}>
                                 {formatAmount(totalCA)}
                               </td>
-                              <td>
+                              <td style={{ padding: '6px 12px' }}>
                                 <span className={
                                   totalCA > 0 ? styles.inStock : styles.lowStock
                                 }>
@@ -2019,6 +2057,61 @@ export default function Dashboard() {
                       )}
                     </tbody>
                   </table>
+                  
+                  {/* Pagination Clients */}
+                  {getFilteredClients().length > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: '20px',
+                      padding: '16px',
+                      backgroundColor: 'var(--card-background)',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      flexWrap: 'wrap',
+                      gap: '16px'
+                    }}>
+                      <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                        Affichage de {((currentPageClients - 1) * itemsPerPageClients) + 1} à {Math.min(currentPageClients * itemsPerPageClients, getFilteredClients().length)} sur {getFilteredClients().length} clients
+                      </div>
+                      
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Par page:</span>
+                          <select
+                            value={itemsPerPageClients}
+                            onChange={(e) => {
+                              setItemsPerPageClients(Number(e.target.value));
+                              setCurrentPageClients(1);
+                            }}
+                            style={{
+                              padding: '6px 12px',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '6px',
+                              backgroundColor: 'var(--card-background)',
+                              color: 'var(--text-primary)',
+                              fontSize: '14px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                            <option value={200}>200</option>
+                          </select>
+                        </div>
+                        
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => setCurrentPageClients(1)} disabled={currentPageClients === 1} style={{ padding: '8px 12px', backgroundColor: currentPageClients === 1 ? 'var(--background-secondary)' : 'var(--primary-color)', color: currentPageClients === 1 ? 'var(--text-secondary)' : 'var(--text-inverse)', border: 'none', borderRadius: '6px', cursor: currentPageClients === 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>⏮️</button>
+                          <button onClick={() => setCurrentPageClients(prev => Math.max(1, prev - 1))} disabled={currentPageClients === 1} style={{ padding: '8px 12px', backgroundColor: currentPageClients === 1 ? 'var(--background-secondary)' : 'var(--primary-color)', color: currentPageClients === 1 ? 'var(--text-secondary)' : 'var(--text-inverse)', border: 'none', borderRadius: '6px', cursor: currentPageClients === 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>◀️</button>
+                          <div style={{ padding: '8px 16px', backgroundColor: 'var(--primary-color)', color: 'var(--text-inverse)', borderRadius: '6px', fontSize: '14px', fontWeight: '600', minWidth: '100px', textAlign: 'center' }}>{currentPageClients} / {totalPagesClients}</div>
+                          <button onClick={() => setCurrentPageClients(prev => Math.min(totalPagesClients, prev + 1))} disabled={currentPageClients === totalPagesClients} style={{ padding: '8px 12px', backgroundColor: currentPageClients === totalPagesClients ? 'var(--background-secondary)' : 'var(--primary-color)', color: currentPageClients === totalPagesClients ? 'var(--text-secondary)' : 'var(--text-inverse)', border: 'none', borderRadius: '6px', cursor: currentPageClients === totalPagesClients ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>▶️</button>
+                          <button onClick={() => setCurrentPageClients(totalPagesClients)} disabled={currentPageClients === totalPagesClients} style={{ padding: '8px 12px', backgroundColor: currentPageClients === totalPagesClients ? 'var(--background-secondary)' : 'var(--primary-color)', color: currentPageClients === totalPagesClients ? 'var(--text-secondary)' : 'var(--text-inverse)', border: 'none', borderRadius: '6px', cursor: currentPageClients === totalPagesClients ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>⏭️</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -2153,7 +2246,7 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {getFilteredSuppliers().length === 0 ? (
+                      {getPaginatedSuppliers().length === 0 ? (
                         <tr>
                           <td colSpan={11} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
                             {suppliers.length === 0 
@@ -2163,28 +2256,28 @@ export default function Dashboard() {
                           </td>
                         </tr>
                       ) : (
-                        getFilteredSuppliers().map((supplier, index) => {
+                        getPaginatedSuppliers().map((supplier, index) => {
                           const totalCA = (supplier.caf || 0) + (supplier.cabl || 0);
                           return (
-                            <tr key={`${supplier.nfournisseur}-${index}`}>
-                              <td style={{ fontWeight: 'bold' }}>{supplier.nfournisseur}</td>
-                              <td style={{ fontWeight: 'bold', color: '#007bff' }}>{supplier.nom_fournisseur}</td>
-                              <td>{supplier.resp_fournisseur}</td>
-                              <td style={{ fontSize: '12px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={supplier.adresse_fourni}>
+                            <tr key={`${supplier.nfournisseur}-${index}`} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                              <td style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 'bold' }}>{supplier.nfournisseur}</td>
+                              <td style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 'bold', color: '#007bff' }}>{supplier.nom_fournisseur}</td>
+                              <td style={{ padding: '6px 12px', fontSize: '12px' }}>{supplier.resp_fournisseur}</td>
+                              <td style={{ padding: '6px 12px', fontSize: '12px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={supplier.adresse_fourni}>
                                 {supplier.adresse_fourni}
                               </td>
-                              <td>{supplier.tel}</td>
-                              <td style={{ fontSize: '12px' }}>{supplier.email}</td>
-                              <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#28a745' }}>
+                              <td style={{ padding: '6px 12px', fontSize: '12px' }}>{supplier.tel}</td>
+                              <td style={{ padding: '6px 12px', fontSize: '12px' }}>{supplier.email}</td>
+                              <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '12px', fontWeight: 'bold', color: '#28a745' }}>
                                 {formatAmount(supplier.caf)}
                               </td>
-                              <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#17a2b8' }}>
+                              <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '12px', fontWeight: 'bold', color: '#17a2b8' }}>
                                 {formatAmount(supplier.cabl)}
                               </td>
-                              <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#6f42c1', fontSize: '14px' }}>
+                              <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '13px', fontWeight: 'bold', color: '#6f42c1' }}>
                                 {formatAmount(totalCA)}
                               </td>
-                              <td>
+                              <td style={{ padding: '6px 12px' }}>
                                 <span className={
                                   totalCA > 0 ? styles.inStock : styles.lowStock
                                 }>
@@ -2237,6 +2330,61 @@ export default function Dashboard() {
                       )}
                     </tbody>
                   </table>
+                  
+                  {/* Pagination Fournisseurs */}
+                  {getFilteredSuppliers().length > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: '20px',
+                      padding: '16px',
+                      backgroundColor: 'var(--card-background)',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      flexWrap: 'wrap',
+                      gap: '16px'
+                    }}>
+                      <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                        Affichage de {((currentPageSuppliers - 1) * itemsPerPageSuppliers) + 1} à {Math.min(currentPageSuppliers * itemsPerPageSuppliers, getFilteredSuppliers().length)} sur {getFilteredSuppliers().length} fournisseurs
+                      </div>
+                      
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Par page:</span>
+                          <select
+                            value={itemsPerPageSuppliers}
+                            onChange={(e) => {
+                              setItemsPerPageSuppliers(Number(e.target.value));
+                              setCurrentPageSuppliers(1);
+                            }}
+                            style={{
+                              padding: '6px 12px',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '6px',
+                              backgroundColor: 'var(--card-background)',
+                              color: 'var(--text-primary)',
+                              fontSize: '14px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                            <option value={200}>200</option>
+                          </select>
+                        </div>
+                        
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => setCurrentPageSuppliers(1)} disabled={currentPageSuppliers === 1} style={{ padding: '8px 12px', backgroundColor: currentPageSuppliers === 1 ? 'var(--background-secondary)' : 'var(--primary-color)', color: currentPageSuppliers === 1 ? 'var(--text-secondary)' : 'var(--text-inverse)', border: 'none', borderRadius: '6px', cursor: currentPageSuppliers === 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>⏮️</button>
+                          <button onClick={() => setCurrentPageSuppliers(prev => Math.max(1, prev - 1))} disabled={currentPageSuppliers === 1} style={{ padding: '8px 12px', backgroundColor: currentPageSuppliers === 1 ? 'var(--background-secondary)' : 'var(--primary-color)', color: currentPageSuppliers === 1 ? 'var(--text-secondary)' : 'var(--text-inverse)', border: 'none', borderRadius: '6px', cursor: currentPageSuppliers === 1 ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>◀️</button>
+                          <div style={{ padding: '8px 16px', backgroundColor: 'var(--primary-color)', color: 'var(--text-inverse)', borderRadius: '6px', fontSize: '14px', fontWeight: '600', minWidth: '100px', textAlign: 'center' }}>{currentPageSuppliers} / {totalPagesSuppliers}</div>
+                          <button onClick={() => setCurrentPageSuppliers(prev => Math.min(totalPagesSuppliers, prev + 1))} disabled={currentPageSuppliers === totalPagesSuppliers} style={{ padding: '8px 12px', backgroundColor: currentPageSuppliers === totalPagesSuppliers ? 'var(--background-secondary)' : 'var(--primary-color)', color: currentPageSuppliers === totalPagesSuppliers ? 'var(--text-secondary)' : 'var(--text-inverse)', border: 'none', borderRadius: '6px', cursor: currentPageSuppliers === totalPagesSuppliers ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>▶️</button>
+                          <button onClick={() => setCurrentPageSuppliers(totalPagesSuppliers)} disabled={currentPageSuppliers === totalPagesSuppliers} style={{ padding: '8px 12px', backgroundColor: currentPageSuppliers === totalPagesSuppliers ? 'var(--background-secondary)' : 'var(--primary-color)', color: currentPageSuppliers === totalPagesSuppliers ? 'var(--text-secondary)' : 'var(--text-inverse)', border: 'none', borderRadius: '6px', cursor: currentPageSuppliers === totalPagesSuppliers ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600' }}>⏭️</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
