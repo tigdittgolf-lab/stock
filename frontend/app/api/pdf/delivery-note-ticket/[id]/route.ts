@@ -37,9 +37,10 @@ export async function GET(
     });
 
     if (!response.ok) {
-      console.error(`Backend error:  Backend PDF error: ${response.status} - ${await response.text()}`);
+      const errorText = await response.text();
+      console.error(`Backend error:  Backend PDF error: ${response.status} - ${errorText}`);
       return NextResponse.json(
-        { success: false, error: `Backend PDF error: ${response.status} - ${await response.text()}` },
+        { success: false, error: `Backend PDF error: ${response.status} - ${errorText}` },
         { status: response.status }
       );
     }
