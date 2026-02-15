@@ -1256,6 +1256,28 @@ export class BackendDatabaseService {
           return this.updateUser(dbType, params);
         case 'delete_user':
           return this.deleteUser(dbType, params);
+        // Fonctions pour les achats (BL et factures d'achat)
+        case 'get_purchase_bl_list':
+        case 'get_purchase_bl_list_by_tenant':
+          return this.getPurchaseBLList(dbType, params.p_tenant);
+        case 'get_purchase_bl_with_details':
+        case 'get_purchase_bl_by_id':
+          return this.getPurchaseBLById(dbType, params.p_tenant, params.p_nbl_achat);
+        case 'insert_purchase_bl_with_supplier_number':
+        case 'insert_purchase_bl':
+          return this.insertPurchaseBL(dbType, params);
+        case 'insert_detail_purchase_bl':
+          return this.insertDetailPurchaseBL(dbType, params);
+        case 'get_purchase_invoices_list':
+        case 'get_purchase_invoices_by_tenant':
+          return this.getPurchaseInvoicesList(dbType, params.p_tenant);
+        case 'get_purchase_invoice_with_details':
+        case 'get_purchase_invoice_by_id':
+          return this.getPurchaseInvoiceById(dbType, params.p_tenant, params.p_nfact_achat);
+        case 'insert_purchase_invoice':
+          return this.insertPurchaseInvoice(dbType, params);
+        case 'insert_detail_purchase_invoice':
+          return this.insertDetailPurchaseInvoice(dbType, params);
         default:
           throw new Error(`RPC function ${functionName} not implemented for ${dbType}`);
       }
@@ -1692,6 +1714,474 @@ export class BackendDatabaseService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Erreur lors de la suppression de l\'utilisateur'
+      };
+    }
+  }
+
+  // ==================== FONCTIONS POUR LES ACHATS ====================
+  
+  private async getPurchaseBLList(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
+    try {
+      console.log(`📋 Getting purchase BL list for tenant: ${tenant}`);
+      
+      let sql;
+      if (dbType === 'mysql') {
+        sql = `
+          SELECT 
+            b.Nbl as nbl_achat,
+            b.Nfournisseur as nfournisseur,
+            b.numero_bl_fournisseur,
+            f.Nom_fournisseur as supplier_name,
+            b.Date_bl as date_bl,
+            b.Montant_ht as montant_ht,
+            b.Tva as tva,
+            b.Montant_ttc as montant_ttc,
+            b.created_at
+          FROM ${tenant}.bachat b
+          LEFT JOIN ${tenant}.fournisseur f ON b.Nfournisseur = f.Nfournisseur
+          ORDER BY b.Nbl DESC
+        `;
+      } else {
+        sql = `
+          SELECT 
+            b.nbl as nbl_achat,
+            b.nfournisseur,
+            b.numero_bl_fournisseur,
+            f.nom_fournisseur as supplier_name,
+            b.date_bl,
+            b.montant_ht,
+            b.tva,
+            b.montant_ttc,
+            b.created_at
+          FROM "${tenant}".bachat b
+          LEFT JOIN "${tenant}".fournisseur f ON b.nfournisseur = f.nfournisseur
+          ORDER BY b.nbl DESC
+        `;
+      }
+      
+      const result = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(sql, [])
+        : await this.executePostgreSQLQuery(sql, []);
+      
+      if (!result.success) {
+        return result;
+      }
+
+      return {
+        success: true,
+        data: result.data || []
+      };
+      
+    } catch (error) {
+      console.error(`❌ Error getting purchase BL list:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de la récupération des BL d\'achat'
+      };
+    }
+  }
+
+  private async getPurchaseBLById(dbType: 'mysql' | 'postgresql', tenant: string, nblAchat: number): Promise<any> {
+    try {
+      console.log(`📋 Getting purchase BL ${nblAchat} for tenant: ${tenant}`);
+      
+      let headerSql, detailsSql;
+      
+      if (dbType === 'mysql') {
+        headerSql = `
+          SELECT 
+            b.Nbl as nbl_achat,
+            b.Nfournisseur as nfournisseur,
+            b.numero_bl_fournisseur,
+            f.Nom_fournisseur as supplier_name,
+            f.Adresse_fourni as supplier_address,
+            b.Date_bl as date_bl,
+            b.Montant_ht as montant_ht,
+            b.Tva as tva,
+            b.Montant_ttc as montant_ttc,
+            b.created_at
+          FROM ${tenant}.bachat b
+          LEFT JOIN ${tenant}.fournisseur f ON b.Nfournisseur = f.Nfournisseur
+          WHERE b.Nbl = ?
+        `;
+        
+        detailsSql = `
+          SELECT 
+            d.Narticle as narticle,
+            a.designation,
+            d.Qte as qte,
+            d.prix,
+            d.tva,
+            d.total_ligne
+          FROM ${tenant}.bachat_detail d
+          LEFT JOIN ${tenant}.article a ON d.Narticle = a.Narticle
+          WHERE d.Nbl = ?
+        `;
+      } else {
+        headerSql = `
+          SELECT 
+            b.nbl as nbl_achat,
+            b.nfournisseur,
+            b.numero_bl_fournisseur,
+            f.nom_fournisseur as supplier_name,
+            f.adresse_fourni as supplier_address,
+            b.date_bl,
+            b.montant_ht,
+            b.tva,
+            b.montant_ttc,
+            b.created_at
+          FROM "${tenant}".bachat b
+          LEFT JOIN "${tenant}".fournisseur f ON b.nfournisseur = f.nfournisseur
+          WHERE b.nbl = $1
+        `;
+        
+        detailsSql = `
+          SELECT 
+            d.narticle,
+            a.designation,
+            d.qte,
+            d.prix,
+            d.tva,
+            d.total_ligne
+          FROM "${tenant}".bachat_detail d
+          LEFT JOIN "${tenant}".article a ON d.narticle = a.narticle
+          WHERE d.nbl = $1
+        `;
+      }
+      
+      const headerResult = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(headerSql, [nblAchat])
+        : await this.executePostgreSQLQuery(headerSql, [nblAchat]);
+      
+      if (!headerResult.success || !headerResult.data || headerResult.data.length === 0) {
+        return {
+          success: false,
+          error: 'BL d\'achat non trouvé'
+        };
+      }
+
+      const detailsResult = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(detailsSql, [nblAchat])
+        : await this.executePostgreSQLQuery(detailsSql, [nblAchat]);
+      
+      const bl = headerResult.data[0];
+      bl.details = detailsResult.success ? detailsResult.data : [];
+
+      return {
+        success: true,
+        data: bl
+      };
+      
+    } catch (error) {
+      console.error(`❌ Error getting purchase BL:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de la récupération du BL d\'achat'
+      };
+    }
+  }
+
+  private async insertPurchaseBL(dbType: 'mysql' | 'postgresql', params: any): Promise<any> {
+    try {
+      console.log(`📝 Inserting purchase BL:`, params);
+      
+      const { p_tenant, p_nbl_achat, p_nfournisseur, p_numero_bl_fournisseur, p_date_bl, p_montant_ht, p_tva, p_montant_ttc } = params;
+      
+      let sql;
+      if (dbType === 'mysql') {
+        sql = `
+          INSERT INTO ${p_tenant}.bachat 
+          (Nbl, Nfournisseur, numero_bl_fournisseur, Date_bl, Montant_ht, Tva, Montant_ttc, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+        `;
+      } else {
+        sql = `
+          INSERT INTO "${p_tenant}".bachat 
+          (nbl, nfournisseur, numero_bl_fournisseur, date_bl, montant_ht, tva, montant_ttc, created_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+          RETURNING *
+        `;
+      }
+      
+      const result = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(sql, [p_nbl_achat, p_nfournisseur, p_numero_bl_fournisseur, p_date_bl, p_montant_ht, p_tva, p_montant_ttc])
+        : await this.executePostgreSQLQuery(sql, [p_nbl_achat, p_nfournisseur, p_numero_bl_fournisseur, p_date_bl, p_montant_ht, p_tva, p_montant_ttc]);
+      
+      return result;
+      
+    } catch (error) {
+      console.error(`❌ Error inserting purchase BL:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de la création du BL d\'achat'
+      };
+    }
+  }
+
+  private async insertDetailPurchaseBL(dbType: 'mysql' | 'postgresql', params: any): Promise<any> {
+    try {
+      const { p_tenant, p_nbl_achat, p_narticle, p_qte, p_prix, p_tva, p_total_ligne } = params;
+      
+      let sql;
+      if (dbType === 'mysql') {
+        sql = `
+          INSERT INTO ${p_tenant}.bachat_detail 
+          (Nbl, Narticle, Qte, prix, tva, total_ligne)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `;
+      } else {
+        sql = `
+          INSERT INTO "${p_tenant}".bachat_detail 
+          (nbl, narticle, qte, prix, tva, total_ligne)
+          VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING *
+        `;
+      }
+      
+      const result = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(sql, [p_nbl_achat, p_narticle, p_qte, p_prix, p_tva, p_total_ligne])
+        : await this.executePostgreSQLQuery(sql, [p_nbl_achat, p_narticle, p_qte, p_prix, p_tva, p_total_ligne]);
+      
+      return result;
+      
+    } catch (error) {
+      console.error(`❌ Error inserting purchase BL detail:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de l\'ajout du détail'
+      };
+    }
+  }
+
+  private async getPurchaseInvoicesList(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
+    try {
+      console.log(`📋 Getting purchase invoices list for tenant: ${tenant}`);
+      
+      let sql;
+      if (dbType === 'mysql') {
+        sql = `
+          SELECT 
+            f.Nfact as nfact_achat,
+            f.Nfournisseur as nfournisseur,
+            f.numero_facture_fournisseur,
+            fo.Nom_fournisseur as supplier_name,
+            f.Date_fact as date_fact,
+            f.Montant_ht as montant_ht,
+            f.Tva as tva,
+            f.Total_ttc as total_ttc,
+            f.created_at
+          FROM ${tenant}.fachat f
+          LEFT JOIN ${tenant}.fournisseur fo ON f.Nfournisseur = fo.Nfournisseur
+          ORDER BY f.Nfact DESC
+        `;
+      } else {
+        sql = `
+          SELECT 
+            f.nfact as nfact_achat,
+            f.nfournisseur,
+            f.numero_facture_fournisseur,
+            fo.nom_fournisseur as supplier_name,
+            f.date_fact,
+            f.montant_ht,
+            f.tva,
+            f.total_ttc,
+            f.created_at
+          FROM "${tenant}".fachat f
+          LEFT JOIN "${tenant}".fournisseur fo ON f.nfournisseur = fo.nfournisseur
+          ORDER BY f.nfact DESC
+        `;
+      }
+      
+      const result = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(sql, [])
+        : await this.executePostgreSQLQuery(sql, []);
+      
+      if (!result.success) {
+        return result;
+      }
+
+      return {
+        success: true,
+        data: result.data || []
+      };
+      
+    } catch (error) {
+      console.error(`❌ Error getting purchase invoices list:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de la récupération des factures d\'achat'
+      };
+    }
+  }
+
+  private async getPurchaseInvoiceById(dbType: 'mysql' | 'postgresql', tenant: string, nfactAchat: number): Promise<any> {
+    try {
+      console.log(`📋 Getting purchase invoice ${nfactAchat} for tenant: ${tenant}`);
+      
+      let headerSql, detailsSql;
+      
+      if (dbType === 'mysql') {
+        headerSql = `
+          SELECT 
+            f.Nfact as nfact_achat,
+            f.Nfournisseur as nfournisseur,
+            f.numero_facture_fournisseur,
+            fo.Nom_fournisseur as supplier_name,
+            fo.Adresse_fourni as supplier_address,
+            f.Date_fact as date_fact,
+            f.Montant_ht as montant_ht,
+            f.Tva as tva,
+            f.Total_ttc as total_ttc,
+            f.created_at
+          FROM ${tenant}.fachat f
+          LEFT JOIN ${tenant}.fournisseur fo ON f.Nfournisseur = fo.Nfournisseur
+          WHERE f.Nfact = ?
+        `;
+        
+        detailsSql = `
+          SELECT 
+            d.Narticle as narticle,
+            a.designation,
+            d.Qte as qte,
+            d.prix,
+            d.tva,
+            d.total_ligne
+          FROM ${tenant}.fachat_detail d
+          LEFT JOIN ${tenant}.article a ON d.Narticle = a.Narticle
+          WHERE d.Nfact = ?
+        `;
+      } else {
+        headerSql = `
+          SELECT 
+            f.nfact as nfact_achat,
+            f.nfournisseur,
+            f.numero_facture_fournisseur,
+            fo.nom_fournisseur as supplier_name,
+            fo.adresse_fourni as supplier_address,
+            f.date_fact,
+            f.montant_ht,
+            f.tva,
+            f.total_ttc,
+            f.created_at
+          FROM "${tenant}".fachat f
+          LEFT JOIN "${tenant}".fournisseur fo ON f.nfournisseur = fo.nfournisseur
+          WHERE f.nfact = $1
+        `;
+        
+        detailsSql = `
+          SELECT 
+            d.narticle,
+            a.designation,
+            d.qte,
+            d.prix,
+            d.tva,
+            d.total_ligne
+          FROM "${tenant}".fachat_detail d
+          LEFT JOIN "${tenant}".article a ON d.narticle = a.narticle
+          WHERE d.nfact = $1
+        `;
+      }
+      
+      const headerResult = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(headerSql, [nfactAchat])
+        : await this.executePostgreSQLQuery(headerSql, [nfactAchat]);
+      
+      if (!headerResult.success || !headerResult.data || headerResult.data.length === 0) {
+        return {
+          success: false,
+          error: 'Facture d\'achat non trouvée'
+        };
+      }
+
+      const detailsResult = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(detailsSql, [nfactAchat])
+        : await this.executePostgreSQLQuery(detailsSql, [nfactAchat]);
+      
+      const invoice = headerResult.data[0];
+      invoice.details = detailsResult.success ? detailsResult.data : [];
+
+      return {
+        success: true,
+        data: invoice
+      };
+      
+    } catch (error) {
+      console.error(`❌ Error getting purchase invoice:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de la récupération de la facture d\'achat'
+      };
+    }
+  }
+
+  private async insertPurchaseInvoice(dbType: 'mysql' | 'postgresql', params: any): Promise<any> {
+    try {
+      console.log(`📝 Inserting purchase invoice:`, params);
+      
+      const { p_tenant, p_nfact_achat, p_nfournisseur, p_numero_facture_fournisseur, p_date_fact, p_montant_ht, p_tva, p_total_ttc } = params;
+      
+      let sql;
+      if (dbType === 'mysql') {
+        sql = `
+          INSERT INTO ${p_tenant}.fachat 
+          (Nfact, Nfournisseur, numero_facture_fournisseur, Date_fact, Montant_ht, Tva, Total_ttc, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+        `;
+      } else {
+        sql = `
+          INSERT INTO "${p_tenant}".fachat 
+          (nfact, nfournisseur, numero_facture_fournisseur, date_fact, montant_ht, tva, total_ttc, created_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+          RETURNING *
+        `;
+      }
+      
+      const result = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(sql, [p_nfact_achat, p_nfournisseur, p_numero_facture_fournisseur, p_date_fact, p_montant_ht, p_tva, p_total_ttc])
+        : await this.executePostgreSQLQuery(sql, [p_nfact_achat, p_nfournisseur, p_numero_facture_fournisseur, p_date_fact, p_montant_ht, p_tva, p_total_ttc]);
+      
+      return result;
+      
+    } catch (error) {
+      console.error(`❌ Error inserting purchase invoice:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de la création de la facture d\'achat'
+      };
+    }
+  }
+
+  private async insertDetailPurchaseInvoice(dbType: 'mysql' | 'postgresql', params: any): Promise<any> {
+    try {
+      const { p_tenant, p_nfact_achat, p_narticle, p_qte, p_prix, p_tva, p_total_ligne } = params;
+      
+      let sql;
+      if (dbType === 'mysql') {
+        sql = `
+          INSERT INTO ${p_tenant}.fachat_detail 
+          (Nfact, Narticle, Qte, prix, tva, total_ligne)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `;
+      } else {
+        sql = `
+          INSERT INTO "${p_tenant}".fachat_detail 
+          (nfact, narticle, qte, prix, tva, total_ligne)
+          VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING *
+        `;
+      }
+      
+      const result = dbType === 'mysql' 
+        ? await this.executeMySQLQuery(sql, [p_nfact_achat, p_narticle, p_qte, p_prix, p_tva, p_total_ligne])
+        : await this.executePostgreSQLQuery(sql, [p_nfact_achat, p_narticle, p_qte, p_prix, p_tva, p_total_ligne]);
+      
+      return result;
+      
+    } catch (error) {
+      console.error(`❌ Error inserting purchase invoice detail:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de l\'ajout du détail'
       };
     }
   }
