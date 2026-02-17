@@ -542,3 +542,141 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* Améliorations pour le mode sombre */
+.loading,
+.error {
+  background: var(--card-background);
+  color: var(--text-primary);
+  padding: 2rem;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid var(--border-color);
+}
+
+.error {
+  border-color: var(--error-color);
+  background: var(--error-color-light);
+}
+
+.error h2 {
+  color: var(--error-color);
+}
+
+.summary {
+  background: var(--card-background);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-color);
+  margin-top: 20px;
+}
+
+.summary h3 {
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.summary p {
+  color: var(--text-secondary);
+  margin: 8px 0;
+}
+
+.summary strong {
+  color: var(--text-primary);
+}
+
+/* Amélioration des inputs en mode sombre */
+:global(input[type="text"]),
+:global(input[type="number"]),
+:global(input[type="email"]),
+:global(input[type="password"]),
+:global(input[type="search"]),
+:global(textarea),
+:global(select) {
+  background: var(--background);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+:global(input[type="text"]:focus),
+:global(input[type="number"]:focus),
+:global(input[type="email"]:focus),
+:global(input[type="password"]:focus),
+:global(input[type="search"]:focus),
+:global(textarea:focus),
+:global(select:focus) {
+  border-color: var(--primary-color);
+  background: var(--card-background);
+}
+
+:global(input[type="text"]::placeholder),
+:global(input[type="number"]::placeholder),
+:global(input[type="email"]::placeholder),
+:global(input[type="password"]::placeholder),
+:global(input[type="search"]::placeholder),
+:global(textarea::placeholder) {
+  color: var(--text-tertiary);
+}
+
+/* Amélioration des checkboxes */
+:global(input[type="checkbox"]) {
+  accent-color: var(--primary-color);
+}
+
+/* Amélioration des labels */
+:global(label) {
+  color: var(--text-primary);
+}
+
+/* Amélioration des liens */
+:global(a) {
+  color: var(--primary-color);
+}
+
+:global(a:hover) {
+  color: var(--primary-color-hover);
+}
+
+/* Amélioration des badges et tags */
+.badge {
+  background: var(--primary-color-light);
+  color: var(--primary-color);
+}
+
+:global([class*="badge"]) {
+  background: var(--primary-color-light);
+  color: var(--primary-color);
+}
+
+/* Amélioration des alertes et notifications */
+.alert,
+.notification {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+:global(.alert.success) {
+  background: var(--success-color-light);
+  border-color: var(--success-color);
+  color: var(--success-color);
+}
+
+:global(.alert.warning) {
+  background: var(--warning-color-light);
+  border-color: var(--warning-color);
+  color: var(--warning-color);
+}
+
+:global(.alert.error) {
+  background: var(--error-color-light);
+  border-color: var(--error-color);
+  color: var(--error-color);
+}
+
+:global(.alert.info) {
+  background: var(--info-color-light);
+  border-color: var(--info-color);
+  color: var(--info-color);
+}

@@ -67,13 +67,13 @@
   --card-background: #1e293b;
   --card-background-hover: #334155;
   
-  /* Couleurs d'accent */
+  /* Couleurs d'accent - Plus vives pour le mode sombre */
   --primary-color: #818cf8;
-  --primary-color-hover: #6366f1;
+  --primary-color-hover: #a5b4fc;
   --primary-color-light: #312e81;
   
-  --success-color: #34d399;
-  --success-color-light: #064e3b;
+  --success-color: #4ade80;
+  --success-color-light: #14532d;
   
   --warning-color: #fbbf24;
   --warning-color-light: #78350f;
@@ -84,14 +84,14 @@
   --info-color: #60a5fa;
   --info-color-light: #1e3a8a;
   
-  /* Ombres */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.5);
+  /* Ombres - Plus prononcées en mode sombre */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.7), 0 4px 6px -2px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.8), 0 10px 10px -5px rgba(0, 0, 0, 0.7);
   
   /* Overlay */
-  --overlay-background: rgba(0, 0, 0, 0.7);
+  --overlay-background: rgba(0, 0, 0, 0.8);
 }
 
 /* Transitions optimisées pour un changement de thème fluide */
@@ -205,4 +205,87 @@ select:focus {
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--border-color-hover) var(--background-secondary);
+}
+
+/* Classes utilitaires pour éviter les couleurs codées en dur */
+.text-primary { color: var(--text-primary) !important; }
+.text-secondary { color: var(--text-secondary) !important; }
+.text-tertiary { color: var(--text-tertiary) !important; }
+.text-success { color: var(--success-color) !important; }
+.text-warning { color: var(--warning-color) !important; }
+.text-error { color: var(--error-color) !important; }
+.text-info { color: var(--info-color) !important; }
+
+.bg-primary { background-color: var(--background) !important; }
+.bg-secondary { background-color: var(--background-secondary) !important; }
+.bg-tertiary { background-color: var(--background-tertiary) !important; }
+.bg-card { background-color: var(--card-background) !important; }
+.bg-success { background-color: var(--success-color-light) !important; }
+.bg-warning { background-color: var(--warning-color-light) !important; }
+.bg-error { background-color: var(--error-color-light) !important; }
+.bg-info { background-color: var(--info-color-light) !important; }
+
+.border-color { border-color: var(--border-color) !important; }
+
+/* Surcharge des couleurs inline pour le mode sombre */
+[data-theme="dark"] [style*="color: #333"],
+[data-theme="dark"] [style*="color: #212529"],
+[data-theme="dark"] [style*="color: #495057"] {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] [style*="color: #666"],
+[data-theme="dark"] [style*="color: #6c757d"] {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] [style*="color: #999"] {
+  color: var(--text-tertiary) !important;
+}
+
+[data-theme="dark"] [style*="backgroundColor: #f8f9fa"],
+[data-theme="dark"] [style*="background: #f8f9fa"] {
+  background-color: var(--background-secondary) !important;
+}
+
+[data-theme="dark"] [style*="backgroundColor: #fff"],
+[data-theme="dark"] [style*="background: #fff"],
+[data-theme="dark"] [style*="backgroundColor: white"],
+[data-theme="dark"] [style*="background: white"] {
+  background-color: var(--card-background) !important;
+}
+
+[data-theme="dark"] [style*="color: #007bff"] {
+  color: var(--primary-color) !important;
+}
+
+[data-theme="dark"] [style*="color: #28a745"] {
+  color: var(--success-color) !important;
+}
+
+[data-theme="dark"] [style*="backgroundColor: #d4edda"],
+[data-theme="dark"] [style*="background: #d4edda"] {
+  background-color: var(--success-color-light) !important;
+}
+
+[data-theme="dark"] [style*="color: #155724"] {
+  color: var(--success-color) !important;
+}
+
+[data-theme="dark"] [style*="backgroundColor: #f8d7da"],
+[data-theme="dark"] [style*="background: #f8d7da"] {
+  background-color: var(--error-color-light) !important;
+}
+
+[data-theme="dark"] [style*="color: #721c24"] {
+  color: var(--error-color) !important;
+}
+
+[data-theme="dark"] [style*="backgroundColor: #fff3cd"],
+[data-theme="dark"] [style*="background: #fff3cd"] {
+  background-color: var(--warning-color-light) !important;
+}
+
+[data-theme="dark"] [style*="color: #856404"] {
+  color: var(--warning-color) !important;
 }

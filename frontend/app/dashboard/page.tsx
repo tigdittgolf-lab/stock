@@ -1266,6 +1266,19 @@ export default function Dashboard() {
                       🔄 Actualiser
                     </button>
                     <button 
+                      onClick={() => router.push('/articles/labels')}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🏷️ Étiquettes
+                    </button>
+                    <button 
                       className={styles.primaryButton}
                       onClick={() => router.push('/dashboard/add-article')}
                     >
