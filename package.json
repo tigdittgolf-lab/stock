@@ -8,7 +8,8 @@
     "sync-db-supabase": "node sync-database-objects.js",
     "verify-sync": "node verify-sync.js",
     "rollback": "node rollback-sync.js",
-    "help": "echo 'Scripts disponibles: test-connection, sync-db, sync-db-supabase, verify-sync, rollback'"
+    "help": "echo 'Scripts disponibles: test-connection, sync-db, sync-db-supabase, verify-sync, rollback'",
+    "vercel-build": "cd frontend && npm install && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",
