@@ -18,6 +18,8 @@ interface Article {
 interface LabelConfig {
   article: Article;
   quantity: number;
+  showCode: boolean;
+  showDesignation: boolean;
   showPrice: boolean;
   showPriceHT: boolean;
   showBarcode: boolean;
@@ -73,10 +75,12 @@ export default function ArticleLabelsPage() {
       setSelectedArticles([...selectedArticles, {
         article,
         quantity: 1,
-        showPrice: true,
-        showPriceHT: true,
-        showBarcode: true,
-        showFamily: true
+        showCode: true,           // Code article activé par défaut
+        showDesignation: false,   // Désignation désactivée par défaut
+        showPrice: true,          // Prix TTC activé par défaut
+        showPriceHT: true,        // Prix HT activé par défaut
+        showBarcode: false,       // Code-barres désactivé par défaut
+        showFamily: false         // Famille désactivée par défaut
       }]);
     }
   };
@@ -87,6 +91,8 @@ export default function ArticleLabelsPage() {
         ...label, 
         ...updates,
         // S'assurer que toutes les propriétés booléennes existent
+        showCode: updates.showCode !== undefined ? updates.showCode : (label.showCode ?? true),
+        showDesignation: updates.showDesignation !== undefined ? updates.showDesignation : (label.showDesignation ?? true),
         showPrice: updates.showPrice !== undefined ? updates.showPrice : label.showPrice,
         showPriceHT: updates.showPriceHT !== undefined ? updates.showPriceHT : (label.showPriceHT ?? true),
         showBarcode: updates.showBarcode !== undefined ? updates.showBarcode : label.showBarcode,
@@ -97,6 +103,13 @@ export default function ArticleLabelsPage() {
 
   const removeLabel = (narticle: string) => {
     setSelectedArticles(selectedArticles.filter(l => l.article.narticle !== narticle));
+  };
+
+  const formatPrice = (price: number): string => {
+    return price.toLocaleString('fr-FR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).replace(/\s/g, ' '); // Utiliser des espaces insécables
   };
 
   const previewLabels = () => {
@@ -147,58 +160,54 @@ export default function ArticleLabelsPage() {
           }
           
           .label-code {
-            font-size: 9pt;
+            font-size: 14pt;
             font-weight: bold;
+            text-align: center;
+            margin-bottom: 1mm;
           }
           
           .label-designation {
-            font-size: 7pt;
+            font-size: 8pt;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            max-height: 3.5mm;
+            max-height: 4mm;
+            text-align: center;
           }
           
           .label-family {
-            font-size: 6pt;
+            font-size: 7pt;
             color: #666;
             font-style: italic;
+            text-align: center;
           }
           
           .label-price {
-            font-size: 12pt;
+            font-size: 14pt;
             font-weight: bold;
             text-align: center;
-            margin: 0.3mm 0;
+            margin: 0.5mm 0;
             color: #d32f2f;
           }
           
           .label-price-ht {
-            font-size: 9pt;
+            font-size: 12pt;
             font-weight: bold;
             text-align: center;
-            margin: 0.3mm 0;
+            margin: 0.5mm 0;
             color: #1976d2;
           }
           
           .label-barcode-container {
             text-align: center;
-            margin-top: 0.5mm;
+            margin-top: 1mm;
             page-break-inside: avoid;
           }
           
           .barcode {
             width: 100%;
-            height: 6mm;
-            max-height: 6mm;
-          }
-          
-          .label-barcode-text {
-            font-size: 6pt;
-            text-align: center;
-            font-family: monospace;
-            letter-spacing: 0.5px;
-            margin-top: 0.3mm;
+            height: 10mm;
+            max-height: 10mm;
           }
           
           .toolbar {
@@ -251,20 +260,18 @@ export default function ArticleLabelsPage() {
           window.onload = function() {
             const barcodes = document.querySelectorAll('.barcode');
             barcodes.forEach((svg) => {
-              const container = svg.closest('.label-barcode-container');
-              const text = container.querySelector('.label-barcode-text');
-              if (text && text.textContent) {
+              const barcodeValue = svg.getAttribute('data-barcode');
+              if (barcodeValue) {
                 try {
-                  JsBarcode(svg, text.textContent, {
+                  JsBarcode(svg, barcodeValue, {
                     format: 'CODE128',
-                    width: 1,
-                    height: 30,
+                    width: 2,
+                    height: 50,
                     displayValue: false,
                     margin: 0
                   });
                 } catch (e) {
                   console.error('Erreur génération code-barres:', e);
-                  // En cas d'erreur, afficher un message
                   svg.outerHTML = '<div style="font-size:8pt;color:red;">Code-barres invalide</div>';
                 }
               }
@@ -331,58 +338,54 @@ export default function ArticleLabelsPage() {
           }
           
           .label-code {
-            font-size: 9pt;
+            font-size: 14pt;
             font-weight: bold;
+            text-align: center;
+            margin-bottom: 1mm;
           }
           
           .label-designation {
-            font-size: 7pt;
+            font-size: 8pt;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            max-height: 3.5mm;
+            max-height: 4mm;
+            text-align: center;
           }
           
           .label-family {
-            font-size: 6pt;
+            font-size: 7pt;
             color: #666;
             font-style: italic;
+            text-align: center;
           }
           
           .label-price {
-            font-size: 12pt;
+            font-size: 14pt;
             font-weight: bold;
             text-align: center;
-            margin: 0.3mm 0;
+            margin: 0.5mm 0;
             color: #d32f2f;
           }
           
           .label-price-ht {
-            font-size: 9pt;
+            font-size: 12pt;
             font-weight: bold;
             text-align: center;
-            margin: 0.3mm 0;
+            margin: 0.5mm 0;
             color: #1976d2;
           }
           
           .label-barcode-container {
             text-align: center;
-            margin-top: 0.5mm;
+            margin-top: 1mm;
             page-break-inside: avoid;
           }
           
           .barcode {
             width: 100%;
-            height: 6mm;
-            max-height: 6mm;
-          }
-          
-          .label-barcode-text {
-            font-size: 6pt;
-            text-align: center;
-            font-family: monospace;
-            letter-spacing: 0.5px;
-            margin-top: 0.3mm;
+            height: 10mm;
+            max-height: 10mm;
           }
           
           @media print {
@@ -398,15 +401,14 @@ export default function ArticleLabelsPage() {
           // Générer les codes-barres après le chargement
           window.onload = function() {
             const barcodes = document.querySelectorAll('.barcode');
-            barcodes.forEach((svg, index) => {
-              const container = svg.closest('.label-barcode-container');
-              const text = container.querySelector('.label-barcode-text');
-              if (text && text.textContent) {
+            barcodes.forEach((svg) => {
+              const barcodeValue = svg.getAttribute('data-barcode');
+              if (barcodeValue) {
                 try {
-                  JsBarcode(svg, text.textContent, {
+                  JsBarcode(svg, barcodeValue, {
                     format: 'CODE128',
-                    width: 1,
-                    height: 30,
+                    width: 2,
+                    height: 50,
                     displayValue: false,
                     margin: 0
                   });
@@ -428,12 +430,17 @@ export default function ArticleLabelsPage() {
   };
 
   const generateLabelHtml = (config: LabelConfig) => {
-    const { article, showPrice, showPriceHT, showBarcode, showFamily } = config;
+    const { article, showCode, showDesignation, showPrice, showPriceHT, showBarcode, showFamily } = config;
     
     // Calculer le prix HT si TVA disponible
     const prixHT = article.tva 
       ? article.prix_vente / (1 + article.tva / 100)
       : article.prix_achat || article.prix_vente * 0.81; // Fallback: -19% si pas de TVA
+    
+    // Fonction pour formater les prix avec espaces
+    const formatPrice = (price: number) => {
+      return price.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    };
     
     // Utiliser le code-barres s'il existe, sinon utiliser le code article
     const barcodeValue = article.code_barre || article.narticle;
@@ -441,18 +448,17 @@ export default function ArticleLabelsPage() {
     return `
       <div class="label">
         <div>
-          <div class="label-code">${article.narticle}</div>
-          <div class="label-designation">${article.designation}</div>
+          ${showCode ? `<div class="label-code">${article.narticle}</div>` : ''}
+          ${showDesignation ? `<div class="label-designation">${article.designation}</div>` : ''}
           ${showFamily && article.famille ? `<div class="label-family">${article.famille}</div>` : ''}
         </div>
         <div>
-          ${showPriceHT ? `<div class="label-price-ht">HT: ${prixHT.toFixed(2)} DA</div>` : ''}
-          ${showPrice ? `<div class="label-price">TTC: ${article.prix_vente?.toFixed(2)} DA</div>` : ''}
+          ${showPriceHT ? `<div class="label-price-ht">Prix HT: ${formatPrice(prixHT)} DA</div>` : ''}
+          ${showPrice ? `<div class="label-price">Prix TTC: ${formatPrice(article.prix_vente)} DA</div>` : ''}
         </div>
         ${showBarcode ? `
           <div class="label-barcode-container">
-            <svg class="barcode"></svg>
-            <div class="label-barcode-text">${barcodeValue}</div>
+            <svg class="barcode" data-barcode="${barcodeValue}"></svg>
           </div>
         ` : ''}
       </div>
@@ -638,6 +644,26 @@ export default function ArticleLabelsPage() {
                       <label style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
                         <input
                           type="checkbox"
+                          checked={config.showCode ?? true}
+                          onChange={(e) => updateLabelConfig(config.article.narticle, { 
+                            showCode: e.target.checked 
+                          })}
+                        />
+                        {' '}Afficher le code article
+                      </label>
+                      <label style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                        <input
+                          type="checkbox"
+                          checked={config.showDesignation ?? false}
+                          onChange={(e) => updateLabelConfig(config.article.narticle, { 
+                            showDesignation: e.target.checked 
+                          })}
+                        />
+                        {' '}Afficher la désignation
+                      </label>
+                      <label style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                        <input
+                          type="checkbox"
                           checked={config.showPrice ?? true}
                           onChange={(e) => updateLabelConfig(config.article.narticle, { 
                             showPrice: e.target.checked 
@@ -658,7 +684,7 @@ export default function ArticleLabelsPage() {
                       <label style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
                         <input
                           type="checkbox"
-                          checked={config.showBarcode ?? true}
+                          checked={config.showBarcode ?? false}
                           onChange={(e) => updateLabelConfig(config.article.narticle, { 
                             showBarcode: e.target.checked 
                           })}
@@ -668,7 +694,7 @@ export default function ArticleLabelsPage() {
                       <label style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
                         <input
                           type="checkbox"
-                          checked={config.showFamily ?? true}
+                          checked={config.showFamily ?? false}
                           onChange={(e) => updateLabelConfig(config.article.narticle, { 
                             showFamily: e.target.checked 
                           })}
@@ -686,3 +712,5 @@ export default function ArticleLabelsPage() {
     </div>
   );
 }
+
+

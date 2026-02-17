@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getApiUrl } from '@/lib/api';
-import styles from '../page.module.css';
 
 interface BusinessUnit {
   id: string;
@@ -33,7 +32,6 @@ export default function TenantSelection() {
     try {
       console.log('🔍 Chargement des BU autorisées pour l\'utilisateur...');
       
-      // CORRECTION: Récupérer les BU autorisées depuis user_info
       const userInfoStr = localStorage.getItem('user_info');
       if (!userInfoStr) {
         console.error('No user info found, redirecting to login');
@@ -54,13 +52,11 @@ export default function TenantSelection() {
 
       console.log('🔐 BU autorisées pour cet utilisateur:', userBusinessUnits);
 
-      // Récupérer la config de la base de données active
       const dbConfig = localStorage.getItem('activeDbConfig');
       const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
       
       console.log('📊 Base de données active:', dbType);
 
-      // Charger TOUS les BU disponibles depuis l'API avec le bon type de base
       const response = await fetch(getApiUrl('auth/exercises'), {
         headers: {
           'X-Database-Type': dbType
@@ -71,14 +67,12 @@ export default function TenantSelection() {
       console.log('📊 Tous les BU disponibles depuis', dbType, ':', data);
       
       if (data.success && data.data && data.data.length > 0) {
-        // FILTRER uniquement les BU auxquelles l'utilisateur a accès
         const filteredBUs = data.data.filter((exercise: any) => {
           return userBusinessUnits.includes(exercise.schema_name);
         });
 
         console.log('✅ BU filtrées (autorisées):', filteredBUs);
 
-        // Transformer les données filtrées en objets BusinessUnit
         const buList = filteredBUs.map((exercise: any) => {
           return {
             id: exercise.schema_name,
@@ -92,10 +86,8 @@ export default function TenantSelection() {
         return;
       }
 
-      // Fallback: utiliser directement les BU de l'utilisateur
       console.log('⚠️ API échouée, utilisation des BU de l\'utilisateur...');
       
-      // Transformer les schémas en objets BusinessUnit
       const buList = userBusinessUnits.map((schema: string) => {
         const parts = schema.split('_');
         const year = parts[0];
@@ -112,14 +104,12 @@ export default function TenantSelection() {
       setBusinessUnits(buList);
     } catch (error) {
       console.error('❌ Error loading business units:', error);
-      // En cas d'erreur, ne pas afficher de BU par défaut
       setBusinessUnits([]);
     }
   };
 
   const loadExercises = async () => {
     try {
-      // Récupérer la config de la base de données active
       const dbConfig = localStorage.getItem('activeDbConfig');
       const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
       
@@ -134,7 +124,6 @@ export default function TenantSelection() {
       }
     } catch (error) {
       console.error('Error loading exercises:', error);
-      // Fallback data
       const currentYear = new Date().getFullYear();
       setExercises([
         { year: currentYear, status: 'active' },
@@ -152,13 +141,11 @@ export default function TenantSelection() {
 
     setLoading(true);
     try {
-      // Le selectedBU contient déjà le schéma complet (ex: "2025_bu01")
       const schema = selectedBU;
       const parts = schema.split('_');
       const year = parseInt(parts[0]);
       const buCode = parts[1];
 
-      // Stocker les informations du tenant
       const tenantInfo = {
         business_unit: buCode,
         year: year,
@@ -170,7 +157,6 @@ export default function TenantSelection() {
 
       console.log('✅ Tenant sélectionné:', tenantInfo);
 
-      // Rediriger vers le dashboard
       router.push('/dashboard');
       router.refresh();
     } catch (error) {
@@ -182,26 +168,91 @@ export default function TenantSelection() {
   };
 
   return (
-    <div className={styles.page}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    <div style={{ 
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color-hover) 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      {/* Effet de fond décoratif */}
+      <div style={{
+        position: 'absolute',
+        top: '-50%',
+        right: '-10%',
+        width: '600px',
+        height: '600px',
+        background: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: '50%',
+        filter: 'blur(80px)'
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: '-30%',
+        left: '-5%',
+        width: '500px',
+        height: '500px',
+        background: 'rgba(255, 255, 255, 0.08)',
+        borderRadius: '50%',
+        filter: 'blur(80px)'
+      }} />
+
+      <div style={{
+        background: 'var(--card-background)',
+        padding: '48px',
+        borderRadius: '24px',
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+        width: '100%',
+        maxWidth: '700px',
+        border: '1px solid var(--border-color)',
+        position: 'relative',
+        zIndex: 1
       }}>
-        <div style={{
-          background: 'white',
-          padding: '40px',
-          borderRadius: '10px',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-          minWidth: '400px',
-          maxWidth: '500px'
-        }}>
-          <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-            <h1 style={{ color: '#333', marginBottom: '10px' }}>Système de Gestion de Stock</h1>
-            <p style={{ color: '#666', fontSize: '14px' }}>Sélectionnez votre unité d'affaires</p>
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color-hover) 100%)',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '40px',
+            margin: '0 auto 24px',
+            boxShadow: '0 8px 24px rgba(102, 126, 234, 0.3)'
+          }}>
+            🏢
+          </div>
+          
+          <h1 style={{ 
+            color: 'var(--text-primary)', 
+            marginBottom: '12px',
+            fontSize: '2.5rem',
+            fontWeight: '700',
+            letterSpacing: '-0.5px'
+          }}>
+            Sélection du Contexte
+          </h1>
+          <p style={{ 
+            color: 'var(--text-secondary)', 
+            fontSize: '18px',
+            marginBottom: '32px',
+            lineHeight: '1.6'
+          }}>
+            Choisissez votre unité d'affaires pour continuer
+          </p>
             
+          {/* Badges d'information */}
+          <div style={{ 
+            display: 'flex', 
+            gap: '12px', 
+            justifyContent: 'center', 
+            flexWrap: 'wrap',
+            marginBottom: '8px'
+          }}>
             {/* Indicateur de base de données active */}
             {(() => {
               try {
@@ -220,7 +271,6 @@ export default function TenantSelection() {
                     'mariadb': '#c0765a',
                     'postgresql': '#336791'
                   };
-                  // Déterminer l'icône et la couleur basée sur le port pour MariaDB
                   let displayType = config.type;
                   if (config.type === 'mysql' && config.port === 3307) {
                     displayType = 'mariadb';
@@ -228,17 +278,19 @@ export default function TenantSelection() {
                   
                   return (
                     <div style={{ 
-                      marginTop: '10px',
-                      padding: '8px 16px',
-                      background: `${dbColors[displayType]}15`,
-                      border: `1px solid ${dbColors[displayType]}`,
-                      borderRadius: '20px',
-                      display: 'inline-block',
-                      fontSize: '13px',
-                      color: dbColors[displayType],
-                      fontWeight: '500'
+                      padding: '10px 20px',
+                      background: 'var(--background-secondary)',
+                      border: `2px solid ${dbColors[displayType]}`,
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      color: 'var(--text-primary)',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
                     }}>
-                      {dbIcons[displayType]} Base de données: <strong>{config.name}</strong>
+                      <span style={{ fontSize: '20px' }}>{dbIcons[displayType]}</span>
+                      <span>{config.name}</span>
                     </div>
                   );
                 }
@@ -248,6 +300,7 @@ export default function TenantSelection() {
               }
             })()}
             
+            {/* Badge utilisateur */}
             {(() => {
               try {
                 const userInfo = typeof window !== 'undefined' ? localStorage.getItem('user_info') : null;
@@ -255,17 +308,23 @@ export default function TenantSelection() {
                 if (user) {
                   const roleIcon = user.role === 'admin' ? '👨‍💼' : user.role === 'manager' ? '👔' : '👤';
                   const roleLabel = user.role === 'admin' ? 'Administrateur' : user.role === 'manager' ? 'Manager' : 'Utilisateur';
+                  const roleColor = user.role === 'admin' ? 'var(--error-color)' : user.role === 'manager' ? 'var(--warning-color)' : 'var(--info-color)';
+                  
                   return (
                     <div style={{ 
-                      marginTop: '10px',
-                      padding: '8px 16px',
-                      background: user.role === 'admin' ? '#e7f3ff' : user.role === 'manager' ? '#fff3cd' : '#f8f9fa',
-                      borderRadius: '20px',
-                      display: 'inline-block',
-                      fontSize: '13px',
-                      color: '#495057'
+                      padding: '10px 20px',
+                      background: 'var(--background-secondary)',
+                      border: `2px solid ${roleColor}`,
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      color: 'var(--text-primary)',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
                     }}>
-                      {roleIcon} Connecté en tant que <strong>{roleLabel}</strong> ({user.username})
+                      <span style={{ fontSize: '20px' }}>{roleIcon}</span>
+                      <span>{roleLabel}</span>
                     </div>
                   );
                 }
@@ -275,103 +334,203 @@ export default function TenantSelection() {
               }
             })()}
           </div>
+        </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
-              Unité d'Affaires:
-            </label>
-            <select
-              value={selectedBU}
-              onChange={(e) => setSelectedBU(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '2px solid #ddd',
-                borderRadius: '5px',
-                fontSize: '14px'
-              }}
-            >
-              <option value="">Sélectionner une unité d'affaires</option>
-              {businessUnits.map((bu, index) => (
-                <option key={`${bu.id}-${index}`} value={bu.id}>
-                  {bu.name} - {bu.description}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            onClick={handleConnect}
-            disabled={loading || !selectedBU}
+        {/* Formulaire de sélection */}
+        <div style={{ marginBottom: '24px' }}>
+          <label style={{ 
+            display: 'block', 
+            marginBottom: '12px', 
+            fontWeight: '600', 
+            color: 'var(--text-primary)',
+            fontSize: '16px'
+          }}>
+            📊 Unité d'Affaires
+          </label>
+          <select
+            value={selectedBU}
+            onChange={(e) => setSelectedBU(e.target.value)}
             style={{
               width: '100%',
-              padding: '15px',
-              backgroundColor: !selectedBU ? '#ccc' : '#667eea',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
+              padding: '16px',
+              border: '2px solid var(--border-color)',
+              borderRadius: '12px',
               fontSize: '16px',
-              fontWeight: 'bold',
-              cursor: !selectedBU ? 'not-allowed' : 'pointer',
-              transition: 'background-color 0.3s'
+              backgroundColor: 'var(--background)',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              fontWeight: '500'
             }}
           >
-            {loading ? 'Connexion...' : 'Se Connecter'}
-          </button>
-
-          <div style={{ marginTop: '20px', textAlign: 'center', display: 'flex', justifyContent: 'space-between' }}>
-            <button
-              onClick={() => router.push('/login')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#667eea',
-                textDecoration: 'underline',
-                cursor: 'pointer'
-              }}
-            >
-              ← Retour à la connexion
-            </button>
-            
-            {/* Bouton Créer exercice - Visible uniquement pour les admins */}
-            {(() => {
-              try {
-                const userInfo = typeof window !== 'undefined' ? localStorage.getItem('user_info') : null;
-                const user = userInfo ? JSON.parse(userInfo) : null;
-                return user?.role === 'admin' ? (
-                  <button
-                    onClick={() => router.push('/new-exercise')}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#28a745',
-                      textDecoration: 'underline',
-                      cursor: 'pointer',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    ➕ Créer un nouvel exercice
-                  </button>
-                ) : null;
-              } catch {
-                return null;
-              }
-            })()}
-          </div>
-
-          {selectedBU && (
-            <div style={{
-              marginTop: '20px',
-              padding: '15px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '5px',
-              border: '1px solid #e9ecef'
+            <option value="">Sélectionner une unité d'affaires</option>
+            {businessUnits.map((bu, index) => (
+              <option key={`${bu.id}-${index}`} value={bu.id}>
+                {bu.name} - {bu.description}
+              </option>
+            ))}
+          </select>
+          
+          {businessUnits.length === 0 && (
+            <p style={{ 
+              marginTop: '12px', 
+              color: 'var(--warning-color)', 
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}>
-              <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>
-                <strong>Schéma sélectionné:</strong> {selectedBU}
-              </p>
-            </div>
+              ⚠️ Aucune unité d'affaires disponible
+            </p>
           )}
+        </div>
+
+        {/* Aperçu de la sélection */}
+        {selectedBU && (
+          <div style={{
+            marginBottom: '24px',
+            padding: '20px',
+            backgroundColor: 'var(--background-secondary)',
+            borderRadius: '12px',
+            border: '2px solid var(--primary-color)',
+            animation: 'fadeIn 0.3s ease'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px',
+              marginBottom: '8px'
+            }}>
+              <span style={{ fontSize: '24px' }}>✅</span>
+              <span style={{ 
+                fontSize: '16px', 
+                fontWeight: '600', 
+                color: 'var(--text-primary)' 
+              }}>
+                Schéma sélectionné
+              </span>
+            </div>
+            <p style={{ 
+              margin: 0, 
+              fontSize: '15px', 
+              color: 'var(--text-secondary)',
+              paddingLeft: '36px',
+              fontFamily: 'monospace'
+            }}>
+              {selectedBU}
+            </p>
+          </div>
+        )}
+
+        {/* Bouton de connexion */}
+        <button
+          onClick={handleConnect}
+          disabled={loading || !selectedBU}
+          style={{
+            width: '100%',
+            padding: '18px',
+            background: !selectedBU 
+              ? 'var(--background-tertiary)' 
+              : 'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color-hover) 100%)',
+            color: !selectedBU ? 'var(--text-tertiary)' : 'white',
+            border: 'none',
+            borderRadius: '12px',
+            fontSize: '18px',
+            fontWeight: '700',
+            cursor: !selectedBU ? 'not-allowed' : 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: !selectedBU ? 'none' : '0 4px 16px rgba(102, 126, 234, 0.4)',
+            transform: loading ? 'scale(0.98)' : 'scale(1)'
+          }}
+          onMouseEnter={(e) => {
+            if (selectedBU && !loading) {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 24px rgba(102, 126, 234, 0.5)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (selectedBU && !loading) {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(102, 126, 234, 0.4)';
+            }
+          }}
+        >
+          {loading ? '⏳ Connexion en cours...' : '🚀 Se Connecter'}
+        </button>
+
+        {/* Actions secondaires */}
+        <div style={{ 
+          marginTop: '32px', 
+          display: 'flex', 
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '16px',
+          flexWrap: 'wrap'
+        }}>
+          <button
+            onClick={() => router.push('/login')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--primary-color)',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--background-secondary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'none';
+            }}
+          >
+            ← Retour à la connexion
+          </button>
+          
+          {/* Bouton Créer exercice - Visible uniquement pour les admins */}
+          {(() => {
+            try {
+              const userInfo = typeof window !== 'undefined' ? localStorage.getItem('user_info') : null;
+              const user = userInfo ? JSON.parse(userInfo) : null;
+              return user?.role === 'admin' ? (
+                <button
+                  onClick={() => router.push('/new-exercise')}
+                  style={{
+                    background: 'var(--success-color-light)',
+                    border: '2px solid var(--success-color)',
+                    color: 'var(--success-color)',
+                    fontSize: '15px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--success-color)';
+                    e.currentTarget.style.color = 'white';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'var(--success-color-light)';
+                    e.currentTarget.style.color = 'var(--success-color)';
+                  }}
+                >
+                  ➕ Nouvel exercice
+                </button>
+              ) : null;
+            } catch {
+              return null;
+            }
+          })()}
         </div>
       </div>
     </div>
