@@ -26,16 +26,148 @@ interface LabelConfig {
   showFamily: boolean;
 }
 
+interface LabelSize {
+  id: string;
+  name: string;
+  width: number;  // en mm
+  height: number; // en mm
+  padding: number; // en mm
+  fontSize: {
+    code: number;      // en pt
+    designation: number;
+    family: number;
+    priceHT: number;
+    priceTTC: number;
+    label: number;     // HT/TTC
+    currency: number;  // DA
+  };
+  barcode: {
+    width: number;     // en %
+    height: number;    // en mm
+    jsWidth: number;   // paramètre JsBarcode
+    jsHeight: number;  // paramètre JsBarcode
+  };
+}
+
+const LABEL_SIZES: LabelSize[] = [
+  {
+    id: 'small',
+    name: '50mm x 30mm (Petite)',
+    width: 50,
+    height: 30,
+    padding: 2,
+    fontSize: {
+      code: 14,
+      designation: 8,
+      family: 7,
+      priceHT: 12,
+      priceTTC: 14,
+      label: 8,
+      currency: 7
+    },
+    barcode: {
+      width: 75,
+      height: 4,
+      jsWidth: 0.9,
+      jsHeight: 20
+    }
+  },
+  {
+    id: 'medium',
+    name: '60mm x 40mm (Moyenne)',
+    width: 60,
+    height: 40,
+    padding: 2.5,
+    fontSize: {
+      code: 16,
+      designation: 10,
+      family: 8,
+      priceHT: 14,
+      priceTTC: 16,
+      label: 9,
+      currency: 8
+    },
+    barcode: {
+      width: 75,
+      height: 6,
+      jsWidth: 1.2,
+      jsHeight: 30
+    }
+  },
+  {
+    id: 'large',
+    name: '70mm x 50mm (Grande)',
+    width: 70,
+    height: 50,
+    padding: 3,
+    fontSize: {
+      code: 18,
+      designation: 12,
+      family: 9,
+      priceHT: 16,
+      priceTTC: 18,
+      label: 10,
+      currency: 9
+    },
+    barcode: {
+      width: 80,
+      height: 8,
+      jsWidth: 1.4,
+      jsHeight: 40
+    }
+  },
+  {
+    id: 'xlarge',
+    name: '100mm x 50mm (Très grande)',
+    width: 100,
+    height: 50,
+    padding: 3,
+    fontSize: {
+      code: 20,
+      designation: 14,
+      family: 10,
+      priceHT: 18,
+      priceTTC: 20,
+      label: 11,
+      currency: 10
+    },
+    barcode: {
+      width: 85,
+      height: 9,
+      jsWidth: 1.6,
+      jsHeight: 45
+    }
+  }
+];
+
 export default function ArticleLabelsPage() {
   const router = useRouter();
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticles, setSelectedArticles] = useState<LabelConfig[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [labelSize, setLabelSize] = useState<LabelSize>(() => {
+    // Charger la taille sauvegardée ou utiliser la taille petite par défaut
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('labelSize');
+      if (saved) {
+        const savedId = saved;
+        return LABEL_SIZES.find(s => s.id === savedId) || LABEL_SIZES[0];
+      }
+    }
+    return LABEL_SIZES[0]; // Petite (50mm x 30mm) par défaut
+  });
 
   useEffect(() => {
     fetchArticles();
   }, []);
+
+  useEffect(() => {
+    // Sauvegarder la taille sélectionnée
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('labelSize', labelSize.id);
+    }
+  }, [labelSize]);
 
   const fetchArticles = async () => {
     // S'assurer qu'on est côté client
@@ -112,6 +244,79 @@ export default function ArticleLabelsPage() {
     }).replace(/\s/g, ' '); // Utiliser des espaces insécables
   };
 
+  const generateLabelStyles = (size: LabelSize) => {
+    return `
+      .label {
+        width: ${size.width}mm;
+        height: ${size.height}mm;
+        padding: ${size.padding}mm;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        border: 2px solid #333;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        page-break-inside: avoid;
+      }
+      
+      .label > * {
+        page-break-inside: avoid;
+      }
+      
+      .label-code {
+        font-size: ${size.fontSize.code}pt;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 1mm;
+      }
+      
+      .label-designation {
+        font-size: ${size.fontSize.designation}pt;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-height: ${size.fontSize.designation * 0.5}mm;
+        text-align: center;
+      }
+      
+      .label-family {
+        font-size: ${size.fontSize.family}pt;
+        color: #666;
+        font-style: italic;
+        text-align: center;
+      }
+      
+      .label-price {
+        font-size: ${size.fontSize.priceTTC}pt;
+        font-weight: bold;
+        text-align: left;
+        margin: 0.5mm 0;
+        color: #d32f2f;
+      }
+      
+      .label-price-ht {
+        font-size: ${size.fontSize.priceHT}pt;
+        font-weight: bold;
+        text-align: left;
+        margin: 0.5mm 0;
+        color: #1976d2;
+      }
+      
+      .label-barcode-container {
+        text-align: center;
+        margin-top: 1mm;
+        page-break-inside: avoid;
+      }
+      
+      .barcode {
+        width: ${size.barcode.width}%;
+        height: ${size.barcode.height}mm;
+        max-height: ${size.barcode.height}mm;
+      }
+    `;
+  };
+
   const previewLabels = () => {
     const previewWindow = window.open('', '_blank');
     if (!previewWindow) return;
@@ -119,6 +324,8 @@ export default function ArticleLabelsPage() {
     const labelsHtml = selectedArticles.flatMap(config => 
       Array(config.quantity).fill(null).map(() => generateLabelHtml(config))
     ).join('');
+
+    const dynamicStyles = generateLabelStyles(labelSize);
 
     previewWindow.document.write(`
       <!DOCTYPE html>
@@ -141,73 +348,11 @@ export default function ArticleLabelsPage() {
             justify-content: center;
           }
           
-          .label {
-            width: 50mm;
-            height: 30mm;
-            padding: 2mm;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            border: 2px solid #333;
-            background: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            page-break-inside: avoid;
-          }
+          ${dynamicStyles}
           
-          .label > * {
-            page-break-inside: avoid;
-          }
-          
-          .label-code {
-            font-size: 14pt;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 1mm;
-          }
-          
-          .label-designation {
-            font-size: 8pt;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-height: 4mm;
-            text-align: center;
-          }
-          
-          .label-family {
-            font-size: 7pt;
-            color: #666;
-            font-style: italic;
-            text-align: center;
-          }
-          
-          .label-price {
-            font-size: 14pt;
-            font-weight: bold;
-            text-align: center;
-            margin: 0.5mm 0;
-            color: #d32f2f;
-          }
-          
-          .label-price-ht {
-            font-size: 12pt;
-            font-weight: bold;
-            text-align: center;
-            margin: 0.5mm 0;
-            color: #1976d2;
-          }
-          
-          .label-barcode-container {
-            text-align: center;
-            margin-top: 1mm;
-            page-break-inside: avoid;
-          }
-          
-          .barcode {
-            width: 100%;
-            height: 10mm;
-            max-height: 10mm;
+          .currency {
+            font-size: ${labelSize.fontSize.currency}pt;
+            font-weight: normal;
           }
           
           .toolbar {
@@ -265,8 +410,8 @@ export default function ArticleLabelsPage() {
                 try {
                   JsBarcode(svg, barcodeValue, {
                     format: 'CODE128',
-                    width: 2,
-                    height: 50,
+                    width: ${labelSize.barcode.jsWidth},
+                    height: ${labelSize.barcode.jsHeight},
                     displayValue: false,
                     margin: 0
                   });
@@ -293,6 +438,8 @@ export default function ArticleLabelsPage() {
       Array(config.quantity).fill(null).map(() => generateLabelHtml(config))
     ).join('');
 
+    const dynamicStyles = generateLabelStyles(labelSize);
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
@@ -301,7 +448,7 @@ export default function ArticleLabelsPage() {
         <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
         <style>
           @page {
-            size: 50mm 30mm;
+            size: ${labelSize.width}mm ${labelSize.height}mm;
             margin: 0;
           }
           
@@ -311,81 +458,16 @@ export default function ArticleLabelsPage() {
             font-family: Arial, sans-serif;
           }
           
+          ${dynamicStyles}
+          
+          .currency {
+            font-size: ${labelSize.fontSize.currency}pt;
+            font-weight: normal;
+          }
+          
           .label {
-            width: 50mm;
-            height: 30mm;
-            padding: 2mm;
-            box-sizing: border-box;
             page-break-after: always;
-            page-break-inside: avoid;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
             border: 1px solid #000;
-          }
-          
-          .label > * {
-            page-break-inside: avoid;
-          }
-          
-          .label-header {
-            text-align: center;
-            font-weight: bold;
-            font-size: 10pt;
-            border-bottom: 1px solid #000;
-            padding-bottom: 1mm;
-            margin-bottom: 1mm;
-          }
-          
-          .label-code {
-            font-size: 14pt;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 1mm;
-          }
-          
-          .label-designation {
-            font-size: 8pt;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-height: 4mm;
-            text-align: center;
-          }
-          
-          .label-family {
-            font-size: 7pt;
-            color: #666;
-            font-style: italic;
-            text-align: center;
-          }
-          
-          .label-price {
-            font-size: 14pt;
-            font-weight: bold;
-            text-align: center;
-            margin: 0.5mm 0;
-            color: #d32f2f;
-          }
-          
-          .label-price-ht {
-            font-size: 12pt;
-            font-weight: bold;
-            text-align: center;
-            margin: 0.5mm 0;
-            color: #1976d2;
-          }
-          
-          .label-barcode-container {
-            text-align: center;
-            margin-top: 1mm;
-            page-break-inside: avoid;
-          }
-          
-          .barcode {
-            width: 100%;
-            height: 10mm;
-            max-height: 10mm;
           }
           
           @media print {
@@ -407,8 +489,8 @@ export default function ArticleLabelsPage() {
                 try {
                   JsBarcode(svg, barcodeValue, {
                     format: 'CODE128',
-                    width: 2,
-                    height: 50,
+                    width: ${labelSize.barcode.jsWidth},
+                    height: ${labelSize.barcode.jsHeight},
                     displayValue: false,
                     margin: 0
                   });
@@ -453,8 +535,8 @@ export default function ArticleLabelsPage() {
           ${showFamily && article.famille ? `<div class="label-family">${article.famille}</div>` : ''}
         </div>
         <div>
-          ${showPriceHT ? `<div class="label-price-ht">Prix HT: ${formatPrice(prixHT)} DA</div>` : ''}
-          ${showPrice ? `<div class="label-price">Prix TTC: ${formatPrice(article.prix_vente)} DA</div>` : ''}
+          ${showPriceHT ? `<div class="label-price-ht"><span style="font-size: ${labelSize.fontSize.label}pt;">HT:</span> ${formatPrice(prixHT)} <span style="font-size: ${labelSize.fontSize.currency}pt; font-weight: normal;">DA</span></div>` : ''}
+          ${showPrice ? `<div class="label-price"><span style="font-size: ${labelSize.fontSize.label}pt;">TTC:</span> ${formatPrice(article.prix_vente)} <span style="font-size: ${labelSize.fontSize.currency}pt; font-weight: normal;">DA</span></div>` : ''}
         </div>
         ${showBarcode ? `
           <div class="label-barcode-container">
@@ -482,12 +564,33 @@ export default function ArticleLabelsPage() {
     <div className={styles.page}>
       <header className={styles.header}>
         <h1>🏷️ Impression d'Étiquettes</h1>
-        <div>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <label style={{ color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            Taille:
+            <select
+              value={labelSize.id}
+              onChange={(e) => {
+                const newSize = LABEL_SIZES.find(s => s.id === e.target.value);
+                if (newSize) setLabelSize(newSize);
+              }}
+              style={{
+                padding: '0.5rem',
+                border: '1px solid var(--border-color)',
+                borderRadius: '4px',
+                backgroundColor: 'var(--background)',
+                color: 'var(--text-primary)',
+                cursor: 'pointer'
+              }}
+            >
+              {LABEL_SIZES.map(size => (
+                <option key={size.id} value={size.id}>{size.name}</option>
+              ))}
+            </select>
+          </label>
           <button 
             onClick={previewLabels}
             disabled={selectedArticles.length === 0}
             className={styles.secondaryButton}
-            style={{ marginRight: '0.5rem' }}
           >
             👁️ Aperçu
           </button>
