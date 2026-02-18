@@ -1,0 +1,445 @@
+/* ===================================
+   RESPONSIVE DASHBOARD STYLES
+   Mobile-first approach
+   =================================== */
+
+/* Hamburger Menu Button - Mobile only */
+.hamburger {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 1002;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  width: 42px;
+  height: 42px;
+  font-size: 19px;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+}
+
+.hamburger:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+}
+
+.hamburger:active {
+  transform: scale(0.95);
+}
+
+/* Overlay pour fermer la sidebar sur mobile */
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+/* ===================================
+   MOBILE: < 768px
+   =================================== */
+@media (max-width: 767px) {
+  /* Afficher le hamburger */
+  .hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Afficher l'overlay quand la sidebar est ouverte */
+  .overlay {
+    display: block;
+  }
+  
+  /* Sidebar cachée par défaut, slide-in quand ouverte */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    width: 280px;
+    max-width: 85vw;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  
+  /* Header ajusté pour mobile */
+  .header {
+    left: 0 !important;
+    padding: 8px 12px !important;
+    top: 60px !important;
+    z-index: 999 !important;
+    position: fixed !important;
+  }
+  
+  .header > div:first-child {
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 10px !important;
+  }
+  
+  .header h1 {
+    font-size: 15px !important;
+  }
+  
+  .header > div:first-child > div:first-child {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  
+  .header > div:first-child > div:first-child > div:first-child {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 17px !important;
+  }
+  
+  .header > div:first-child > div:last-child {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 8px !important;
+  }
+  
+  .header button {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+  }
+  
+  /* Main content ajusté */
+  .main {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+    padding: 12px !important;
+    padding-top: 250px !important; /* Augmenté pour éviter le chevauchement */
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+  }
+  
+  /* Dashboard container */
+  .dashboard {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    padding-top: 10px !important; /* Espace supplémentaire en haut */
+    scroll-margin-top: 0 !important;
+  }
+  
+  /* Stats en 3 colonnes sur mobile pour optimiser l'espace */
+  .stats {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+    width: 100% !important;
+    margin-top: 0 !important;
+    scroll-margin-top: 0 !important;
+  }
+  
+  .statCard {
+    padding: 8px 4px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    background: var(--card-background) !important;
+    border-radius: 6px !important;
+    box-shadow: var(--shadow-sm) !important;
+    border: 1px solid var(--border-color) !important;
+    position: relative !important;
+    z-index: 1 !important;
+    min-height: 75px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  
+  /* S'assurer que la première carte est visible */
+  .statCard:first-child {
+    margin-top: 0 !important;
+  }
+  
+  .statCard h3 {
+    font-size: 9px !important;
+    margin-bottom: 4px !important;
+    color: var(--text-secondary) !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+    font-weight: 600 !important;
+  }
+  
+  .statNumber {
+    font-size: 0.85rem !important; /* Réduit de 0.95rem à 0.85rem */
+    color: var(--primary-color) !important;
+    text-align: center !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+  }
+  
+  /* Actions en colonne */
+  .actions {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  
+  .actions button {
+    padding: 10px 14px !important;
+    font-size: 13px !important;
+  }
+  
+  /* Section header responsive */
+  .sectionHeader {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  
+  .sectionHeader > div {
+    width: 100% !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  
+  .sectionHeader button {
+    width: 100% !important;
+    padding: 10px 14px !important;
+    font-size: 13px !important;
+  }
+  
+  /* Filtres responsive */
+  .sectionHeader + div {
+    padding: 12px !important;
+  }
+  
+  .sectionHeader + div > div {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  
+  .sectionHeader + div input,
+  .sectionHeader + div select {
+    width: 100% !important;
+    min-width: 100% !important;
+    font-size: 14px !important;
+  }
+  
+  /* Table responsive avec scroll horizontal */
+  .tableContainer {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .table {
+    min-width: 800px !important;
+    font-size: 12px !important;
+  }
+  
+  .table th,
+  .table td {
+    padding: 8px 6px !important;
+    font-size: 12px !important;
+  }
+  
+  /* Pagination responsive */
+  .pagination {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  
+  .pagination > div {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  
+  .pagination button {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+  
+  /* Quick actions responsive */
+  .quickActions {
+    padding: 16px !important;
+  }
+  
+  .quickActions h3 {
+    font-size: 16px !important;
+  }
+}
+
+/* ===================================
+   TABLETTE: 768px - 1024px
+   =================================== */
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Sidebar réduite */
+  .sidebar {
+    width: 200px;
+  }
+  
+  .sidebarNav button {
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+  }
+  
+  .sidebarNav button .icon {
+    font-size: 16px !important;
+  }
+  
+  /* Header ajusté */
+  .header {
+    left: 200px !important;
+  }
+  
+  .header h1 {
+    font-size: 18px !important;
+  }
+  
+  .header button {
+    padding: 7px 12px !important;
+    font-size: 12px !important;
+  }
+  
+  /* Main ajusté */
+  .main {
+    margin-left: 200px !important;
+    max-width: calc(100% - 200px) !important;
+    padding: 16px !important;
+  }
+  
+  /* Stats en 3 colonnes */
+  .stats {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 10px !important;
+  }
+  
+  /* Table avec colonnes ajustées */
+  .table th,
+  .table td {
+    padding: 12px 10px !important;
+    font-size: 13px !important;
+  }
+}
+
+/* ===================================
+   DESKTOP: > 1024px
+   =================================== */
+@media (min-width: 1025px) {
+  /* Stats en 5 colonnes pour grand écran */
+  .stats {
+    grid-template-columns: repeat(5, 1fr) !important;
+  }
+  
+  /* Table avec plus d'espace */
+  .table th,
+  .table td {
+    padding: 14px 12px !important;
+  }
+}
+
+/* ===================================
+   TRÈS PETIT MOBILE: < 480px
+   =================================== */
+@media (max-width: 479px) {
+  .hamburger {
+    width: 38px;
+    height: 38px;
+    font-size: 17px;
+    top: 10px;
+    left: 10px;
+  }
+  
+  .header {
+    top: 58px !important;
+    padding: 6px 10px !important;
+  }
+  
+  .header h1 {
+    font-size: 14px !important;
+  }
+  
+  .header > div:first-child > div:first-child > div:first-child {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 15px !important;
+  }
+  
+  .header button {
+    padding: 5px 8px !important;
+    font-size: 10px !important;
+  }
+  
+  .main {
+    padding: 8px !important;
+    padding-top: 240px !important; /* Augmenté pour éviter le chevauchement */
+  }
+  
+  .dashboard {
+    padding-top: 10px !important;
+  }
+  
+  .stats {
+    gap: 5px !important;
+    margin-top: 5px !important;
+  }
+  
+  .statCard {
+    padding: 6px 3px !important;
+    min-height: 70px !important;
+  }
+  
+  .statCard h3 {
+    font-size: 8px !important;
+    margin-bottom: 3px !important;
+  }
+  
+  .statNumber {
+    font-size: 0.8rem !important; /* Réduit de 0.9rem à 0.8rem */
+  }
+  
+  .table {
+    min-width: 600px !important;
+    font-size: 11px !important;
+  }
+  
+  .table th,
+  .table td {
+    padding: 6px 4px !important;
+    font-size: 11px !important;
+  }
+}
+
+/* ===================================
+   ANIMATIONS
+   =================================== */
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sidebar.open {
+  animation: slideIn 0.3s ease;
+}
+
+.overlay {
+  animation: fadeIn 0.3s ease;
+}

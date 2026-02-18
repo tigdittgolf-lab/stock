@@ -9,6 +9,7 @@ import DatabaseSelectorCompact from '@/components/DatabaseSelectorCompact';
 import ThemeToggle from '@/components/ThemeToggle';
 import styles from "../page.module.css";
 import dashboardStyles from "./dashboard.module.css";
+import responsiveStyles from "./responsive.module.css";
 
 // Fonction de formatage personnalisée pour les montants: "999 999.99"
 const formatAmount = (amount: number | undefined | null): string => {
@@ -83,6 +84,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
+  
+  // État pour le menu mobile
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // États pour les filtres
   const [searchTerm, setSearchTerm] = useState('');
@@ -771,8 +775,25 @@ export default function Dashboard() {
 
   return (
     <div className={styles.page}>
+      {/* Overlay mobile - Ferme la sidebar quand on clique dessus */}
+      {isMobileMenuOpen && (
+        <div 
+          className={responsiveStyles.overlay}
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Hamburger Button - Mobile only */}
+      <button 
+        className={responsiveStyles.hamburger}
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        aria-label="Toggle menu"
+      >
+        {isMobileMenuOpen ? '✕' : '☰'}
+      </button>
+
       {/* Sidebar Navigation - Vertical à gauche */}
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${responsiveStyles.sidebar} ${isMobileMenuOpen ? responsiveStyles.open : ''}`}>
         <div className={styles.sidebarHeader}>
           {/* Logo centré avec Theme Toggle compact à droite */}
           <div style={{
@@ -865,7 +886,10 @@ export default function Dashboard() {
         <nav className={styles.sidebarNav}>
           <button
             className={activeTab === 'dashboard' ? styles.sidebarActive : ''}
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => {
+              setActiveTab('dashboard');
+              setIsMobileMenuOpen(false);
+            }}
             title="Tableau de Bord"
           >
             <span className={styles.icon}>📊</span>
@@ -873,7 +897,10 @@ export default function Dashboard() {
           </button>
           <button
             className={activeTab === 'articles' ? styles.sidebarActive : ''}
-            onClick={() => setActiveTab('articles')}
+            onClick={() => {
+              setActiveTab('articles');
+              setIsMobileMenuOpen(false);
+            }}
             title="Articles"
           >
             <span className={styles.icon}>📦</span>
@@ -882,7 +909,10 @@ export default function Dashboard() {
           </button>
           <button
             className={activeTab === 'clients' ? styles.sidebarActive : ''}
-            onClick={() => setActiveTab('clients')}
+            onClick={() => {
+              setActiveTab('clients');
+              setIsMobileMenuOpen(false);
+            }}
             title="Clients"
           >
             <span className={styles.icon}>👥</span>
@@ -891,7 +921,10 @@ export default function Dashboard() {
           </button>
           <button
             className={activeTab === 'suppliers' ? styles.sidebarActive : ''}
-            onClick={() => setActiveTab('suppliers')}
+            onClick={() => {
+              setActiveTab('suppliers');
+              setIsMobileMenuOpen(false);
+            }}
             title="Fournisseurs"
           >
             <span className={styles.icon}>🏭</span>
@@ -900,7 +933,10 @@ export default function Dashboard() {
           </button>
           <button
             className={activeTab === 'sales' ? styles.sidebarActive : ''}
-            onClick={() => setActiveTab('sales')}
+            onClick={() => {
+              setActiveTab('sales');
+              setIsMobileMenuOpen(false);
+            }}
             title="Ventes"
           >
             <span className={styles.icon}>💰</span>
@@ -908,7 +944,10 @@ export default function Dashboard() {
           </button>
           <button
             className={activeTab === 'purchases' ? styles.sidebarActive : ''}
-            onClick={() => setActiveTab('purchases')}
+            onClick={() => {
+              setActiveTab('purchases');
+              setIsMobileMenuOpen(false);
+            }}
             title="Achats"
           >
             <span className={styles.icon}>🛒</span>
@@ -916,7 +955,10 @@ export default function Dashboard() {
           </button>
           <button
             className={activeTab === 'stock' ? styles.sidebarActive : ''}
-            onClick={() => setActiveTab('stock')}
+            onClick={() => {
+              setActiveTab('stock');
+              setIsMobileMenuOpen(false);
+            }}
             title="Stock"
           >
             <span className={styles.icon}>📈</span>
@@ -924,7 +966,10 @@ export default function Dashboard() {
           </button>
           <button
             className={activeTab === 'settings' ? styles.sidebarActive : ''}
-            onClick={() => router.push('/settings')}
+            onClick={() => {
+              router.push('/settings');
+              setIsMobileMenuOpen(false);
+            }}
             title="Réglages"
           >
             <span className={styles.icon}>⚙️</span>
@@ -937,7 +982,10 @@ export default function Dashboard() {
               return user?.role === 'admin' ? (
                 <button
                   className={activeTab === 'admin' ? styles.sidebarActive : ''}
-                  onClick={() => router.push('/admin')}
+                  onClick={() => {
+                    router.push('/admin');
+                    setIsMobileMenuOpen(false);
+                  }}
                   title="Administration"
                 >
                   <span className={styles.icon}>👨‍💼</span>
@@ -961,7 +1009,7 @@ export default function Dashboard() {
       </aside>
 
       {/* Header - Réduit en haut */}
-      <header className={styles.header} style={{ 
+      <header className={`${styles.header} ${responsiveStyles.header}`} style={{ 
         position: 'fixed', 
         top: 0,
         left: '240px', /* Décalé pour la sidebar */
@@ -1136,7 +1184,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className={styles.main} style={{ marginLeft: '240px' /* Décalé pour la sidebar */ }}>
+      <main className={`${styles.main} ${responsiveStyles.main}`} style={{ marginLeft: '240px' /* Décalé pour la sidebar */ }}>
         {loading && (
           <div style={{ textAlign: 'center', padding: '40px' }}>
             <div style={{
@@ -1182,33 +1230,35 @@ export default function Dashboard() {
         {!loading && !error && (
           <>
             {activeTab === 'dashboard' && (
-              <div className={styles.dashboard}>
-                <div className={styles.stats}>
+              <div className={`${styles.dashboard} ${responsiveStyles.dashboard}`}>
+                <div className={`${styles.stats} ${responsiveStyles.stats}`}>
                   <div className={styles.statCard}>
                     <h3>📦 Total Articles</h3>
-                    <p className={styles.statNumber}>{articles.length}</p>
+                    <p className={styles.statNumber} style={{ fontSize: '0.85rem' }}>{articles.length}</p>
                   </div>
                   <div className={styles.statCard}>
                     <h3>⚠️ Articles en Rupture</h3>
-                    <p className={styles.statNumber}>{getLowStockArticles().length}</p>
+                    <p className={styles.statNumber} style={{ fontSize: '0.85rem' }}>{getLowStockArticles().length}</p>
                   </div>
                   <div className={styles.statCard}>
                     <h3>👥 Total Clients</h3>
-                    <p className={styles.statNumber}>{clients.length}</p>
+                    <p className={styles.statNumber} style={{ fontSize: '0.85rem' }}>{clients.length}</p>
                   </div>
                   <div className={styles.statCard}>
                     <h3>🏭 Total Fournisseurs</h3>
-                    <p className={styles.statNumber}>{suppliers.length}</p>
+                    <p className={styles.statNumber} style={{ fontSize: '0.85rem' }}>{suppliers.length}</p>
                   </div>
                   <div className={styles.statCard}>
                     <h3>💰 Valeur Totale Stock</h3>
-                    <p className={styles.statNumber}>{getTotalValue().toLocaleString('fr-FR')} DA</p>
+                    <p className={styles.statNumber} style={{ fontSize: '0.85rem' }}>
+                      {getTotalValue().toLocaleString('fr-FR')} <span style={{ fontSize: '0.65rem' }}>DA</span>
+                    </p>
                   </div>
                 </div>
 
-                <div className={styles.quickActions}>
+                <div className={`${styles.quickActions} ${responsiveStyles.quickActions}`}>
                   <h3>Actions Rapides</h3>
-                  <div className={styles.actions}>
+                  <div className={`${styles.actions} ${responsiveStyles.actions}`}>
                     <button onClick={() => setActiveTab('articles')}>📦 Voir Articles</button>
                     <button onClick={() => setActiveTab('clients')}>👥 Voir Clients</button>
                     <button onClick={() => setActiveTab('suppliers')}>🏭 Voir Fournisseurs</button>
@@ -1248,8 +1298,8 @@ export default function Dashboard() {
             )}
 
             {activeTab === 'articles' && (
-              <div className={styles.articles}>
-                <div className={styles.sectionHeader}>
+              <div className={`${styles.articles} ${responsiveStyles.articles}`}>
+                <div className={`${styles.sectionHeader} ${responsiveStyles.sectionHeader}`}>
                   <h2>📦 Gestion des Articles</h2>
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button 
