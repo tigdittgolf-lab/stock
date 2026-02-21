@@ -83,7 +83,8 @@ articles.get('/', async (c) => {
 articles.get('/force-refresh', async (c) => {
   try {
     const tenant = getTenantContext(c);
-    console.log(`🔄 Force refresh articles from schema: ${tenant.schema}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🔄 Force refresh articles from schema: ${tenant.schema} (${dbType})`);
 
     // Vider le cache pour forcer un refresh
     createdArticlesCache.delete(tenant.schema);
@@ -91,23 +92,24 @@ articles.get('/force-refresh', async (c) => {
     createdArticlesCache.delete(`${tenant.schema}_deleted`);
 
     // Utiliser la même logique que GET /
-    const { data: articlesData, error } = await databaseRouter.rpc('get_articles_by_tenant', {
+    const result = await backendDatabaseService.executeRPC('get_articles_by_tenant', {
       p_tenant: tenant.schema
     });
     
-    if (error) {
-      console.error('❌ RPC Error in force-refresh:', error);
+    if (!result.success) {
+      console.error('❌ RPC Error in force-refresh:', result.error);
       return c.json({ success: false, data: [], message: 'RPC function not available' });
     }
     
-    console.log(`✅ Force refresh: ${articlesData?.length || 0} articles found`);
+    console.log(`✅ Force refresh: ${result.data?.length || 0} articles found`);
     
     return c.json({ 
       success: true, 
-      data: articlesData || [],
+      data: result.data || [],
       tenant: tenant.schema,
-      source: 'force_refresh_via_rpc'
-    , database_type: backendDatabaseService.getActiveDatabaseType() });
+      source: 'force_refresh_via_rpc',
+      database_type: dbType
+    });
     
   } catch (error) {
     console.error('Error in force-refresh:', error);
@@ -120,25 +122,26 @@ articles.get('/:id', async (c) => {
   try {
     const id = c.req.param('id');
     const tenant = getTenantContext(c);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
 
-    console.log(`🔍 Looking for article: ${id} in schema: ${tenant.schema}`);
+    console.log(`🔍 Looking for article: ${id} in schema: ${tenant.schema} (${dbType})`);
     
     // Utiliser la vraie base de données via RPC
-    const { data: articlesData, error } = await databaseRouter.rpc('get_articles_by_tenant', {
+    const result = await backendDatabaseService.executeRPC('get_articles_by_tenant', {
       p_tenant: tenant.schema
     });
     
-    if (error) {
-      console.error('❌ RPC Error in GET /:id:', error);
+    if (!result.success) {
+      console.error('❌ RPC Error in GET /:id:', result.error);
       return c.json({ success: false, error: 'Article not found' }, 404);
     }
     
     // Chercher l'article par ID dans les vraies données
-    const foundArticle = articlesData?.find((article: any) => article.narticle === id);
+    const foundArticle = result.data?.find((article: any) => article.narticle === id);
     
     if (foundArticle) {
-      console.log(`✅ Found article ${id} in database`);
-      return c.json({ success: true, data: foundArticle , database_type: backendDatabaseService.getActiveDatabaseType() });
+      console.log(`✅ Found article ${id} in ${dbType} database`);
+      return c.json({ success: true, data: foundArticle, database_type: dbType });
     }
 
     // Chercher aussi dans le cache et les modifications
@@ -149,14 +152,14 @@ articles.get('/:id', async (c) => {
     const modifiedArticle = modifications.get(id);
     if (modifiedArticle) {
       console.log(`✅ Found article ${id} in modifications cache`);
-      return c.json({ success: true, data: modifiedArticle , database_type: backendDatabaseService.getActiveDatabaseType() });
+      return c.json({ success: true, data: modifiedArticle, database_type: dbType });
     }
     
     // Vérifier le cache des nouveaux articles
     const cachedArticle = cachedArticles.find(article => article.narticle === id);
     if (cachedArticle) {
       console.log(`✅ Found article ${id} in cache`);
-      return c.json({ success: true, data: cachedArticle , database_type: backendDatabaseService.getActiveDatabaseType() });
+      return c.json({ success: true, data: cachedArticle, database_type: dbType });
     }
 
     console.log(`❌ Article ${id} not found`);
