@@ -332,6 +332,52 @@ sales.post('/suppliers', async (c) => {
   }
 });
 
+// PUT /api/sales/suppliers/:id - Modifier un fournisseur
+sales.put('/suppliers/:id', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    const id = c.req.param('id');
+    
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    const body = await c.req.json();
+    console.log(`📝 Sales: Updating supplier ${id} in schema: ${tenant}`, body);
+
+    // Utiliser la vraie fonction RPC pour modifier dans la base de données
+    const { data, error } = await databaseRouter.rpc('update_supplier_in_tenant', {
+      p_tenant: tenant,
+      p_nfournisseur: id,
+      p_nom_fournisseur: body.nom_fournisseur,
+      p_resp_fournisseur: body.resp_fournisseur || '',
+      p_adresse_fourni: body.adresse_fourni || '',
+      p_tel: body.tel || '',
+      p_email: body.email || '',
+      p_commentaire: body.commentaire || '',
+      p_caf: parseFloat(body.caf || '0'),
+      p_cabl: parseFloat(body.cabl || '0')
+    });
+    
+    if (error) {
+      console.error('❌ RPC Error updating supplier:', error);
+      return c.json({ success: false, error: `Failed to update supplier: ${error.message}` }, 500);
+    }
+    
+    console.log(`✅ Supplier updated: ${data}`);
+    
+    return c.json({ 
+      success: true, 
+      message: 'Fournisseur modifié avec succès !',
+      data: { nfournisseur: id }
+    });
+    
+  } catch (error) {
+    console.error('Error in PUT sales/suppliers/:id:', error);
+    return c.json({ success: false, error: 'Failed to update supplier' }, 500);
+  }
+});
+
 // DEBUG: Endpoint pour vérifier les données BL
 sales.get('/debug/delivery-notes', async (c) => {
   try {
