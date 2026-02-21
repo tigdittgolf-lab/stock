@@ -69,10 +69,15 @@ export default function AddSupplier() {
     console.log(`🔍 Checking if supplier exists: ${supplierCode}`);
     setCheckingSupplier(true);
     try {
+      // Récupérer le type de base de données depuis localStorage
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+      
       const response = await fetch(getApiUrl(`sales/suppliers/${supplierCode}`), {
         headers: {
           'Content-Type': 'application/json',
-          'X-Tenant': tenantInfo.schema
+          'X-Tenant': tenantInfo.schema,
+          'X-Database-Type': dbType
         }
       });
 
@@ -128,11 +133,16 @@ export default function AddSupplier() {
         cabl: parseFloat(formData.cabl) || 0
       };
 
+      // Récupérer le type de base de données depuis localStorage
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+
       const response = await fetch(getApiUrl('sales/suppliers'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Tenant': tenantInfo.schema
+          'X-Tenant': tenantInfo.schema,
+          'X-Database-Type': dbType
         },
         body: JSON.stringify(supplierData)
       });

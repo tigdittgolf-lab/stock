@@ -70,10 +70,15 @@ export default function AddClient() {
     console.log(`🔍 Checking if client exists: ${clientCode}`);
     setCheckingClient(true);
     try {
-      const response = await fetch(`http://localhost:3005/api/sales/clients/${clientCode}`, {
+      // Récupérer le type de base de données depuis localStorage
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+      
+      const response = await fetch(`/api/sales/clients/${clientCode}`, {
         headers: {
           'Content-Type': 'application/json',
-          'X-Tenant': tenantInfo.schema
+          'X-Tenant': tenantInfo.schema,
+          'X-Database-Type': dbType
         }
       });
 
@@ -131,11 +136,16 @@ export default function AddClient() {
         c_affaire_bl: parseFloat(formData.c_affaire_bl) || 0
       };
 
-      const response = await fetch(`http://localhost:3005/api/sales/clients`, {
+      // Récupérer le type de base de données depuis localStorage
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+
+      const response = await fetch(`/api/sales/clients`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Tenant': tenantInfo.schema
+          'X-Tenant': tenantInfo.schema,
+          'X-Database-Type': dbType
         },
         body: JSON.stringify(clientData)
       });
