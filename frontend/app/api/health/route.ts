@@ -13,7 +13,8 @@ export async function GET(request: NextRequest) {
     const backendResponse = await fetch(`${BACKEND_URL}/health`, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       }
     });
 

@@ -25,7 +25,8 @@ export async function GET(
     const response = await fetch(`${API_BASE_URL}/pdf/proforma/${resolvedParams.id}`, {
       headers: {
         'X-Tenant': tenant,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       }
     });
 

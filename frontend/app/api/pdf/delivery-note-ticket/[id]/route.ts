@@ -32,7 +32,8 @@ export async function GET(
       method: 'GET',
       headers: {
         'X-Tenant': tenant,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       }
     });
 

@@ -13,7 +13,8 @@ export async function GET(request: NextRequest) {
       method: 'GET',
       headers: {
         'X-Tenant': tenant,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       }
     });
 
@@ -55,7 +56,8 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'X-Tenant': tenant,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       },
       body: JSON.stringify(body)
     });

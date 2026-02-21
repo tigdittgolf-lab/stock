@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
         'X-Tenant': '2025_bu01'
       },
       body: JSON.stringify(body)

@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
     const response = await fetch(`${BACKEND_URL}/api/migrations/status`, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       }
     });
 
@@ -49,7 +50,8 @@ export async function POST(request: NextRequest) {
     const response = await fetch(`${BACKEND_URL}/api/migrations/apply`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       },
       body: JSON.stringify({ database, dryRun })
     });

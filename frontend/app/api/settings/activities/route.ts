@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
         'X-Tenant': tenant
       },
       body: JSON.stringify(body)

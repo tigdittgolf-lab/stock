@@ -20,7 +20,8 @@ export async function GET(
       headers: {
         'X-Tenant': tenant,
         'X-Database-Type': dbType,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       }
     });
 
@@ -69,7 +70,8 @@ export async function PUT(
       headers: {
         'X-Tenant': tenant,
         'X-Database-Type': dbType,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       },
       body: JSON.stringify(body)
     });
@@ -106,7 +108,8 @@ export async function DELETE(
       headers: {
         'X-Tenant': tenant,
         'X-Database-Type': dbType,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       }
     });
 

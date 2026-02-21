@@ -22,7 +22,8 @@ export async function GET(
       // MySQL: Requête directe
       const response = await fetch('http://localhost:3000/api/database/mysql', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true' },
         body: JSON.stringify({
           config: {
             host: 'localhost',

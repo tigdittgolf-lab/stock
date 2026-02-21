@@ -58,7 +58,8 @@ async function getOutstandingDocumentsMySQL(tenantId: string): Promise<Outstandi
 
     const blResponse = await fetch('http://localhost:3000/api/database/mysql', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true' },
       body: JSON.stringify({
         config,
         sql: blSql,
@@ -127,7 +128,8 @@ async function getOutstandingDocumentsMySQL(tenantId: string): Promise<Outstandi
 
     const invResponse = await fetch('http://localhost:3000/api/database/mysql', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true' },
       body: JSON.stringify({
         config,
         sql: invSql,

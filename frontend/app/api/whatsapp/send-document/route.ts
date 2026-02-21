@@ -58,7 +58,8 @@ export async function POST(request: NextRequest) {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
           },
           body: JSON.stringify({
             messaging_product: 'whatsapp',

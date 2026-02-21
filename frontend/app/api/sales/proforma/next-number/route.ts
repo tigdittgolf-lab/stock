@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
     const response = await fetch(`${API_BASE_URL}/sales/proforma/next-number`, {
       headers: {
         'X-Tenant': tenant,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       }
     });
 

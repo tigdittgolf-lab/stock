@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
     
     const healthResponse = await fetch(healthUrl, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true' }
     });
     
     results.tests[0].status = healthResponse.status;
@@ -43,7 +44,8 @@ export async function GET(request: NextRequest) {
       method: 'GET',
       headers: {
         'X-Tenant': '2025_bu01',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       }
     });
     
@@ -71,7 +73,8 @@ export async function GET(request: NextRequest) {
       method: 'GET',
       headers: {
         'X-Tenant': '2025_bu01',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       }
     });
     
@@ -99,7 +102,8 @@ export async function GET(request: NextRequest) {
       method: 'GET',
       headers: {
         'X-Tenant': '2025_bu01',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       }
     });
     

@@ -27,7 +27,8 @@ export async function PUT(
       method: 'PUT',
       headers: {
         'X-Tenant': tenant,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       },
       body: JSON.stringify(body)
     });

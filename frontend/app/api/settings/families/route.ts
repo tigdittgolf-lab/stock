@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
       headers: {
         'X-Tenant': tenant,
         'X-Database-Type': dbType,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       }
     });
 
@@ -59,7 +60,8 @@ export async function POST(request: NextRequest) {
       headers: {
         'X-Tenant': tenant,
         'X-Database-Type': dbType,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       },
       body: JSON.stringify(body)
     });
