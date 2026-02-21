@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect, use } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from "../../../page.module.css";
 
 interface TenantInfo {
@@ -10,10 +10,10 @@ interface TenantInfo {
   schema: string;
 }
 
-export default function EditClient() {
+export default function EditClient({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const params = useParams();
-  const clientId = params.id as string;
+  const resolvedParams = use(params);
+  const clientId = resolvedParams.id;
   
   const [tenantInfo, setTenantInfo] = useState<TenantInfo | null>(null);
   const [loading, setLoading] = useState(false);
@@ -60,10 +60,15 @@ export default function EditClient() {
     try {
       setClientLoading(true);
       
-      const response = await fetch(`http://localhost:3005/api/clients/${id}`, {
+      // Récupérer le type de base de données depuis localStorage
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+      
+      const response = await fetch(`/api/sales/clients/${id}`, {
         headers: {
           'Content-Type': 'application/json',
-          'X-Tenant': tenant.schema
+          'X-Tenant': tenant.schema,
+          'X-Database-Type': dbType
         }
       });
 
@@ -137,11 +142,16 @@ export default function EditClient() {
         c_affaire_bl: parseFloat(formData.c_affaire_bl) || 0
       };
 
-      const response = await fetch(`http://localhost:3005/api/clients/${clientId}`, {
+      // Récupérer le type de base de données depuis localStorage
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+
+      const response = await fetch(`/api/sales/clients/${clientId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-Tenant': tenantInfo.schema
+          'X-Tenant': tenantInfo.schema,
+          'X-Database-Type': dbType
         },
         body: JSON.stringify(clientData)
       });

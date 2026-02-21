@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { getApiUrl } from '@/lib/api';
+import { useState, useEffect, use } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from "../../../page.module.css";
 
 interface TenantInfo {
@@ -11,10 +10,10 @@ interface TenantInfo {
   schema: string;
 }
 
-export default function EditSupplier() {
+export default function EditSupplier({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const params = useParams();
-  const supplierId = params.id as string;
+  const resolvedParams = use(params);
+  const supplierId = resolvedParams.id;
   
   const [tenantInfo, setTenantInfo] = useState<TenantInfo | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,10 +55,15 @@ export default function EditSupplier() {
     try {
       setSupplierLoading(true);
       
-      const response = await fetch(getApiUrl(`suppliers/${id}`), {
+      // Récupérer le type de base de données depuis localStorage
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+      
+      const response = await fetch(`/api/sales/suppliers/${id}`, {
         headers: {
           'Content-Type': 'application/json',
-          'X-Tenant': tenant.schema
+          'X-Tenant': tenant.schema,
+          'X-Database-Type': dbType
         }
       });
 
@@ -123,11 +127,16 @@ export default function EditSupplier() {
         cabl: parseFloat(formData.cabl) || 0
       };
 
-      const response = await fetch(getApiUrl(`suppliers/${supplierId}`), {
+      // Récupérer le type de base de données depuis localStorage
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+
+      const response = await fetch(`/api/sales/suppliers/${supplierId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-Tenant': tenantInfo.schema
+          'X-Tenant': tenantInfo.schema,
+          'X-Database-Type': dbType
         },
         body: JSON.stringify(supplierData)
       });
