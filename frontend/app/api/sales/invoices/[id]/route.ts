@@ -25,7 +25,7 @@ export async function GET(
     
     // Utiliser Tailscale tunnel pour accéder au backend local
     const backendUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
+      ? 'https://midi-charm-harvard-performed.trycloudflare.com/api'
       : 'http://localhost:3005/api';
     
     const response = await fetch(`${backendUrl}/sales/invoices/${validId}`, {

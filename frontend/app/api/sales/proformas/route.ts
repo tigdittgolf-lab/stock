@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
     console.log(`🔄 Frontend API: Forwarding proformas request for tenant: ${tenant}`);
 
     // Appeler le backend local directement
-    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://desktop-bhhs068.tail1d9c54.ts.net' : 'http://localhost:3005'}/api/sales/proforma`;
+    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://midi-charm-harvard-performed.trycloudflare.com' : 'http://localhost:3005'}/api/sales/proforma`;
     
     const response = await fetch(backendUrl, {
       method: 'GET',
