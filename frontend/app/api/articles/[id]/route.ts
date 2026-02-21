@@ -3,9 +3,10 @@ import { getBackendUrl } from '@/lib/backend-url';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     const dbType = request.headers.get('X-Database-Type') || 'supabase';
     const articleId = params.id;
@@ -50,9 +51,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     const dbType = request.headers.get('X-Database-Type') || 'supabase';
     const articleId = params.id;
@@ -87,9 +89,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     const dbType = request.headers.get('X-Database-Type') || 'supabase';
     const articleId = params.id;
