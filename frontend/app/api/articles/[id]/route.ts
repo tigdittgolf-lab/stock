@@ -7,9 +7,10 @@ export async function GET(
 ) {
   try {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    const dbType = request.headers.get('X-Database-Type') || 'supabase';
     const articleId = params.id;
     
-    console.log(`🔄 Frontend API: Fetching article ${articleId} for tenant ${tenant}`);
+    console.log(`🔄 Frontend API: Fetching article ${articleId} for tenant ${tenant}, DB: ${dbType}`);
     
     const backendUrl = getBackendUrl(`/api/articles/${articleId}`);
     
@@ -17,6 +18,7 @@ export async function GET(
       method: 'GET',
       headers: {
         'X-Tenant': tenant,
+        'X-Database-Type': dbType,
         'Content-Type': 'application/json'
       }
     });
@@ -52,10 +54,11 @@ export async function PUT(
 ) {
   try {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    const dbType = request.headers.get('X-Database-Type') || 'supabase';
     const articleId = params.id;
     const body = await request.json();
     
-    console.log(`🔄 Frontend API: Updating article ${articleId} for tenant ${tenant}`);
+    console.log(`🔄 Frontend API: Updating article ${articleId} for tenant ${tenant}, DB: ${dbType}`);
     
     const backendUrl = getBackendUrl(`/api/articles/${articleId}`);
     
@@ -63,6 +66,7 @@ export async function PUT(
       method: 'PUT',
       headers: {
         'X-Tenant': tenant,
+        'X-Database-Type': dbType,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(body)
@@ -87,9 +91,10 @@ export async function DELETE(
 ) {
   try {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    const dbType = request.headers.get('X-Database-Type') || 'supabase';
     const articleId = params.id;
     
-    console.log(`🔄 Frontend API: Deleting article ${articleId} for tenant ${tenant}`);
+    console.log(`🔄 Frontend API: Deleting article ${articleId} for tenant ${tenant}, DB: ${dbType}`);
     
     const backendUrl = getBackendUrl(`/api/articles/${articleId}`);
     
@@ -97,6 +102,7 @@ export async function DELETE(
       method: 'DELETE',
       headers: {
         'X-Tenant': tenant,
+        'X-Database-Type': dbType,
         'Content-Type': 'application/json'
       }
     });
