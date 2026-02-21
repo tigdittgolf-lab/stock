@@ -4,12 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import styles from "../../../page.module.css";
 
-// Fonction helper pour construire les URLs d'API
-const getApiUrl = (path: string) => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005/api';
-  return `${baseUrl}/${path}`;
-};
-
 interface TenantInfo {
   business_unit: string;
   year: number;
@@ -192,7 +186,8 @@ export default function EditArticle() {
 
   const fetchSuppliers = async (headers: any) => {
     try {
-      const response = await fetch(getApiUrl('sales/suppliers'), { headers });
+      // Use Vercel API route instead of direct backend call to avoid CORS
+      const response = await fetch('/api/sales/suppliers', { headers });
       const data = await response.json();
       
       if (data.success) {
