@@ -113,7 +113,7 @@ export default function EditArticle() {
       const dbConfig = localStorage.getItem('activeDbConfig');
       const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
       
-      const response = await fetch(`http://localhost:3005/api/articles/${id}`, {
+      const response = await fetch(`/api/articles/${id}`, {
         headers: {
           'Content-Type': 'application/json',
           'X-Tenant': tenant.schema,
@@ -151,7 +151,7 @@ export default function EditArticle() {
   const fetchFamilies = async (headers: any) => {
     try {
       console.log('🔍 Fetching families from settings API...');
-      const response = await fetch(`http://localhost:3005/api/settings/families`, { headers });
+      const response = await fetch(`/api/settings/families`, { headers });
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -274,7 +274,7 @@ export default function EditArticle() {
       const dbConfig = localStorage.getItem('activeDbConfig');
       const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
 
-      const response = await fetch(`http://localhost:3005/api/articles/${articleId}`, {
+      const response = await fetch(`/api/articles/${articleId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

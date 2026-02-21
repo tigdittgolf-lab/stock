@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Scroll Mobile</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: Arial, sans-serif;
+      padding: 10px;
+      background: #f5f5f5;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 2px solid #667eea;
+      position: relative;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1200px; /* Force le scroll */
+    }
+    
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+      white-space: nowrap;
+    }
+    
+    th {
+      background: #667eea;
+      color: white;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    /* Colonne Actions - PAS sticky sur mobile */
+    th:last-child,
+    td:last-child {
+      background: #fff3cd;
+      min-width: 120px;
+    }
+    
+    .actions {
+      display: flex;
+      gap: 5px;
+    }
+    
+    button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      color: white;
+    }
+    
+    .edit { background: #007bff; }
+    .delete { background: #dc3545; }
+    
+    .indicator {
+      position: sticky;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-align: center;
+      padding: 10px;
+      font-weight: bold;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+  </style>
+</head>
+<body>
+  <h1 style="margin-bottom: 20px;">Test Scroll Horizontal Mobile</h1>
+  <p style="margin-bottom: 10px; color: #666;">
+    📱 Faites défiler horizontalement pour voir la colonne Actions (jaune) à droite
+  </p>
+  
+  <div class="container">
+    <table>
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Désignation</th>
+          <th>Famille</th>
+          <th>Fournisseur</th>
+          <th>Prix Unit.</th>
+          <th>Marge %</th>
+          <th>Prix Vente</th>
+          <th>Stock F</th>
+          <th>Stock BL</th>
+          <th>Total</th>
+          <th>Seuil</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ART001</td>
+          <td>Article de test très long nom</td>
+          <td>Famille A</td>
+          <td>FOUR01</td>
+          <td>100.00</td>
+          <td>20%</td>
+          <td>120.00</td>
+          <td>50</td>
+          <td>10</td>
+          <td>60</td>
+          <td>20</td>
+          <td>✅ OK</td>
+          <td>
+            <div class="actions">
+              <button class="edit">✏️</button>
+              <button class="delete">🗑️</button>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>ART002</td>
+          <td>Deuxième article test</td>
+          <td>Famille B</td>
+          <td>FOUR02</td>
+          <td>200.00</td>
+          <td>15%</td>
+          <td>230.00</td>
+          <td>30</td>
+          <td>5</td>
+          <td>35</td>
+          <td>10</td>
+          <td>✅ OK</td>
+          <td>
+            <div class="actions">
+              <button class="edit">✏️</button>
+              <button class="delete">🗑️</button>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>ART003</td>
+          <td>Troisième article</td>
+          <td>Famille C</td>
+          <td>FOUR03</td>
+          <td>50.00</td>
+          <td>25%</td>
+          <td>62.50</td>
+          <td>5</td>
+          <td>2</td>
+          <td>7</td>
+          <td>15</td>
+          <td>⚠️ Faible</td>
+          <td>
+            <div class="actions">
+              <button class="edit">✏️</button>
+              <button class="delete">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="indicator">
+      ← Faites défiler pour voir la colonne Actions →
+    </div>
+  </div>
+  
+  <div style="margin-top: 20px; padding: 15px; background: #d4edda; border-radius: 8px;">
+    <strong>✅ Test réussi si:</strong>
+    <ul style="margin-top: 10px; margin-left: 20px;">
+      <li>Vous pouvez scroller horizontalement</li>
+      <li>Vous voyez la colonne Actions (fond jaune) en scrollant à droite</li>
+      <li>Les boutons ✏️ et 🗑️ sont visibles et cliquables</li>
+    </ul>
+  </div>
+</body>
+</html>

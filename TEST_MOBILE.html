@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mobile Layout</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 240px;
+            background: #f0f0f0;
+            border-right: 2px solid #ccc;
+            z-index: 1001;
+            transition: transform 0.3s ease;
+            padding: 20px;
+        }
+
+        /* Sur desktop, sidebar visible */
+        @media (min-width: 769px) {
+            .sidebar {
+                transform: translateX(0);
+            }
+        }
+
+        /* Sur mobile, sidebar cachée */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+        }
+
+        /* Main content */
+        .main {
+            padding: 20px;
+            width: 100%;
+            min-height: 100vh;
+            background: white;
+        }
+
+        /* Sur desktop, décaler pour sidebar */
+        @media (min-width: 769px) {
+            .main {
+                margin-left: 240px;
+                max-width: calc(100% - 240px);
+            }
+        }
+
+        /* Sur mobile, pleine largeur */
+        @media (max-width: 768px) {
+            .main {
+                margin-left: 0;
+                max-width: 100%;
+            }
+        }
+
+        /* Bouton hamburger */
+        .hamburger {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            width: 44px;
+            height: 44px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 1002;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .hamburger {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+
+        /* Top bar */
+        .topbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .info {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .content {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            min-height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+
+    <div class="sidebar" id="sidebar">
+        <h3>Sidebar</h3>
+        <p>Menu de navigation</p>
+        <ul>
+            <li>📊 Dashboard</li>
+            <li>📦 Articles</li>
+            <li>👥 Clients</li>
+            <li>🏭 Fournisseurs</li>
+        </ul>
+    </div>
+
+    <div class="main">
+        <div class="topbar">
+            <span style="font-size: 24px;">📦</span>
+            <h1 style="margin: 0; font-size: 18px;">Gestion de Stock</h1>
+        </div>
+
+        <div class="info">
+            <h2>Test de Layout Mobile</h2>
+            <p><strong>Largeur de l'écran:</strong> <span id="width"></span>px</p>
+            <p><strong>Mode:</strong> <span id="mode"></span></p>
+            <p><strong>Sidebar visible:</strong> <span id="sidebarStatus"></span></p>
+        </div>
+
+        <div class="content">
+            <h3>Contenu Principal</h3>
+            <p>Ce contenu devrait prendre TOUTE la largeur sur mobile (< 768px)</p>
+            <p>Sur desktop (> 768px), il devrait être décalé de 240px à gauche</p>
+            
+            <h4>Instructions:</h4>
+            <ol>
+                <li>Ouvrez les DevTools (F12)</li>
+                <li>Activez le mode mobile (Ctrl+Shift+M)</li>
+                <li>Choisissez "iPhone SE" ou "iPhone 12"</li>
+                <li>Vérifiez que la sidebar est cachée</li>
+                <li>Cliquez sur ☰ pour ouvrir la sidebar</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function updateInfo() {
+            const width = window.innerWidth;
+            document.getElementById('width').textContent = width;
+            document.getElementById('mode').textContent = width <= 768 ? 'MOBILE' : 'DESKTOP';
+            
+            const sidebar = document.getElementById('sidebar');
+            const transform = window.getComputedStyle(sidebar).transform;
+            document.getElementById('sidebarStatus').textContent = 
+                transform === 'none' || transform.includes('matrix(1, 0, 0, 1, 0, 0)') ? 'OUI' : 'NON';
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            updateInfo();
+        }
+
+        window.addEventListener('resize', updateInfo);
+        updateInfo();
+    </script>
+</body>
+</html>
