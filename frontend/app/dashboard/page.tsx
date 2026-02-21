@@ -670,7 +670,9 @@ export default function Dashboard() {
 
   // Fonctions pour les actions sur les fournisseurs
   const handleEditSupplier = (supplier: Supplier) => {
-    router.push(`/dashboard/edit-supplier/${supplier.nfournisseur}`);
+    console.log('🔍 Editing supplier:', supplier);
+    console.log('🔍 Supplier nfournisseur:', supplier.nfournisseur);
+    router.push(`/dashboard/edit-supplier/${encodeURIComponent(supplier.nfournisseur)}`);
   };
 
   const handleDeleteSupplier = async (supplier: Supplier) => {
@@ -736,7 +738,9 @@ export default function Dashboard() {
 
   // Fonctions pour les actions sur les clients
   const handleEditClient = (client: Client) => {
-    router.push(`/dashboard/edit-client/${client.nclient}`);
+    console.log('🔍 Editing client:', client);
+    console.log('🔍 Client nclient:', client.nclient);
+    router.push(`/dashboard/edit-client/${encodeURIComponent(client.nclient)}`);
   };
 
   const handleDeleteClient = async (client: Client) => {
