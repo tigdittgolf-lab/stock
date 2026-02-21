@@ -5,7 +5,7 @@
  */
 export function getBackendUrl(path: string = ''): string {
   const baseUrl = process.env.NODE_ENV === 'production'
-    ? 'https://midi-charm-harvard-performed.trycloudflare.com'
+    ? 'https://airport-blackberry-ink-originally.trycloudflare.com'
     : 'http://localhost:3005';
   
   return `${baseUrl}${path}`;

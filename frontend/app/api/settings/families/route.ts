@@ -4,8 +4,9 @@ import { getBackendUrl } from '@/lib/backend-url';
 export async function GET(request: NextRequest) {
   try {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    const dbType = request.headers.get('X-Database-Type') || 'supabase';
     
-    console.log(`🔄 Frontend API: Fetching families for tenant ${tenant}`);
+    console.log(`🔄 Frontend API: Fetching families for tenant ${tenant}, DB: ${dbType}`);
     
     const backendUrl = getBackendUrl('/api/settings/families');
     
@@ -13,6 +14,7 @@ export async function GET(request: NextRequest) {
       method: 'GET',
       headers: {
         'X-Tenant': tenant,
+        'X-Database-Type': dbType,
         'Content-Type': 'application/json'
       }
     });
@@ -29,7 +31,7 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     
-    console.log(`✅ Frontend API: Successfully fetched families for tenant ${tenant}`);
+    console.log(`✅ Frontend API: Successfully fetched families`);
     
     return NextResponse.json(data);
 
@@ -45,9 +47,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    const dbType = request.headers.get('X-Database-Type') || 'supabase';
     const body = await request.json();
     
-    console.log(`🔄 Frontend API: Creating family for tenant ${tenant}`);
+    console.log(`🔄 Frontend API: Creating family for tenant ${tenant}, DB: ${dbType}`);
     
     const backendUrl = getBackendUrl('/api/settings/families');
     
@@ -55,6 +58,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'X-Tenant': tenant,
+        'X-Database-Type': dbType,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(body)
