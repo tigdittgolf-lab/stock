@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/backend-url';
 
 export async function GET(
   request: NextRequest,
@@ -10,8 +11,7 @@ export async function GET(
     
     console.log(`🔄 Frontend API: Fetching article ${articleId} for tenant ${tenant}`);
     
-    // Utiliser Tailscale tunnel pour accéder au backend local
-    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://desktop-bhhs068.tail1d9c54.ts.net' : 'http://localhost:3005'}/api/articles/${articleId}`;
+    const backendUrl = getBackendUrl(`/api/articles/${articleId}`);
     
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -57,7 +57,7 @@ export async function PUT(
     
     console.log(`🔄 Frontend API: Updating article ${articleId} for tenant ${tenant}`);
     
-    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://desktop-bhhs068.tail1d9c54.ts.net' : 'http://localhost:3005'}/api/articles/${articleId}`;
+    const backendUrl = getBackendUrl(`/api/articles/${articleId}`);
     
     const response = await fetch(backendUrl, {
       method: 'PUT',
@@ -91,7 +91,7 @@ export async function DELETE(
     
     console.log(`🔄 Frontend API: Deleting article ${articleId} for tenant ${tenant}`);
     
-    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://desktop-bhhs068.tail1d9c54.ts.net' : 'http://localhost:3005'}/api/articles/${articleId}`;
+    const backendUrl = getBackendUrl(`/api/articles/${articleId}`);
     
     const response = await fetch(backendUrl, {
       method: 'DELETE',
