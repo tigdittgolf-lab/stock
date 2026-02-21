@@ -3,7 +3,7 @@
   "framework": "nextjs",
   "env": {
     "NODE_ENV": "production",
-    "NEXT_PUBLIC_API_URL": "https://desktop-bhhs068.tail1d9c54.ts.net/api"
+    "NEXT_PUBLIC_API_URL": "https://midi-charm-harvard-performed.trycloudflare.com/api"
   },
   "functions": {
     "app/api/**/*.js": {
