@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import styles from "../../../page.module.css";
 
@@ -34,11 +34,11 @@ interface Article {
   stock_bl: number;
 }
 
-export default function EditArticle() {
+export default function EditArticle({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const params = useParams();
+  const resolvedParams = use(params);
   // Trim whitespace from article ID to handle any leading/trailing spaces
-  const articleId = (params.id as string).trim();
+  const articleId = resolvedParams.id.trim();
   
   const [tenantInfo, setTenantInfo] = useState<TenantInfo | null>(null);
   const [families, setFamilies] = useState<Family[]>([]);
