@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getApiUrl } from '@/lib/api';
 import styles from "../../page.module.css";
 
 interface TenantInfo {
@@ -501,9 +502,9 @@ export default function AddArticle() {
                   fontSize: '16px'
                 }}
               >
-                <option value="">Aucun fournisseur</option>
-                {suppliers.map((supplier) => (
-                  <option key={supplier.nfournisseur} value={supplier.nfournisseur}>
+                  <option value="">Aucun fournisseur</option>
+                {suppliers.map((supplier, index) => (
+                  <option key={`${supplier.nfournisseur}-${index}`} value={supplier.nfournisseur}>
                     {supplier.nom_fournisseur}
                   </option>
                 ))}

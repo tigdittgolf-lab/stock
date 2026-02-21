@@ -80,11 +80,11 @@ articles.get('/force-refresh', async (c) => {
 // GET /api/articles/:id - Get article by ID from tenant schema
 articles.get('/:id', async (c) => {
   try {
-    const id = c.req.param('id');
+    const id = c.req.param('id').trim(); // Trim whitespace from ID
     const tenant = getTenantContext(c);
     const dbType = backendDatabaseService.getActiveDatabaseType();
 
-    console.log(`🔍 Looking for article: ${id} in schema: ${tenant.schema} (DB: ${dbType})`);
+    console.log(`🔍 Looking for article: "${id}" in schema: ${tenant.schema} (DB: ${dbType})`);
     
     // Utiliser le service de base de données pour récupérer un article par ID
     const result = await backendDatabaseService.executeRPC('get_article_by_id_from_tenant', {

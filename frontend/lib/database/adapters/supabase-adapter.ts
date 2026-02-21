@@ -46,40 +46,47 @@ export class SupabaseAdapter implements DatabaseAdapter {
     try {
       console.log('🔍 Requête Supabase SQL:', sql.substring(0, 100) + (sql.length > 100 ? '...' : ''));
       
-      // Exécuter la vraie requête SQL via Supabase
+      // CORRECTION CRITIQUE: Toujours utiliser exec_sql RPC qui FONCTIONNE
+      // Ne PAS utiliser executeRawSQL qui échoue avec les permissions
+      
       const { data, error } = await this.client.rpc('exec_sql', { 
         sql_query: sql,
         params: params || []
       });
 
       if (error) {
-        // Si exec_sql n'existe pas, essayer une requête directe
-        console.log('⚠️ exec_sql non disponible, tentative de requête directe...');
-        
-        // Pour les requêtes d'information_schema, utiliser une approche alternative
-        if (sql.includes('information_schema.schemata')) {
-          return await this.getSchemasDirect();
-        }
-        
-        if (sql.includes('information_schema.tables')) {
-          const schemaMatch = sql.match(/table_schema = ['"]([^'"]+)['"]/);
-          if (schemaMatch) {
-            return await this.getTablesDirect(schemaMatch[1]);
-          }
-        }
-        
-        if (sql.includes('information_schema.columns')) {
-          const schemaMatch = sql.match(/table_schema = \$1/);
-          const tableMatch = sql.match(/table_name = \$2/);
-          if (schemaMatch && tableMatch && params && params.length >= 2) {
-            return await this.getColumnsDirect(params[0], params[1]);
-          }
-        }
-        
+        console.error('❌ Erreur exec_sql:', error.message);
         return {
           success: false,
           error: error.message
         };
+      }
+
+      // Vérifier si exec_sql a retourné un objet avec success: false
+      if (data && typeof data === 'object' && 'success' in data && data.success === false) {
+        console.error('❌ exec_sql a retourné une erreur:', data);
+        return {
+          success: false,
+          error: data.error || 'Erreur exec_sql'
+        };
+      }
+
+      // Vérifier si exec_sql a retourné verified: true pour CREATE TABLE
+      if (data && typeof data === 'object' && 'verified' in data) {
+        if (data.verified === true) {
+          console.log('✅ exec_sql confirmé: table créée et vérifiée');
+          return {
+            success: true,
+            data: [data],
+            rowCount: 1
+          };
+        } else if (data.verified === false) {
+          console.error('❌ exec_sql: table non vérifiée');
+          return {
+            success: false,
+            error: data.error || 'Table non créée'
+          };
+        }
       }
 
       return {
@@ -286,9 +293,55 @@ export class SupabaseAdapter implements DatabaseAdapter {
   }
 
   async createSchema(schemaName: string): Promise<boolean> {
-    // Pour Supabase, la création de schéma se fait via les fonctions RPC
-    console.log('🏗️ Création schéma Supabase:', schemaName);
-    return true;
+    if (!this.client) {
+      console.error('❌ Pas de connexion Supabase');
+      return false;
+    }
+
+    try {
+      console.log(`🏗️ Création schéma Supabase: ${schemaName}`);
+      
+      // ÉTAPE 1: Utiliser la fonction RPC create_schema_if_not_exists
+      const { data, error } = await this.client.rpc('create_schema_if_not_exists', {
+        p_schema_name: schemaName
+      });
+      
+      if (error) {
+        console.error(`❌ Erreur RPC create_schema_if_not_exists: ${error.message}`);
+        return false;
+      }
+      
+      console.log(`📊 Résultat RPC:`, data);
+      
+      // ÉTAPE 2: VÉRIFICATION CRITIQUE - Le schéma existe-t-il vraiment?
+      console.log(`🔍 Vérification existence schéma ${schemaName}...`);
+      
+      // Attendre un peu pour que Supabase synchronise
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const { data: schemas, error: checkError } = await this.client.rpc('discover_tenant_schemas', {});
+      
+      if (checkError) {
+        console.error(`❌ Erreur vérification schéma: ${checkError.message}`);
+        return false;
+      }
+      
+      const schemaList = Array.isArray(schemas) ? schemas : JSON.parse(schemas || '[]');
+      const schemaExists = schemaList.includes(schemaName);
+      
+      if (!schemaExists) {
+        console.error(`❌ ÉCHEC CRITIQUE: Schéma ${schemaName} n'existe pas après création!`);
+        console.error(`📋 Schémas existants: ${schemaList.join(', ')}`);
+        return false;
+      }
+      
+      console.log(`✅ CONFIRMÉ: Schéma ${schemaName} existe dans Supabase`);
+      return true;
+      
+    } catch (error) {
+      console.error(`❌ Exception création schéma ${schemaName}:`, error);
+      return false;
+    }
   }
 
   async executeRPC(functionName: string, params: Record<string, any>): Promise<QueryResult> {
@@ -504,5 +557,147 @@ export class SupabaseAdapter implements DatabaseAdapter {
       success: false,
       error: `Aucune méthode disponible pour récupérer les données de ${tableName}`
     };
+  }
+
+  /**
+   * NOUVELLE MÉTHODE: Exécuter du SQL brut via l'API REST de Supabase
+   * Cette méthode contourne exec_sql et exécute vraiment le SQL
+   */
+  private async executeRawSQL(sql: string): Promise<QueryResult> {
+    if (!this.config.supabaseUrl || !this.config.supabaseKey) {
+      return { success: false, error: 'Configuration Supabase manquante' };
+    }
+
+    try {
+      console.log('🚀 Exécution SQL directe via API REST Supabase');
+      console.log('📝 SQL:', sql.substring(0, 200) + (sql.length > 200 ? '...' : ''));
+
+      // Utiliser l'API REST de Supabase pour exécuter du SQL
+      // Endpoint: POST /rest/v1/rpc/query
+      const response = await fetch(`${this.config.supabaseUrl}/rest/v1/rpc/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': this.config.supabaseKey,
+          'Authorization': `Bearer ${this.config.supabaseKey}`,
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          query: sql
+        })
+      });
+
+      if (!response.ok) {
+        // Si l'endpoint query n'existe pas, essayer une approche alternative
+        console.log('⚠️ Endpoint query non disponible, tentative alternative...');
+        return await this.executeViaPostgREST(sql);
+      }
+
+      const data = await response.json();
+      
+      console.log('✅ SQL exécuté avec succès via API REST');
+      
+      return {
+        success: true,
+        data: Array.isArray(data) ? data : [data],
+        rowCount: Array.isArray(data) ? data.length : 1
+      };
+    } catch (error) {
+      console.error('❌ Erreur exécution SQL directe:', error);
+      
+      // Dernière tentative: utiliser PostgREST
+      return await this.executeViaPostgREST(sql);
+    }
+  }
+
+  /**
+   * Exécuter du SQL via PostgREST (approche alternative)
+   */
+  private async executeViaPostgREST(sql: string): Promise<QueryResult> {
+    try {
+      console.log('🔄 Tentative via PostgREST...');
+      
+      // Pour CREATE SCHEMA, utiliser une requête spéciale
+      if (sql.toUpperCase().includes('CREATE SCHEMA')) {
+        const schemaMatch = sql.match(/CREATE SCHEMA (?:IF NOT EXISTS )?["']?([^"'\s]+)["']?/i);
+        if (schemaMatch) {
+          const schemaName = schemaMatch[1];
+          console.log(`🏗️ Création schéma ${schemaName} via SQL direct`);
+          
+          // Utiliser l'API Management de Supabase pour exécuter du SQL
+          const response = await fetch(`${this.config.supabaseUrl}/rest/v1/rpc/query`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': this.config.supabaseKey!,
+              'Authorization': `Bearer ${this.config.supabaseKey}`,
+            },
+            body: JSON.stringify({
+              query: `CREATE SCHEMA IF NOT EXISTS "${schemaName}"`
+            })
+          });
+
+          if (!response.ok) {
+            // Si l'API query n'existe pas, utiliser l'approche SQL directe via pg_catalog
+            console.log('⚠️ API query non disponible, création via SQL direct...');
+            
+            // Créer le schéma en utilisant une table temporaire comme workaround
+            const createResult = await this.client!.rpc('create_schema_if_not_exists', {
+              p_schema_name: schemaName
+            });
+            
+            if (createResult.error) {
+              console.error('❌ Erreur création schéma:', createResult.error);
+              return { success: false, error: createResult.error.message };
+            }
+            
+            // VÉRIFIER que le schéma existe vraiment
+            const checkResult = await this.client!
+              .from('information_schema.schemata')
+              .select('schema_name')
+              .eq('schema_name', schemaName)
+              .limit(1);
+            
+            if (checkResult.error || !checkResult.data || checkResult.data.length === 0) {
+              console.error(`❌ ÉCHEC CRITIQUE: Schéma ${schemaName} n'existe pas après création!`);
+              return { 
+                success: false, 
+                error: `Le schéma ${schemaName} n'a pas été créé. Problème de permissions Supabase.` 
+              };
+            }
+            
+            console.log(`✅ CONFIRMÉ: Schéma ${schemaName} existe`);
+            return { success: true, data: [createResult.data], rowCount: 1 };
+          }
+          
+          console.log('✅ Schéma créé avec succès via API');
+          return { success: true, data: [], rowCount: 0 };
+        }
+      }
+      
+      // Pour CREATE TABLE, même problème - exec_sql ne fonctionne pas
+      if (sql.toUpperCase().includes('CREATE TABLE')) {
+        console.log('❌ PROBLÈME CRITIQUE: exec_sql ne peut pas créer de tables dans Supabase');
+        console.log('💡 CAUSE: Restrictions de permissions SECURITY DEFINER');
+        console.log('💡 SOLUTION REQUISE: Utiliser l\'API Management de Supabase ou créer manuellement');
+        
+        return {
+          success: false,
+          error: 'exec_sql ne peut pas créer de tables dans Supabase en raison de restrictions de permissions. Veuillez créer les tables manuellement ou utiliser l\'API Management de Supabase.'
+        };
+      }
+      
+      // Pour les autres requêtes, retourner une erreur
+      return {
+        success: false,
+        error: 'Type de requête SQL non supporté par PostgREST'
+      };
+    } catch (error) {
+      console.error('❌ Erreur PostgREST:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur PostgREST'
+      };
+    }
   }
 }

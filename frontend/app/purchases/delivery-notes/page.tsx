@@ -228,8 +228,8 @@ export default function CreatePurchaseBL() {
                   required
                 >
                   <option value="">Sélectionner un fournisseur</option>
-                  {suppliers.map(supplier => (
-                    <option key={supplier.nfournisseur} value={supplier.nfournisseur}>
+                  {suppliers.map((supplier, index) => (
+                    <option key={`${supplier.nfournisseur}-${index}`} value={supplier.nfournisseur}>
                       {supplier.nom_fournisseur} ({supplier.nfournisseur})
                     </option>
                   ))}

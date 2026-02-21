@@ -139,6 +139,8 @@ suppliers.put('/:id', async (c) => {
       adresse_fourni,
       tel,
       email,
+      caf,
+      cabl,
       commentaire
     } = body;
 
@@ -146,11 +148,13 @@ suppliers.put('/:id', async (c) => {
     const result = await backendDatabaseService.executeRPC('update_supplier_in_tenant', {
       p_tenant: tenant.schema,
       p_nfournisseur: id,
-      p_nom_fournisseur: nom_fournisseur,
-      p_resp_fournisseur: resp_fournisseur,
-      p_adresse_fourni: adresse_fourni,
+      p_nom_fournisseur: nom_fournisseur || '',
+      p_resp_fournisseur: resp_fournisseur || '',
+      p_adresse_fourni: adresse_fourni || '',
       p_tel: tel || '',
       p_email: email || '',
+      p_caf: caf || 0,
+      p_cabl: cabl || 0,
       p_commentaire: commentaire || ''
     });
     

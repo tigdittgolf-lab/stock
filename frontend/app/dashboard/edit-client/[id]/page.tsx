@@ -29,7 +29,11 @@ export default function EditClient() {
     tel: '',
     email: '',
     nrc: '',
+    date_rc: '',
+    lieu_rc: '',
     i_fiscal: '',
+    n_article: '',
+    commentaire: '',
     c_affaire_fact: '0',
     c_affaire_bl: '0'
   });
@@ -56,7 +60,7 @@ export default function EditClient() {
     try {
       setClientLoading(true);
       
-      const response = await fetch(`http://localhost:3005/api/sales/clients/${id}`, {
+      const response = await fetch(`http://localhost:3005/api/clients/${id}`, {
         headers: {
           'Content-Type': 'application/json',
           'X-Tenant': tenant.schema
@@ -75,7 +79,11 @@ export default function EditClient() {
           tel: client.tel || '',
           email: client.email || '',
           nrc: client.nrc || '',
+          date_rc: client.date_rc || '',
+          lieu_rc: client.lieu_rc || '',
           i_fiscal: client.i_fiscal || '',
+          n_article: client.n_article || '',
+          commentaire: client.commentaire || '',
           c_affaire_fact: client.c_affaire_fact?.toString() || '0',
           c_affaire_bl: client.c_affaire_bl?.toString() || '0'
         });
@@ -120,12 +128,16 @@ export default function EditClient() {
         tel: formData.tel,
         email: formData.email,
         nrc: formData.nrc,
+        date_rc: formData.date_rc,
+        lieu_rc: formData.lieu_rc,
         i_fiscal: formData.i_fiscal,
+        n_article: formData.n_article,
+        commentaire: formData.commentaire,
         c_affaire_fact: parseFloat(formData.c_affaire_fact) || 0,
         c_affaire_bl: parseFloat(formData.c_affaire_bl) || 0
       };
 
-      const response = await fetch(`http://localhost:3005/api/sales/clients/${clientId}`, {
+      const response = await fetch(`http://localhost:3005/api/clients/${clientId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

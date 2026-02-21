@@ -156,6 +156,13 @@ clients.put('/:id', async (c) => {
       contact_person,
       tel,
       email,
+      c_affaire_fact,
+      c_affaire_bl,
+      nrc,
+      date_rc,
+      lieu_rc,
+      i_fiscal,
+      n_article,
       commentaire
     } = body;
 
@@ -163,11 +170,18 @@ clients.put('/:id', async (c) => {
     const { data, error } = await databaseRouter.rpc('update_client_in_tenant', {
       p_tenant: tenant.schema,
       p_nclient: id,
-      p_raison_sociale: raison_sociale,
-      p_adresse: adresse,
-      p_contact_person: contact_person,
+      p_raison_sociale: raison_sociale || '',
+      p_adresse: adresse || '',
+      p_contact_person: contact_person || '',
       p_tel: tel || '',
       p_email: email || '',
+      p_c_affaire_fact: c_affaire_fact || 0,
+      p_c_affaire_bl: c_affaire_bl || 0,
+      p_nrc: nrc || '',
+      p_date_rc: date_rc || '',
+      p_lieu_rc: lieu_rc || '',
+      p_i_fiscal: i_fiscal || '',
+      p_n_article: n_article || '',
       p_commentaire: commentaire || ''
     });
     

@@ -1,0 +1,374 @@
+/* ==========================================
+   LAYOUT RESPONSIVE - MOBILE FIRST
+   ========================================== */
+
+.container {
+  min-height: 100vh;
+  background: var(--background);
+  position: relative;
+}
+
+/* ==========================================
+   HAMBURGER BUTTON - Mobile only
+   ========================================== */
+
+.hamburger {
+  display: none; /* Caché par défaut */
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1003;
+  width: 48px;
+  height: 48px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 24px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* ==========================================
+   OVERLAY - Mobile only
+   ========================================== */
+
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1001;
+}
+
+/* ==========================================
+   SIDEBAR
+   ========================================== */
+
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 260px;
+  background: var(--card-background);
+  border-right: 1px solid var(--border-color);
+  z-index: 1002;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
+}
+
+.sidebarHeader {
+  padding: 24px;
+  border-bottom: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.logo {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin: 0 auto 12px;
+}
+
+.sidebarHeader h2 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.sidebarNav {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebarNav button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.sidebarNav button:hover {
+  background: var(--background-secondary);
+  color: var(--text-primary);
+}
+
+.sidebarNav button.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+}
+
+.badge {
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+/* ==========================================
+   MAIN CONTENT
+   ========================================== */
+
+.main {
+  margin-left: 260px;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.topBar h1 {
+  margin: 0;
+  font-size: 24px;
+  color: var(--text-primary);
+}
+
+.topBarActions {
+  display: flex;
+  gap: 12px;
+}
+
+.btnPrimary {
+  padding: 10px 20px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btnPrimary:hover {
+  background: #5a67d8;
+  transform: translateY(-2px);
+}
+
+.btnSecondary {
+  padding: 10px 20px;
+  background: var(--background-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btnSecondary:hover {
+  background: var(--background-tertiary);
+}
+
+.content {
+  background: var(--card-background);
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.content h2 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+/* ==========================================
+   STATS GRID
+   ========================================== */
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.statCard {
+  background: var(--background-secondary);
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.statCard h3 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.statValue {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #667eea;
+}
+
+/* ==========================================
+   TABLE
+   ========================================== */
+
+.tableWrapper {
+  overflow-x: auto;
+  margin-top: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.table thead {
+  background: var(--background-secondary);
+}
+
+.table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.table td {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table tbody tr:hover {
+  background: var(--background-secondary);
+}
+
+.btnEdit,
+.btnDelete {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-right: 8px;
+}
+
+.btnEdit {
+  background: #4299e1;
+  color: white;
+}
+
+.btnDelete {
+  background: #f56565;
+  color: white;
+}
+
+/* ==========================================
+   RESPONSIVE - MOBILE (≤768px)
+   ========================================== */
+
+@media (max-width: 768px) {
+  /* Afficher le hamburger */
+  .hamburger {
+    display: flex;
+  }
+  
+  /* Afficher l'overlay quand menu ouvert */
+  .overlay {
+    display: block;
+  }
+  
+  /* Sidebar cachée par défaut */
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  
+  /* Sidebar visible quand ouverte */
+  .sidebarOpen {
+    transform: translateX(0);
+  }
+  
+  /* Main prend toute la largeur */
+  .main {
+    margin-left: 0;
+    padding: 16px;
+    padding-top: 80px; /* Espace pour le hamburger */
+  }
+  
+  .topBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .topBarActions {
+    width: 100%;
+  }
+  
+  .topBarActions button {
+    flex: 1;
+  }
+  
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .content {
+    padding: 16px;
+  }
+}
+
+/* ==========================================
+   RESPONSIVE - TRÈS PETIT (≤480px)
+   ========================================== */
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .table {
+    min-width: 500px;
+  }
+  
+  .topBar h1 {
+    font-size: 20px;
+  }
+}

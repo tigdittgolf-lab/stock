@@ -47,8 +47,16 @@ export class MySQLAdapter implements DatabaseAdapter {
         sql: sql.substring(0, 100) + (sql.length > 100 ? '...' : '')
       });
       
+      // Construire l'URL absolue dynamiquement
+      // En production ou côté serveur, utiliser l'URL complète
+      const baseUrl = typeof window !== 'undefined' 
+        ? '' // Côté client: URL relative
+        : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'; // Côté serveur: URL absolue
+      
+      const apiUrl = `${baseUrl}/api/database/mysql`;
+      
       // Appel vers l'API MySQL via fetch
-      const response = await fetch('http://localhost:3000/api/database/mysql', {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

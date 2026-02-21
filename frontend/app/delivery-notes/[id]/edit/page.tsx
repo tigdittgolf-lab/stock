@@ -289,8 +289,8 @@ export default function EditDeliveryNote({ params }: { params: Promise<{ id: str
                 className={styles.select}
               >
                 <option value="">Sélectionner un client</option>
-                {clients.map(client => (
-                  <option key={client.nclient} value={client.nclient}>
+                {clients.map((client, index) => (
+                  <option key={`${client.nclient}-${index}`} value={client.nclient}>
                     {client.nclient} - {client.raison_sociale}
                   </option>
                 ))}

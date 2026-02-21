@@ -9,7 +9,7 @@ import DatabaseSelectorCompact from '@/components/DatabaseSelectorCompact';
 import ThemeToggle from '@/components/ThemeToggle';
 import styles from "../page.module.css";
 import dashboardStyles from "./dashboard.module.css";
-import responsiveStyles from "./responsive.module.css";
+import listStyles from "../styles/list-responsive.module.css";
 
 // Fonction de formatage personnalisée pour les montants: "999 999.99"
 const formatAmount = (amount: number | undefined | null): string => {
@@ -83,10 +83,14 @@ export default function Dashboard() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('dashboard');
   
-  // État pour le menu mobile
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // Sur mobile, commencer directement sur articles au lieu du dashboard
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      return 'articles';
+    }
+    return 'dashboard';
+  });
   
   // États pour les filtres
   const [searchTerm, setSearchTerm] = useState('');
@@ -102,14 +106,6 @@ export default function Dashboard() {
   const [sortColumn, setSortColumn] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
-  // États pour le tri des clients
-  const [clientSortColumn, setClientSortColumn] = useState<string>('');
-  const [clientSortDirection, setClientSortDirection] = useState<'asc' | 'desc'>('asc');
-  
-  // États pour le tri des fournisseurs
-  const [supplierSortColumn, setSupplierSortColumn] = useState<string>('');
-  const [supplierSortDirection, setSupplierSortDirection] = useState<'asc' | 'desc'>('asc');
-  
   // États pour la pagination des articles
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
@@ -121,6 +117,9 @@ export default function Dashboard() {
   // États pour la pagination des fournisseurs
   const [currentPageSuppliers, setCurrentPageSuppliers] = useState(1);
   const [itemsPerPageSuppliers, setItemsPerPageSuppliers] = useState(50);
+
+  // État pour le menu mobile
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Vérifier l'authentification et les informations de tenant
@@ -411,26 +410,6 @@ export default function Dashboard() {
     }
   };
 
-  // Fonction de tri pour les clients
-  const handleClientSort = (column: string) => {
-    if (clientSortColumn === column) {
-      setClientSortDirection(clientSortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setClientSortColumn(column);
-      setClientSortDirection('asc');
-    }
-  };
-
-  // Fonction de tri pour les fournisseurs
-  const handleSupplierSort = (column: string) => {
-    if (supplierSortColumn === column) {
-      setSupplierSortDirection(supplierSortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSupplierSortColumn(column);
-      setSupplierSortDirection('asc');
-    }
-  };
-
   const getSortedArticles = (filteredArticles: Article[]) => {
     if (!sortColumn) return filteredArticles;
 
@@ -472,64 +451,6 @@ export default function Dashboard() {
     });
 
     console.log('✅ Sorted', sorted.length, 'articles');
-    return sorted;
-  };
-
-  const getSortedClients = (filteredClients: any[]) => {
-    if (!clientSortColumn) return filteredClients;
-
-    const sorted = [...filteredClients].sort((a, b) => {
-      let aValue: any = a[clientSortColumn];
-      let bValue: any = b[clientSortColumn];
-
-      // Colonnes numériques
-      const numericColumns = ['c_affaire_fact', 'c_affaire_bl'];
-      if (numericColumns.includes(clientSortColumn)) {
-        const aNum = aValue === null || aValue === undefined ? 0 : parseFloat(String(aValue));
-        const bNum = bValue === null || bValue === undefined ? 0 : parseFloat(String(bValue));
-        return clientSortDirection === 'asc' ? aNum - bNum : bNum - aNum;
-      }
-
-      // Colonnes texte
-      const aStr = String(aValue || '').toLowerCase();
-      const bStr = String(bValue || '').toLowerCase();
-      
-      if (clientSortDirection === 'asc') {
-        return aStr.localeCompare(bStr, 'fr');
-      } else {
-        return bStr.localeCompare(aStr, 'fr');
-      }
-    });
-
-    return sorted;
-  };
-
-  const getSortedSuppliers = (filteredSuppliers: any[]) => {
-    if (!supplierSortColumn) return filteredSuppliers;
-
-    const sorted = [...filteredSuppliers].sort((a, b) => {
-      let aValue: any = a[supplierSortColumn];
-      let bValue: any = b[supplierSortColumn];
-
-      // Colonnes numériques
-      const numericColumns = ['caf', 'cabl'];
-      if (numericColumns.includes(supplierSortColumn)) {
-        const aNum = aValue === null || aValue === undefined ? 0 : parseFloat(String(aValue));
-        const bNum = bValue === null || bValue === undefined ? 0 : parseFloat(String(bValue));
-        return supplierSortDirection === 'asc' ? aNum - bNum : bNum - aNum;
-      }
-
-      // Colonnes texte
-      const aStr = String(aValue || '').toLowerCase();
-      const bStr = String(bValue || '').toLowerCase();
-      
-      if (supplierSortDirection === 'asc') {
-        return aStr.localeCompare(bStr, 'fr');
-      } else {
-        return bStr.localeCompare(aStr, 'fr');
-      }
-    });
-
     return sorted;
   };
 
@@ -585,7 +506,7 @@ export default function Dashboard() {
 
   // Fonctions de filtrage pour les clients
   const getFilteredClients = () => {
-    const filtered = clients.filter(client => {
+    return clients.filter(client => {
       // Filtre par recherche (code, raison sociale, contact)
       const matchesSearch = clientSearchTerm === '' || 
         client.nclient.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
@@ -600,8 +521,6 @@ export default function Dashboard() {
 
       return matchesSearch && matchesStatus;
     });
-
-    return getSortedClients(filtered);
   };
 
   const clearClientFilters = () => {
@@ -622,7 +541,7 @@ export default function Dashboard() {
   // Réinitialiser à la page 1 quand les filtres clients changent
   useEffect(() => {
     setCurrentPageClients(1);
-  }, [clientSearchTerm, selectedClientStatus, clientSortColumn, clientSortDirection]);
+  }, [clientSearchTerm, selectedClientStatus]);
 
   // États pour les filtres fournisseurs
   const [supplierSearchTerm, setSupplierSearchTerm] = useState('');
@@ -630,7 +549,7 @@ export default function Dashboard() {
 
   // Fonctions de filtrage pour les fournisseurs
   const getFilteredSuppliers = () => {
-    const filtered = suppliers.filter(supplier => {
+    return suppliers.filter(supplier => {
       // Filtre par recherche (code, nom, responsable)
       const matchesSearch = supplierSearchTerm === '' || 
         supplier.nfournisseur.toLowerCase().includes(supplierSearchTerm.toLowerCase()) ||
@@ -644,8 +563,6 @@ export default function Dashboard() {
 
       return matchesSearch && matchesStatus;
     });
-
-    return getSortedSuppliers(filtered);
   };
 
   const clearSupplierFilters = () => {
@@ -666,7 +583,7 @@ export default function Dashboard() {
   // Réinitialiser à la page 1 quand les filtres fournisseurs changent
   useEffect(() => {
     setCurrentPageSuppliers(1);
-  }, [supplierSearchTerm, selectedSupplierStatus, supplierSortColumn, supplierSortDirection]);
+  }, [supplierSearchTerm, selectedSupplierStatus]);
 
   // Fonctions pour les actions sur les fournisseurs
   const handleEditSupplier = (supplier: Supplier) => {
@@ -729,9 +646,8 @@ export default function Dashboard() {
 
   // Fonctions pour les actions sur les articles
   const handleEditArticle = (article: Article) => {
-    // Trim whitespace from article ID to prevent URL encoding issues
-    const cleanArticleId = article.narticle.trim();
-    router.push(`/dashboard/edit-article/${cleanArticleId}`);
+    // Rediriger vers la page de modification (à créer)
+    router.push(`/dashboard/edit-article/${article.narticle}`);
   };
 
   // Fonctions pour les actions sur les clients
@@ -866,25 +782,40 @@ export default function Dashboard() {
 
   return (
     <div className={styles.page}>
-      {/* Overlay mobile - Ferme la sidebar quand on clique dessus */}
+      {/* Overlay pour fermer le menu mobile */}
       {isMobileMenuOpen && (
-        <div 
-          className={responsiveStyles.overlay}
+        <div
           onClick={() => setIsMobileMenuOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1000,
+            display: 'none'
+          }}
+          className={styles.mobileOverlay}
         />
       )}
 
-      {/* Hamburger Button - Mobile only */}
-      <button 
-        className={responsiveStyles.hamburger}
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        aria-label="Toggle menu"
-      >
-        {isMobileMenuOpen ? '✕' : '☰'}
-      </button>
-
       {/* Sidebar Navigation - Vertical à gauche */}
-      <aside className={`${styles.sidebar} ${responsiveStyles.sidebar} ${isMobileMenuOpen ? responsiveStyles.open : ''}`}>
+      <aside 
+        className={`${styles.sidebar} ${isMobileMenuOpen ? styles.open : ''}`}
+        style={{
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: '240px',
+          zIndex: 1001,
+          transform: typeof window !== 'undefined' && window.innerWidth <= 768 
+            ? (isMobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)') 
+            : 'translateX(0)',
+          transition: 'transform 0.3s ease'
+        }}
+      >
         <div className={styles.sidebarHeader}>
           {/* Logo centré avec Theme Toggle compact à droite */}
           <div style={{
@@ -977,10 +908,7 @@ export default function Dashboard() {
         <nav className={styles.sidebarNav}>
           <button
             className={activeTab === 'dashboard' ? styles.sidebarActive : ''}
-            onClick={() => {
-              setActiveTab('dashboard');
-              setIsMobileMenuOpen(false);
-            }}
+            onClick={() => { setActiveTab('dashboard'); setIsMobileMenuOpen(false); }}
             title="Tableau de Bord"
           >
             <span className={styles.icon}>📊</span>
@@ -988,10 +916,7 @@ export default function Dashboard() {
           </button>
           <button
             className={activeTab === 'articles' ? styles.sidebarActive : ''}
-            onClick={() => {
-              setActiveTab('articles');
-              setIsMobileMenuOpen(false);
-            }}
+            onClick={() => { setActiveTab('articles'); setIsMobileMenuOpen(false); }}
             title="Articles"
           >
             <span className={styles.icon}>📦</span>
@@ -1000,10 +925,7 @@ export default function Dashboard() {
           </button>
           <button
             className={activeTab === 'clients' ? styles.sidebarActive : ''}
-            onClick={() => {
-              setActiveTab('clients');
-              setIsMobileMenuOpen(false);
-            }}
+            onClick={() => { setActiveTab('clients'); setIsMobileMenuOpen(false); }}
             title="Clients"
           >
             <span className={styles.icon}>👥</span>
@@ -1012,10 +934,7 @@ export default function Dashboard() {
           </button>
           <button
             className={activeTab === 'suppliers' ? styles.sidebarActive : ''}
-            onClick={() => {
-              setActiveTab('suppliers');
-              setIsMobileMenuOpen(false);
-            }}
+            onClick={() => { setActiveTab('suppliers'); setIsMobileMenuOpen(false); }}
             title="Fournisseurs"
           >
             <span className={styles.icon}>🏭</span>
@@ -1024,10 +943,7 @@ export default function Dashboard() {
           </button>
           <button
             className={activeTab === 'sales' ? styles.sidebarActive : ''}
-            onClick={() => {
-              setActiveTab('sales');
-              setIsMobileMenuOpen(false);
-            }}
+            onClick={() => { setActiveTab('sales'); setIsMobileMenuOpen(false); }}
             title="Ventes"
           >
             <span className={styles.icon}>💰</span>
@@ -1035,10 +951,7 @@ export default function Dashboard() {
           </button>
           <button
             className={activeTab === 'purchases' ? styles.sidebarActive : ''}
-            onClick={() => {
-              setActiveTab('purchases');
-              setIsMobileMenuOpen(false);
-            }}
+            onClick={() => { setActiveTab('purchases'); setIsMobileMenuOpen(false); }}
             title="Achats"
           >
             <span className={styles.icon}>🛒</span>
@@ -1046,10 +959,7 @@ export default function Dashboard() {
           </button>
           <button
             className={activeTab === 'stock' ? styles.sidebarActive : ''}
-            onClick={() => {
-              setActiveTab('stock');
-              setIsMobileMenuOpen(false);
-            }}
+            onClick={() => { setActiveTab('stock'); setIsMobileMenuOpen(false); }}
             title="Stock"
           >
             <span className={styles.icon}>📈</span>
@@ -1057,10 +967,7 @@ export default function Dashboard() {
           </button>
           <button
             className={activeTab === 'settings' ? styles.sidebarActive : ''}
-            onClick={() => {
-              router.push('/settings');
-              setIsMobileMenuOpen(false);
-            }}
+            onClick={() => { router.push('/settings'); setIsMobileMenuOpen(false); }}
             title="Réglages"
           >
             <span className={styles.icon}>⚙️</span>
@@ -1073,10 +980,7 @@ export default function Dashboard() {
               return user?.role === 'admin' ? (
                 <button
                   className={activeTab === 'admin' ? styles.sidebarActive : ''}
-                  onClick={() => {
-                    router.push('/admin');
-                    setIsMobileMenuOpen(false);
-                  }}
+                  onClick={() => { router.push('/admin'); setIsMobileMenuOpen(false); }}
                   title="Administration"
                 >
                   <span className={styles.icon}>👨‍💼</span>
@@ -1100,7 +1004,7 @@ export default function Dashboard() {
       </aside>
 
       {/* Header - Réduit en haut */}
-      <header className={`${styles.header} ${responsiveStyles.header}`} style={{ 
+      <header className={styles.header} style={{ 
         position: 'fixed', 
         top: 0,
         left: '240px', /* Décalé pour la sidebar */
@@ -1110,47 +1014,85 @@ export default function Dashboard() {
         padding: '12px 20px',
         borderBottom: '1px solid var(--border-color)'
       }}>
+        {/* Bouton menu mobile - EN HAUT À DROITE */}
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className={styles.mobileMenuButton}
+          style={{
+            position: 'fixed',
+            top: '12px',
+            right: '12px',
+            zIndex: 1002,
+            padding: '0',
+            background: 'var(--primary-color)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '20px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            width: '44px',
+            height: '44px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          {isMobileMenuOpen ? '✕' : '☰'}
+        </button>
+
         {/* Top Bar - Compact et professionnel */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          padding: '12px 24px',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: '12px',
-          marginBottom: '16px',
-          boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
-        }}>
+        <div 
+          className={styles.topBar}
+          style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            padding: 'clamp(6px, 2vw, 12px) clamp(8px, 3vw, 24px)',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius: 'clamp(6px, 2vw, 12px)',
+            marginBottom: 'clamp(6px, 2vw, 16px)',
+            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+            flexWrap: 'wrap',
+            gap: 'clamp(6px, 2vw, 12px)'
+          }}>
           {/* Left Section - Logo et Titre */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(8px, 2vw, 16px)', flexWrap: 'wrap', flex: '1 1 auto', minWidth: '150px' }}>
             <div style={{
-              width: '48px',
-              height: '48px',
+              width: 'clamp(36px, 8vw, 48px)',
+              height: 'clamp(36px, 8vw, 48px)',
               background: 'rgba(255, 255, 255, 0.2)',
-              borderRadius: '12px',
+              borderRadius: 'clamp(8px, 2vw, 12px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '24px',
-              backdropFilter: 'blur(10px)'
+              fontSize: 'clamp(18px, 4vw, 24px)',
+              backdropFilter: 'blur(10px)',
+              flexShrink: 0
             }}>
               📦
             </div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <h1 style={{ 
                 margin: 0, 
-                fontSize: '20px', 
+                fontSize: 'clamp(14px, 3.5vw, 20px)', 
                 fontWeight: '700',
                 color: 'white',
-                letterSpacing: '-0.5px'
+                letterSpacing: '-0.5px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
               }}>
                 Gestion de Stock
               </h1>
               <div style={{ 
-                fontSize: '12px', 
+                fontSize: 'clamp(10px, 2.5vw, 12px)', 
                 color: 'rgba(255, 255, 255, 0.9)',
                 marginTop: '2px',
-                fontWeight: '500'
+                fontWeight: '500',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
               }}>
                 {companyInfo?.nom_entreprise || 'Système de gestion'}
               </div>
@@ -1158,7 +1100,7 @@ export default function Dashboard() {
           </div>
 
           {/* Right Section - User et Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(6px, 2vw, 12px)', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>
             {/* User Info */}
             {(() => {
               try {
@@ -1169,21 +1111,23 @@ export default function Dashboard() {
                   const roleLabel = user.role === 'admin' ? 'Administrateur' : user.role === 'manager' ? 'Manager' : 'Utilisateur';
                   return (
                     <div style={{
-                      padding: '8px 16px',
+                      padding: 'clamp(6px, 1.5vw, 8px) clamp(10px, 2.5vw, 16px)',
                       background: 'rgba(255, 255, 255, 0.95)',
-                      borderRadius: '10px',
+                      borderRadius: 'clamp(6px, 2vw, 10px)',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '13px',
+                      gap: 'clamp(4px, 1.5vw, 8px)',
+                      fontSize: 'clamp(11px, 2.5vw, 13px)',
                       fontWeight: '600',
                       color: '#333',
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                      minWidth: 0,
+                      maxWidth: '200px'
                     }}>
-                      <span style={{ fontSize: '18px' }}>{roleIcon}</span>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: '600' }}>{user.full_name || user.username}</span>
-                        <span style={{ fontSize: '10px', color: '#666', fontWeight: '500' }}>{roleLabel}</span>
+                      <span style={{ fontSize: 'clamp(14px, 3vw, 18px)', flexShrink: 0 }}>{roleIcon}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                        <span style={{ fontSize: 'clamp(11px, 2.5vw, 13px)', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.full_name || user.username}</span>
+                        <span style={{ fontSize: 'clamp(9px, 2vw, 10px)', color: '#666', fontWeight: '500', whiteSpace: 'nowrap' }}>{roleLabel}</span>
                       </div>
                     </div>
                   );
@@ -1198,65 +1142,70 @@ export default function Dashboard() {
             <button 
               onClick={handleNewExercise}
               style={{
-                padding: '8px 14px',
+                padding: 'clamp(6px, 1.5vw, 8px) clamp(10px, 2.5vw, 14px)',
                 background: 'rgba(40, 167, 69, 0.95)',
                 color: 'white',
                 border: 'none',
-                borderRadius: '8px',
+                borderRadius: 'clamp(6px, 2vw, 8px)',
                 cursor: 'pointer',
-                fontSize: '13px',
+                fontSize: 'clamp(11px, 2.5vw, 13px)',
                 fontWeight: '600',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: 'clamp(3px, 1vw, 6px)',
                 transition: 'all 0.2s',
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)'
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+                whiteSpace: 'nowrap'
               }}
               onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
               onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
               title="Créer un nouvel exercice"
             >
-              ➕ Nouvel Exercice
+              <span style={{ fontSize: 'clamp(12px, 2.5vw, 14px)' }}>➕</span>
+              <span className="button-text">Nouvel Exercice</span>
             </button>
             <button 
               onClick={handleChangeTenant}
               style={{
-                padding: '8px 14px',
+                padding: 'clamp(6px, 1.5vw, 8px) clamp(10px, 2.5vw, 14px)',
                 background: 'rgba(108, 117, 125, 0.95)',
                 color: 'white',
                 border: 'none',
-                borderRadius: '8px',
+                borderRadius: 'clamp(6px, 2vw, 8px)',
                 cursor: 'pointer',
-                fontSize: '13px',
+                fontSize: 'clamp(11px, 2.5vw, 13px)',
                 fontWeight: '600',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: 'clamp(3px, 1vw, 6px)',
                 transition: 'all 0.2s',
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)'
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+                whiteSpace: 'nowrap'
               }}
               onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
               onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
               title="Changer de contexte"
             >
-              🔄 Changer
+              <span style={{ fontSize: 'clamp(12px, 2.5vw, 14px)' }}>🔄</span>
+              <span className="button-text">Changer</span>
             </button>
             <button 
               onClick={handleLogout}
               style={{
-                padding: '8px 16px',
+                padding: 'clamp(6px, 1.5vw, 8px) clamp(10px, 2.5vw, 16px)',
                 background: 'rgba(220, 53, 69, 0.95)',
                 color: 'white',
                 border: 'none',
-                borderRadius: '8px',
+                borderRadius: 'clamp(6px, 2vw, 8px)',
                 cursor: 'pointer',
-                fontSize: '13px',
+                fontSize: 'clamp(11px, 2.5vw, 13px)',
                 fontWeight: '600',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: 'clamp(3px, 1vw, 6px)',
                 transition: 'all 0.2s',
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)'
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+                whiteSpace: 'nowrap'
               }}
               onMouseOver={(e) => {
                 e.currentTarget.style.transform = 'translateY(-2px)';
@@ -1268,14 +1217,21 @@ export default function Dashboard() {
               }}
               title="Se déconnecter du système"
             >
-              <span style={{ fontSize: '16px' }}>🚪</span>
-              Déconnexion
+              <span style={{ fontSize: 'clamp(12px, 3vw, 16px)' }}>🚪</span>
+              <span className="button-text">Déconnexion</span>
             </button>
           </div>
         </div>
       </header>
 
-      <main className={`${styles.main} ${responsiveStyles.main}`} style={{ marginLeft: '240px' /* Décalé pour la sidebar */ }}>
+      <main 
+        className={styles.main} 
+        style={{ 
+          marginLeft: typeof window !== 'undefined' && window.innerWidth <= 768 ? '0' : '240px',
+          width: typeof window !== 'undefined' && window.innerWidth <= 768 ? '100%' : 'calc(100% - 240px)',
+          paddingTop: typeof window !== 'undefined' && window.innerWidth <= 768 ? '70px' : 'clamp(200px, 30vh, 280px)'
+        }}
+      >
         {loading && (
           <div style={{ textAlign: 'center', padding: '40px' }}>
             <div style={{
@@ -1321,35 +1277,33 @@ export default function Dashboard() {
         {!loading && !error && (
           <>
             {activeTab === 'dashboard' && (
-              <div className={`${styles.dashboard} ${responsiveStyles.dashboard}`}>
-                <div className={`${styles.stats} ${responsiveStyles.stats}`}>
+              <div className={styles.dashboard}>
+                <div className={`${styles.stats} ${styles.hideOnMobile}`}>
                   <div className={styles.statCard}>
                     <h3>📦 Total Articles</h3>
-                    <p className={styles.statNumber} style={{ fontSize: '0.85rem' }}>{articles.length}</p>
+                    <p className={styles.statNumber}>{articles.length}</p>
                   </div>
                   <div className={styles.statCard}>
                     <h3>⚠️ Articles en Rupture</h3>
-                    <p className={styles.statNumber} style={{ fontSize: '0.85rem' }}>{getLowStockArticles().length}</p>
+                    <p className={styles.statNumber}>{getLowStockArticles().length}</p>
                   </div>
                   <div className={styles.statCard}>
                     <h3>👥 Total Clients</h3>
-                    <p className={styles.statNumber} style={{ fontSize: '0.85rem' }}>{clients.length}</p>
+                    <p className={styles.statNumber}>{clients.length}</p>
                   </div>
                   <div className={styles.statCard}>
                     <h3>🏭 Total Fournisseurs</h3>
-                    <p className={styles.statNumber} style={{ fontSize: '0.85rem' }}>{suppliers.length}</p>
+                    <p className={styles.statNumber}>{suppliers.length}</p>
                   </div>
                   <div className={styles.statCard}>
                     <h3>💰 Valeur Totale Stock</h3>
-                    <p className={styles.statNumber} style={{ fontSize: '0.85rem' }}>
-                      {getTotalValue().toLocaleString('fr-FR')} <span style={{ fontSize: '0.65rem' }}>DA</span>
-                    </p>
+                    <p className={styles.statNumber}>{getTotalValue().toLocaleString('fr-FR')} DA</p>
                   </div>
                 </div>
 
-                <div className={`${styles.quickActions} ${responsiveStyles.quickActions}`}>
+                <div className={`${styles.quickActions} ${styles.hideOnMobile}`}>
                   <h3>Actions Rapides</h3>
-                  <div className={`${styles.actions} ${responsiveStyles.actions}`}>
+                  <div className={styles.actions}>
                     <button onClick={() => setActiveTab('articles')}>📦 Voir Articles</button>
                     <button onClick={() => setActiveTab('clients')}>👥 Voir Clients</button>
                     <button onClick={() => setActiveTab('suppliers')}>🏭 Voir Fournisseurs</button>
@@ -1358,13 +1312,16 @@ export default function Dashboard() {
                 </div>
 
                 {getLowStockArticles().length > 0 && (
-                  <div style={{
-                    background: '#fff3cd',
-                    border: '1px solid #ffeaa7',
-                    borderRadius: '5px',
-                    padding: '15px',
-                    margin: '20px 0'
-                  }}>
+                  <div 
+                    className={styles.hideOnMobile}
+                    style={{
+                      background: '#fff3cd',
+                      border: '1px solid #ffeaa7',
+                      borderRadius: '5px',
+                      padding: '15px',
+                      margin: '20px 0'
+                    }}
+                  >
                     <h3 style={{ color: '#856404', margin: '0 0 10px 0' }}>⚠️ Alertes Stock</h3>
                     <p style={{ color: '#856404', margin: '0' }}>
                       {getLowStockArticles().length} article(s) sous le seuil minimum
@@ -1389,10 +1346,10 @@ export default function Dashboard() {
             )}
 
             {activeTab === 'articles' && (
-              <div className={`${styles.articles} ${responsiveStyles.articles}`}>
-                <div className={`${styles.sectionHeader} ${responsiveStyles.sectionHeader}`}>
+              <div className={styles.articles}>
+                <div className={styles.sectionHeader}>
                   <h2>📦 Gestion des Articles</h2>
-                  <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <button 
                       onClick={() => tenantInfo && loadDashboardData(tenantInfo)}
                       style={{
@@ -1401,7 +1358,8 @@ export default function Dashboard() {
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
                       }}
                     >
                       🔄 Actualiser
@@ -1414,7 +1372,8 @@ export default function Dashboard() {
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
                       }}
                     >
                       🏷️ Étiquettes
@@ -1422,6 +1381,7 @@ export default function Dashboard() {
                     <button 
                       className={styles.primaryButton}
                       onClick={() => router.push('/dashboard/add-article')}
+                      style={{ whiteSpace: 'nowrap' }}
                     >
                       ➕ Ajouter un Article
                     </button>
@@ -1429,53 +1389,29 @@ export default function Dashboard() {
                 </div>
 
                 {/* Filtres */}
-                <div style={{
-                  background: '#f8f9fa',
-                  padding: '20px',
-                  borderRadius: '8px',
-                  marginBottom: '20px',
-                  border: '1px solid #dee2e6'
-                }}>
-                  <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontWeight: 'bold', color: '#495057' }}>🔍 Filtres:</span>
+                <div className={listStyles.filtersSection}>
+                  <div className={listStyles.filtersGrid}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', gridColumn: '1 / -1' }}>
+                      <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>🔍 Filtres:</span>
                     </div>
                     
                     {/* Recherche */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <label style={{ fontSize: '12px', color: '#6c757d', fontWeight: 'bold' }}>
-                        Recherche (Code/Désignation)
-                      </label>
+                    <div className={listStyles.filterGroup}>
+                      <label>Recherche (Code/Désignation)</label>
                       <input
                         type="text"
                         placeholder="Rechercher..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{
-                          padding: '8px 12px',
-                          border: '1px solid #ced4da',
-                          borderRadius: '4px',
-                          fontSize: '14px',
-                          minWidth: '200px'
-                        }}
                       />
                     </div>
 
                     {/* Filtre par famille */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <label style={{ fontSize: '12px', color: '#6c757d', fontWeight: 'bold' }}>
-                        Famille
-                      </label>
+                    <div className={listStyles.filterGroup}>
+                      <label>Famille</label>
                       <select
                         value={selectedFamily}
                         onChange={(e) => setSelectedFamily(e.target.value)}
-                        style={{
-                          padding: '8px 12px',
-                          border: '1px solid #ced4da',
-                          borderRadius: '4px',
-                          fontSize: '14px',
-                          minWidth: '150px'
-                        }}
                       >
                         <option value="">Toutes les familles</option>
                         {getUniqueFamily().map(family => (
@@ -1485,20 +1421,11 @@ export default function Dashboard() {
                     </div>
 
                     {/* Filtre par fournisseur */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <label style={{ fontSize: '12px', color: '#6c757d', fontWeight: 'bold' }}>
-                        Fournisseur
-                      </label>
+                    <div className={listStyles.filterGroup}>
+                      <label>Fournisseur</label>
                       <select
                         value={selectedSupplier}
                         onChange={(e) => setSelectedSupplier(e.target.value)}
-                        style={{
-                          padding: '8px 12px',
-                          border: '1px solid #ced4da',
-                          borderRadius: '4px',
-                          fontSize: '14px',
-                          minWidth: '180px'
-                        }}
                       >
                         <option value="">Tous les fournisseurs</option>
                         <option value="none">🚫 Sans fournisseur</option>
@@ -1511,20 +1438,11 @@ export default function Dashboard() {
                     </div>
 
                     {/* Filtre par statut de stock */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <label style={{ fontSize: '12px', color: '#6c757d', fontWeight: 'bold' }}>
-                        Statut Stock
-                      </label>
+                    <div className={listStyles.filterGroup}>
+                      <label>Statut Stock</label>
                       <select
                         value={selectedStatus}
                         onChange={(e) => setSelectedStatus(e.target.value)}
-                        style={{
-                          padding: '8px 12px',
-                          border: '1px solid #ced4da',
-                          borderRadius: '4px',
-                          fontSize: '14px',
-                          minWidth: '130px'
-                        }}
                       >
                         <option value="">Tous les statuts</option>
                         <option value="normal">✅ En Stock</option>
@@ -1532,19 +1450,18 @@ export default function Dashboard() {
                         <option value="zero">❌ Rupture</option>
                       </select>
                     </div>
+                  </div>
 
-                    {/* Bouton effacer filtres */}
+                  {/* Bouton effacer filtres et compteur */}
+                  <div className={listStyles.filterActions}>
                     <button
                       onClick={clearFilters}
                       style={{
-                        padding: '8px 16px',
                         backgroundColor: '#6c757d',
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        marginTop: '20px'
+                        cursor: 'pointer'
                       }}
                     >
                       🗑️ Effacer
@@ -1553,78 +1470,78 @@ export default function Dashboard() {
                     {/* Compteur de résultats */}
                     <div style={{ 
                       marginLeft: 'auto', 
-                      fontSize: '14px', 
-                      color: '#495057',
-                      fontWeight: 'bold',
-                      marginTop: '20px'
+                      fontSize: 'clamp(12px, 2.5vw, 14px)', 
+                      color: 'var(--text-primary)',
+                      fontWeight: 'bold'
                     }}>
                       📊 {getFilteredArticles().length} / {articles.length} articles
                     </div>
                   </div>
                 </div>
 
-                <div className={styles.tableContainer}>
-                  {/* Bannière d'information sur le tri */}
-                  <div style={{ 
-                    padding: '12px 16px', 
-                    marginBottom: '12px', 
-                    backgroundColor: sortColumn ? 'var(--primary-color)' : 'rgba(108, 117, 125, 0.1)', 
-                    color: sortColumn ? 'white' : 'var(--text-secondary)', 
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    border: sortColumn ? 'none' : '1px dashed var(--border-color)'
-                  }}>
-                    {sortColumn ? (
-                      <>
-                        <span style={{ fontSize: '18px' }}>📊</span>
-                        <span>
-                          Trié par: <strong>{
-                            sortColumn === 'narticle' ? 'Code' :
-                            sortColumn === 'designation' ? 'Désignation' :
-                            sortColumn === 'famille' ? 'Famille' :
-                            sortColumn === 'nfournisseur' ? 'Fournisseur' :
-                            sortColumn === 'prix_unitaire' ? 'Prix Unitaire' :
-                            sortColumn === 'marge' ? 'Marge %' :
-                            sortColumn === 'prix_vente' ? 'Prix Vente' :
-                            sortColumn === 'stock_f' ? 'Stock F' :
-                            sortColumn === 'stock_bl' ? 'Stock BL' :
-                            sortColumn === 'seuil' ? 'Seuil' : sortColumn
-                          }</strong> ({sortDirection === 'asc' ? 'Croissant ↑' : 'Décroissant ↓'})
-                        </span>
-                        <button 
-                          onClick={() => { setSortColumn(''); setSortDirection('asc'); }}
-                          style={{ 
-                            marginLeft: 'auto',
-                            padding: '4px 12px', 
-                            backgroundColor: 'rgba(255,255,255,0.2)',
-                            border: 'none',
-                            borderRadius: '4px',
-                            color: 'white',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            transition: 'all 0.2s'
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)'}
-                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'}
-                        >
-                          ✕ Réinitialiser le tri
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <span style={{ fontSize: '18px' }}>💡</span>
-                        <span>
-                          Cliquez sur n'importe quel en-tête de colonne pour trier le tableau. 
-                          Cliquez à nouveau pour inverser l'ordre.
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <table className={styles.table}>
+                {/* Bannière d'information sur le tri */}
+                <div style={{ 
+                  padding: '12px 16px', 
+                  marginBottom: '12px', 
+                  backgroundColor: sortColumn ? 'var(--primary-color)' : 'rgba(108, 117, 125, 0.1)', 
+                  color: sortColumn ? 'white' : 'var(--text-secondary)', 
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  border: sortColumn ? 'none' : '1px dashed var(--border-color)'
+                }}>
+                  {sortColumn ? (
+                    <>
+                      <span style={{ fontSize: '18px' }}>📊</span>
+                      <span>
+                        Trié par: <strong>{
+                          sortColumn === 'narticle' ? 'Code' :
+                          sortColumn === 'designation' ? 'Désignation' :
+                          sortColumn === 'famille' ? 'Famille' :
+                          sortColumn === 'nfournisseur' ? 'Fournisseur' :
+                          sortColumn === 'prix_unitaire' ? 'Prix Unitaire' :
+                          sortColumn === 'marge' ? 'Marge %' :
+                          sortColumn === 'prix_vente' ? 'Prix Vente' :
+                          sortColumn === 'stock_f' ? 'Stock F' :
+                          sortColumn === 'stock_bl' ? 'Stock BL' :
+                          sortColumn === 'seuil' ? 'Seuil' : sortColumn
+                        }</strong> ({sortDirection === 'asc' ? 'Croissant ↑' : 'Décroissant ↓'})
+                      </span>
+                      <button 
+                        onClick={() => { setSortColumn(''); setSortDirection('asc'); }}
+                        style={{ 
+                          marginLeft: 'auto',
+                          padding: '4px 12px', 
+                          backgroundColor: 'rgba(255,255,255,0.2)',
+                          border: 'none',
+                          borderRadius: '4px',
+                          color: 'white',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'}
+                      >
+                        ✕ Réinitialiser le tri
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: '18px' }}>💡</span>
+                      <span>
+                        Cliquez sur n'importe quel en-tête de colonne pour trier le tableau. 
+                        Cliquez à nouveau pour inverser l'ordre.
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                <div className={listStyles.tableContainer}>
+                  <table className={listStyles.table}>
                     <thead>
                       <tr>
                         <th 
@@ -1763,7 +1680,7 @@ export default function Dashboard() {
                           Seuil {sortColumn === 'seuil' && (sortDirection === 'asc' ? '↑' : '↓')}
                         </th>
                         <th style={{ width: '80px' }}>Statut</th>
-                        <th style={{ width: '100px', minWidth: '100px', position: 'sticky', right: 0, backgroundColor: 'var(--background-secondary)', zIndex: 1 }}>Actions</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1817,21 +1734,16 @@ export default function Dashboard() {
                                    isLowStock ? '⚠️ Faible' : '✅ OK'}
                                 </span>
                               </td>
-                              <td style={{ position: 'sticky', right: 0, backgroundColor: 'var(--card-background)', zIndex: 1, boxShadow: '-2px 0 4px rgba(0,0,0,0.1)' }}>
-                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                              <td>
+                                <div className={listStyles.tableActions}>
                                   <button 
                                     onClick={() => handleEditArticle(article)}
                                     style={{
-                                      padding: '4px 8px',
                                       backgroundColor: '#007bff',
                                       color: 'white',
                                       border: 'none',
                                       borderRadius: '4px',
-                                      cursor: 'pointer',
-                                      fontSize: '14px',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '3px'
+                                      cursor: 'pointer'
                                     }}
                                     title="Modifier l'article"
                                   >
@@ -1840,16 +1752,11 @@ export default function Dashboard() {
                                   <button 
                                     onClick={() => handleDeleteArticle(article)}
                                     style={{
-                                      padding: '4px 8px',
                                       backgroundColor: '#dc3545',
                                       color: 'white',
                                       border: 'none',
                                       borderRadius: '4px',
-                                      cursor: 'pointer',
-                                      fontSize: '14px',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '3px'
+                                      cursor: 'pointer'
                                     }}
                                     title="Supprimer l'article (vérifiez qu'il n'a jamais été facturé)"
                                   >
@@ -1866,25 +1773,14 @@ export default function Dashboard() {
                   
                   {/* Pagination */}
                   {getFilteredArticles().length > 0 && (
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginTop: '20px',
-                      padding: '16px',
-                      backgroundColor: 'var(--card-background)',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-color)',
-                      flexWrap: 'wrap',
-                      gap: '16px'
-                    }}>
-                      <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                    <div className={listStyles.pagination}>
+                      <div className={listStyles.paginationInfo}>
                         Affichage de {((currentPage - 1) * itemsPerPage) + 1} à {Math.min(currentPage * itemsPerPage, getFilteredArticles().length)} sur {getFilteredArticles().length} articles
                       </div>
                       
-                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <div className={listStyles.paginationControls}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Par page:</span>
+                          <span style={{ fontSize: 'clamp(12px, 2vw, 14px)', color: 'var(--text-secondary)' }}>Par page:</span>
                           <select
                             value={itemsPerPage}
                             onChange={(e) => {
@@ -1897,7 +1793,7 @@ export default function Dashboard() {
                               borderRadius: '6px',
                               backgroundColor: 'var(--card-background)',
                               color: 'var(--text-primary)',
-                              fontSize: '14px',
+                              fontSize: 'clamp(12px, 2vw, 14px)',
                               cursor: 'pointer'
                             }}
                           >
@@ -1908,88 +1804,78 @@ export default function Dashboard() {
                           </select>
                         </div>
                         
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button
-                            onClick={() => setCurrentPage(1)}
-                            disabled={currentPage === 1}
-                            style={{
-                              padding: '8px 12px',
-                              backgroundColor: currentPage === 1 ? 'var(--background-secondary)' : 'var(--primary-color)',
-                              color: currentPage === 1 ? 'var(--text-secondary)' : 'var(--text-inverse)',
-                              border: 'none',
-                              borderRadius: '6px',
-                              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                              fontSize: '14px',
-                              fontWeight: '600'
-                            }}
-                          >
-                            ⏮️
-                          </button>
-                          
-                          <button
-                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                            disabled={currentPage === 1}
-                            style={{
-                              padding: '8px 12px',
-                              backgroundColor: currentPage === 1 ? 'var(--background-secondary)' : 'var(--primary-color)',
-                              color: currentPage === 1 ? 'var(--text-secondary)' : 'var(--text-inverse)',
-                              border: 'none',
-                              borderRadius: '6px',
-                              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                              fontSize: '14px',
-                              fontWeight: '600'
-                            }}
-                          >
-                            ◀️
-                          </button>
-                          
-                          <div style={{
-                            padding: '8px 16px',
-                            backgroundColor: 'var(--primary-color)',
-                            color: 'var(--text-inverse)',
+                        <button
+                          onClick={() => setCurrentPage(1)}
+                          disabled={currentPage === 1}
+                          style={{
+                            backgroundColor: currentPage === 1 ? 'var(--background-secondary)' : 'var(--primary-color)',
+                            color: currentPage === 1 ? 'var(--text-secondary)' : 'white',
+                            border: 'none',
                             borderRadius: '6px',
-                            fontSize: '14px',
-                            fontWeight: '600',
-                            minWidth: '100px',
-                            textAlign: 'center'
-                          }}>
-                            {currentPage} / {totalPages}
-                          </div>
-                          
-                          <button
-                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                            disabled={currentPage === totalPages}
-                            style={{
-                              padding: '8px 12px',
-                              backgroundColor: currentPage === totalPages ? 'var(--background-secondary)' : 'var(--primary-color)',
-                              color: currentPage === totalPages ? 'var(--text-secondary)' : 'var(--text-inverse)',
-                              border: 'none',
-                              borderRadius: '6px',
-                              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                              fontSize: '14px',
-                              fontWeight: '600'
-                            }}
-                          >
-                            ▶️
-                          </button>
-                          
-                          <button
-                            onClick={() => setCurrentPage(totalPages)}
-                            disabled={currentPage === totalPages}
-                            style={{
-                              padding: '8px 12px',
-                              backgroundColor: currentPage === totalPages ? 'var(--background-secondary)' : 'var(--primary-color)',
-                              color: currentPage === totalPages ? 'var(--text-secondary)' : 'var(--text-inverse)',
-                              border: 'none',
-                              borderRadius: '6px',
-                              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                              fontSize: '14px',
-                              fontWeight: '600'
-                            }}
-                          >
-                            ⏭️
-                          </button>
+                            cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                            fontWeight: '600'
+                          }}
+                        >
+                          ⏮️
+                        </button>
+                        
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={currentPage === 1}
+                          style={{
+                            backgroundColor: currentPage === 1 ? 'var(--background-secondary)' : 'var(--primary-color)',
+                            color: currentPage === 1 ? 'var(--text-secondary)' : 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                            fontWeight: '600'
+                          }}
+                        >
+                          ◀️
+                        </button>
+                        
+                        <div style={{
+                          padding: '8px 16px',
+                          backgroundColor: 'var(--primary-color)',
+                          color: 'white',
+                          borderRadius: '6px',
+                          fontSize: 'clamp(12px, 2vw, 14px)',
+                          fontWeight: '600',
+                          minWidth: '80px',
+                          textAlign: 'center'
+                        }}>
+                          {currentPage} / {totalPages}
                         </div>
+                        
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                          disabled={currentPage === totalPages}
+                          style={{
+                            backgroundColor: currentPage === totalPages ? 'var(--background-secondary)' : 'var(--primary-color)',
+                            color: currentPage === totalPages ? 'var(--text-secondary)' : 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                            fontWeight: '600'
+                          }}
+                        >
+                          ▶️
+                        </button>
+                        
+                        <button
+                          onClick={() => setCurrentPage(totalPages)}
+                          disabled={currentPage === totalPages}
+                          style={{
+                            backgroundColor: currentPage === totalPages ? 'var(--background-secondary)' : 'var(--primary-color)',
+                            color: currentPage === totalPages ? 'var(--text-secondary)' : 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                            fontWeight: '600'
+                          }}
+                        >
+                          ⏭️
+                        </button>
                       </div>
                     </div>
                   )}
@@ -2001,7 +1887,7 @@ export default function Dashboard() {
               <div className={styles.clients}>
                 <div className={styles.sectionHeader}>
                   <h2>👥 Gestion des Clients</h2>
-                  <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <button 
                       onClick={() => tenantInfo && loadDashboardData(tenantInfo)}
                       style={{
@@ -2010,7 +1896,8 @@ export default function Dashboard() {
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
                       }}
                     >
                       🔄 Actualiser
@@ -2018,6 +1905,7 @@ export default function Dashboard() {
                     <button 
                       className={styles.primaryButton}
                       onClick={() => router.push('/dashboard/add-client')}
+                      style={{ whiteSpace: 'nowrap' }}
                     >
                       ➕ Ajouter un Client
                     </button>
@@ -2113,62 +2001,14 @@ export default function Dashboard() {
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th 
-                          style={{ cursor: 'pointer', backgroundColor: clientSortColumn === 'nclient' ? 'var(--primary-color)' : undefined, color: clientSortColumn === 'nclient' ? 'white' : undefined, userSelect: 'none' }}
-                          onClick={() => handleClientSort('nclient')}
-                          title="Cliquez pour trier par Code"
-                        >
-                          Code {clientSortColumn === 'nclient' && (clientSortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th 
-                          style={{ cursor: 'pointer', backgroundColor: clientSortColumn === 'raison_sociale' ? 'var(--primary-color)' : undefined, color: clientSortColumn === 'raison_sociale' ? 'white' : undefined, userSelect: 'none' }}
-                          onClick={() => handleClientSort('raison_sociale')}
-                          title="Cliquez pour trier par Raison Sociale"
-                        >
-                          Raison Sociale {clientSortColumn === 'raison_sociale' && (clientSortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th 
-                          style={{ cursor: 'pointer', backgroundColor: clientSortColumn === 'contact_person' ? 'var(--primary-color)' : undefined, color: clientSortColumn === 'contact_person' ? 'white' : undefined, userSelect: 'none' }}
-                          onClick={() => handleClientSort('contact_person')}
-                          title="Cliquez pour trier par Contact"
-                        >
-                          Contact {clientSortColumn === 'contact_person' && (clientSortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th 
-                          style={{ cursor: 'pointer', backgroundColor: clientSortColumn === 'tel' ? 'var(--primary-color)' : undefined, color: clientSortColumn === 'tel' ? 'white' : undefined, userSelect: 'none' }}
-                          onClick={() => handleClientSort('tel')}
-                          title="Cliquez pour trier par Téléphone"
-                        >
-                          Téléphone {clientSortColumn === 'tel' && (clientSortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th 
-                          style={{ cursor: 'pointer', backgroundColor: clientSortColumn === 'email' ? 'var(--primary-color)' : undefined, color: clientSortColumn === 'email' ? 'white' : undefined, userSelect: 'none' }}
-                          onClick={() => handleClientSort('email')}
-                          title="Cliquez pour trier par Email"
-                        >
-                          Email {clientSortColumn === 'email' && (clientSortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th 
-                          style={{ cursor: 'pointer', backgroundColor: clientSortColumn === 'adresse' ? 'var(--primary-color)' : undefined, color: clientSortColumn === 'adresse' ? 'white' : undefined, userSelect: 'none' }}
-                          onClick={() => handleClientSort('adresse')}
-                          title="Cliquez pour trier par Adresse"
-                        >
-                          Adresse {clientSortColumn === 'adresse' && (clientSortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th 
-                          style={{ cursor: 'pointer', backgroundColor: clientSortColumn === 'c_affaire_fact' ? 'var(--primary-color)' : undefined, color: clientSortColumn === 'c_affaire_fact' ? 'white' : undefined, userSelect: 'none' }}
-                          onClick={() => handleClientSort('c_affaire_fact')}
-                          title="Cliquez pour trier par CA Factures"
-                        >
-                          CA Factures {clientSortColumn === 'c_affaire_fact' && (clientSortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th 
-                          style={{ cursor: 'pointer', backgroundColor: clientSortColumn === 'c_affaire_bl' ? 'var(--primary-color)' : undefined, color: clientSortColumn === 'c_affaire_bl' ? 'white' : undefined, userSelect: 'none' }}
-                          onClick={() => handleClientSort('c_affaire_bl')}
-                          title="Cliquez pour trier par CA Bons Livraison"
-                        >
-                          CA Bons Livraison {clientSortColumn === 'c_affaire_bl' && (clientSortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
+                        <th>Code</th>
+                        <th>Raison Sociale</th>
+                        <th>Contact</th>
+                        <th>Téléphone</th>
+                        <th>Email</th>
+                        <th>Adresse</th>
+                        <th>CA Factures</th>
+                        <th>CA Bons Livraison</th>
                         <th>CA Total</th>
                         <th>Statut</th>
                         <th style={{ width: '140px', minWidth: '140px', position: 'sticky', right: 0, backgroundColor: 'var(--background-secondary)', zIndex: 1 }}>Actions</th>
@@ -2214,7 +2054,7 @@ export default function Dashboard() {
                                 </span>
                               </td>
                               <td style={{ position: 'sticky', right: 0, backgroundColor: 'var(--card-background)', zIndex: 1, boxShadow: '-2px 0 4px rgba(0,0,0,0.1)' }}>
-                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
                                   <button 
                                     onClick={() => handleEditClient(client)}
                                     style={{
@@ -2322,7 +2162,7 @@ export default function Dashboard() {
               <div className={styles.suppliers}>
                 <div className={styles.sectionHeader}>
                   <h2>🏭 Gestion des Fournisseurs</h2>
-                  <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <button 
                       onClick={() => tenantInfo && loadDashboardData(tenantInfo)}
                       style={{
@@ -2331,7 +2171,8 @@ export default function Dashboard() {
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
                       }}
                     >
                       🔄 Actualiser
@@ -2339,6 +2180,7 @@ export default function Dashboard() {
                     <button 
                       className={styles.primaryButton}
                       onClick={() => router.push('/dashboard/add-supplier')}
+                      style={{ whiteSpace: 'nowrap' }}
                     >
                       ➕ Ajouter un Fournisseur
                     </button>
@@ -2434,62 +2276,14 @@ export default function Dashboard() {
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th 
-                          style={{ cursor: 'pointer', backgroundColor: supplierSortColumn === 'nfournisseur' ? 'var(--primary-color)' : undefined, color: supplierSortColumn === 'nfournisseur' ? 'white' : undefined, userSelect: 'none' }}
-                          onClick={() => handleSupplierSort('nfournisseur')}
-                          title="Cliquez pour trier par Code"
-                        >
-                          Code {supplierSortColumn === 'nfournisseur' && (supplierSortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th 
-                          style={{ cursor: 'pointer', backgroundColor: supplierSortColumn === 'nom_fournisseur' ? 'var(--primary-color)' : undefined, color: supplierSortColumn === 'nom_fournisseur' ? 'white' : undefined, userSelect: 'none' }}
-                          onClick={() => handleSupplierSort('nom_fournisseur')}
-                          title="Cliquez pour trier par Nom Fournisseur"
-                        >
-                          Nom Fournisseur {supplierSortColumn === 'nom_fournisseur' && (supplierSortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th 
-                          style={{ cursor: 'pointer', backgroundColor: supplierSortColumn === 'resp_fournisseur' ? 'var(--primary-color)' : undefined, color: supplierSortColumn === 'resp_fournisseur' ? 'white' : undefined, userSelect: 'none' }}
-                          onClick={() => handleSupplierSort('resp_fournisseur')}
-                          title="Cliquez pour trier par Responsable"
-                        >
-                          Responsable {supplierSortColumn === 'resp_fournisseur' && (supplierSortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th 
-                          style={{ cursor: 'pointer', backgroundColor: supplierSortColumn === 'adresse_fourni' ? 'var(--primary-color)' : undefined, color: supplierSortColumn === 'adresse_fourni' ? 'white' : undefined, userSelect: 'none' }}
-                          onClick={() => handleSupplierSort('adresse_fourni')}
-                          title="Cliquez pour trier par Adresse"
-                        >
-                          Adresse {supplierSortColumn === 'adresse_fourni' && (supplierSortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th 
-                          style={{ cursor: 'pointer', backgroundColor: supplierSortColumn === 'tel' ? 'var(--primary-color)' : undefined, color: supplierSortColumn === 'tel' ? 'white' : undefined, userSelect: 'none' }}
-                          onClick={() => handleSupplierSort('tel')}
-                          title="Cliquez pour trier par Téléphone"
-                        >
-                          Téléphone {supplierSortColumn === 'tel' && (supplierSortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th 
-                          style={{ cursor: 'pointer', backgroundColor: supplierSortColumn === 'email' ? 'var(--primary-color)' : undefined, color: supplierSortColumn === 'email' ? 'white' : undefined, userSelect: 'none' }}
-                          onClick={() => handleSupplierSort('email')}
-                          title="Cliquez pour trier par Email"
-                        >
-                          Email {supplierSortColumn === 'email' && (supplierSortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th 
-                          style={{ cursor: 'pointer', backgroundColor: supplierSortColumn === 'caf' ? 'var(--primary-color)' : undefined, color: supplierSortColumn === 'caf' ? 'white' : undefined, userSelect: 'none' }}
-                          onClick={() => handleSupplierSort('caf')}
-                          title="Cliquez pour trier par CA Factures"
-                        >
-                          CA Factures {supplierSortColumn === 'caf' && (supplierSortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
-                        <th 
-                          style={{ cursor: 'pointer', backgroundColor: supplierSortColumn === 'cabl' ? 'var(--primary-color)' : undefined, color: supplierSortColumn === 'cabl' ? 'white' : undefined, userSelect: 'none' }}
-                          onClick={() => handleSupplierSort('cabl')}
-                          title="Cliquez pour trier par CA BL"
-                        >
-                          CA BL {supplierSortColumn === 'cabl' && (supplierSortDirection === 'asc' ? '↑' : '↓')}
-                        </th>
+                        <th>Code</th>
+                        <th>Nom Fournisseur</th>
+                        <th>Responsable</th>
+                        <th>Adresse</th>
+                        <th>Téléphone</th>
+                        <th>Email</th>
+                        <th>CA Factures</th>
+                        <th>CA BL</th>
                         <th>CA Total</th>
                         <th>Statut</th>
                         <th style={{ width: '140px', minWidth: '140px', position: 'sticky', right: 0, backgroundColor: 'var(--background-secondary)', zIndex: 1 }}>Actions</th>
@@ -2535,7 +2329,7 @@ export default function Dashboard() {
                                 </span>
                               </td>
                               <td style={{ position: 'sticky', right: 0, backgroundColor: 'var(--card-background)', zIndex: 1, boxShadow: '-2px 0 4px rgba(0,0,0,0.1)' }}>
-                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
                                   <button 
                                     onClick={() => handleEditSupplier(supplier)}
                                     style={{

@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../supabaseClient.js';
 import mysql from 'mysql2/promise';
 import { Client } from 'pg';
+import { getArticlesFromSupabase, getClientsFromSupabase, getSuppliersFromSupabase } from './supabaseQueries.js';
 
 export type DatabaseType = 'supabase' | 'postgresql' | 'mysql';
 
@@ -351,14 +352,14 @@ export class BackendDatabaseService {
           return this.getSupabaseFactById(tenant, params.p_nfact);
           
         case 'get_articles_by_tenant':
-          return this.getSupabaseArticles(tenant);
+          return getArticlesFromSupabase(tenant);
           
         case 'get_clients_by_tenant':
-          return this.getSupabaseClients(tenant);
+          return getClientsFromSupabase(tenant);
           
         case 'get_suppliers_by_tenant':
         case 'get_fournisseurs_by_tenant':
-          return this.getSupabaseSuppliers(tenant);
+          return getSuppliersFromSupabase(tenant);
           
         default:
           console.log(`⚠️ No adaptive fallback available for ${functionName}, using mock data`);
@@ -808,79 +809,187 @@ export class BackendDatabaseService {
 
   private async getSupabaseArticles(tenant: string): Promise<any> {
     try {
-      const { data, error } = await supabaseAdmin
-        .from(`${tenant}.article`)
-        .select('*')
-        .order('narticle', { ascending: true });
+      const sqlQuery = `SELECT * FROM "${tenant}".article ORDER BY "Narticle" ASC;`;
+      console.log(`🔍 Fetching articles from Supabase schema: ${tenant}`);
+      console.log(`📝 SQL Query: ${sqlQuery}`);
+      console.log(`🔧 CODE VERSION: 2024-UPPERCASE-FIX`);
+      
+      // CORRECTION: Utiliser exec_sql avec les noms de colonnes en MAJUSCULES (MySQL case)
+      const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+        sql: sqlQuery
+      });
 
-      if (!error && data) {
-        return { success: true, data };
+      if (!error && data && data.length > 0) {
+        console.log(`✅ Found ${data.length} articles in ${tenant}.article`);
+        
+        // Normaliser les noms de colonnes en minuscules pour le frontend
+        const normalizedData = data.map((article: any) => ({
+          narticle: article.Narticle || article.narticle,
+          famille: article.famille,
+          designation: article.designation,
+          nfournisseur: article.Nfournisseur || article.nfournisseur,
+          prix_unitaire: article.prix_unitaire,
+          marge: article.marge,
+          tva: article.tva,
+          prix_vente: article.prix_vente,
+          seuil: article.seuil,
+          stock_f: article.stock_f,
+          stock_bl: article.stock_bl
+        }));
+        
+        return { success: true, data: normalizedData };
       }
 
-      // Fallback sans schéma
+      console.log(`⚠️ No articles found in ${tenant}.article:`, error?.message);
+
+      // Fallback: essayer sans schéma (pour les anciennes installations)
       const { data: data2, error: error2 } = await supabaseAdmin
         .from('article')
         .select('*')
         .order('narticle', { ascending: true });
 
       if (!error2 && data2) {
+        console.log(`✅ Found ${data2.length} articles in public.article (fallback)`);
         return { success: true, data: data2 };
       }
 
-      throw new Error('No article table found');
+      console.log(`❌ No article table found in any schema`);
+      return { success: true, data: [] };
     } catch (error) {
+      console.error(`❌ Error fetching articles:`, error);
       return { success: true, data: [] };
     }
   }
 
   private async getSupabaseClients(tenant: string): Promise<any> {
     try {
-      const { data, error } = await supabaseAdmin
-        .from(`${tenant}.client`)
-        .select('*')
-        .order('nclient', { ascending: true });
+      console.log(`🔍 Fetching clients from Supabase schema: ${tenant}`);
+      
+      // CORRECTION: Utiliser exec_sql avec les noms de colonnes en MAJUSCULES (MySQL case)
+      const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+        sql: `SELECT * FROM "${tenant}".client ORDER BY "Nclient" ASC;`
+      });
 
-      if (!error && data) {
-        return { success: true, data };
+      if (!error && data && data.length > 0) {
+        console.log(`✅ Found ${data.length} clients in ${tenant}.client`);
+        
+        // Normaliser les noms de colonnes en minuscules pour le frontend
+        const normalizedData = data.map((client: any) => ({
+          nclient: client.Nclient || client.nclient,
+          nom: client.nom,
+          raison_sociale: client.raison_sociale,
+          adresse: client.adresse,
+          telephone: client.telephone,
+          nif: client.nif,
+          nis: client.nis,
+          rc: client.rc,
+          article: client.article
+        }));
+        
+        return { success: true, data: normalizedData };
       }
 
-      // Fallback sans schéma
+      console.log(`⚠️ No clients found in ${tenant}.client:`, error?.message);
+
+      // Fallback: essayer sans schéma (pour les anciennes installations)
       const { data: data2, error: error2 } = await supabaseAdmin
         .from('client')
         .select('*')
         .order('nclient', { ascending: true });
 
       if (!error2 && data2) {
+        console.log(`✅ Found ${data2.length} clients in public.client (fallback)`);
         return { success: true, data: data2 };
       }
 
-      throw new Error('No client table found');
+      console.log(`❌ No client table found in any schema`);
+      return { success: true, data: [] };
     } catch (error) {
+      console.error(`❌ Error fetching clients:`, error);
       return { success: true, data: [] };
     }
   }
 
   private async getSupabaseSuppliers(tenant: string): Promise<any> {
     try {
-      const tableVariants = [`${tenant}.fournisseur`, `${tenant}.supplier`, 'fournisseur', 'supplier'];
+      console.log(`🔍 Fetching suppliers from Supabase schema: ${tenant}`);
+      
+      // CORRECTION: Utiliser exec_sql avec les noms de colonnes en MAJUSCULES (MySQL case)
+      // Essayer d'abord avec "fournisseur"
+      const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+        sql: `SELECT * FROM "${tenant}".fournisseur ORDER BY "Nfournisseur" ASC;`
+      });
+
+      if (!error && data && data.length > 0) {
+        console.log(`✅ Found ${data.length} suppliers in ${tenant}.fournisseur`);
+        
+        // Normaliser les noms de colonnes en minuscules pour le frontend
+        const normalizedData = data.map((supplier: any) => ({
+          nfournisseur: supplier.Nfournisseur || supplier.nfournisseur,
+          nom: supplier.nom,
+          raison_sociale: supplier.raison_sociale,
+          adresse: supplier.adresse,
+          telephone: supplier.telephone,
+          nif: supplier.nif,
+          nis: supplier.nis,
+          rc: supplier.rc,
+          article: supplier.article
+        }));
+        
+        return { success: true, data: normalizedData };
+      }
+
+      console.log(`⚠️ No suppliers found in ${tenant}.fournisseur:`, error?.message);
+      console.log(`   Trying supplier table...`);
+
+      // Essayer avec "supplier"
+      const { data: data2, error: error2 } = await supabaseAdmin.rpc('exec_sql', {
+        sql: `SELECT * FROM "${tenant}".supplier ORDER BY "Nfournisseur" ASC;`
+      });
+
+      if (!error2 && data2 && data2.length > 0) {
+        console.log(`✅ Found ${data2.length} suppliers in ${tenant}.supplier`);
+        
+        const normalizedData = data2.map((supplier: any) => ({
+          nfournisseur: supplier.Nfournisseur || supplier.nfournisseur,
+          nom: supplier.nom,
+          raison_sociale: supplier.raison_sociale,
+          adresse: supplier.adresse,
+          telephone: supplier.telephone,
+          nif: supplier.nif,
+          nis: supplier.nis,
+          rc: supplier.rc,
+          article: supplier.article
+        }));
+        
+        return { success: true, data: normalizedData };
+      }
+
+      console.log(`⚠️ No suppliers found in ${tenant}.supplier, trying public schema...`);
+
+      // Fallback: essayer sans schéma (pour les anciennes installations)
+      const tableVariants = ['fournisseur', 'supplier'];
       
       for (const table of tableVariants) {
         try {
-          const { data, error } = await supabaseAdmin
+          const { data: data3, error: error3 } = await supabaseAdmin
             .from(table)
             .select('*')
             .order('nfournisseur', { ascending: true });
 
-          if (!error && data) {
-            return { success: true, data };
+          if (!error3 && data3) {
+            console.log(`✅ Found ${data3.length} suppliers in public.${table} (fallback)`);
+            return { success: true, data: data3 };
           }
         } catch (e) {
           continue;
         }
       }
       
-      throw new Error('No supplier table found');
+      console.log(`❌ No supplier table found in any schema`);
+      return { success: true, data: [] };
     } catch (error) {
+      console.error(`❌ Error fetching suppliers:`, error);
       return { success: true, data: [] };
     }
   }
@@ -3382,3 +3491,4 @@ export class BackendDatabaseService {
 
 // Export singleton instance
 export const backendDatabaseService = BackendDatabaseService.getInstance();
+

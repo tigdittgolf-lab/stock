@@ -43,7 +43,8 @@ interface Article {
 export default function EditArticle() {
   const router = useRouter();
   const params = useParams();
-  const articleId = params.id as string;
+  // Trim whitespace from article ID to handle any leading/trailing spaces
+  const articleId = (params.id as string).trim();
   
   const [tenantInfo, setTenantInfo] = useState<TenantInfo | null>(null);
   const [families, setFamilies] = useState<Family[]>([]);
@@ -108,10 +109,15 @@ export default function EditArticle() {
     try {
       setArticleLoading(true);
       
+      // Récupérer le type de base de données depuis localStorage
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+      
       const response = await fetch(`http://localhost:3005/api/articles/${id}`, {
         headers: {
           'Content-Type': 'application/json',
-          'X-Tenant': tenant.schema
+          'X-Tenant': tenant.schema,
+          'X-Database-Type': dbType
         }
       });
 
@@ -264,11 +270,16 @@ export default function EditArticle() {
         stock_bl: stockBl
       };
 
+      // Récupérer le type de base de données depuis localStorage
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+
       const response = await fetch(`http://localhost:3005/api/articles/${articleId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-Tenant': tenantInfo.schema
+          'X-Tenant': tenantInfo.schema,
+          'X-Database-Type': dbType
         },
         body: JSON.stringify(articleData)
       });
@@ -464,8 +475,8 @@ export default function EditArticle() {
                 }}
               >
                 <option value="">Aucun fournisseur</option>
-                {suppliers.map((supplier) => (
-                  <option key={supplier.nfournisseur} value={supplier.nfournisseur}>
+                {suppliers.map((supplier, index) => (
+                  <option key={`${supplier.nfournisseur}-${index}`} value={supplier.nfournisseur}>
                     {supplier.nom_fournisseur}
                   </option>
                 ))}

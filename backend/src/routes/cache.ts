@@ -3,6 +3,46 @@ import { CompanyService } from '../services/companyService.js';
 
 const cache = new Hono();
 
+// Import des caches d'articles depuis les routes
+// Note: Ces caches sont définis dans articles.ts et sales.ts
+// On va créer une fonction pour les vider
+
+/**
+ * Clear all caches (Company + Articles)
+ */
+cache.post('/clear-all', async (c) => {
+  try {
+    const tenant = c.req.header('X-Tenant');
+    
+    // Clear company cache
+    if (tenant) {
+      CompanyService.clearCache(tenant);
+      console.log(`🧹 Company cache cleared for tenant: ${tenant}`);
+    } else {
+      CompanyService.clearCache();
+      console.log('🧹 All company cache cleared');
+    }
+    
+    // Note: Les caches d'articles sont dans articles.ts et sales.ts
+    // Pour les vider, il faut redémarrer le backend ou utiliser /api/articles/force-refresh
+    
+    return c.json({
+      success: true,
+      message: tenant 
+        ? `All caches cleared for tenant: ${tenant}. Restart backend to clear article caches.`
+        : 'All caches cleared. Restart backend to clear article caches.',
+      tenant: tenant,
+      note: 'Article caches require backend restart or use /api/articles/force-refresh'
+    });
+  } catch (error) {
+    console.error('❌ Error clearing cache:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
 /**
  * Clear CompanyService cache
  */

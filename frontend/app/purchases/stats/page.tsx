@@ -278,7 +278,7 @@ export default function PurchaseStats() {
                   </thead>
                   <tbody>
                     {supplierStats.slice(0, 5).map((supplier, index) => (
-                      <tr key={supplier.nfournisseur}>
+                      <tr key={`${supplier.nfournisseur}-${index}`}>
                         <td>
                           <strong>{supplier.supplier_name}</strong>
                           <br />

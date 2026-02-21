@@ -191,8 +191,8 @@ export default function CreatePurchaseDeliveryNote() {
                   required
                 >
                   <option value="">Sélectionner un fournisseur</option>
-                  {suppliers.map(supplier => (
-                    <option key={supplier.nfournisseur} value={supplier.nfournisseur}>
+                  {suppliers.map((supplier, index) => (
+                    <option key={`${supplier.nfournisseur}-${index}`} value={supplier.nfournisseur}>
                       {supplier.nfournisseur} - {supplier.nom_fournisseur}
                     </option>
                   ))}

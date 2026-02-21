@@ -39,13 +39,23 @@ export class CompleteDiscoveryService {
     this.sourceAdapter = sourceAdapter;
   }
 
-  async discoverAllRealTables(): Promise<CompleteSchema[]> {
+  async discoverAllRealTables(tenantFilter?: string[]): Promise<CompleteSchema[]> {
     console.log('🔍 DÉCOUVERTE COMPLÈTE - Recherche de TOUTES les tables réelles...');
+    if (tenantFilter && tenantFilter.length > 0) {
+      console.log(`🎯 Filtre tenants actif: ${tenantFilter.join(', ')}`);
+    }
 
     try {
       // 1. Découvrir TOUS les schémas réels via RPC (comme dans le test qui fonctionne)
-      const realSchemas = await this.discoverSchemasViaRPC();
-      console.log(`📋 ${realSchemas.length} schémas réels découverts:`, realSchemas);
+      let realSchemas = await this.discoverSchemasViaRPC();
+      
+      // Appliquer le filtre si fourni
+      if (tenantFilter && tenantFilter.length > 0) {
+        realSchemas = realSchemas.filter(schema => tenantFilter.includes(schema));
+        console.log(`📋 ${realSchemas.length} schémas filtrés:`, realSchemas);
+      } else {
+        console.log(`📋 ${realSchemas.length} schémas réels découverts:`, realSchemas);
+      }
 
       if (realSchemas.length === 0) {
         throw new Error('Aucun schéma tenant trouvé dans la base source');
@@ -198,11 +208,15 @@ export class CompleteDiscoveryService {
         return completeTables;
       } else {
         console.log(`❌ ${schemaName}: Erreur RPC tables -`, rpcResult.error);
-        return [];
+        // Fallback: découvrir les tables via SQL direct
+        console.log(`⚠️ Fallback: Découverte des tables de ${schemaName} via SQL direct...`);
+        return await this.discoverAllTablesInSchema(schemaName);
       }
     } catch (error) {
       console.error(`❌ Erreur découverte tables ${schemaName}:`, error);
-      return [];
+      // Fallback: découvrir les tables via SQL direct
+      console.log(`⚠️ Fallback: Découverte des tables de ${schemaName} via SQL direct...`);
+      return await this.discoverAllTablesInSchema(schemaName);
     }
   }
 
@@ -234,10 +248,70 @@ export class CompleteDiscoveryService {
   }
 
   private async testKnownSchemas(): Promise<string[]> {
+    console.log('🔍 Découverte dynamique de tous les schémas tenant...');
+    
+    try {
+      // Découvrir TOUS les schémas qui correspondent au pattern tenant
+      const result = await this.executeDirectSQL(`
+        SELECT SCHEMA_NAME as schema_name
+        FROM information_schema.SCHEMATA
+        WHERE SCHEMA_NAME REGEXP '^[0-9]{4}_bu[0-9]{2}$'
+        ORDER BY SCHEMA_NAME DESC
+      `);
+
+      if (result.success && result.data && result.data.length > 0) {
+        const allSchemas = result.data.map((row: any) => row.schema_name || row.SCHEMA_NAME);
+        console.log(`✅ ${allSchemas.length} schémas tenant découverts:`, allSchemas);
+        
+        // Vérifier que chaque schéma a des tables
+        const validSchemas: string[] = [];
+        for (const schema of allSchemas) {
+          try {
+            const tableCountResult = await this.executeDirectSQL(`
+              SELECT COUNT(*) as table_count
+              FROM information_schema.tables 
+              WHERE table_schema = '${schema}' 
+                AND table_type = 'BASE TABLE'
+            `);
+
+            const tableCount = tableCountResult.data?.[0]?.table_count || tableCountResult.data?.[0]?.TABLE_COUNT || 0;
+            if (tableCount > 0) {
+              validSchemas.push(schema);
+              console.log(`✅ Schéma ${schema} trouvé avec ${tableCount} tables`);
+            } else {
+              console.log(`⚠️ Schéma ${schema} existe mais est vide (0 tables)`);
+            }
+          } catch (error) {
+            console.log(`❌ Schéma ${schema} non accessible:`, error);
+          }
+        }
+        
+        return validSchemas;
+      }
+    } catch (error) {
+      console.error('❌ Erreur découverte dynamique:', error);
+    }
+    
+    // Fallback: liste hardcodée si la découverte dynamique échoue
+    console.log('⚠️ Fallback: Test des schémas connus hardcodés...');
     const possibleSchemas = [
       '2025_bu01', '2025_bu02', '2025_bu03',
       '2024_bu01', '2024_bu02', '2024_bu03',
-      '2023_bu01', '2023_bu02', '2023_bu03'
+      '2023_bu01', '2023_bu02', '2023_bu03',
+      '2022_bu01', '2022_bu02', '2022_bu03',
+      '2021_bu01', '2021_bu02', '2021_bu03',
+      '2020_bu01', '2020_bu02', '2020_bu03',
+      '2019_bu01', '2019_bu02', '2019_bu03',
+      '2018_bu01', '2018_bu02', '2018_bu03',
+      '2017_bu01', '2017_bu02', '2017_bu03',
+      '2016_bu01', '2016_bu02', '2016_bu03',
+      '2015_bu01', '2015_bu02', '2015_bu03',
+      '2014_bu01', '2014_bu02', '2014_bu03',
+      '2013_bu01', '2013_bu02', '2013_bu03',
+      '2012_bu01', '2012_bu02', '2012_bu03',
+      '2011_bu01', '2011_bu02', '2011_bu03',
+      '2010_bu01', '2010_bu02', '2010_bu03',
+      '2009_bu01', '2009_bu02', '2009_bu03'
     ];
     
     const validSchemas: string[] = [];
@@ -252,9 +326,10 @@ export class CompleteDiscoveryService {
             AND table_type = 'BASE TABLE'
         `);
 
-        if (result.success && result.data && result.data[0] && result.data[0].table_count > 0) {
+        const tableCount = result.data?.[0]?.table_count || result.data?.[0]?.TABLE_COUNT || 0;
+        if (result.success && result.data && result.data[0] && tableCount > 0) {
           validSchemas.push(schema);
-          console.log(`✅ Schéma ${schema} trouvé avec ${result.data[0].table_count} tables`);
+          console.log(`✅ Schéma ${schema} trouvé avec ${tableCount} tables`);
         }
       } catch (error) {
         console.log(`❌ Schéma ${schema} non accessible`);
@@ -351,18 +426,22 @@ export class CompleteDiscoveryService {
     let sampleData: any[] = [];
     
     try {
+      // Détecter le type de base de données pour utiliser la bonne syntaxe
+      const isMySQL = this.sourceAdapter.constructor.name === 'MySQLAdapter';
+      const quote = isMySQL ? '`' : '"';
+      
       const countResult = await this.executeDirectSQL(`
-        SELECT COUNT(*) as total FROM "${schemaName}".${tableName}
+        SELECT COUNT(*) as total FROM ${quote}${schemaName}${quote}.${quote}${tableName}${quote}
       `);
       
       if (countResult.success && countResult.data && countResult.data[0]) {
-        recordCount = countResult.data[0].total || 0;
+        recordCount = countResult.data[0].total || countResult.data[0].TOTAL || 0;
       }
 
       // 4. Récupérer quelques échantillons de données
       if (recordCount > 0) {
         const sampleResult = await this.executeDirectSQL(`
-          SELECT * FROM "${schemaName}".${tableName} LIMIT 2
+          SELECT * FROM ${quote}${schemaName}${quote}.${quote}${tableName}${quote} LIMIT 2
         `);
         
         if (sampleResult.success && sampleResult.data) {
@@ -497,14 +576,13 @@ export class CompleteDiscoveryService {
     const columnDefinitions = validColumns.map(col => {
       let columnDef = isMySQL ? `\`${col.columnName}\` ` : `"${col.columnName}" `;
       
-      // Mapper les types PostgreSQL vers MySQL si nécessaire
+      // Mapper les types selon la base cible
       if (isMySQL) {
         columnDef += this.mapPostgreSQLTypeToMySQL(col.dataType, col.characterMaximumLength);
       } else {
-        columnDef += col.dataType;
-        if (col.characterMaximumLength) {
-          columnDef += `(${col.characterMaximumLength})`;
-        }
+        // CORRECTION CRITIQUE: Mapper les types MySQL vers PostgreSQL
+        const mappedType = this.mapMySQLTypeToPostgreSQL(col.dataType, col.characterMaximumLength);
+        columnDef += mappedType;
       }
 
       // Nullable
@@ -628,6 +706,62 @@ export class CompleteDiscoveryService {
         return pgType.includes('big') ? 'BIGINT' : pgType.includes('small') ? 'SMALLINT' : 'INT';
       default:
         console.warn(`⚠️ Type PostgreSQL non mappé: ${pgType}, utilisation de TEXT`);
+        return 'TEXT';
+    }
+  }
+
+  /**
+   * Mapper les types MySQL vers PostgreSQL
+   */
+  private mapMySQLTypeToPostgreSQL(mysqlType: string, maxLength: number | null): string {
+    const lowerType = mysqlType.toLowerCase();
+    
+    switch (lowerType) {
+      case 'varchar':
+        return `VARCHAR(${maxLength || 255})`;
+      case 'char':
+        return `CHAR(${maxLength || 1})`;
+      case 'text':
+      case 'tinytext':
+      case 'mediumtext':
+      case 'longtext':
+        return 'TEXT';
+      case 'int':
+      case 'integer':
+      case 'mediumint':
+        return 'INTEGER';
+      case 'bigint':
+        return 'BIGINT';
+      case 'smallint':
+      case 'tinyint':
+        return 'SMALLINT';
+      case 'decimal':
+      case 'numeric':
+        return 'NUMERIC';
+      case 'float':
+        return 'REAL';
+      case 'double':
+      case 'double precision':
+        return 'DOUBLE PRECISION';
+      case 'boolean':
+      case 'bool':
+        return 'BOOLEAN';
+      case 'datetime':
+      case 'timestamp':
+        return 'TIMESTAMP';
+      case 'date':
+        return 'DATE';
+      case 'time':
+        return 'TIME';
+      case 'json':
+        return 'JSONB';
+      case 'blob':
+      case 'tinyblob':
+      case 'mediumblob':
+      case 'longblob':
+        return 'BYTEA';
+      default:
+        console.warn(`⚠️ Type MySQL non mappé: ${mysqlType}, utilisation de TEXT`);
         return 'TEXT';
     }
   }

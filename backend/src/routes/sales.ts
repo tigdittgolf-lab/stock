@@ -1370,6 +1370,27 @@ const createdSuppliersCache = new Map<string, any[]>();
 // Cache global des articles créés (pour cohérence avec articles.ts)
 const createdArticlesCache = new Map<string, any[]>();
 
+// Route pour vider le cache (DEBUG)
+sales.post('/clear-cache', async (c) => {
+  try {
+    const tenant = c.req.header('X-Tenant');
+    if (tenant) {
+      createdArticlesCache.delete(tenant);
+      createdArticlesCache.delete(`${tenant}_modifications`);
+      createdArticlesCache.delete(`${tenant}_deleted`);
+      console.log(`🧹 Cache cleared for tenant: ${tenant}`);
+      return c.json({ success: true, message: `Cache cleared for ${tenant}` });
+    } else {
+      createdArticlesCache.clear();
+      console.log('🧹 All caches cleared');
+      return c.json({ success: true, message: 'All caches cleared' });
+    }
+  } catch (error) {
+    console.error('Error clearing cache:', error);
+    return c.json({ success: false, error: 'Failed to clear cache' }, 500);
+  }
+});
+
 // Get suppliers for tenant
 sales.get('/suppliers', async (c) => {
   try {

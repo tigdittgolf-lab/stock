@@ -44,19 +44,77 @@ export default function TenantSelection() {
 
       const userBusinessUnits = userInfo.business_units || [];
       
-      if (userBusinessUnits.length === 0) {
+      // CORRECTION CRITIQUE: Si admin, ne pas vérifier business_units
+      if (userInfo.role !== 'admin' && userBusinessUnits.length === 0) {
         console.warn('⚠️ User has no business units assigned');
         setBusinessUnits([]);
         return;
       }
 
-      console.log('🔐 BU autorisées pour cet utilisateur:', userBusinessUnits);
+      if (userInfo.role === 'admin') {
+        console.log('👨‍💼 Utilisateur ADMIN détecté: accès complet à tous les schémas');
+      } else {
+        console.log('🔐 BU autorisées pour cet utilisateur:', userBusinessUnits);
+      }
 
       const dbConfig = localStorage.getItem('activeDbConfig');
       const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
       
       console.log('📊 Base de données active:', dbType);
 
+      // CORRECTION: Pour Supabase, utiliser discover_tenant_schemas pour avoir la liste à jour
+      if (dbType === 'supabase') {
+        try {
+          console.log('🔍 Découverte des schémas Supabase en temps réel...');
+          
+          const response = await fetch('/api/admin/discover-supabase-schemas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              url: 'https://szgodrjglbpzkrksnroi.supabase.co',
+              key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTY0ODA0MywiZXhwIjoyMDgxMjI0MDQzfQ.QXWudNf09Ly0BwZHac2vweYkr-ea_iufIVzcP98zZFU'
+            })
+          });
+
+          const data = await response.json();
+          
+          if (data.success && data.databases) {
+            const allSchemas = [...data.databases.tenant, ...data.databases.other].map((db: any) => db.name);
+            console.log('✅ Schémas découverts dans Supabase:', allSchemas);
+            
+            // CORRECTION CRITIQUE: Si admin, montrer TOUS les schémas
+            let filteredSchemas;
+            if (userInfo.role === 'admin') {
+              console.log('👨‍💼 Utilisateur ADMIN: accès à TOUS les schémas');
+              filteredSchemas = allSchemas;
+            } else {
+              // Filtrer selon les permissions utilisateur
+              filteredSchemas = allSchemas.filter((schema: string) => userBusinessUnits.includes(schema));
+              console.log('✅ Schémas autorisés pour l\'utilisateur:', filteredSchemas);
+            }
+            
+            const buList = filteredSchemas.map((schema: string) => {
+              const parts = schema.split('_');
+              const year = parts[0];
+              const buCode = parts[1];
+              
+              return {
+                id: schema,
+                name: `Business Unit ${buCode.replace('bu', '')} (${year})`,
+                description: `Schéma: ${schema}`
+              };
+            });
+
+            console.log('🏢 BU disponibles:', buList);
+            setBusinessUnits(buList);
+            return;
+          }
+        } catch (error) {
+          console.warn('⚠️ Erreur découverte Supabase, fallback sur API exercises:', error);
+        }
+      }
+
+      // Fallback: utiliser l'API exercises
       const response = await fetch(getApiUrl('auth/exercises'), {
         headers: {
           'X-Database-Type': dbType
@@ -67,11 +125,18 @@ export default function TenantSelection() {
       console.log('📊 Tous les BU disponibles depuis', dbType, ':', data);
       
       if (data.success && data.data && data.data.length > 0) {
-        const filteredBUs = data.data.filter((exercise: any) => {
-          return userBusinessUnits.includes(exercise.schema_name);
-        });
+        // CORRECTION CRITIQUE: Si admin, montrer TOUS les exercices
+        let filteredBUs;
+        if (userInfo.role === 'admin') {
+          console.log('👨‍💼 Utilisateur ADMIN: accès à TOUS les exercices');
+          filteredBUs = data.data;
+        } else {
+          filteredBUs = data.data.filter((exercise: any) => {
+            return userBusinessUnits.includes(exercise.schema_name);
+          });
+        }
 
-        console.log('✅ BU filtrées (autorisées):', filteredBUs);
+        console.log('✅ BU filtrées:', filteredBUs);
 
         const buList = filteredBUs.map((exercise: any) => {
           return {
@@ -87,6 +152,12 @@ export default function TenantSelection() {
       }
 
       console.log('⚠️ API échouée, utilisation des BU de l\'utilisateur...');
+      
+      // CORRECTION: Si admin et API échoue, essayer de lister tous les schémas
+      if (userInfo.role === 'admin') {
+        console.log('👨‍💼 Admin: tentative de liste complète des schémas...');
+        // Pour l'instant, utiliser les BU de l'utilisateur comme fallback
+      }
       
       const buList = userBusinessUnits.map((schema: string) => {
         const parts = schema.split('_');

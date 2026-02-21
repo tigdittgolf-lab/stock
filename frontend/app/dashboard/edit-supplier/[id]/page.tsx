@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { getApiUrl } from '@/lib/api';
 import styles from "../../../page.module.css";
 
 interface TenantInfo {
@@ -28,6 +29,7 @@ export default function EditSupplier() {
     adresse_fourni: '',
     tel: '',
     email: '',
+    commentaire: '',
     caf: '0',
     cabl: '0'
   });
@@ -54,7 +56,7 @@ export default function EditSupplier() {
     try {
       setSupplierLoading(true);
       
-      const response = await fetch(getApiUrl(`sales/suppliers/${id}`), {
+      const response = await fetch(getApiUrl(`suppliers/${id}`), {
         headers: {
           'Content-Type': 'application/json',
           'X-Tenant': tenant.schema
@@ -72,6 +74,7 @@ export default function EditSupplier() {
           adresse_fourni: supplier.adresse_fourni || '',
           tel: supplier.tel || '',
           email: supplier.email || '',
+          commentaire: supplier.commentaire || '',
           caf: supplier.caf?.toString() || '0',
           cabl: supplier.cabl?.toString() || '0'
         });
@@ -115,11 +118,12 @@ export default function EditSupplier() {
         adresse_fourni: formData.adresse_fourni,
         tel: formData.tel,
         email: formData.email,
+        commentaire: formData.commentaire,
         caf: parseFloat(formData.caf) || 0,
         cabl: parseFloat(formData.cabl) || 0
       };
 
-      const response = await fetch(getApiUrl(`sales/suppliers/${supplierId}`), {
+      const response = await fetch(getApiUrl(`suppliers/${supplierId}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

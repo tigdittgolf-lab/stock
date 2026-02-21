@@ -6,10 +6,12 @@ import { backendDatabaseService } from '../services/databaseService.js';
  * Ce middleware s'exécute AVANT chaque requête et configure la bonne base
  */
 export async function databaseMiddleware(c: Context, next: Next) {
-  const dbType = c.req.header('X-Database-Type') || 'mysql'; // CHANGÉ: mysql par défaut
-  const tenant = c.req.header('X-Tenant'); // Récupérer le tenant
+  // Utiliser le type de base de données actuel comme défaut (pas de switch si pas d'en-tête)
+  const currentDbType = backendDatabaseService.getActiveDatabaseType();
+  const dbType = c.req.header('X-Database-Type') || currentDbType;
+  const tenant = c.req.header('X-Tenant');
   
-  console.log(`🔀 [Middleware] Database Type: ${dbType}, Tenant: ${tenant || 'none'}`);
+  console.log(`🔀 [Middleware] Database Type: ${dbType}, Tenant: ${tenant || 'none'}, Current: ${currentDbType}`);
 
   // Configuration des bases de données
   const dbConfigs: Record<string, any> = {
@@ -43,18 +45,24 @@ export async function databaseMiddleware(c: Context, next: Next) {
   const dbConfig = dbConfigs[dbType];
   
   if (dbConfig) {
-    try {
-      // Changer la base de données active pour cette requête
-      const switched = await backendDatabaseService.switchDatabase(dbConfig);
-      
-      if (switched) {
-        console.log(`✅ [Middleware] Switched to ${dbConfig.name} (database: ${dbConfig.database})`);
-      } else {
-        console.warn(`⚠️ [Middleware] Failed to switch to ${dbConfig.name}, using current database`);
+    // Ne switcher que si le type demandé est différent du type actuel
+    if (dbType !== currentDbType) {
+      console.log(`🔄 [Middleware] Switching from ${currentDbType} to ${dbType}...`);
+      try {
+        // Changer la base de données active pour cette requête
+        const switched = await backendDatabaseService.switchDatabase(dbConfig);
+        
+        if (switched) {
+          console.log(`✅ [Middleware] Switched to ${dbConfig.name} (database: ${dbConfig.database})`);
+        } else {
+          console.warn(`⚠️ [Middleware] Failed to switch to ${dbConfig.name}, using current database`);
+        }
+      } catch (error) {
+        console.error(`❌ [Middleware] Error switching database:`, error);
+        // Continue avec la base actuelle en cas d'erreur
       }
-    } catch (error) {
-      console.error(`❌ [Middleware] Error switching database:`, error);
-      // Continue avec la base actuelle en cas d'erreur
+    } else {
+      console.log(`✓ [Middleware] Already on ${dbType}, no switch needed`);
     }
   }
 

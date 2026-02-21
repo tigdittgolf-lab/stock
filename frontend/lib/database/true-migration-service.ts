@@ -75,7 +75,7 @@ export class CompleteMigrationService {
     try {
       // Étape 1: Découverte COMPLÈTE de TOUTES les tables réelles
       this.reportProgress('Découverte', 1, 9, 'Découverte COMPLÈTE de toutes les tables réelles...', true);
-      const allRealSchemas = await this.discoveryService.discoverAllRealTables();
+      const allRealSchemas = await this.discoveryService.discoverAllRealTables(options.tenants);
       
       if (allRealSchemas.length === 0) {
         throw new Error('Aucune table réelle découverte dans la source');
@@ -83,6 +83,10 @@ export class CompleteMigrationService {
 
       const totalTables = allRealSchemas.reduce((sum, schema) => sum + schema.tables.length, 0);
       console.log(`🎯 DÉCOUVERTE COMPLÈTE: ${allRealSchemas.length} schémas, ${totalTables} tables RÉELLES`);
+      
+      if (options.tenants && options.tenants.length > 0) {
+        console.log(`🎯 Tenants sélectionnés: ${options.tenants.join(', ')}`);
+      }
 
       // Étape 2: Validation de la découverte
       this.reportProgress('Validation', 2, 9, `Validation de ${totalTables} tables découvertes...`, true);
@@ -410,8 +414,12 @@ export class CompleteMigrationService {
 
           // Si la fonction RPC n'existe pas, essayer une requête directe
           if (!dataResult.success) {
+            // Détecter le type de base de données pour utiliser la bonne syntaxe
+            const isMySQL = this.sourceAdapter.constructor.name === 'MySQLAdapter';
+            const quote = isMySQL ? '`' : '"';
+            
             dataResult = await this.sourceAdapter.query(`
-              SELECT * FROM "${schema.schemaName}".${table.tableName} ORDER BY 1
+              SELECT * FROM ${quote}${schema.schemaName}${quote}.${quote}${table.tableName}${quote} ORDER BY 1
             `);
           }
 
