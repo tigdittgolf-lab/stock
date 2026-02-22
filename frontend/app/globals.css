@@ -26,15 +26,27 @@
   
   --success-color: #48bb78;
   --success-color-light: #f0fff4;
+  --success-bg: #f0fff4;
+  --success-border: #9ae6b4;
+  --success-text: #2f855a;
   
   --warning-color: #ed8936;
   --warning-color-light: #fffaf0;
+  --warning-bg: #fffaf0;
+  --warning-border: #fbd38d;
+  --warning-text: #c05621;
   
   --error-color: #f56565;
   --error-color-light: #fff5f5;
+  --error-bg: #fff5f5;
+  --error-border: #fc8181;
+  --error-text: #c53030;
   
   --info-color: #4299e1;
   --info-color-light: #ebf8ff;
+  --info-bg: #ebf8ff;
+  --info-border: #90cdf4;
+  --info-text: #2c5282;
   
   /* Ombres */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -74,15 +86,27 @@
   
   --success-color: #4ade80;
   --success-color-light: #14532d;
+  --success-bg: #14532d;
+  --success-border: #166534;
+  --success-text: #86efac;
   
   --warning-color: #fbbf24;
   --warning-color-light: #78350f;
+  --warning-bg: #78350f;
+  --warning-border: #92400e;
+  --warning-text: #fde047;
   
   --error-color: #f87171;
   --error-color-light: #7f1d1d;
+  --error-bg: #7f1d1d;
+  --error-border: #991b1b;
+  --error-text: #fca5a5;
   
   --info-color: #60a5fa;
   --info-color-light: #1e3a8a;
+  --info-bg: #1e3a8a;
+  --info-border: #1e40af;
+  --info-text: #93c5fd;
   
   /* Ombres - Plus prononcées en mode sombre */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
@@ -171,6 +195,41 @@ select {
   background: var(--background);
   border: 1px solid var(--border-color);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Inputs de type date/time avec meilleure visibilité */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  color-scheme: light dark;
+  background: var(--card-background);
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+/* Icône calendrier visible en mode dark */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(0);
+  cursor: pointer;
+  opacity: 0.8;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+:root[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+:root[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator,
+:root[data-theme="dark"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 1;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  background: var(--background-secondary);
 }
 
 input:focus,

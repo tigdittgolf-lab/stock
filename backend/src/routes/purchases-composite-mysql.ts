@@ -9,7 +9,8 @@ import { backendDatabaseService } from '../services/databaseService.js';
 const purchases = new Hono();
 
 // Middleware pour extraire le tenant
-purchases.use('*', async (c, next) => {
+purchases.use('*', async (
+  c, next) => {
   const tenant = c.req.header('X-Tenant');
   if (tenant) {
     c.set('tenant', tenant);

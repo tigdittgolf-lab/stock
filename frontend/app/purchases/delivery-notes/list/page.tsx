@@ -121,10 +121,10 @@ export default function PurchaseBLList() {
   }
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} style={{ paddingTop: '20px' }}>
       <header className={styles.header}>
         <h1>📦 Liste des BL d'Achat</h1>
-        <div>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button onClick={() => router.push('/purchases/delivery-notes')} className={styles.primaryButton}>
             + Nouveau BL
           </button>
@@ -248,10 +248,10 @@ export default function PurchaseBLList() {
                           {formatNumber(bl.tva)} DA
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          <strong style={{ color: '#2e7d32' }}>{formatNumber(bl.total_ttc)} DA</strong>
+                          <strong style={{ color: 'var(--success-text)' }}>{formatNumber(bl.total_ttc)} DA</strong>
                         </td>
                         <td>
-                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
                             <button 
                               onClick={() => router.push(`/purchases/delivery-notes/${encodeURIComponent(bl.numero_bl_fournisseur)}/${encodeURIComponent(bl.nfournisseur)}`)}
                               className={styles.primaryButton}
@@ -283,13 +283,15 @@ export default function PurchaseBLList() {
                 alignItems: 'center',
                 marginTop: '1.5rem',
                 padding: '1rem',
-                backgroundColor: '#f5f5f5',
-                borderRadius: '8px'
+                backgroundColor: 'var(--background-secondary)',
+                borderRadius: '8px',
+                flexWrap: 'wrap',
+                gap: '1rem'
               }}>
-                <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                   Affichage de {startIndex + 1} à {Math.min(endIndex, filteredBls.length)} sur {filteredBls.length} BL{filteredBls.length > 1 ? 's' : ''}
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <button
                     onClick={() => setCurrentPage(1)}
                     disabled={currentPage === 1}
@@ -306,7 +308,7 @@ export default function PurchaseBLList() {
                   >
                     ◀️
                   </button>
-                  <span style={{ padding: '0.5rem 1rem', backgroundColor: 'white', borderRadius: '4px', border: '1px solid #ddd' }}>
+                  <span style={{ padding: '0.5rem 1rem', backgroundColor: 'var(--card-background)', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
                     Page {currentPage} / {totalPages}
                   </span>
                   <button
@@ -335,25 +337,25 @@ export default function PurchaseBLList() {
           <div className={styles.summary} style={{ marginTop: '1.5rem' }}>
             <h3>📊 Résumé</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-              <div style={{ padding: '1rem', backgroundColor: '#e3f2fd', borderRadius: '8px' }}>
-                <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.25rem' }}>Total BLs</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1976d2' }}>{filteredBls.length}</div>
+              <div style={{ padding: '1rem', backgroundColor: 'var(--info-bg)', borderRadius: '8px', border: '1px solid var(--info-border)' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Total BLs</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--info-text)' }}>{filteredBls.length}</div>
               </div>
-              <div style={{ padding: '1rem', backgroundColor: '#e8f5e9', borderRadius: '8px' }}>
-                <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.25rem' }}>Total HT</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#2e7d32' }}>
+              <div style={{ padding: '1rem', backgroundColor: 'var(--success-bg)', borderRadius: '8px', border: '1px solid var(--success-border)' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Total HT</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--success-text)' }}>
                   {formatNumber(filteredBls.reduce((sum, bl) => sum + (bl.montant_ht || 0), 0))} DA
                 </div>
               </div>
-              <div style={{ padding: '1rem', backgroundColor: '#fff3e0', borderRadius: '8px' }}>
-                <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.25rem' }}>Total TVA</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f57c00' }}>
+              <div style={{ padding: '1rem', backgroundColor: 'var(--warning-bg)', borderRadius: '8px', border: '1px solid var(--warning-border)' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Total TVA</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--warning-text)' }}>
                   {formatNumber(filteredBls.reduce((sum, bl) => sum + (bl.tva || 0), 0))} DA
                 </div>
               </div>
-              <div style={{ padding: '1rem', backgroundColor: '#f3e5f5', borderRadius: '8px' }}>
-                <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.25rem' }}>Total TTC</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#7b1fa2' }}>
+              <div style={{ padding: '1rem', backgroundColor: 'var(--info-bg)', borderRadius: '8px', border: '1px solid var(--info-border)' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Total TTC</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--info-text)' }}>
                   {formatNumber(filteredBls.reduce((sum, bl) => sum + (bl.total_ttc || 0), 0))} DA
                 </div>
               </div>

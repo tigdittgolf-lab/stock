@@ -30,56 +30,20 @@ purchases.get('/delivery-notes', async (c) => {
 
     console.log(`📋 Fetching purchase delivery notes for tenant: ${tenant}`);
 
-    // Utiliser executeQuery directement au lieu de databaseRouter.from()
-    const bachatResult = await backendDatabaseService.executeQuery(
-      'SELECT * FROM bachat ORDER BY date_fact DESC',
-      []
-    );
+    // Utiliser la fonction RPC pour récupérer les BL d'achat
+    const { data: blData, error: blError } = await databaseRouter.rpc('get_purchase_bl_list', {
+      p_tenant: tenant
+    });
 
-    if (!bachatResult.success) {
-      console.error('❌ Failed to fetch from bachat:', bachatResult.error);
+    if (blError) {
+      console.error('❌ Failed to fetch purchase BLs:', blError);
       return c.json({ 
         success: false, 
         error: 'Erreur lors de la récupération des BL d\'achat'
       }, 500);
     }
 
-    const bachatData = bachatResult.data;
-    console.log(`✅ Found ${bachatData?.length || 0} records in bachat table`);
-
-    // Récupérer les fournisseurs
-    const suppliersResult = await backendDatabaseService.executeQuery(
-      'SELECT * FROM fournisseur',
-      []
-    );
-
-    const suppliersData = suppliersResult.success ? suppliersResult.data : [];
-    console.log(`✅ Found ${suppliersData?.length || 0} suppliers`);
-
-    // Formater les données
-    const enrichedBLs = (bachatData || []).map(bl => {
-      const supplier = suppliersData?.find(s => s.nfournisseur === bl.nfournisseur);
-      
-      const montant_ht = parseFloat(bl.montant_ht) || 0;
-      const tva = parseFloat(bl.tva) || 0;
-      const timbre = parseFloat(bl.timbre) || 0;
-      const autre_taxe = parseFloat(bl.autre_taxe) || 0;
-      const total_ttc = montant_ht + tva + timbre + autre_taxe;
-
-      return {
-        nbl_achat: parseInt(bl.nfact) || 0,
-        nfournisseur: bl.nfournisseur,
-        numero_bl_fournisseur: bl.nfact,
-        supplier_name: supplier?.nom_fournisseur || bl.nfournisseur,
-        date_bl: bl.date_fact,
-        montant_ht: montant_ht,
-        tva: tva,
-        total_ttc: total_ttc,
-        created_at: bl.date_fact,
-        type: 'purchase_delivery_note'
-      };
-    });
-
+    const enrichedBLs = blData || [];
     console.log(`✅ Returning ${enrichedBLs.length} purchase delivery notes`);
     
     return c.json({
@@ -295,25 +259,24 @@ purchases.post('/delivery-notes', async (c) => {
   }
 });
 
-// GET /api/purchases/delivery-notes/:id - Récupérer un BL d'achat spécifique
-purchases.get('/delivery-notes/:id', async (c) => {
+// GET /api/purchases/delivery-notes/:nfact/:nfournisseur - Récupérer un BL d'achat spécifique
+purchases.get('/delivery-notes/:nfact/:nfournisseur', async (c) => {
   try {
     const tenant = c.get('tenant');
-    const id = c.req.param('id');
+    const nfact = c.req.param('nfact');
+    const nfournisseur = c.req.param('nfournisseur');
     
     if (!tenant) {
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
-    const blId = id; // Garder comme string car nfact est varchar
-    console.log(`📋 Fetching purchase BL ${blId} for tenant: ${tenant}`);
+    console.log(`📋 Fetching purchase BL ${nfact}/${nfournisseur} for tenant: ${tenant}`);
 
-    // Récupérer le BL depuis bachat
-    const { data: blData, error: blError } = await databaseRouter
-      .from('bachat')
-      .select('*')
-      .eq('nfact', blId)
-      .single();
+    // Utiliser la fonction RPC pour récupérer le BL avec ses détails
+    const { data: blData, error: blError } = await databaseRouter.rpc('get_purchase_bl_by_id', {
+      p_tenant: tenant,
+      p_nfact: nfact
+    });
 
     if (blError || !blData) {
       console.error('❌ Failed to fetch purchase BL:', blError);
@@ -323,73 +286,11 @@ purchases.get('/delivery-notes/:id', async (c) => {
       }, 404);
     }
 
-    console.log(`✅ Found purchase BL ${blId}`);
-
-    // Récupérer les détails depuis bachat_detail
-    const { data: detailsData, error: detailsError } = await databaseRouter
-      .from('bachat_detail')
-      .select('*')
-      .eq('NFact', blId)
-      .eq('nfournisseur', blData.nfournisseur);
-
-    if (detailsError) {
-      console.error('❌ Failed to fetch BL details:', detailsError);
-    }
-
-    // Récupérer les infos fournisseur
-    const { data: supplierData } = await databaseRouter
-      .from('fournisseur')
-      .select('*')
-      .eq('nfournisseur', blData.nfournisseur)
-      .single();
-
-    // Enrichir les détails avec les infos articles
-    const enrichedDetails = await Promise.all((detailsData || []).map(async (detail) => {
-      const { data: article } = await databaseRouter
-        .from('article')
-        .select('*')
-        .eq('narticle', detail.Narticle)
-        .single();
-
-      return {
-        narticle: detail.Narticle,
-        designation: article?.designation || detail.Narticle,
-        qte: parseFloat(detail.Qte) || 0,
-        prix: parseFloat(detail.prix) || 0,
-        tva: parseFloat(detail.tva) || 0,
-        total_ligne: parseFloat(detail.total_ligne) || 0
-      };
-    }));
-
-    // Calculer le total TTC
-    const montant_ht = parseFloat(blData.montant_ht) || 0;
-    const tva = parseFloat(blData.tva) || 0;
-    const timbre = parseFloat(blData.timbre) || 0;
-    const autre_taxe = parseFloat(blData.autre_taxe) || 0;
-    const total_ttc = montant_ht + tva + timbre + autre_taxe;
-
-    const enrichedResult = {
-      nbl_achat: parseInt(blData.nfact) || 0,
-      nfournisseur: blData.nfournisseur,
-      numero_bl_fournisseur: blData.nfact,
-      supplier_name: supplierData?.nom_fournisseur || blData.nfournisseur,
-      supplier_address: supplierData?.adresse_fourni || '',
-      date_bl: blData.date_fact,
-      montant_ht: montant_ht,
-      tva: tva,
-      timbre: timbre,
-      autre_taxe: autre_taxe,
-      total_ttc: total_ttc,
-      ncheque: blData.ncheque,
-      banque: blData.banque,
-      details: enrichedDetails
-    };
-
-    console.log(`✅ Returning purchase BL ${blId} with ${enrichedDetails.length} article details`);
+    console.log(`✅ Returning purchase BL ${nfact}/${nfournisseur} with ${blData.details?.length || 0} article details`);
 
     return c.json({
       success: true,
-      data: enrichedResult,
+      data: blData,
       source: 'database',
       database_type: backendDatabaseService.getActiveDatabaseType()
     });
@@ -399,6 +300,61 @@ purchases.get('/delivery-notes/:id', async (c) => {
     return c.json({ 
       success: false, 
       error: 'Erreur lors de la récupération du BL d\'achat'
+    }, 500);
+  }
+});
+
+// PUT /api/purchases/delivery-notes/:nfact/:nfournisseur - Mettre à jour un BL d'achat
+purchases.put('/delivery-notes/:nfact/:nfournisseur', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    const nfact = c.req.param('nfact');
+    const nfournisseur = c.req.param('nfournisseur');
+    
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    const body = await c.req.json();
+    const { date_bl, details } = body;
+
+    if (!details || !Array.isArray(details) || details.length === 0) {
+      return c.json({ success: false, error: 'Les détails sont requis' }, 400);
+    }
+
+    console.log(`✏️ Updating purchase BL ${nfact}/${nfournisseur} for tenant: ${tenant}`);
+
+    // Appeler la fonction RPC pour mettre à jour le BL
+    const result = await databaseRouter.rpc('update_purchase_bl', {
+      p_tenant: tenant,
+      p_nfact: nfact,
+      p_nfournisseur: nfournisseur,
+      p_date_bl: date_bl,
+      p_details: details
+    });
+
+    // La fonction RPC retourne {data: {success: true, ...}, error: null}
+    if (result.error) {
+      console.error('❌ Failed to update purchase BL:', result.error);
+      return c.json({ 
+        success: false, 
+        error: result.error || 'Erreur lors de la mise à jour du BL d\'achat' 
+      }, 500);
+    }
+
+    console.log(`✅ Purchase BL ${nfact}/${nfournisseur} updated successfully`);
+
+    return c.json({
+      success: true,
+      message: 'BL d\'achat mis à jour avec succès',
+      data: result.data
+    });
+
+  } catch (error) {
+    console.error('❌ Error updating purchase BL:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Erreur lors de la mise à jour du BL d\'achat'
     }, 500);
   }
 });

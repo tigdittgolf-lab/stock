@@ -97,7 +97,7 @@ export default function PurchaseBLDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} style={{ paddingTop: '20px' }}>
       <header className={styles.header}>
         <h1>BL d'Achat - {bl.numero_bl_fournisseur || `ID-${bl.nbl_achat}`}</h1>
         <div>
@@ -117,7 +117,12 @@ export default function PurchaseBLDetailPage({ params }: PageProps) {
         {/* Informations générales */}
         <div className={styles.invoiceSection}>
           <h2>Informations Générales</h2>
-          <div className={styles.invoiceGrid}>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+            gap: '1rem',
+            marginTop: '1rem'
+          }}>
             <div className={styles.invoiceField}>
               <label>N° BL Fournisseur :</label>
               <span>{bl.numero_bl_fournisseur || 'Non spécifié'}</span>
@@ -207,8 +212,8 @@ export default function PurchaseBLDetailPage({ params }: PageProps) {
             <h3>📦 Impact sur les Stocks</h3>
             <p>Ce BL d'achat a généré une <strong>entrée de stock BL</strong> pour tous les articles listés.</p>
             <p>Les quantités ont été ajoutées au stock BL (stock_bl) de chaque article.</p>
-            <div style={{ marginTop: '1rem', padding: '0.5rem', backgroundColor: '#e8f5e8', borderRadius: '4px' }}>
-              <p style={{ margin: 0, fontSize: '0.9rem', color: '#2e7d32' }}>
+            <div style={{ marginTop: '1rem', padding: '0.5rem', backgroundColor: 'var(--success-bg)', borderRadius: '4px', border: '1px solid var(--success-border)' }}>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--success-text)' }}>
                 💡 <strong>Différence avec les factures :</strong> Les BL affectent le stock_bl, les factures affectent le stock_f
               </p>
             </div>

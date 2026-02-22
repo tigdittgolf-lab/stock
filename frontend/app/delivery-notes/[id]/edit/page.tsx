@@ -361,7 +361,7 @@ export default function EditDeliveryNote({ params }: { params: Promise<{ id: str
                         <td>
                           <input
                             type="number"
-                            value={detail.qte}
+                            value={isNaN(detail.qte) ? '' : detail.qte}
                             onChange={(e) => updateDetail(index, 'qte', parseFloat(e.target.value) || 0)}
                             min="0"
                             step="0.01"
@@ -371,7 +371,7 @@ export default function EditDeliveryNote({ params }: { params: Promise<{ id: str
                         <td>
                           <input
                             type="number"
-                            value={detail.prix}
+                            value={isNaN(detail.prix) ? '' : detail.prix}
                             onChange={(e) => updateDetail(index, 'prix', parseFloat(e.target.value) || 0)}
                             min="0"
                             step="0.01"
@@ -381,7 +381,7 @@ export default function EditDeliveryNote({ params }: { params: Promise<{ id: str
                         <td>
                           <input
                             type="number"
-                            value={detail.tva}
+                            value={isNaN(detail.tva) ? '' : detail.tva}
                             onChange={(e) => updateDetail(index, 'tva', parseFloat(e.target.value) || 19)}
                             min="0"
                             max="100"

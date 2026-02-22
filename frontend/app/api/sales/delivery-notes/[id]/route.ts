@@ -1,63 +1,88 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl } from '@/lib/backend-url';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Next.js 15: params est maintenant une Promise
-    const resolvedParams = await params;
-    const id = resolvedParams.id;
-    const tenant = request.headers.get('X-Tenant');
-
-    if (!tenant) {
-      return NextResponse.json(
-        { success: false, error: 'Tenant header required' },
-        { status: 400 }
-      );
-    }
-
-    if (!id || isNaN(parseInt(id))) {
-      return NextResponse.json(
-        { success: false, error: 'Valid BL ID required' },
-        { status: 400 }
-      );
-    }
-
-    console.log(`🔍 Frontend API: Getting BL details for ID ${id}, tenant: ${tenant}`);
-
-    // Proxy to backend via tunnel
-    const backendUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
-      : 'http://localhost:3005/api';
+    const params = await context.params;
+    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    const dbType = request.headers.get('X-Database-Type') || 'supabase';
+    const blId = params.id;
     
-    const response = await fetch(`${backendUrl}/sales/delivery-notes/${id}`, {
+    console.log(`🔄 Frontend API: Fetching BL ${blId} for tenant ${tenant}, DB: ${dbType}`);
+    
+    const backendUrl = getBackendUrl(`/api/sales/delivery-notes/${blId}`);
+    
+    const response = await fetch(backendUrl, {
       method: 'GET',
       headers: {
+        'X-Tenant': tenant,
+        'X-Database-Type': dbType,
         'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-        'X-Tenant': tenant
+        'ngrok-skip-browser-warning': 'true'
       }
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Backend error:  Backend error ${response.status}: ${errorText}`);
-      return NextResponse.json(
-        { success: false, error: `Backend error: ${response.status}` },
-        { status: response.status }
-      );
+      console.error(`Backend error: ${response.status} - ${errorText}`);
+      
+      return NextResponse.json({
+        success: false,
+        error: `Backend error: ${response.status} - ${errorText}`
+      }, { status: response.status });
     }
 
     const data = await response.json();
-    console.log(`✅ Frontend API: BL details retrieved for ID ${id}`);
-
+    
+    console.log(`✅ Frontend API: Successfully fetched BL ${blId}`);
+    
     return NextResponse.json(data);
+
   } catch (error) {
-    console.error('❌ Frontend API error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('❌ Frontend BL API error:', error);
+    return NextResponse.json({
+      success: false,
+      error: `Failed to fetch BL: ${error instanceof Error ? error.message : 'Unknown error'}`
+    }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const params = await context.params;
+    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    const dbType = request.headers.get('X-Database-Type') || 'supabase';
+    const blId = params.id;
+    
+    console.log(`🔄 Frontend API: Deleting BL ${blId} for tenant ${tenant}, DB: ${dbType}`);
+    
+    const backendUrl = getBackendUrl(`/api/sales/delivery-notes/${blId}`);
+    
+    const response = await fetch(backendUrl, {
+      method: 'DELETE',
+      headers: {
+        'X-Tenant': tenant,
+        'X-Database-Type': dbType,
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
+      }
+    });
+
+    const data = await response.json();
+    
+    return NextResponse.json(data, { status: response.status });
+
+  } catch (error) {
+    console.error('❌ Frontend delete BL API error:', error);
+    return NextResponse.json({
+      success: false,
+      error: `Failed to delete BL: ${error instanceof Error ? error.message : 'Unknown error'}`
+    }, { status: 500 });
   }
 }

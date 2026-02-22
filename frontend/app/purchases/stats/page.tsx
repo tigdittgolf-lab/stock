@@ -282,7 +282,7 @@ export default function PurchaseStats() {
                         <td>
                           <strong>{supplier.supplier_name}</strong>
                           <br />
-                          <small style={{ color: '#6c757d' }}>{supplier.nfournisseur}</small>
+                          <small style={{ color: 'var(--text-secondary)' }}>{supplier.nfournisseur}</small>
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <strong>{formatNumber(supplier.total_ttc)} DA</strong>
@@ -318,7 +318,7 @@ export default function PurchaseStats() {
                         <td>
                           <strong>{article.designation}</strong>
                           <br />
-                          <small style={{ color: '#6c757d' }}>{article.narticle}</small>
+                          <small style={{ color: 'var(--text-secondary)' }}>{article.narticle}</small>
                         </td>
                         <td style={{ textAlign: 'right' }}>{formatNumber(article.total_quantity)}</td>
                         <td style={{ textAlign: 'right' }}>{formatNumber(article.total_amount)} DA</td>
@@ -352,12 +352,12 @@ export default function PurchaseStats() {
                         <td style={{ textAlign: 'right' }}>
                           {formatNumber(trend.invoices_amount)} DA
                           <br />
-                          <small style={{ color: '#6c757d' }}>({trend.invoices_count} docs)</small>
+                          <small style={{ color: 'var(--text-secondary)' }}>({trend.invoices_count} docs)</small>
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           {formatNumber(trend.bl_amount)} DA
                           <br />
-                          <small style={{ color: '#6c757d' }}>({trend.bl_count} docs)</small>
+                          <small style={{ color: 'var(--text-secondary)' }}>({trend.bl_count} docs)</small>
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <strong>{formatNumber(trend.total_amount)} DA</strong>
@@ -392,8 +392,9 @@ export default function PurchaseStats() {
                             padding: '0.25rem 0.5rem', 
                             borderRadius: '4px', 
                             fontSize: '0.8rem',
-                            backgroundColor: activity.doc_type === 'invoice' ? '#e3f2fd' : '#e8f5e8',
-                            color: activity.doc_type === 'invoice' ? '#1976d2' : '#2e7d32'
+                            backgroundColor: activity.doc_type === 'invoice' ? 'var(--info-bg)' : 'var(--success-bg)',
+                            color: activity.doc_type === 'invoice' ? 'var(--info-text)' : 'var(--success-text)',
+                            border: activity.doc_type === 'invoice' ? '1px solid var(--info-border)' : '1px solid var(--success-border)'
                           }}>
                             {activity.doc_type === 'invoice' ? 'Facture' : 'BL'}
                           </span>
@@ -401,7 +402,7 @@ export default function PurchaseStats() {
                         <td>
                           <strong>{activity.supplier_doc_number}</strong>
                           <br />
-                          <small style={{ color: '#6c757d' }}>ID: {activity.doc_number}</small>
+                          <small style={{ color: 'var(--text-secondary)' }}>ID: {activity.doc_number}</small>
                         </td>
                         <td>{activity.nfournisseur}</td>
                         <td>{formatDate(activity.doc_date)}</td>

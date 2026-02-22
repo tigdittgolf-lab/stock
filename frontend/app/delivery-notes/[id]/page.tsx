@@ -15,13 +15,14 @@ interface CompanyInfo {
 }
 
 interface DeliveryNote {
-  nbl: number;
+  nfact: number; // Changed from nbl to match database column
+  nbl?: number; // Keep for backward compatibility
   nclient: string;
   date_fact: string;
   montant_ht: number;
   tva: number;
   montant_ttc: number;
-  created_at: string;
+  created_at?: string;
   client_name: string;
   details?: DeliveryNoteDetail[];
 }
@@ -223,7 +224,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1>Bon de Livraison N° {deliveryNote.nbl}</h1>
+        <h1>Bon de Livraison N° {deliveryNote.nfact || deliveryNote.nbl}</h1>
         <div>
           <button onClick={() => router.push('/delivery-notes/list')} className={styles.secondaryButton}>
             Retour à la liste
@@ -238,7 +239,9 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           <button 
             onClick={() => {
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-              const url = `/api/pdf/delivery-note/${deliveryNote.nbl}`;
+              const blId = deliveryNote.nfact || deliveryNote.nbl;
+              console.log('🖨️ Printing BL Complet with ID:', blId);
+              const url = `/api/pdf/delivery-note/${blId}`;
               
               fetch(url, {
                 headers: {
@@ -263,7 +266,9 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           <button 
             onClick={() => {
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-              const url = `/api/pdf/delivery-note-small/${deliveryNote.nbl}`;
+              const blId = deliveryNote.nfact || deliveryNote.nbl;
+              console.log('🖨️ Printing BL Réduit with ID:', blId);
+              const url = `/api/pdf/delivery-note-small/${blId}`;
               
               fetch(url, {
                 headers: {
@@ -288,7 +293,9 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           <button 
             onClick={() => {
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-              const url = `/api/pdf/delivery-note-ticket/${deliveryNote.nbl}`;
+              const blId = deliveryNote.nfact || deliveryNote.nbl;
+              console.log('🖨️ Printing Ticket with ID:', blId);
+              const url = `/api/pdf/delivery-note-ticket/${blId}`;
               
               fetch(url, {
                 headers: {
@@ -330,11 +337,11 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
       <main className={styles.main}>
         <div>
           {/* Widget de statut de paiement */}
-          {deliveryNote.nbl && (
+          {(deliveryNote.nfact || deliveryNote.nbl) && (
             <div style={{ marginBottom: '30px' }}>
               <PaymentSummary
                 documentType="delivery_note"
-                documentId={deliveryNote.nbl}
+                documentId={deliveryNote.nfact || deliveryNote.nbl}
                 totalAmount={calculateTotalTTC()}
                 onViewHistory={() => setShowPaymentHistory(true)}
                 refreshTrigger={refreshPaymentTrigger}
@@ -353,7 +360,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
               </div>
               <div style={{ textAlign: 'right' }}>
                 <h2 style={{ color: '#007bff', fontSize: '1.8rem' }}>BON DE LIVRAISON</h2>
-                <p><strong>N° :</strong> {deliveryNote.nbl}</p>
+                <p><strong>N° :</strong> {deliveryNote.nfact || deliveryNote.nbl}</p>
                 <p><strong>Date :</strong> {new Date(deliveryNote.date_fact).toLocaleDateString('fr-FR')}</p>
               </div>
             </div>
@@ -486,8 +493,8 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           }}>
             <PaymentForm
               documentType="delivery_note"
-              documentId={deliveryNote.nbl}
-              documentNumber={deliveryNote.nbl.toString()}
+              documentId={deliveryNote.nfact || deliveryNote.nbl}
+              documentNumber={(deliveryNote.nfact || deliveryNote.nbl).toString()}
               documentTotalAmount={calculateTotalTTC()}
               onSuccess={handlePaymentSuccess}
               onCancel={() => setShowPaymentForm(false)}
@@ -539,7 +546,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
             </div>
             <PaymentHistory
               documentType="delivery_note"
-              documentId={deliveryNote.nbl}
+              documentId={deliveryNote.nfact || deliveryNote.nbl}
               onPaymentChange={handlePaymentChange}
             />
           </div>

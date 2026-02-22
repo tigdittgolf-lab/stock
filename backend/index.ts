@@ -9,7 +9,7 @@ import suppliers from './src/routes/suppliers-clean.js';
 import families from './src/routes/families.js';
 import activite from './src/routes/activite.js';
 import sales from './src/routes/sales-clean.js';
-import purchases from './src/routes/purchases-composite-mysql.js';
+import purchases from './src/routes/purchases.js';
 import stock from './src/routes/stock.js';
 import reports from './src/routes/reports.js';
 import auth from './src/routes/auth.js';

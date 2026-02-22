@@ -600,6 +600,9 @@
 :global(input[type="email"]),
 :global(input[type="password"]),
 :global(input[type="search"]),
+:global(input[type="date"]),
+:global(input[type="time"]),
+:global(input[type="datetime-local"]),
 :global(textarea),
 :global(select) {
   background: var(--background);
@@ -612,10 +615,47 @@
 :global(input[type="email"]:focus),
 :global(input[type="password"]:focus),
 :global(input[type="search"]:focus),
+:global(input[type="date"]:focus),
+:global(input[type="time"]:focus),
+:global(input[type="datetime-local"]:focus),
 :global(textarea:focus),
 :global(select:focus) {
   border-color: var(--primary-color);
   background: var(--card-background);
+}
+
+/* Amélioration spécifique pour les inputs date en mode sombre */
+:global(input[type="date"]),
+:global(input[type="time"]),
+:global(input[type="datetime-local"]) {
+  color-scheme: light dark;
+  background: var(--card-background);
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+/* Forcer la visibilité de l'icône calendrier en mode sombre */
+:global(input[type="date"]::-webkit-calendar-picker-indicator),
+:global(input[type="time"]::-webkit-calendar-picker-indicator),
+:global(input[type="datetime-local"]::-webkit-calendar-picker-indicator) {
+  filter: invert(0);
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+[data-theme="dark"] :global(input[type="date"]::-webkit-calendar-picker-indicator),
+[data-theme="dark"] :global(input[type="time"]::-webkit-calendar-picker-indicator),
+[data-theme="dark"] :global(input[type="datetime-local"]::-webkit-calendar-picker-indicator) {
+  filter: invert(1);
+  opacity: 1;
+}
+
+:global(input[type="date"]::-webkit-calendar-picker-indicator:hover),
+:global(input[type="time"]::-webkit-calendar-picker-indicator:hover),
+:global(input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover) {
+  opacity: 1;
+  background: var(--background-secondary);
+  border-radius: 4px;
 }
 
 :global(input[type="text"]::placeholder),

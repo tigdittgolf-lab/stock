@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getApiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
@@ -23,6 +23,7 @@ interface Article {
 
 interface PurchaseDetail {
   Narticle: string;
+  designation?: string; // Ajout pour afficher la désignation
   Qte: number;
   prix: number;
   tva: number;
@@ -70,8 +71,10 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
     : [];
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [updating, setUpdating] = useState(false); // Indicateur pour les mises à jour de lignes
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [articleSearch, setArticleSearch] = useState<{[key: number]: string}>({});
 
   useEffect(() => {
     if (invoiceId) {
@@ -100,10 +103,11 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
         // Convert details to editable format
         const editableDetails = invoice.details?.map((detail: any) => ({
           Narticle: detail.narticle,
+          designation: detail.designation,
           Qte: detail.qte,
           prix: detail.prix,
           tva: detail.tva
-        })) || [{ Narticle: '', Qte: 1, prix: 0, tva: 19 }];
+        })) || [{ Narticle: '', designation: '', Qte: 1, prix: 0, tva: 19 }];
         
         setDetails(editableDetails);
       } else {
@@ -163,26 +167,54 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
     }
   };
 
-  const updateDetail = (index: number, field: keyof PurchaseDetail, value: string | number) => {
-    const newDetails = [...details];
-    newDetails[index] = { ...newDetails[index], [field]: value };
+  const updateDetail = useCallback((index: number, field: keyof PurchaseDetail, value: string | number) => {
+    setUpdating(true);
     
-    // Auto-fill price from article data (utiliser les articles filtrés)
-    if (field === 'Narticle') {
-      const article = filteredArticles.find(a => a.narticle === value);
-      if (article) {
-        newDetails[index].prix = article.prix_unitaire || 0;
+    // Utiliser setTimeout pour permettre l'affichage du loader
+    setTimeout(() => {
+      const newDetails = [...details];
+      newDetails[index] = { ...newDetails[index], [field]: value };
+      
+      // Auto-fill designation and price from article data when article changes
+      if (field === 'Narticle' && value) {
+        const article = articles.find(a => a.narticle === value);
+        console.log('🔍 Article sélectionné:', article);
+        if (article) {
+          newDetails[index].designation = article.designation;
+          // Essayer différents champs de prix
+          const prix = article.prix_unitaire || article.prix_vente || article.prix_achat || 0;
+          console.log('💰 Prix trouvé:', prix, 'depuis:', { 
+            prix_unitaire: article.prix_unitaire, 
+            prix_vente: article.prix_vente, 
+            prix_achat: article.prix_achat 
+          });
+          newDetails[index].prix = prix;
+        } else {
+          console.warn('⚠️ Article non trouvé:', value);
+        }
       }
-    }
-    
-    setDetails(newDetails);
-  };
+      
+      setDetails(newDetails);
+      setUpdating(false);
+    }, 0);
+  }, [details, articles]);
 
-  // Réinitialiser les détails quand le fournisseur change
+  // Filtrer les articles par recherche pour chaque ligne
+  const getFilteredArticles = useCallback((index: number) => {
+    const search = articleSearch[index]?.toLowerCase() || '';
+    if (!search) return articles.slice(0, 100); // Limiter à 100 articles par défaut
+    
+    return articles.filter(article => 
+      article.narticle.toLowerCase().includes(search) ||
+      article.designation?.toLowerCase().includes(search)
+    ).slice(0, 100); // Limiter les résultats à 100
+  }, [articles, articleSearch]);
+
+  // Ne pas réinitialiser les détails quand le fournisseur change en mode édition
   const handleSupplierChange = (newSupplier: string) => {
     setSelectedSupplier(newSupplier);
-    // Réinitialiser les articles sélectionnés car ils ne sont plus valides
-    setDetails([{ Narticle: '', Qte: 1, prix: 0, tva: 19 }]);
+    // En mode édition, on garde les détails existants
+    // L'utilisateur peut les modifier manuellement si nécessaire
   };
 
   const calculateTotal = () => {
@@ -279,6 +311,34 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
 
   return (
     <div className={styles.page}>
+      {updating && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'var(--card-background)',
+          padding: '1rem 2rem',
+          borderRadius: '8px',
+          boxShadow: 'var(--shadow-lg)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          border: '1px solid var(--border-color)'
+        }}>
+          <div style={{
+            width: '20px',
+            height: '20px',
+            border: '3px solid var(--border-color)',
+            borderTop: '3px solid var(--primary-color)',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite'
+          }}></div>
+          <span style={{ color: 'var(--text-primary)' }}>Mise à jour...</span>
+        </div>
+      )}
+      
       <header className={styles.header}>
         <h1>Modifier Facture d'Achat - {invoiceNumber || `ID-${invoiceId}`}</h1>
         <div>
@@ -337,7 +397,8 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th>Article</th>
+                    <th>Code Article</th>
+                    <th>Désignation</th>
                     <th>Quantité</th>
                     <th>Prix Unitaire (DA)</th>
                     <th>TVA (%)</th>
@@ -349,33 +410,44 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
                   {details.map((detail, index) => (
                     <tr key={index}>
                       <td>
-                        <select
-                          value={detail.Narticle}
-                          onChange={(e) => updateDetail(index, 'Narticle', e.target.value)}
-                          required
-                          disabled={!selectedSupplier}
-                        >
-                          <option value="">
-                            {!selectedSupplier 
-                              ? "Sélectionner d'abord un fournisseur" 
-                              : filteredArticles.length === 0 
-                                ? "Aucun article pour ce fournisseur"
-                                : "Sélectionner un article"
-                            }
-                          </option>
-                          {filteredArticles.map(article => (
-                            <option key={article.narticle} value={article.narticle}>
-                              {article.designation} ({article.narticle}) - Stock: {article.stock_f}
-                            </option>
-                          ))}
-                        </select>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <input
+                            type="text"
+                            placeholder="🔍 Rechercher..."
+                            value={articleSearch[index] || ''}
+                            onChange={(e) => setArticleSearch({...articleSearch, [index]: e.target.value})}
+                            style={{ 
+                              padding: '0.25rem 0.5rem', 
+                              fontSize: '0.85rem',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '4px',
+                              background: 'var(--background)'
+                            }}
+                          />
+                          <select
+                            value={detail.Narticle}
+                            onChange={(e) => updateDetail(index, 'Narticle', e.target.value)}
+                            required
+                            style={{ minWidth: '150px' }}
+                          >
+                            <option value="">Sélectionner...</option>
+                            {getFilteredArticles(index).map(article => (
+                              <option key={article.narticle} value={article.narticle}>
+                                {article.narticle}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </td>
+                      <td style={{ minWidth: '200px' }}>
+                        {detail.designation || '-'}
                       </td>
                       <td>
                         <input
                           type="number"
                           min="0.01"
                           step="0.01"
-                          value={detail.Qte}
+                          value={isNaN(detail.Qte) ? '' : detail.Qte}
                           onChange={(e) => updateDetail(index, 'Qte', parseFloat(e.target.value) || 0)}
                           required
                         />
@@ -385,7 +457,7 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
                           type="number"
                           min="0"
                           step="0.01"
-                          value={detail.prix}
+                          value={isNaN(detail.prix) ? '' : detail.prix}
                           onChange={(e) => updateDetail(index, 'prix', parseFloat(e.target.value) || 0)}
                           required
                         />
@@ -396,7 +468,7 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
                           min="0"
                           max="100"
                           step="0.01"
-                          value={detail.tva}
+                          value={isNaN(detail.tva) ? '' : detail.tva}
                           onChange={(e) => updateDetail(index, 'tva', parseFloat(e.target.value) || 0)}
                           required
                         />

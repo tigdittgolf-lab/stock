@@ -21,6 +21,7 @@ interface Article {
 
 interface PurchaseBLDetail {
   Narticle: string;
+  designation?: string;
   Qte: number;
   prix: number;
   tva: number;
@@ -100,11 +101,15 @@ export default function CreatePurchaseBL() {
     const newDetails = [...details];
     newDetails[index] = { ...newDetails[index], [field]: value };
     
-    // Auto-fill price from article data (utiliser les articles filtrés)
-    if (field === 'Narticle') {
+    // Auto-fill designation and price from article data
+    if (field === 'Narticle' && value) {
       const article = filteredArticles.find(a => a.narticle === value);
+      console.log('🔍 Article sélectionné:', article);
       if (article) {
-        newDetails[index].prix = article.prix_unitaire || 0;
+        newDetails[index].designation = article.designation;
+        const prix = article.prix_unitaire || article.prix_vente || article.prix_achat || 0;
+        console.log('💰 Prix trouvé:', prix);
+        newDetails[index].prix = prix;
       }
     }
     
@@ -260,8 +265,8 @@ export default function CreatePurchaseBL() {
           <div className={styles.formSection}>
             <h2>Articles Livrés</h2>
             {selectedSupplier && (
-              <div style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#e8f5e8', borderRadius: '4px' }}>
-                <p style={{ margin: 0, fontSize: '0.9rem', color: '#2e7d32' }}>
+              <div style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: 'var(--success-bg)', borderRadius: '4px', border: '1px solid var(--success-border)' }}>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--success-text)' }}>
                   📦 <strong>{filteredArticles.length}</strong> article{filteredArticles.length > 1 ? 's' : ''} disponible{filteredArticles.length > 1 ? 's' : ''} pour le fournisseur <strong>{suppliers.find(s => s.nfournisseur === selectedSupplier)?.nom_fournisseur || selectedSupplier}</strong>
                 </p>
               </div>
@@ -270,7 +275,8 @@ export default function CreatePurchaseBL() {
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th>Article</th>
+                    <th>Code Article</th>
+                    <th>Désignation</th>
                     <th>Quantité</th>
                     <th>Prix Unitaire (DA)</th>
                     <th>TVA (%)</th>
@@ -287,28 +293,32 @@ export default function CreatePurchaseBL() {
                           onChange={(e) => updateDetail(index, 'Narticle', e.target.value)}
                           required
                           disabled={!selectedSupplier}
+                          style={{ minWidth: '150px' }}
                         >
                           <option value="">
                             {!selectedSupplier 
                               ? "Sélectionner d'abord un fournisseur" 
                               : filteredArticles.length === 0 
                                 ? "Aucun article pour ce fournisseur"
-                                : "Sélectionner un article"
+                                : "Sélectionner..."
                             }
                           </option>
                           {filteredArticles.map(article => (
                             <option key={article.narticle} value={article.narticle}>
-                              {article.designation} ({article.narticle}) - Stock BL: {article.stock_bl}
+                              {article.narticle}
                             </option>
                           ))}
                         </select>
+                      </td>
+                      <td style={{ minWidth: '200px' }}>
+                        {detail.designation || '-'}
                       </td>
                       <td>
                         <input
                           type="number"
                           min="0.01"
                           step="0.01"
-                          value={detail.Qte}
+                          value={isNaN(detail.Qte) ? '' : detail.Qte}
                           onChange={(e) => updateDetail(index, 'Qte', parseFloat(e.target.value) || 0)}
                           required
                         />
@@ -318,7 +328,7 @@ export default function CreatePurchaseBL() {
                           type="number"
                           min="0"
                           step="0.01"
-                          value={detail.prix}
+                          value={isNaN(detail.prix) ? '' : detail.prix}
                           onChange={(e) => updateDetail(index, 'prix', parseFloat(e.target.value) || 0)}
                           required
                         />
@@ -329,7 +339,7 @@ export default function CreatePurchaseBL() {
                           min="0"
                           max="100"
                           step="0.01"
-                          value={detail.tva}
+                          value={isNaN(detail.tva) ? '' : detail.tva}
                           onChange={(e) => updateDetail(index, 'tva', parseFloat(e.target.value) || 0)}
                           required
                         />

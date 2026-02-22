@@ -1851,6 +1851,11 @@ sales.get('/articles', async (c) => {
     
     console.log(`✅ Found ${result.data?.length || 0} articles from ${dbType} database`);
     
+    // Log premier article pour debug
+    if (result.data && result.data.length > 0) {
+      console.log('📦 Structure du premier article:', JSON.stringify(result.data[0], null, 2));
+    }
+    
     // Apply cache modifications if necessary
     const cachedArticles = createdArticlesCache.get(tenant) || [];
     const modifications = createdArticlesCache.get(`${tenant}_modifications`) || new Map();
