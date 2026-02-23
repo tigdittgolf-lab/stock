@@ -82,3 +82,5 @@ target/
 *.sql.backup
 *.db
 *.sqlite
+
+ngrok.exe
