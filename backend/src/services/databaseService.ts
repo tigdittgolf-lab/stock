@@ -2684,9 +2684,17 @@ export class BackendDatabaseService {
     if (dbType === 'mysql') {
       sql = `
         SELECT 
-          bl.*,
+          bl.nfact,
           bl.nfact as nbl,
           bl.nfact as id,
+          bl.nclient,
+          bl.date_bl,
+          bl.montant_ht,
+          bl.tva,
+          bl.montant_ttc,
+          bl.timbre,
+          bl.autre_taxe,
+          bl.created_at,
           c.raison_sociale as client_name
         FROM \`${tenant}\`.bl bl
         LEFT JOIN \`${tenant}\`.client c ON bl.nclient = c.nclient
@@ -2695,9 +2703,17 @@ export class BackendDatabaseService {
     } else {
       sql = `
         SELECT 
-          bl.*,
+          bl.nfact,
           bl.nfact as nbl,
           bl.nfact as id,
+          bl.nclient,
+          bl.date_bl,
+          bl.montant_ht,
+          bl.tva,
+          bl.montant_ttc,
+          bl.timbre,
+          bl.autre_taxe,
+          bl.created_at,
           c.raison_sociale as client_name
         FROM "${tenant}".bl bl
         LEFT JOIN "${tenant}".client c ON bl.nclient = c.nclient
