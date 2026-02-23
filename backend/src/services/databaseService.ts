@@ -1845,65 +1845,70 @@ export class BackendDatabaseService {
   // ==================== FONCTIONS POUR LES ACHATS ====================
   
   private async getPurchaseBLList(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
-    try {
-      console.log(`📋 Getting purchase BL list for tenant: ${tenant}`);
-      
-      let sql;
-      if (dbType === 'mysql') {
-        sql = `
-          SELECT 
-            b.Nbl as nbl_achat,
-            b.Nfournisseur as nfournisseur,
-            b.numero_bl_fournisseur,
-            f.Nom_fournisseur as supplier_name,
-            b.Date_bl as date_bl,
-            b.Montant_ht as montant_ht,
-            b.Tva as tva,
-            b.Montant_ttc as montant_ttc,
-            b.created_at
-          FROM ${tenant}.bachat b
-          LEFT JOIN ${tenant}.fournisseur f ON b.Nfournisseur = f.Nfournisseur
-          ORDER BY b.Nbl DESC
-        `;
-      } else {
-        sql = `
-          SELECT 
-            b.nbl as nbl_achat,
-            b.nfournisseur,
-            b.numero_bl_fournisseur,
-            f.nom_fournisseur as supplier_name,
-            b.date_bl,
-            b.montant_ht,
-            b.tva,
-            b.montant_ttc,
-            b.created_at
-          FROM "${tenant}".bachat b
-          LEFT JOIN "${tenant}".fournisseur f ON b.nfournisseur = f.nfournisseur
-          ORDER BY b.nbl DESC
-        `;
-      }
-      
-      const result = dbType === 'mysql' 
-        ? await this.executeMySQLQuery(sql, [])
-        : await this.executePostgreSQLQuery(sql, []);
-      
-      if (!result.success) {
-        return result;
-      }
+      try {
+        console.log(`📋 Getting purchase BL list for tenant: ${tenant}`);
 
-      return {
-        success: true,
-        data: result.data || []
-      };
-      
-    } catch (error) {
-      console.error(`❌ Error getting purchase BL list:`, error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Erreur lors de la récupération des BL d\'achat'
-      };
+        let sql;
+        if (dbType === 'mysql') {
+          sql = `
+            SELECT 
+              b.Nbl as nbl_achat,
+              b.Nbl as nbl,
+              b.Nbl as id,
+              b.Nfournisseur as nfournisseur,
+              b.numero_bl_fournisseur,
+              f.Nom_fournisseur as supplier_name,
+              b.Date_bl as date_bl,
+              b.Montant_ht as montant_ht,
+              b.Tva as tva,
+              b.Montant_ttc as montant_ttc,
+              b.created_at
+            FROM ${tenant}.bachat b
+            LEFT JOIN ${tenant}.fournisseur f ON b.Nfournisseur = f.Nfournisseur
+            ORDER BY b.Nbl DESC
+          `;
+        } else {
+          sql = `
+            SELECT 
+              b.nbl as nbl_achat,
+              b.nbl as nbl,
+              b.nbl as id,
+              b.nfournisseur,
+              b.numero_bl_fournisseur,
+              f.nom_fournisseur as supplier_name,
+              b.date_bl,
+              b.montant_ht,
+              b.tva,
+              b.montant_ttc,
+              b.created_at
+            FROM "${tenant}".bachat b
+            LEFT JOIN "${tenant}".fournisseur f ON b.nfournisseur = f.nfournisseur
+            ORDER BY b.nbl DESC
+          `;
+        }
+
+        const result = dbType === 'mysql' 
+          ? await this.executeMySQLQuery(sql, [])
+          : await this.executePostgreSQLQuery(sql, []);
+
+        if (!result.success) {
+          return result;
+        }
+
+        return {
+          success: true,
+          data: result.data || []
+        };
+
+      } catch (error) {
+        console.error(`❌ Error getting purchase BL list:`, error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Erreur lors de la récupération des BL d\'achat'
+        };
+      }
     }
-  }
+
 
   private async getPurchaseBLById(dbType: 'mysql' | 'postgresql', tenant: string, nblAchat: number): Promise<any> {
     try {
