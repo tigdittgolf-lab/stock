@@ -7,10 +7,12 @@ export async function GET(request: NextRequest) {
     
     console.log(`🔍 Frontend API: Proxying to backend for tenant ${tenant}, DB: ${dbType}`);
     
-    // Faire la requête vers le backend local via Tailscale
-    const backendUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://midi-charm-harvard-performed.trycloudflare.com/api'
+    // Faire la requête vers le backend (ngrok ou local)
+    const backendUrl = process.env.BACKEND_URL 
+      ? `${process.env.BACKEND_URL}/api`
       : 'http://localhost:3005/api';
+    
+    console.log(`🌐 Backend URL: ${backendUrl}`);
     
     const response = await fetch(`${backendUrl}/sales/delivery-notes`, {
       method: 'GET',
@@ -23,7 +25,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      console.error(`Backend error:  Backend error: ${response.status} - ${await response.text()}`);
+      console.error(`Backend error: ${response.status} - ${await response.text()}`);
       return NextResponse.json({
         success: false,
         error: `Backend error: ${response.status}`
@@ -52,10 +54,12 @@ export async function POST(request: NextRequest) {
     
     console.log(`📝 Frontend API: Proxying POST to backend for tenant ${tenant}, DB: ${dbType}`);
     
-    // Faire la requête vers le backend local via Tailscale
-    const backendUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://midi-charm-harvard-performed.trycloudflare.com/api'
+    // Faire la requête vers le backend (ngrok ou local)
+    const backendUrl = process.env.BACKEND_URL 
+      ? `${process.env.BACKEND_URL}/api`
       : 'http://localhost:3005/api';
+    
+    console.log(`🌐 Backend URL: ${backendUrl}`);
     
     const response = await fetch(`${backendUrl}/sales/delivery-notes`, {
       method: 'POST',
@@ -69,7 +73,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      console.error(`Backend error:  Backend POST error: ${response.status} - ${await response.text()}`);
+      console.error(`Backend POST error: ${response.status} - ${await response.text()}`);
       return NextResponse.json({
         success: false,
         error: `Backend error: ${response.status}`
