@@ -26,8 +26,8 @@ export async function GET(
     const validId = String(numericId); // Normaliser l'ID
 
     // Faire la requête vers le backend local via le proxy frontend
-    const backendUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
+    const backendUrl = process.env.BACKEND_URL 
+      ? `${process.env.BACKEND_URL}/api`
       : 'http://localhost:3005/api';
     
     const response = await fetch(`${backendUrl}/pdf/delivery-note/${validId}`, {

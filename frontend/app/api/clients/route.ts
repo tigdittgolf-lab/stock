@@ -6,8 +6,8 @@ export async function GET(request: NextRequest) {
     
     console.log(`🔄 Frontend API: Forwarding clients request for tenant ${tenant}`);
     
-    // Utiliser Tailscale tunnel pour accéder au backend local
-    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://desktop-bhhs068.tail1d9c54.ts.net' : 'http://localhost:3005'}/api/clients`;
+    // Utiliser BACKEND_URL pour accéder au backend
+    const backendUrl = `${process.env.BACKEND_URL || 'http://localhost:3005'}/api/clients`;
     
     const response = await fetch(backendUrl, {
       method: 'GET',
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     
     console.log(`🔄 Frontend API: Forwarding create client request for tenant ${tenant}`);
     
-    const backendUrl = `${process.env.NODE_ENV === 'production' ? 'https://desktop-bhhs068.tail1d9c54.ts.net' : 'http://localhost:3005'}/api/clients`;
+    const backendUrl = `${process.env.BACKEND_URL || 'http://localhost:3005'}/api/clients`;
     
     const response = await fetch(backendUrl, {
       method: 'POST',

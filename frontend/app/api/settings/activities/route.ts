@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://midi-charm-harvard-performed.trycloudflare.com/api'
+const API_BASE_URL = process.env.BACKEND_URL 
+  ? `${process.env.BACKEND_URL}/api`
   : 'http://localhost:3005/api';
 
 export async function GET(request: NextRequest) {
