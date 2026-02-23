@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { nfact: string; nfournisseur: string } }
+  { params }: { params: Promise<{ nfact: string; nfournisseur: string }> }
 ) {
   try {
-    const { nfact, nfournisseur } = params;
+    const { nfact, nfournisseur } = await params;
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     const dbType = request.headers.get('X-Database-Type') || 'supabase';
     
@@ -51,10 +51,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { nfact: string; nfournisseur: string } }
+  { params }: { params: Promise<{ nfact: string; nfournisseur: string }> }
 ) {
   try {
-    const { nfact, nfournisseur } = params;
+    const { nfact, nfournisseur } = await params;
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
     const dbType = request.headers.get('X-Database-Type') || 'supabase';
     const body = await request.json();
