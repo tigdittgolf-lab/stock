@@ -1920,6 +1920,8 @@ export class BackendDatabaseService {
         headerSql = `
           SELECT 
             b.Nbl as nbl_achat,
+            b.Nbl as nbl,
+            b.Nbl as id,
             b.Nfournisseur as nfournisseur,
             b.numero_bl_fournisseur,
             f.Nom_fournisseur as supplier_name,
@@ -1950,6 +1952,8 @@ export class BackendDatabaseService {
         headerSql = `
           SELECT 
             b.nbl as nbl_achat,
+            b.nbl as nbl,
+            b.nbl as id,
             b.nfournisseur,
             b.numero_bl_fournisseur,
             f.nom_fournisseur as supplier_name,
