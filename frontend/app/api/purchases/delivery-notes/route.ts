@@ -1,94 +1,95 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function GET(request: NextRequest) {
   try {
     const tenant = request.headers.get('X-Tenant') || '2025_bu01';
-    console.log(`🔍 Récupération des BL achat pour le tenant: ${tenant}`);
-
-    try {
-      const { data, error } = await supabase.rpc('get_purchase_delivery_notes', {
-        p_tenant: tenant
-      });
-
-      console.log(`📊 Résultat RPC get_purchase_delivery_notes:`, { 
-        error: error, 
-        dataType: typeof data,
-        dataContent: data,
-        tenant: tenant 
-      });
-
-      if (!error && data) {
-        let deliveryNotes = data;
-        if (typeof data === 'string') {
-          try {
-            deliveryNotes = JSON.parse(data);
-          } catch (parseError) {
-            console.log('⚠️ Failed to parse JSON:', parseError);
-            deliveryNotes = [];
-          }
-        }
-        
-        console.log(`✅ BL achat récupérés via RPC:`, deliveryNotes?.length || 0);
-        return NextResponse.json({
-          success: true,
-          data: deliveryNotes || [],
-          debug: {
-            tenant: tenant,
-            method: 'rpc_function',
-            function: 'get_purchase_delivery_notes',
-            dataType: typeof data,
-            originalData: data
-          }
-        });
-      } else if (error) {
-        console.log(`❌ Erreur RPC:`, error);
-        return NextResponse.json({
-          success: true,
-          data: [],
-          debug: {
-            tenant: tenant,
-            error: error.message,
-            function: 'get_purchase_delivery_notes',
-            suggestion: 'Vérifiez que la fonction RPC get_purchase_delivery_notes existe dans Supabase'
-          }
-        });
-      }
-    } catch (rpcError) {
-      console.log('⚠️ RPC function failed:', rpcError);
-      return NextResponse.json({
-        success: true,
-        data: [],
-        debug: {
-          tenant: tenant,
-          error: rpcError instanceof Error ? rpcError.message : 'RPC Error',
-          function: 'get_purchase_delivery_notes',
-          suggestion: 'La fonction RPC get_purchase_delivery_notes n\'existe pas ou a échoué'
-        }
-      });
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: [],
-      debug: {
-        tenant: tenant,
-        method: 'fallback',
-        message: 'Aucune méthode n\'a fonctionné'
+    const dbType = request.headers.get('X-Database-Type') || 'supabase';
+    
+    console.log(`🔍 Frontend API: Proxying purchases BL to backend for tenant ${tenant}, DB: ${dbType}`);
+    
+    // Faire la requête vers le backend (ngrok ou local)
+    const backendUrl = process.env.BACKEND_URL 
+      ? `${process.env.BACKEND_URL}/api`
+      : 'http://localhost:3005/api';
+    
+    console.log(`🌐 Backend URL: ${backendUrl}`);
+    
+    const response = await fetch(`${backendUrl}/purchases/delivery-notes`, {
+      method: 'GET',
+      headers: {
+        'X-Tenant': tenant,
+        'X-Database-Type': dbType,
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       }
     });
 
+    if (!response.ok) {
+      console.error(`Backend error: ${response.status} - ${await response.text()}`);
+      return NextResponse.json({
+        success: false,
+        error: `Backend error: ${response.status}`
+      }, { status: response.status });
+    }
+
+    const data = await response.json();
+    console.log(`✅ Frontend API: Proxied ${data.data?.length || 0} purchase delivery notes from backend (${data.database_type || 'unknown'} database)`);
+
+    return NextResponse.json(data);
+
   } catch (error) {
-    console.error('❌ Erreur serveur:', error);
+    console.error('❌ Frontend API error:', error);
     return NextResponse.json({
       success: false,
-      error: 'Erreur interne du serveur',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Erreur serveur'
+    }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+    const dbType = request.headers.get('X-Database-Type') || 'supabase';
+    const body = await request.json();
+    
+    console.log(`📝 Frontend API: Proxying POST purchases BL to backend for tenant ${tenant}, DB: ${dbType}`);
+    
+    // Faire la requête vers le backend (ngrok ou local)
+    const backendUrl = process.env.BACKEND_URL 
+      ? `${process.env.BACKEND_URL}/api`
+      : 'http://localhost:3005/api';
+    
+    console.log(`🌐 Backend URL: ${backendUrl}`);
+    
+    const response = await fetch(`${backendUrl}/purchases/delivery-notes`, {
+      method: 'POST',
+      headers: {
+        'X-Tenant': tenant,
+        'X-Database-Type': dbType,
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      console.error(`Backend POST error: ${response.status} - ${await response.text()}`);
+      return NextResponse.json({
+        success: false,
+        error: `Backend error: ${response.status}`
+      }, { status: response.status });
+    }
+
+    const data = await response.json();
+    console.log(`✅ Frontend API: POST purchases BL proxied successfully (${data.database_type || 'unknown'} database)`);
+
+    return NextResponse.json(data);
+
+  } catch (error) {
+    console.error('❌ Frontend API POST error:', error);
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur serveur'
     }, { status: 500 });
   }
 }
