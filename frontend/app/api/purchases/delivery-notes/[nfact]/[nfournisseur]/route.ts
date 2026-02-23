@@ -11,7 +11,6 @@ export async function GET(
     
     console.log(`🔍 Frontend API: Proxying purchase BL ${nfact}/${nfournisseur} to backend for tenant ${tenant}, DB: ${dbType}`);
     
-    // Faire la requête vers le backend (ngrok ou local)
     const backendUrl = process.env.BACKEND_URL 
       ? `${process.env.BACKEND_URL}/api`
       : 'http://localhost:3005/api';
@@ -62,7 +61,6 @@ export async function PUT(
     
     console.log(`📝 Frontend API: Proxying PUT purchase BL ${nfact}/${nfournisseur} to backend for tenant ${tenant}, DB: ${dbType}`);
     
-    // Faire la requête vers le backend (ngrok ou local)
     const backendUrl = process.env.BACKEND_URL 
       ? `${process.env.BACKEND_URL}/api`
       : 'http://localhost:3005/api';
