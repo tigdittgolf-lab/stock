@@ -731,6 +731,162 @@ sales.get('/delivery-notes', async (c) => {
   }
 });
 
+// GET /api/sales/delivery-notes-by-payment-status - Filtrer les BLs par statut de paiement
+sales.get('/delivery-notes-by-payment-status', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    const paymentStatus = c.req.query('status'); // 'paid', 'partially_paid', 'unpaid'
+    if (!paymentStatus || !['paid', 'partially_paid', 'unpaid'].includes(paymentStatus)) {
+      return c.json({ success: false, error: 'Invalid payment status. Must be: paid, partially_paid, or unpaid' }, 400);
+    }
+
+    console.log(`📋 Fetching delivery notes with payment status: ${paymentStatus} for tenant: ${tenant}`);
+
+    // Récupérer tous les BLs via executeRPC (gère MySQL et Supabase)
+    const blResult = await backendDatabaseService.executeRPC('get_bl_list_by_tenant', {
+      p_tenant: tenant
+    });
+
+    if (!blResult.success || !blResult.data) {
+      console.error('Error fetching delivery notes:', blResult.error);
+      return c.json({ success: false, error: 'Failed to fetch delivery notes' }, 500);
+    }
+
+    const deliveryNotesRaw = blResult.data;
+    console.log(`📊 Total delivery notes: ${deliveryNotesRaw.length}`);
+
+    // Récupérer TOUS les paiements pour ce tenant en UNE SEULE requête
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    let allPayments = [];
+    
+    try {
+      console.log(`💰 Loading all payments for tenant ${tenant}...`);
+      
+      // Utiliser executeRPC avec une nouvelle fonction
+      const paymentsResult = await backendDatabaseService.executeRPC('get_all_payments_by_tenant', {
+        p_tenant: tenant,
+        p_document_type: 'delivery_note'
+      });
+      
+      allPayments = paymentsResult.success ? paymentsResult.data : [];
+      console.log(`💰 Loaded ${allPayments.length} payment summaries in one query`);
+    } catch (error) {
+      console.error('Error loading payments:', error);
+      allPayments = [];
+    }
+    
+    // Créer un map pour accès rapide: document_id -> total_paid
+    const paymentsMap = new Map();
+    allPayments.forEach((p: any) => {
+      const totalPaid = typeof p.total_paid === 'string' ? parseFloat(p.total_paid) : (p.total_paid || 0);
+      paymentsMap.set(p.document_id, totalPaid);
+    });
+    
+    console.log(`💰 Payments map created with ${paymentsMap.size} entries`);
+    // Debug: afficher quelques entrées
+    let count = 0;
+    for (const [docId, amount] of paymentsMap.entries()) {
+      if (count < 3) {
+        console.log(`  - Document ${docId}: ${amount} paid`);
+        count++;
+      }
+    }
+
+    // Filtrer par statut de paiement
+    const filteredBLs = [];
+    
+    for (const bl of deliveryNotesRaw) {
+      const blId = bl.nbl || bl.nfact || bl.id;
+      
+      try {
+        // Récupérer le total payé depuis le map (pas de requête DB!)
+        const totalPaid = paymentsMap.get(blId) || 0;
+
+        // Calculer le montant total du BL
+        const totalAmount = typeof bl.montant_ttc === 'string' 
+          ? parseFloat(bl.montant_ttc) 
+          : (bl.montant_ttc || (bl.montant_ht + bl.tva) || 0);
+
+        // Déterminer le statut
+        const balance = totalAmount - totalPaid;
+        let status = 'unpaid';
+        
+        if (Math.abs(balance) < 0.01) {
+          status = 'paid';
+        } else if (totalPaid > totalAmount) {
+          // Surpayé - considérer comme payé
+          status = 'paid';
+        } else if (totalPaid > 0 && balance > 0) {
+          status = 'partially_paid';
+        }
+        
+        // DEBUG: Log pour les BLs avec paiements
+        if (totalPaid > 0) {
+          console.log(`🔍 BL ${blId}: TTC=${totalAmount}, Paid=${totalPaid}, Balance=${balance}, Status=${status}`);
+        }
+
+        // Ajouter si le statut correspond
+        if (status === paymentStatus) {
+          filteredBLs.push({
+            nfact: bl.nfact || bl.nbl || bl.id,
+            nbl: bl.nbl || bl.nfact || bl.id,
+            nclient: bl.nclient,
+            date_fact: bl.date_fact || bl.date_bl || bl.created_at,
+            montant_ht: bl.montant_ht || 0,
+            tva: bl.tva || 0,
+            montant_ttc: totalAmount,
+            created_at: bl.created_at,
+            client_name: bl.client_name || bl.raison_sociale || bl.nclient,
+            payment_status: status,
+            total_paid: totalPaid,
+            balance: balance
+          });
+        }
+      } catch (error) {
+        console.error(`Error processing BL ${blId}:`, error);
+        // En cas d'erreur, considérer comme non payé
+        if (paymentStatus === 'unpaid') {
+          const totalAmount = typeof bl.montant_ttc === 'string' 
+            ? parseFloat(bl.montant_ttc) 
+            : (bl.montant_ttc || (bl.montant_ht + bl.tva) || 0);
+            
+          filteredBLs.push({
+            nfact: bl.nfact || bl.nbl || bl.id,
+            nbl: bl.nbl || bl.nfact || bl.id,
+            nclient: bl.nclient,
+            date_fact: bl.date_fact || bl.date_bl || bl.created_at,
+            montant_ht: bl.montant_ht || 0,
+            tva: bl.tva || 0,
+            montant_ttc: totalAmount,
+            created_at: bl.created_at,
+            client_name: bl.client_name || bl.raison_sociale || bl.nclient,
+            payment_status: 'unpaid',
+            total_paid: 0,
+            balance: totalAmount
+          });
+        }
+      }
+    }
+
+    console.log(`✅ Found ${filteredBLs.length} delivery notes with status: ${paymentStatus}`);
+    return c.json({ 
+      success: true, 
+      data: filteredBLs,
+      count: filteredBLs.length,
+      filter: paymentStatus,
+      database_type: backendDatabaseService.getActiveDatabaseType() 
+    });
+
+  } catch (error) {
+    console.error('Error filtering delivery notes by payment status:', error);
+    return c.json({ success: false, error: 'Failed to filter delivery notes' }, 500);
+  }
+});
+
 // GET /api/sales/delivery-notes/:id - Récupérer un bon de livraison spécifique
 sales.get('/delivery-notes/:id', async (c) => {
   try {

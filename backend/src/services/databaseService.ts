@@ -297,9 +297,12 @@ export class BackendDatabaseService {
       // Essayer d'abord la fonction RPC
       const { data, error } = await supabaseAdmin.rpc(functionName, params);
       if (error) {
-        // Si la fonction n'existe pas, utiliser une approche adaptative
-        if (error.message.includes('Could not find the function') || error.message.includes('schema cache')) {
-          console.log(`🔄 Supabase RPC ${functionName} not found, using adaptive fallback...`);
+        // Si la fonction n'existe pas OU a une erreur SQL, utiliser une approche adaptative
+        if (error.message.includes('Could not find the function') || 
+            error.message.includes('schema cache') ||
+            error.message.includes('does not exist') ||
+            error.message.includes('column')) {
+          console.log(`🔄 Supabase RPC ${functionName} failed (${error.message}), using adaptive fallback...`);
           return this.executeSupabaseAdaptiveFallback(functionName, params);
         }
         throw new Error(`Supabase RPC error: ${error.message}`);
@@ -308,7 +311,9 @@ export class BackendDatabaseService {
     } catch (error) {
       console.error(`Supabase RPC ${functionName} failed:`, error);
       // Essayer le fallback adaptatif
-      if (error instanceof Error && error.message.includes('Could not find the function')) {
+      if (error instanceof Error && (error.message.includes('Could not find the function') || 
+                                      error.message.includes('does not exist') ||
+                                      error.message.includes('column'))) {
         console.log(`🔄 Using adaptive fallback for ${functionName}...`);
         return this.executeSupabaseAdaptiveFallback(functionName, params);
       }
@@ -363,11 +368,11 @@ export class BackendDatabaseService {
           
         default:
           console.log(`⚠️ No adaptive fallback available for ${functionName}, using mock data`);
-          return this.getMockDataForFunction(functionName, params);
+          return await this.getMockDataForFunction(functionName, params);
       }
     } catch (error) {
       console.error(`❌ Adaptive fallback failed for ${functionName}:`, error);
-      return this.getMockDataForFunction(functionName, params);
+      return await this.getMockDataForFunction(functionName, params);
     }
   }
 
@@ -1032,7 +1037,7 @@ export class BackendDatabaseService {
     };
   }
 
-  private getMockDataForFunction(functionName: string, params: Record<string, any>): any {
+  private async getMockDataForFunction(functionName: string, params: Record<string, any>): Promise<any> {
     switch (functionName) {
       case 'get_proforma_list':
       case 'get_proforma_list_by_tenant':
@@ -1042,7 +1047,14 @@ export class BackendDatabaseService {
         // Pour les BL, retourner des données vides si pas de vraies données
         return { success: true, data: [] };
       default:
-        return { success: true, data: [] };
+        // Essayer la conversion SQL avant de retourner des données vides
+        console.log(`⚠️ No adaptive fallback available for ${functionName}, trying SQL conversion...`);
+        try {
+          return await this.convertRPCToSQL('postgresql', functionName, params);
+        } catch (error) {
+          console.error(`❌ SQL conversion failed for ${functionName}:`, error);
+          return { success: true, data: [] };
+        }
     }
   }
 
@@ -1290,6 +1302,8 @@ export class BackendDatabaseService {
         case 'get_bl_by_id':
         case 'get_bl_by_id_from_tenant':
           return this.getBLById(dbType, params.p_tenant, params.p_nfact);
+        case 'get_bl_with_details':
+          return this.getBLWithDetails(dbType, params.p_tenant, params.p_nfact);
         case 'get_fact_list':
         case 'get_fact_list_by_tenant':
           return this.getFactList(dbType, params.p_tenant);
@@ -1402,6 +1416,11 @@ export class BackendDatabaseService {
           return this.insertPurchaseInvoice(dbType, params);
         case 'insert_detail_purchase_invoice':
           return this.insertDetailPurchaseInvoice(dbType, params);
+        // Fonctions pour les paiements
+        case 'get_payments_by_document':
+          return this.getPaymentsByDocument(dbType, params.p_tenant, params.p_document_type, params.p_document_id);
+        case 'get_all_payments_by_tenant':
+          return this.getAllPaymentsByTenant(dbType, params.p_tenant, params.p_document_type);
         default:
           throw new Error(`RPC function ${functionName} not implemented for ${dbType}`);
       }
@@ -1852,17 +1871,8 @@ export class BackendDatabaseService {
         if (dbType === 'mysql') {
           sql = `
             SELECT 
-              b.Nbl as nbl_achat,
-              b.Nbl as nbl,
-              b.Nbl as id,
-              b.Nfournisseur as nfournisseur,
-              b.numero_bl_fournisseur,
-              f.Nom_fournisseur as supplier_name,
-              b.Date_bl as date_bl,
-              b.Montant_ht as montant_ht,
-              b.Tva as tva,
-              b.Montant_ttc as montant_ttc,
-              b.created_at
+              b.*,
+              f.Nom_fournisseur as supplier_name
             FROM ${tenant}.bachat b
             LEFT JOIN ${tenant}.fournisseur f ON b.Nfournisseur = f.Nfournisseur
             ORDER BY b.Nbl DESC
@@ -1870,17 +1880,8 @@ export class BackendDatabaseService {
         } else {
           sql = `
             SELECT 
-              b.nbl as nbl_achat,
-              b.nbl as nbl,
-              b.nbl as id,
-              b.nfournisseur,
-              b.numero_bl_fournisseur,
-              f.nom_fournisseur as supplier_name,
-              b.date_bl,
-              b.montant_ht,
-              b.tva,
-              b.montant_ttc,
-              b.created_at
+              b.*,
+              f.nom_fournisseur as supplier_name
             FROM "${tenant}".bachat b
             LEFT JOIN "${tenant}".fournisseur f ON b.nfournisseur = f.nfournisseur
             ORDER BY b.nbl DESC
@@ -2131,6 +2132,21 @@ export class BackendDatabaseService {
       
       if (!result.success) {
         return result;
+      }
+
+      // Normaliser les données pour MySQL: ajouter les alias nbl et id
+      if (result.data && dbType === 'mysql') {
+        result.data = result.data.map((row: any) => {
+          // MySQL peut retourner les colonnes avec différentes casses
+          const nblValue = row.nbl || row.Nbl || row.NBL || row.nbl_achat;
+          return {
+            ...row,
+            nbl: nblValue,
+            id: nblValue,
+            nbl_achat: nblValue
+          };
+        });
+        console.log(`✅ Normalized ${result.data.length} purchase BL records with nbl/id aliases`);
       }
 
       return {
@@ -2684,43 +2700,68 @@ export class BackendDatabaseService {
     if (dbType === 'mysql') {
       sql = `
         SELECT 
-          bl.nfact,
-          bl.nfact as nbl,
-          bl.nfact as id,
-          bl.nclient,
-          bl.date_bl,
-          bl.montant_ht,
-          bl.tva,
-          bl.montant_ttc,
-          bl.timbre,
-          bl.autre_taxe,
-          bl.created_at,
+          bl.*,
           c.raison_sociale as client_name
         FROM \`${tenant}\`.bl bl
         LEFT JOIN \`${tenant}\`.client c ON bl.nclient = c.nclient
         ORDER BY bl.nfact DESC
       `;
     } else {
+      // PostgreSQL/Supabase: utiliser les noms de colonnes avec majuscules
       sql = `
         SELECT 
-          bl.nfact,
-          bl.nfact as nbl,
-          bl.nfact as id,
-          bl.nclient,
-          bl.date_bl,
-          bl.montant_ht,
-          bl.tva,
-          bl.montant_ttc,
-          bl.timbre,
-          bl.autre_taxe,
-          bl.created_at,
+          bl.*,
           c.raison_sociale as client_name
         FROM "${tenant}".bl bl
-        LEFT JOIN "${tenant}".client c ON bl.nclient = c.nclient
+        LEFT JOIN "${tenant}".client c ON bl."Nclient" = c."Nclient"
         ORDER BY bl.nfact DESC
       `;
     }
-    return dbType === 'mysql' ? this.executeMySQLQuery(sql, []) : this.executePostgreSQLQuery(sql, []);
+    
+    const result = dbType === 'mysql' ? await this.executeMySQLQuery(sql, []) : await this.executePostgreSQLQuery(sql, []);
+    
+    // Normaliser les données: ajouter les alias nbl et id, calculer montant_ttc
+    if (result.success && result.data) {
+      result.data = result.data.map((row: any) => {
+        // MySQL peut retourner les colonnes avec différentes casses
+        const nfactValue = row.nfact || row.Nfact || row.NFact || row.NFACT;
+        
+        // Calculer montant_ttc si absent
+        const montant_ht = typeof row.montant_ht === 'string' ? parseFloat(row.montant_ht) : (row.montant_ht || 0);
+        const tva = typeof row.tva === 'string' ? parseFloat(row.tva) : (row.tva || 0);
+        const montant_ttc = row.montant_ttc || (montant_ht + tva);
+        
+        const normalized = {
+          ...row,
+          nfact: nfactValue,
+          nbl: nfactValue,
+          id: nfactValue,
+          montant_ht: montant_ht,
+          tva: tva,
+          montant_ttc: montant_ttc
+        };
+        
+        // Log le premier BL pour debug
+        if (result.data.indexOf(row) === 0) {
+          console.log(`🔍 First BL after normalization (${dbType}):`, {
+            original_nfact: row.nfact,
+            original_Nfact: row.Nfact,
+            original_NFact: row.NFact,
+            normalized_nfact: normalized.nfact,
+            normalized_nbl: normalized.nbl,
+            normalized_id: normalized.id,
+            montant_ht: normalized.montant_ht,
+            tva: normalized.tva,
+            montant_ttc: normalized.montant_ttc,
+            all_keys: Object.keys(row).slice(0, 10)
+          });
+        }
+        return normalized;
+      });
+      console.log(`✅ Normalized ${result.data.length} BL records with nbl/id aliases and montant_ttc (${dbType})`);
+    }
+    
+    return result;
   }
 
   private async getBLById(dbType: 'mysql' | 'postgresql', tenant: string, nfact: string): Promise<any> {
@@ -2736,8 +2777,8 @@ export class BackendDatabaseService {
                  CAST(bl.autre_taxe AS DECIMAL(15,2)) as autre_taxe_numeric,
                  CAST(bl.montant_ht AS DECIMAL(15,2)) + CAST(bl.tva AS DECIMAL(15,2)) + CAST(bl.timbre AS DECIMAL(15,2)) + CAST(bl.autre_taxe AS DECIMAL(15,2)) as montant_ttc_calculated
           FROM \`${tenant}\`.bl bl
-          LEFT JOIN \`${tenant}\`.client c ON bl.nclient = c.nclient
-          WHERE bl.nfact = ?
+          LEFT JOIN \`${tenant}\`.client c ON bl.Nclient = c.Nclient
+          WHERE bl.NFact = ?
         `;
       } else {
         blSql = `
@@ -2773,9 +2814,9 @@ export class BackendDatabaseService {
                  CAST(d.tva AS DECIMAL(5,2)) as tva_numeric,
                  CAST(d.total_ligne AS DECIMAL(15,2)) as total_ligne_numeric
           FROM \`${tenant}\`.detail_bl d
-          LEFT JOIN \`${tenant}\`.article a ON d.narticle = a.narticle
-          WHERE d.nfact = ?
-          ORDER BY d.narticle
+          LEFT JOIN \`${tenant}\`.article a ON d.Narticle = a.Narticle
+          WHERE d.NFact = ?
+          ORDER BY d.Narticle
         `;
       } else {
         detailsSql = `
@@ -2855,6 +2896,52 @@ export class BackendDatabaseService {
       return { success: true, data: result };
     } catch (error) {
       console.error(`❌ ${dbType}: Error fetching BL ${nfact}:`, error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  private async getBLWithDetails(dbType: 'mysql' | 'postgresql', tenant: string, nfact: number): Promise<any> {
+    try {
+      console.log(`📋 Fetching BL with details: ${nfact} from tenant: ${tenant} (${dbType})`);
+      
+      // Récupérer le BL avec getBLById qui fait déjà tout le travail
+      const blResult = await this.getBLById(dbType, tenant, nfact.toString());
+      
+      if (!blResult.success || !blResult.data) {
+        console.log(`❌ BL ${nfact} not found`);
+        return { success: false, error: 'BL not found' };
+      }
+      
+      const blData = blResult.data;
+      
+      // Formater la réponse dans le format attendu par le frontend (compatible avec PostgreSQL RPC)
+      const response = {
+        success: true,
+        data: {
+          // En-tête du BL
+          nfact: blData.nbl || blData.nfact,
+          nbl: blData.nbl || blData.nfact,
+          nclient: blData.nclient,
+          client_name: blData.client_name,
+          client_address: blData.client_address,
+          client_phone: blData.client_phone,
+          date_fact: blData.date_fact,
+          date_bl: blData.date_bl || blData.date_fact,
+          montant_ht: blData.montant_ht,
+          tva: blData.tva,
+          timbre: blData.timbre,
+          autre_taxe: blData.autre_taxe,
+          montant_ttc: blData.montant_ttc,
+          // Détails des articles
+          details: blData.details || []
+        }
+      };
+      
+      console.log(`✅ BL ${nfact} fetched with ${response.data.details.length} details`);
+      return response;
+      
+    } catch (error) {
+      console.error(`❌ ${dbType}: Error fetching BL with details ${nfact}:`, error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
@@ -3348,6 +3435,174 @@ export class BackendDatabaseService {
       sql = `SELECT COALESCE(MAX(nfact), 0) + 1 as next_number FROM "${tenant}".fprof`;
     }
     return dbType === 'mysql' ? this.executeMySQLQuery(sql, []) : this.executePostgreSQLQuery(sql, []);
+  }
+
+  // Méthodes pour les paiements
+  private async getPaymentsByDocument(
+    dbType: 'mysql' | 'postgresql', 
+    tenant: string, 
+    documentType: string, 
+    documentId: number
+  ): Promise<any> {
+    console.log(`💰 Getting payments for ${documentType} ${documentId} in tenant ${tenant} (${dbType})`);
+    
+    // Si on est sur Supabase (détecté via le type actif), utiliser le client Supabase
+    const activeDbType = this.getActiveDatabaseType();
+    if (activeDbType === 'supabase') {
+      console.log(`💰 Using Supabase client for payments query`);
+      try {
+        const { data, error } = await supabaseAdmin
+          .from('payments')
+          .select('*')
+          .eq('tenant_id', tenant)
+          .eq('document_type', documentType)
+          .eq('document_id', documentId)
+          .order('payment_date', { ascending: false })
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error(`❌ Supabase query error:`, error);
+          return { success: false, error: error.message };
+        }
+        
+        console.log(`✅ Found ${data?.length || 0} payments for ${documentType} ${documentId}`);
+        return { success: true, data: data || [] };
+      } catch (error) {
+        console.error(`❌ Supabase payments query failed:`, error);
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      }
+    }
+    
+    let sql;
+    if (dbType === 'mysql') {
+      // Pour MySQL, la table payments est dans stock_management (base centrale)
+      sql = `
+        SELECT 
+          id,
+          tenant_id,
+          document_type,
+          document_id,
+          payment_date,
+          amount,
+          payment_method,
+          notes,
+          created_at,
+          created_by,
+          updated_at,
+          updated_by
+        FROM stock_management.payments
+        WHERE tenant_id = ? AND document_type = ? AND document_id = ?
+        ORDER BY payment_date DESC, created_at DESC
+      `;
+    } else {
+      // Pour PostgreSQL/Supabase, la table payments est dans public (base centrale)
+      sql = `
+        SELECT 
+          id,
+          tenant_id,
+          document_type,
+          document_id,
+          payment_date,
+          amount,
+          payment_method,
+          notes,
+          created_at,
+          created_by,
+          updated_at,
+          updated_by
+        FROM public.payments
+        WHERE tenant_id = $1 AND document_type = $2 AND document_id = $3
+        ORDER BY payment_date DESC, created_at DESC
+      `;
+    }
+    
+    const result = dbType === 'mysql' 
+      ? await this.executeMySQLQuery(sql, [tenant, documentType, documentId])
+      : await this.executePostgreSQLQuery(sql, [tenant, documentType, documentId]);
+    
+    if (result.success) {
+      console.log(`✅ Found ${result.data?.length || 0} payments for ${documentType} ${documentId}`);
+    } else {
+      console.error(`❌ Error fetching payments:`, result.error);
+    }
+    
+    return result;
+  }
+
+  private async getAllPaymentsByTenant(
+    dbType: 'mysql' | 'postgresql',
+    tenant: string,
+    documentType: string
+  ): Promise<any> {
+    console.log(`💰 Getting ALL payments summary for tenant ${tenant}, type ${documentType} (${dbType})`);
+    
+    // Si on est sur Supabase (détecté via le type actif), utiliser le client Supabase
+    const activeDbType = this.getActiveDatabaseType();
+    if (activeDbType === 'supabase') {
+      console.log(`💰 Using Supabase client for payments query`);
+      try {
+        const { data, error } = await supabaseAdmin
+          .from('payments')
+          .select('document_id, amount')
+          .eq('tenant_id', tenant)
+          .eq('document_type', documentType);
+        
+        if (error) {
+          console.error(`❌ Supabase query error:`, error);
+          return { success: false, error: error.message };
+        }
+        
+        // Grouper et sommer les paiements par document_id
+        const paymentSummaries = new Map<number, number>();
+        data?.forEach((payment: any) => {
+          const docId = payment.document_id;
+          const amount = typeof payment.amount === 'string' ? parseFloat(payment.amount) : payment.amount;
+          paymentSummaries.set(docId, (paymentSummaries.get(docId) || 0) + amount);
+        });
+        
+        // Convertir en tableau
+        const result = Array.from(paymentSummaries.entries()).map(([document_id, total_paid]) => ({
+          document_id,
+          total_paid
+        }));
+        
+        console.log(`✅ Found payment summaries for ${result.length} documents`);
+        return { success: true, data: result };
+      } catch (error) {
+        console.error(`❌ Supabase payments query failed:`, error);
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      }
+    }
+    
+    // Pour MySQL et PostgreSQL local
+    let sql;
+    if (dbType === 'mysql') {
+      sql = `
+        SELECT document_id, SUM(amount) as total_paid 
+        FROM stock_management.payments 
+        WHERE tenant_id = ? AND document_type = ?
+        GROUP BY document_id
+      `;
+    } else {
+      sql = `
+        SELECT document_id, SUM(amount) as total_paid 
+        FROM public.payments 
+        WHERE tenant_id = $1 AND document_type = $2
+        GROUP BY document_id
+      `;
+    }
+    
+    const result = dbType === 'mysql'
+      ? await this.executeMySQLQuery(sql, [tenant, documentType])
+      : await this.executePostgreSQLQuery(sql, [tenant, documentType]);
+    
+    if (result.success) {
+      console.log(`✅ Found payment summaries for ${result.data?.length || 0} documents`);
+    } else {
+      console.error(`❌ Error fetching payment summaries:`, result.error);
+    }
+    
+    return result;
   }
 
   // Méthodes pour l'activité

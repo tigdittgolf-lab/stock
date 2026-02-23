@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import PrintOptions from '../../../components/PrintOptions';
 import LoadingSpinner from '../../../components/LoadingSpinner';
@@ -36,11 +36,14 @@ export default function DeliveryNotesList() {
   const [minAmount, setMinAmount] = useState('');
   const [maxAmount, setMaxAmount] = useState('');
   const [selectedClient, setSelectedClient] = useState('');
-  const [paymentStatus, setPaymentStatus] = useState<'all' | 'paid' | 'partially_paid'>('all');
+  const [paymentStatus, setPaymentStatus] = useState<'all' | 'paid' | 'partially_paid' | 'unpaid'>('all');
   const [showFilters, setShowFilters] = useState(false);
   
   // État pour stocker les statuts de paiement
   const [paymentStatuses, setPaymentStatuses] = useState<Record<number, string>>({});
+  
+  // Ref pour éviter les chargements multiples
+  const isLoadingStatuses = useRef(false);
   
   // États pour la pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -136,9 +139,7 @@ export default function DeliveryNotesList() {
         setFilteredDeliveryNotes(notes);
         console.log(`✅ Delivery notes loaded successfully: ${notes.length} BL`);
         
-        // NE PLUS charger les statuts de paiement automatiquement
-        // C'est trop lourd et cause des boucles infinies
-        // loadPaymentStatusesInBackground(data.data || [], tenantSchema);
+        // Les statuts seront chargés par le useEffect de pagination
       } else {
         throw new Error(data.error || 'Failed to load delivery notes');
       }
@@ -198,7 +199,89 @@ export default function DeliveryNotesList() {
     }
   };
 
+  // Fonction optimisée pour calculer les statuts de paiement localement
+  // Charge les statuts pour tous les BLs filtrés quand nécessaire
+  const loadPaymentStatusesOptimized = async (notes: DeliveryNote[], tenantSchema: string, dbType: string) => {
+    // Éviter les chargements multiples simultanés
+    if (isLoadingStatuses.current) {
+      console.log('⏸️ Already loading statuses, skipping...');
+      return null;
+    }
+    
+    isLoadingStatuses.current = true;
+    console.log(`📊 Loading payment statuses for ${notes.length} BLs...`);
+    
+    try {
+      const statuses: Record<number, string> = {};
+      
+      // Calculer le statut pour tous les BLs
+      for (const note of notes) {
+        try {
+          // Récupérer les paiements pour ce BL
+          const response = await fetch(
+            `/api/payments?documentType=delivery_note&documentId=${note.nbl}`,
+            {
+              headers: {
+                'X-Tenant': tenantSchema,
+                'X-Database-Type': dbType
+              }
+            }
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+              const payments = data.data;
+              
+              // Calculer le total payé
+              const totalPaid = payments.reduce((sum: number, p: any) => {
+                const amount = typeof p.amount === 'string' ? parseFloat(p.amount) : p.amount;
+                return sum + (isNaN(amount) ? 0 : amount);
+              }, 0);
+              
+              // Calculer le montant total du BL
+              const totalAmount = typeof note.montant_ttc === 'string' 
+                ? parseFloat(note.montant_ttc) 
+                : (note.montant_ttc || (note.montant_ht + note.tva));
+              
+              // Déterminer le statut
+              const balance = totalAmount - totalPaid;
+              
+              if (Math.abs(balance) < 0.01) {
+                statuses[note.nbl] = 'paid';
+              } else if (totalPaid > 0 && balance > 0) {
+                statuses[note.nbl] = 'partially_paid';
+                console.log(`💰 BL ${note.nbl}: Total=${totalAmount.toFixed(2)}, Payé=${totalPaid.toFixed(2)}, Statut=partially_paid`);
+              } else if (totalPaid > totalAmount) {
+                statuses[note.nbl] = 'overpaid';
+              } else {
+                statuses[note.nbl] = 'unpaid';
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Error loading payment status for BL ${note.nbl}:`, error);
+          statuses[note.nbl] = 'unpaid';
+        }
+      }
+      
+      console.log(`✅ Loaded payment statuses for ${Object.keys(statuses).length} BLs`);
+      console.log(`📊 Status breakdown:`, {
+        paid: Object.values(statuses).filter(s => s === 'paid').length,
+        partially_paid: Object.values(statuses).filter(s => s === 'partially_paid').length,
+        unpaid: Object.values(statuses).filter(s => s === 'unpaid').length,
+        overpaid: Object.values(statuses).filter(s => s === 'overpaid').length
+      });
+      
+      // Retourner les statuts
+      return statuses;
+    } finally {
+      isLoadingStatuses.current = false;
+    }
+  };
+
   // Fonction de filtrage améliorée
+  // IMPORTANT: Ne pas inclure paymentStatuses dans les dépendances pour éviter la boucle infinie
   const applyFilters = useCallback(() => {
     let filtered = [...deliveryNotes];
 
@@ -240,8 +323,9 @@ export default function DeliveryNotesList() {
       filtered = filtered.filter(bl => (bl.montant_ttc || (bl.montant_ht + bl.tva)) <= parseFloat(maxAmount));
     }
 
-    // Filtre par statut de paiement
+    // Filtre par statut de paiement - utiliser l'état actuel sans dépendance
     if (paymentStatus !== 'all') {
+      const beforeFilter = filtered.length;
       filtered = filtered.filter(bl => {
         const status = paymentStatuses[bl.nbl];
         if (paymentStatus === 'paid') {
@@ -251,6 +335,7 @@ export default function DeliveryNotesList() {
         }
         return true;
       });
+      console.log(`💰 Payment filter: ${beforeFilter} BLs → ${filtered.length} BLs (looking for ${paymentStatus})`);
     }
 
     console.log(`📊 Filtering results:`, {
@@ -263,11 +348,12 @@ export default function DeliveryNotesList() {
       dateTo,
       minAmount,
       maxAmount,
-      paymentStatus
+      paymentStatus,
+      statusesLoaded: Object.keys(paymentStatuses).length
     });
 
     setFilteredDeliveryNotes(filtered);
-  }, [deliveryNotes, searchTerm, selectedClient, dateFrom, dateTo, minAmount, maxAmount, paymentStatus, paymentStatuses]);
+  }, [deliveryNotes, searchTerm, selectedClient, dateFrom, dateTo, minAmount, maxAmount]); // RETIRER paymentStatus des dépendances!
 
   // Fonction pour calculer les totaux
   const calculateTotals = () => {
@@ -289,9 +375,107 @@ export default function DeliveryNotesList() {
 
   // Effet pour appliquer les filtres quand ils changent
   useEffect(() => {
+    // Ne PAS appliquer automatiquement si on est en train de charger les statuts de paiement
+    if (isLoadingStatuses.current) {
+      console.log('⏸️ Skipping applyFilters - loading statuses in progress');
+      return;
+    }
+    
     applyFilters();
     setCurrentPage(1); // Réinitialiser à la page 1 quand les filtres changent
   }, [applyFilters]);
+  
+  // Charger TOUS les statuts quand le filtre par statut de paiement est activé
+  useEffect(() => {
+    console.log(`🔍 Payment filter useEffect triggered - paymentStatus: ${paymentStatus}`);
+    
+    // Ne charger que si on active un filtre de paiement (pas "all")
+    if (paymentStatus === 'all') {
+      console.log('✅ Payment status is "all", using normal filter');
+      // Appliquer les filtres normaux sans filtre de paiement
+      applyFilters();
+      return;
+    }
+    
+    if (deliveryNotes.length === 0) {
+      console.log('⚠️ No delivery notes to filter');
+      return;
+    }
+    
+    const tenantInfo = localStorage.getItem('tenant_info');
+    const dbConfig = localStorage.getItem('activeDbConfig');
+    
+    if (!tenantInfo || !dbConfig) {
+      console.error('❌ Missing tenant info or db config');
+      return;
+    }
+    
+    const tenant = JSON.parse(tenantInfo);
+    const dbType = JSON.parse(dbConfig).type;
+    
+    console.log(`🔍 Payment status filter activated: ${paymentStatus}, fetching from backend...`);
+    
+    // Appeler la nouvelle API backend qui filtre côté serveur
+    fetch(`/api/sales/delivery-notes-by-payment-status?status=${paymentStatus}`, {
+      headers: {
+        'X-Tenant': tenant.schema,
+        'X-Database-Type': dbType
+      }
+    })
+    .then(response => response.json())
+    .then(result => {
+      if (!result.success) {
+        console.error('❌ Error from backend:', result.error);
+        return;
+      }
+      
+      console.log(`✅ Received ${result.count} BLs with status ${paymentStatus} from backend`);
+      
+      // Appliquer les autres filtres sur les résultats
+      let filtered = result.data || [];
+      
+      // Appliquer tous les autres filtres
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase().trim();
+        filtered = filtered.filter(bl => {
+          if (/^\d+$/.test(searchTerm.trim())) {
+            const blNumber = String(bl.nfact || bl.nbl || '').trim();
+            return blNumber === searchTerm.trim();
+          } else {
+            const clientMatch = bl.client_name?.toLowerCase().includes(searchLower);
+            const clientCodeMatch = bl.nclient?.toLowerCase().includes(searchLower);
+            return clientMatch || clientCodeMatch;
+          }
+        });
+      }
+      
+      if (selectedClient) {
+        filtered = filtered.filter(bl => bl.client_name === selectedClient);
+      }
+      
+      if (dateFrom) {
+        filtered = filtered.filter(bl => new Date(bl.date_fact) >= new Date(dateFrom));
+      }
+      if (dateTo) {
+        filtered = filtered.filter(bl => new Date(bl.date_fact) <= new Date(dateTo));
+      }
+      
+      if (minAmount) {
+        filtered = filtered.filter(bl => (bl.montant_ttc || (bl.montant_ht + bl.tva)) >= parseFloat(minAmount));
+      }
+      if (maxAmount) {
+        filtered = filtered.filter(bl => (bl.montant_ttc || (bl.montant_ht + bl.tva)) <= parseFloat(maxAmount));
+      }
+      
+      console.log(`✅ Final filtered results: ${filtered.length} BLs`);
+      setFilteredDeliveryNotes(filtered);
+    })
+    .catch(error => {
+      console.error('❌ Error fetching filtered delivery notes:', error);
+    });
+  }, [paymentStatus]); // ⚠️ UNIQUEMENT quand paymentStatus change
+  
+  // Calculer la pagination
   
   // Calculer la pagination
   const totalPages = Math.ceil(filteredDeliveryNotes.length / itemsPerPage);
@@ -1027,9 +1211,10 @@ export default function DeliveryNotesList() {
                     color: 'var(--text-primary)'
                   }}
                 >
-                  <option value="all">Tous (payés + partiellement payés + non payés)</option>
+                  <option value="all">Tous</option>
                   <option value="paid">🟢 Payés totalement</option>
                   <option value="partially_paid">🟡 Partiellement payés</option>
+                  <option value="unpaid">🔴 Non payés (aucun paiement)</option>
                 </select>
               </div>
 
