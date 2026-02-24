@@ -10,8 +10,8 @@ interface PaymentFormProps {
     documentType: 'delivery_note' | 'invoice';
     documentId: number;
     documentNumber: string;
-    documentTotalAmount: number;
-    currentBalance?: number;
+    documentTotalAmount: number | string; // MySQL peut retourner DECIMAL comme string
+    currentBalance?: number | string;
     onSuccess: () => void;
     onCancel: () => void;
 }
@@ -34,6 +34,16 @@ export default function PaymentForm({
     onSuccess,
     onCancel
 }: PaymentFormProps) {
+    // Helper pour convertir les montants de manière sûre (MySQL retourne DECIMAL comme string)
+    const toNumber = (value: number | string | undefined): number => {
+        if (value === undefined || value === null) return 0;
+        const num = typeof value === 'string' ? parseFloat(value) : value;
+        return isNaN(num) ? 0 : num;
+    };
+
+    const totalAmount = toNumber(documentTotalAmount);
+    const initialBalance = toNumber(currentBalance !== undefined ? currentBalance : documentTotalAmount);
+
     const [paymentDate, setPaymentDate] = useState<string>(
         new Date().toISOString().split('T')[0]
     );
@@ -42,7 +52,7 @@ export default function PaymentForm({
     const [notes, setNotes] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<string[]>([]);
-    const [balance, setBalance] = useState<number>(currentBalance || documentTotalAmount);
+    const [balance, setBalance] = useState<number>(initialBalance);
 
     useEffect(() => {
         // Fetch current balance if not provided
@@ -174,7 +184,7 @@ export default function PaymentForm({
             <div className={styles.balanceInfo}>
                 <div className={styles.balanceRow}>
                     <span>Montant total:</span>
-                    <strong>{documentTotalAmount.toFixed(2)} DA</strong>
+                    <strong>{totalAmount.toFixed(2)} DA</strong>
                 </div>
                 <div className={styles.balanceRow}>
                     <span>Solde restant:</span>

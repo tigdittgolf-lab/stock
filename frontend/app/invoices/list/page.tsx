@@ -91,12 +91,14 @@ export default function InvoicesList() {
       const data = await response.json();
 
       if (data.success) {
-        setInvoices(data.data || []);
-        setFilteredInvoices(data.data || []);
+        const invoices = data.data || [];
+        setInvoices(invoices);
+        setFilteredInvoices(invoices);
         
-        // NE PLUS charger les statuts de paiement automatiquement
-        // C'est trop lourd et cause des boucles infinies
-        // loadPaymentStatusesInBackground(data.data || [], tenantSchema);
+        // Charger les statuts de paiement de manière optimisée
+        const dbConfig = localStorage.getItem('activeDbConfig');
+        const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+        loadPaymentStatusesOptimized(invoices, tenantSchema, dbType);
       } else {
         throw new Error(data.error || 'Failed to load invoices');
       }
@@ -106,6 +108,75 @@ export default function InvoicesList() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fonction optimisée pour calculer les statuts de paiement localement
+  // Charge uniquement les statuts pour les factures visibles (page courante)
+  const loadPaymentStatusesOptimized = async (invoices: Invoice[], tenantSchema: string, dbType: string) => {
+    // Note: Les factures n'ont pas de pagination visible dans le code actuel
+    // On va limiter à 50 premières factures pour éviter la surcharge
+    const visibleInvoices = invoices.slice(0, 50);
+    
+    console.log(`📊 Loading payment statuses for ${visibleInvoices.length} invoices (limited to avoid overload)`);
+    
+    const statuses: Record<number, string> = {};
+    
+    // Calculer le statut uniquement pour les factures visibles
+    for (const invoice of visibleInvoices) {
+      try {
+        // Récupérer les paiements pour cette facture
+        const response = await fetch(
+          `/api/payments?documentType=invoice&documentId=${invoice.nfact}`,
+          {
+            headers: {
+              'X-Tenant': tenantSchema,
+              'X-Database-Type': dbType
+            }
+          }
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            const payments = data.data;
+            
+            // Calculer le total payé
+            const totalPaid = payments.reduce((sum: number, p: any) => {
+              const amount = typeof p.amount === 'string' ? parseFloat(p.amount) : p.amount;
+              return sum + (isNaN(amount) ? 0 : amount);
+            }, 0);
+            
+            // Calculer le montant total de la facture
+            const totalAmount = typeof invoice.montant_ttc === 'string' 
+              ? parseFloat(invoice.montant_ttc) 
+              : (invoice.montant_ttc || (invoice.montant_ht + invoice.tva));
+            
+            // Déterminer le statut
+            const balance = totalAmount - totalPaid;
+            
+            if (Math.abs(balance) < 0.01) {
+              statuses[invoice.nfact] = 'paid';
+            } else if (totalPaid > 0 && balance > 0) {
+              statuses[invoice.nfact] = 'partially_paid';
+            } else if (totalPaid > totalAmount) {
+              statuses[invoice.nfact] = 'overpaid';
+            } else {
+              statuses[invoice.nfact] = 'unpaid';
+            }
+            
+            console.log(`💰 Facture ${invoice.nfact}: Total=${totalAmount.toFixed(2)}, Payé=${totalPaid.toFixed(2)}, Statut=${statuses[invoice.nfact]}`);
+          }
+        }
+      } catch (error) {
+        console.error(`Error loading payment status for invoice ${invoice.nfact}:`, error);
+        // En cas d'erreur, considérer comme non payé
+        statuses[invoice.nfact] = 'unpaid';
+      }
+    }
+    
+    // Mettre à jour les statuts (merge avec les existants)
+    setPaymentStatuses(prev => ({ ...prev, ...statuses }));
+    console.log(`✅ Loaded payment statuses for ${Object.keys(statuses).length} invoices`);
   };
 
   // Fonction pour charger les statuts de paiement en arrière-plan (non bloquant)

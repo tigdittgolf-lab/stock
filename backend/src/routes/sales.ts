@@ -2561,6 +2561,128 @@ sales.get('/delivery-notes', async (c) => {
   }
 });
 
+// Get delivery notes filtered by payment status
+sales.get('/delivery-notes-by-payment-status', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    const paymentStatus = c.req.query('status'); // 'paid', 'partially_paid', 'unpaid'
+    if (!paymentStatus || !['paid', 'partially_paid', 'unpaid'].includes(paymentStatus)) {
+      return c.json({ success: false, error: 'Invalid payment status. Must be: paid, partially_paid, or unpaid' }, 400);
+    }
+
+    console.log(`📋 Fetching delivery notes with payment status: ${paymentStatus} for tenant: ${tenant}`);
+
+    // Récupérer tous les BLs
+    const { data: deliveryNotesRaw, error: fetchError } = await databaseRouter.rpc('get_bl_list_by_tenant', {
+      p_tenant: tenant
+    });
+
+    if (fetchError || !deliveryNotesRaw) {
+      console.error('Error fetching delivery notes:', fetchError);
+      return c.json({ success: false, error: 'Failed to fetch delivery notes' }, 500);
+    }
+
+    console.log(`📊 Total delivery notes: ${deliveryNotesRaw.length}`);
+
+    // Filtrer par statut de paiement
+    const filteredBLs = [];
+    
+    for (const bl of deliveryNotesRaw) {
+      const blId = bl.nbl || bl.nfact || bl.id;
+      
+      try {
+        // Récupérer les paiements pour ce BL via l'API interne
+        const paymentsResult = await backendDatabaseService.executeRPC('get_payments_by_document', {
+          p_tenant: tenant,
+          p_document_type: 'delivery_note',
+          p_document_id: blId
+        });
+
+        const payments = paymentsResult.success ? paymentsResult.data : [];
+
+        // Calculer le total payé
+        const totalPaid = (payments || []).reduce((sum: number, p: any) => {
+          const amount = typeof p.amount === 'string' ? parseFloat(p.amount) : (p.amount || 0);
+          return sum + (isNaN(amount) ? 0 : amount);
+        }, 0);
+
+        // Calculer le montant total du BL
+        const totalAmount = typeof bl.montant_ttc === 'string' 
+          ? parseFloat(bl.montant_ttc) 
+          : (bl.montant_ttc || (bl.montant_ht + bl.tva) || 0);
+
+        // Déterminer le statut
+        const balance = totalAmount - totalPaid;
+        let status = 'unpaid';
+        
+        if (Math.abs(balance) < 0.01) {
+          status = 'paid';
+        } else if (totalPaid > 0 && balance > 0) {
+          status = 'partially_paid';
+        }
+
+        // Ajouter si le statut correspond
+        if (status === paymentStatus) {
+          filteredBLs.push({
+            nfact: bl.nfact || bl.nbl || bl.id,
+            nbl: bl.nbl || bl.nfact || bl.id,
+            nclient: bl.nclient,
+            date_fact: bl.date_fact || bl.date_bl || bl.created_at,
+            montant_ht: bl.montant_ht || 0,
+            tva: bl.tva || 0,
+            montant_ttc: totalAmount,
+            created_at: bl.created_at,
+            client_name: bl.client_name || bl.raison_sociale || bl.nclient,
+            payment_status: status,
+            total_paid: totalPaid,
+            balance: balance
+          });
+        }
+      } catch (error) {
+        console.error(`Error processing BL ${blId}:`, error);
+        // En cas d'erreur, considérer comme non payé
+        if (paymentStatus === 'unpaid') {
+          const totalAmount = typeof bl.montant_ttc === 'string' 
+            ? parseFloat(bl.montant_ttc) 
+            : (bl.montant_ttc || (bl.montant_ht + bl.tva) || 0);
+            
+          filteredBLs.push({
+            nfact: bl.nfact || bl.nbl || bl.id,
+            nbl: bl.nbl || bl.nfact || bl.id,
+            nclient: bl.nclient,
+            date_fact: bl.date_fact || bl.date_bl || bl.created_at,
+            montant_ht: bl.montant_ht || 0,
+            tva: bl.tva || 0,
+            montant_ttc: totalAmount,
+            created_at: bl.created_at,
+            client_name: bl.client_name || bl.raison_sociale || bl.nclient,
+            payment_status: 'unpaid',
+            total_paid: 0,
+            balance: totalAmount
+          });
+        }
+      }
+    }
+
+    console.log(`✅ Found ${filteredBLs.length} delivery notes with status: ${paymentStatus}`);
+    return c.json({ 
+      success: true, 
+      data: filteredBLs,
+      count: filteredBLs.length,
+      filter: paymentStatus,
+      database_type: backendDatabaseService.getActiveDatabaseType() 
+    });
+
+  } catch (error) {
+    console.error('Error filtering delivery notes by payment status:', error);
+    return c.json({ success: false, error: 'Failed to filter delivery notes' }, 500);
+  }
+});
+
 // Get delivery note by ID
 sales.get('/delivery-notes/:id', async (c) => {
   try {

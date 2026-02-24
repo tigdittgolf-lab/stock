@@ -9,7 +9,7 @@ import styles from './PaymentHistory.module.css';
 interface Payment {
     id: number;
     paymentDate: string;
-    amount: number;
+    amount: number | string; // MySQL peut retourner DECIMAL comme string
     paymentMethod?: string;
     notes?: string;
     createdAt: string;
@@ -81,7 +81,7 @@ export default function PaymentHistory({
         setEditingId(payment.id);
         setEditForm({
             paymentDate: payment.paymentDate.split('T')[0],
-            amount: payment.amount,
+            amount: typeof payment.amount === 'string' ? parseFloat(payment.amount) : payment.amount,
             paymentMethod: payment.paymentMethod,
             notes: payment.notes
         });
@@ -161,8 +161,9 @@ export default function PaymentHistory({
         });
     };
 
-    const formatAmount = (amount: number) => {
-        return amount.toFixed(2) + ' DA';
+    const formatAmount = (amount: number | string) => {
+        const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+        return (isNaN(numAmount) ? 0 : numAmount).toFixed(2) + ' DA';
     };
 
     const getPaymentMethodLabel = (method?: string) => {
@@ -325,7 +326,10 @@ export default function PaymentHistory({
             <div className={styles.summary}>
                 <strong>Total des paiements:</strong>
                 <span className={styles.totalAmount}>
-                    {formatAmount(payments.reduce((sum, p) => sum + p.amount, 0))}
+                    {formatAmount(payments.reduce((sum, p) => {
+                        const amount = typeof p.amount === 'string' ? parseFloat(p.amount) : p.amount;
+                        return sum + (isNaN(amount) ? 0 : amount);
+                    }, 0))}
                 </span>
             </div>
         </div>

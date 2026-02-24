@@ -127,4 +127,74 @@ export class PaymentRepositoryImpl implements PaymentRepository {
     
     if (dbType === 'supabase') {
       return this.findByIdSupabase(id, tenantId);
-    } else if (dbType === 'mysql')
+    } else if (dbType === 'mysql') {
+      return this.findByIdMySQL(id, tenantId);
+    }
+    return null;
+  }
+
+
+  private async findByIdSupabase(id: number, tenantId: number): Promise<Payment | null> {
+    const result = await this.dbService.executeRPC('get_payment_by_id', {
+      p_id: id,
+      p_tenant_id: tenantId
+    });
+
+    if (!result.success || !result.data) {
+      return null;
+    }
+
+    return result.data;
+  }
+
+  private async findByIdMySQL(id: number, tenantId: number): Promise<Payment | null> {
+    const sql = `
+      SELECT * FROM payments 
+      WHERE id = ? AND tenant_id = ?
+    `;
+    
+    const result = await this.dbService.executeQuery(sql, [id, tenantId]);
+    
+    if (!result.rows || result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapRowToPayment(result.rows[0]);
+  }
+
+  async findByDocument(documentType: string, documentId: number, tenantId: number): Promise<Payment[]> {
+    return [];
+  }
+
+  async update(id: number, updates: PaymentUpdateInput, userId: number, tenantId: number): Promise<Payment> {
+    throw new Error('Not implemented');
+  }
+
+  async delete(id: number, tenantId: number): Promise<void> {
+    throw new Error('Not implemented');
+  }
+
+  async getOutstandingBalances(
+    tenantId: number,
+    filters?: { documentType?: string; clientId?: number },
+    sorting?: { sortBy: string; sortOrder: 'asc' | 'desc' }
+  ): Promise<PaymentSummary[]> {
+    return [];
+  }
+
+  private mapRowToPayment(row: any): Payment {
+    return {
+      id: row.id,
+      tenantId: row.tenant_id,
+      documentType: row.document_type,
+      documentId: row.document_id,
+      paymentDate: new Date(row.payment_date),
+      amount: parseFloat(row.amount),
+      paymentMethod: row.payment_method,
+      notes: row.notes,
+      createdBy: row.created_by,
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at)
+    };
+  }
+}

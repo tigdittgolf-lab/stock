@@ -50,28 +50,6 @@ articles.get('/', async (c) => {
     console.log(`✅ Returning article data: ${result.data?.length || 0} from ${dbType} + ${cachedArticles.length} cached = ${modifiedData.length} total`);
     
     return c.json(modifiedData);
-        });
-      
-      console.log(`✅ Returning article data: ${articlesData?.length || 0} from database + ${cachedArticles.length} cached = ${modifiedData.length} total`);
-
-      return c.json({ 
-        success: true, 
-        data: modifiedData,
-        tenant: tenant.schema,
-        source: 'real_database_via_rpc'
-      , database_type: backendDatabaseService.getActiveDatabaseType() });
-      
-    } catch (rpcError) {
-      console.error('❌ RPC function not available, using fallback:', rpcError);
-      // Fallback: retourner un tableau vide si les fonctions RPC n'existent pas encore
-      return c.json({ 
-        success: true, 
-        data: [],
-        tenant: tenant.schema,
-        source: 'empty_fallback',
-        message: 'RPC functions not yet created. Please run the SQL script first.'
-      , database_type: backendDatabaseService.getActiveDatabaseType() });
-    }
 
   } catch (error) {
     console.error('Error fetching articles:', error);

@@ -112,8 +112,9 @@ export default function PaymentSummary({
         }
     };
 
-    const formatAmount = (amount: number) => {
-        return amount.toFixed(2) + ' DA';
+    const formatAmount = (amount: number | string) => {
+        const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+        return (isNaN(numAmount) ? 0 : numAmount).toFixed(2) + ' DA';
     };
 
     const getStatusColor = (status: string) => {
