@@ -58,11 +58,27 @@ export default function CreateDeliveryNote() {
 
   const fetchNextBLNumber = async () => {
     try {
+      // Récupérer le tenant depuis localStorage
+      const tenantInfo = localStorage.getItem('tenant_info');
+      if (!tenantInfo) {
+        console.warn('⚠️ No tenant info found, skipping next BL number fetch');
+        return;
+      }
+      
+      const tenant = JSON.parse(tenantInfo);
+      const tenantId = tenant.schema || '2025_bu01';
+      
       const response = await fetch(`http://localhost:3005/api/sales/delivery-notes/next-number`, {
         headers: {
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenantId
         }
       });
+      
+      if (!response.ok) {
+        console.error(`❌ Failed to fetch next BL number: ${response.status}`);
+        return;
+      }
+      
       const data = await response.json();
       if (data.success) {
         setNextBLNumber(data.data.next_number);
