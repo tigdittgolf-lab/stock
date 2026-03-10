@@ -107,14 +107,50 @@ auth.put('/users/:id', async (c) => {
 // Get available business units
 auth.get('/business-units', async (c) => {
   try {
-    // In a real application, this would come from a database
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🏢 Fetching business units from ${dbType}`);
+    
+    if (dbType === 'mysql') {
+      // Lire depuis MySQL
+      const result = await backendDatabaseService.executeQuery(
+        'SELECT tenant_id, name, description, active FROM stock_management.business_units WHERE active = 1 ORDER BY tenant_id',
+        []
+      );
+      
+      if (result.success && result.data) {
+        const businessUnits = result.data.map((bu: any) => ({
+          id: bu.tenant_id,
+          name: bu.name || bu.tenant_id,
+          description: bu.description || ''
+        }));
+        
+        console.log(`✅ Found ${businessUnits.length} business units from MySQL`);
+        return c.json({ success: true, data: businessUnits, database_type: dbType });
+      }
+    } else if (dbType === 'supabase') {
+      // Lire depuis Supabase
+      const result = await backendDatabaseService.executeRPC('list_available_tenants', {});
+      
+      if (result.success && result.data) {
+        const businessUnits = result.data.map((bu: any) => ({
+          id: bu.tenant_id || bu.schema_name,
+          name: bu.name || bu.tenant_id || bu.schema_name,
+          description: bu.description || ''
+        }));
+        
+        console.log(`✅ Found ${businessUnits.length} business units from Supabase`);
+        return c.json({ success: true, data: businessUnits, database_type: dbType });
+      }
+    }
+    
+    // Fallback: retourner une liste par défaut
+    console.warn('⚠️ Could not fetch business units from database, using fallback');
     const businessUnits = [
-      { id: 'bu01', name: 'Business Unit 01', description: 'Unité principale' },
-      { id: 'bu02', name: 'Business Unit 02', description: 'Unité secondaire' },
-      { id: 'bu03', name: 'Business Unit 03', description: 'Unité tertiaire' }
+      { id: '2025_bu01', name: 'Business Unit 01', description: 'Unité principale' },
+      { id: '2009_bu02', name: 'Business Unit 02', description: 'Unité secondaire' }
     ];
 
-    return c.json({ success: true, data: businessUnits , database_type: backendDatabaseService.getActiveDatabaseType() });
+    return c.json({ success: true, data: businessUnits, database_type: dbType });
   } catch (error) {
     console.error('Error fetching business units:', error);
     return c.json({ success: false, error: 'Failed to fetch business units' }, 500);
