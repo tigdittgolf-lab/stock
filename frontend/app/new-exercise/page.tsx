@@ -158,8 +158,8 @@ export default function NewExercise() {
               }}
             >
               <option value="">Sélectionner l'exercice source</option>
-              {exercises.map(ex => (
-                <option key={ex.year} value={ex.year}>
+              {exercises.map((ex, index) => (
+                <option key={`${ex.year}-${index}`} value={ex.year}>
                   {ex.year} ({ex.status === 'active' ? 'Actif' : ex.status === 'closed' ? 'Clôturé' : 'Archivé'})
                 </option>
               ))}
