@@ -731,6 +731,37 @@ sales.get('/delivery-notes', async (c) => {
   }
 });
 
+// GET /api/sales/delivery-notes/next-number - Obtenir le prochain numéro de BL
+sales.get('/delivery-notes/next-number', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    console.log(`🔢 Getting next BL number for tenant: ${tenant}`);
+
+    // Utiliser la fonction RPC pour obtenir le prochain numéro
+    const result = await backendDatabaseService.executeRPC('get_next_bl_number_by_tenant', {
+      p_tenant: tenant
+    });
+
+    if (result.success && result.data && result.data.length > 0) {
+      const nextNumber = result.data[0].next_number || 1;
+      console.log(`✅ Next BL number: ${nextNumber}`);
+      return c.json({ success: true, data: { next_number: nextNumber } });
+    }
+
+    // Fallback: retourner 1 si aucun BL n'existe
+    console.log(`✅ Next BL number: 1 (no existing BLs)`);
+    return c.json({ success: true, data: { next_number: 1 } });
+
+  } catch (error) {
+    console.error('Error getting next BL number:', error);
+    return c.json({ success: false, error: 'Failed to get next BL number' }, 500);
+  }
+});
+
 // GET /api/sales/delivery-notes-by-payment-status - Filtrer les BLs par statut de paiement
 sales.get('/delivery-notes-by-payment-status', async (c) => {
   try {
