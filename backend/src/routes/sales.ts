@@ -2466,7 +2466,12 @@ sales.delete('/invoices/:id', async (c) => {
 sales.get('/delivery-notes/next-number', async (c) => {
   try {
     const tenant = c.get('tenant');
+    const tenantHeader = c.req.header('X-Tenant');
+    
+    console.log(`🔢 Getting next BL number - tenant from context: ${tenant}, from header: ${tenantHeader}`);
+    
     if (!tenant) {
+      console.error(`❌ Tenant missing! Headers:`, c.req.header());
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 

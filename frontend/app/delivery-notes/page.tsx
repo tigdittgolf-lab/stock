@@ -68,24 +68,33 @@ export default function CreateDeliveryNote() {
       const tenant = JSON.parse(tenantInfo);
       const tenantId = tenant.schema || '2025_bu01';
       
+      // Récupérer la config DB
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'mysql';
+      
+      console.log('🔢 Fetching next BL number with:', { tenantId, dbType });
+      
       const response = await fetch(`http://localhost:3005/api/sales/delivery-notes/next-number`, {
         headers: {
-          'X-Tenant': tenantId
+          'X-Tenant': tenantId,
+          'X-Database-Type': dbType,
+          'Content-Type': 'application/json'
         }
       });
       
       if (!response.ok) {
-        console.error(`❌ Failed to fetch next BL number: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        console.error(`❌ Failed to fetch next BL number: ${response.status}`, errorData);
         return;
       }
       
       const data = await response.json();
       if (data.success) {
         setNextBLNumber(data.data.next_number);
-        console.log('Next BL number:', data.data.next_number);
+        console.log('✅ Next BL number:', data.data.next_number);
       }
     } catch (error) {
-      console.error('Error fetching next BL number:', error);
+      console.error('❌ Error fetching next BL number:', error);
     }
   };
 
