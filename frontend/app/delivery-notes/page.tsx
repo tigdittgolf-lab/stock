@@ -100,37 +100,75 @@ export default function CreateDeliveryNote() {
 
   const fetchClients = async () => {
     try {
+      // Récupérer le tenant depuis localStorage
+      const tenantInfo = localStorage.getItem('tenant_info');
+      if (!tenantInfo) {
+        console.warn('⚠️ No tenant info found');
+        return;
+      }
+      
+      const tenant = JSON.parse(tenantInfo);
+      const tenantId = tenant.schema || '2025_bu01';
+      
+      // Récupérer la config DB
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'mysql';
+      
+      console.log('👥 Fetching clients for tenant:', tenantId, 'dbType:', dbType);
+      
       const response = await fetch(`http://localhost:3005/api/sales/clients`, {
         headers: {
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenantId,
+          'X-Database-Type': dbType
         }
       });
       const data = await response.json();
-      console.log('Clients data:', data);
+      console.log('👥 Clients data:', data);
       if (data.success) {
         setClients(data.data);
-        console.log('Clients loaded:', data.data.length);
+        console.log('✅ Clients loaded:', data.data.length);
+      } else {
+        console.error('❌ Failed to load clients:', data.error);
       }
     } catch (error) {
-      console.error('Error fetching clients:', error);
+      console.error('❌ Error fetching clients:', error);
     }
   };
 
   const fetchArticles = async () => {
     try {
+      // Récupérer le tenant depuis localStorage
+      const tenantInfo = localStorage.getItem('tenant_info');
+      if (!tenantInfo) {
+        console.warn('⚠️ No tenant info found');
+        return;
+      }
+      
+      const tenant = JSON.parse(tenantInfo);
+      const tenantId = tenant.schema || '2025_bu01';
+      
+      // Récupérer la config DB
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'mysql';
+      
+      console.log('📦 Fetching articles for tenant:', tenantId, 'dbType:', dbType);
+      
       const response = await fetch(`http://localhost:3005/api/sales/articles`, {
         headers: {
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenantId,
+          'X-Database-Type': dbType
         }
       });
       const data = await response.json();
-      console.log('Articles data:', data);
+      console.log('📦 Articles data:', data);
       if (data.success) {
         setArticles(data.data);
-        console.log('Articles loaded:', data.data.length);
+        console.log('✅ Articles loaded:', data.data.length);
+      } else {
+        console.error('❌ Failed to load articles:', data.error);
       }
     } catch (error) {
-      console.error('Error fetching articles:', error);
+      console.error('❌ Error fetching articles:', error);
     }
   };
 
