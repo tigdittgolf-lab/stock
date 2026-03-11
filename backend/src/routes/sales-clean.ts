@@ -541,19 +541,21 @@ sales.post('/delivery-notes', async (c) => {
         nextNBl = nextNBlResult.data;
         console.log(`✅ Next BL number from RPC: ${nextNBl}`);
       } else {
-        console.warn('⚠️ RPC get_next_bl_number_simple failed, using fallback query');
+        console.warn('⚠️ RPC get_next_bl_number_simple failed, using fallback via get_bl_list');
         
-        // Fallback: requête directe pour obtenir le max
-        const fallbackResult = await backendDatabaseService.executeQuery(
-          `SELECT COALESCE(MAX(nfact), 0) + 1 as next_number FROM "${tenant}".bl`,
-          []
-        );
+        // Fallback: utiliser get_bl_list_by_tenant qui fonctionne
+        const blListResult = await backendDatabaseService.executeRPC('get_bl_list_by_tenant', {
+          p_tenant: tenant
+        });
         
-        if (fallbackResult.success && fallbackResult.data && fallbackResult.data.length > 0) {
-          nextNBl = fallbackResult.data[0].next_number;
-          console.log(`✅ Next BL number from fallback query: ${nextNBl}`);
+        if (blListResult.success && blListResult.data && blListResult.data.length > 0) {
+          // Trouver le MAX nfact
+          const maxNfact = Math.max(...blListResult.data.map((bl: any) => bl.nfact || 0));
+          nextNBl = maxNfact + 1;
+          console.log(`✅ Next BL number from bl_list (max ${maxNfact}): ${nextNBl}`);
         } else {
-          console.error('❌ Both RPC and fallback failed, using default: 1');
+          console.log('⚠️ No existing BLs found, starting at 1');
+          nextNBl = 1;
         }
       }
     } catch (error) {
@@ -1048,19 +1050,21 @@ sales.post('/invoices', async (c) => {
         nextNumber = result.data;
         console.log(`✅ Next invoice number from RPC: ${nextNumber}`);
       } else {
-        console.warn('⚠️ RPC get_next_invoice_number_simple failed, using fallback query');
+        console.warn('⚠️ RPC get_next_invoice_number_simple failed, using fallback via get_fact_list');
         
-        // Fallback: requête directe
-        const fallbackResult = await backendDatabaseService.executeQuery(
-          `SELECT COALESCE(MAX(nfact), 0) + 1 as next_number FROM "${tenant}".facture`,
-          []
-        );
+        // Fallback: utiliser get_fact_list_by_tenant qui fonctionne
+        const factListResult = await backendDatabaseService.executeRPC('get_fact_list_by_tenant', {
+          p_tenant: tenant
+        });
         
-        if (fallbackResult.success && fallbackResult.data && fallbackResult.data.length > 0) {
-          nextNumber = fallbackResult.data[0].next_number;
-          console.log(`✅ Next invoice number from fallback query: ${nextNumber}`);
+        if (factListResult.success && factListResult.data && factListResult.data.length > 0) {
+          // Trouver le MAX nfact
+          const maxNfact = Math.max(...factListResult.data.map((fact: any) => fact.nfact || 0));
+          nextNumber = maxNfact + 1;
+          console.log(`✅ Next invoice number from fact_list (max ${maxNfact}): ${nextNumber}`);
         } else {
-          console.error('❌ Both RPC and fallback failed for invoice, using default: 1');
+          console.log('⚠️ No existing invoices found, starting at 1');
+          nextNumber = 1;
         }
       }
     } catch (error) {
@@ -1069,7 +1073,7 @@ sales.post('/invoices', async (c) => {
     }
 
     // 2. Valider le client
-    const { data: clients, error: clientError } = await databaseRouter.rpc('get_clients_by_tenant', {
+    const { data: clients, error: clientError} = await databaseRouter.rpc('get_clients_by_tenant', {
       p_tenant: tenant
     });
 
@@ -1254,19 +1258,21 @@ sales.post('/proforma', async (c) => {
         nextNumber = result.data;
         console.log(`✅ Next proforma number from RPC: ${nextNumber}`);
       } else {
-        console.warn('⚠️ RPC get_next_proforma_number_simple failed, using fallback query');
+        console.warn('⚠️ RPC get_next_proforma_number_simple failed, using fallback via get_proforma_list');
         
-        // Fallback: requête directe
-        const fallbackResult = await backendDatabaseService.executeQuery(
-          `SELECT COALESCE(MAX(nfact), 0) + 1 as next_number FROM "${tenant}".proforma`,
-          []
-        );
+        // Fallback: utiliser get_proforma_list_by_tenant qui fonctionne
+        const proformaListResult = await backendDatabaseService.executeRPC('get_proforma_list_by_tenant', {
+          p_tenant: tenant
+        });
         
-        if (fallbackResult.success && fallbackResult.data && fallbackResult.data.length > 0) {
-          nextNumber = fallbackResult.data[0].next_number;
-          console.log(`✅ Next proforma number from fallback query: ${nextNumber}`);
+        if (proformaListResult.success && proformaListResult.data && proformaListResult.data.length > 0) {
+          // Trouver le MAX nfact
+          const maxNfact = Math.max(...proformaListResult.data.map((prof: any) => prof.nfact || prof.nfprof || 0));
+          nextNumber = maxNfact + 1;
+          console.log(`✅ Next proforma number from proforma_list (max ${maxNfact}): ${nextNumber}`);
         } else {
-          console.error('❌ Both RPC and fallback failed for proforma, using default: 1');
+          console.log('⚠️ No existing proformas found, starting at 1');
+          nextNumber = 1;
         }
       }
     } catch (error) {
