@@ -508,40 +508,43 @@ sales.post('/delivery-notes', async (c) => {
       return c.json({ success: false, error: 'detail_bl is required and must be a non-empty array' }, 400);
     }
 
-    console.log(`🆕 Creating delivery note for tenant: ${tenant}, Client: ${Nclient}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    console.log(`🆕 Creating delivery note for tenant: ${tenant}, Client: ${Nclient} (DB: ${dbType})`);
 
     // 1. Obtenir le prochain numéro de BL
-    const { data: nextNBl, error: numberError } = await databaseRouter.rpc('get_next_bl_number_simple', {
+    const nextNBlResult = await backendDatabaseService.executeRPC('get_next_bl_number_simple', {
       p_tenant: tenant
     });
 
-    if (numberError) {
-      console.error('❌ Failed to get next BL number:', numberError);
+    if (!nextNBlResult.success) {
+      console.error('❌ Failed to get next BL number:', nextNBlResult.error);
       return c.json({ success: false, error: 'Failed to generate BL number' }, 500);
     }
 
+    const nextNBl = nextNBlResult.data;
+
     // 2. Valider le client
-    const { data: clients, error: clientError } = await databaseRouter.rpc('get_clients_by_tenant', {
+    const clientsResult = await backendDatabaseService.executeRPC('get_clients_by_tenant', {
       p_tenant: tenant
     });
 
-    if (clientError) {
-      console.error('❌ Failed to fetch clients:', clientError);
+    if (!clientsResult.success) {
+      console.error('❌ Failed to fetch clients:', clientsResult.error);
       return c.json({ success: false, error: 'Failed to validate client' }, 500);
     }
 
-    const clientExists = clients?.find(client => client.nclient === Nclient);
+    const clientExists = clientsResult.data?.find(client => client.nclient === Nclient);
     if (!clientExists) {
       return c.json({ success: false, error: `Client ${Nclient} not found` }, 400);
     }
 
     // 3. Valider les articles
-    const { data: articles, error: articleError } = await databaseRouter.rpc('get_articles_by_tenant', {
+    const articlesResult = await backendDatabaseService.executeRPC('get_articles_by_tenant', {
       p_tenant: tenant
     });
 
-    if (articleError) {
-      console.error('❌ Failed to fetch articles:', articleError);
+    if (!articlesResult.success) {
+      console.error('❌ Failed to fetch articles:', articlesResult.error);
       return c.json({ success: false, error: 'Failed to validate articles' }, 500);
     }
 
@@ -551,23 +554,23 @@ sales.post('/delivery-notes', async (c) => {
     const processedDetails = [];
 
     for (const detail of detail_bl) {
-      const articleExists = articles?.find(article => article.narticle.trim() === detail.Narticle.trim());
+      const articleExists = articlesResult.data?.find(article => article.narticle.trim() === detail.Narticle.trim());
       if (!articleExists) {
         return c.json({ success: false, error: `Article ${detail.Narticle} not found` }, 400);
       }
 
       // Vérifier le stock
-      const { data: stockInfo, error: stockError } = await databaseRouter.rpc('get_article_stock_simple', {
+      const stockResult = await backendDatabaseService.executeRPC('get_article_stock_simple', {
         p_tenant: tenant,
         p_narticle: detail.Narticle
       });
 
-      if (stockError) {
-        console.error(`❌ Failed to get stock for ${detail.Narticle}:`, stockError);
+      if (!stockResult.success) {
+        console.error(`❌ Failed to get stock for ${detail.Narticle}:`, stockResult.error);
         return c.json({ success: false, error: `Failed to check stock for ${detail.Narticle}` }, 500);
       }
 
-      const currentStockBL = parseFloat(stockInfo?.stock_bl || '0');
+      const currentStockBL = parseFloat(stockResult.data?.stock_bl || '0');
       const requestedQty = parseFloat(detail.Qte);
       
       if (currentStockBL < requestedQty) {
@@ -596,7 +599,7 @@ sales.post('/delivery-notes', async (c) => {
     // 5. Créer le BL
     const blDate = date_fact || new Date().toISOString().split('T')[0];
     
-    const { data: blHeader, error: blError } = await databaseRouter.rpc('insert_bl_simple', {
+    const blHeaderResult = await backendDatabaseService.executeRPC('insert_bl_simple', {
       p_tenant: tenant,
       p_nfact: nextNBl,
       p_nclient: Nclient,
@@ -605,14 +608,14 @@ sales.post('/delivery-notes', async (c) => {
       p_tva: TVA
     });
 
-    if (blError) {
-      console.error('❌ Failed to create BL:', blError);
-      return c.json({ success: false, error: `Failed to create BL: ${blError.message}` }, 500);
+    if (!blHeaderResult.success) {
+      console.error('❌ Failed to create BL:', blHeaderResult.error);
+      return c.json({ success: false, error: `Failed to create BL: ${blHeaderResult.error}` }, 500);
     }
 
     // 6. Ajouter les détails
     for (const detail of processedDetails) {
-      const { error: detailErr } = await databaseRouter.rpc('insert_detail_bl_simple', {
+      const detailResult = await backendDatabaseService.executeRPC('insert_detail_bl_simple', {
         p_tenant: tenant,
         p_nfact: detail.nfact,
         p_narticle: detail.narticle,
@@ -622,22 +625,22 @@ sales.post('/delivery-notes', async (c) => {
         p_total_ligne: detail.total_ligne
       });
       
-      if (detailErr) {
-        console.error(`❌ Failed to insert detail for ${detail.narticle}:`, detailErr);
-        return c.json({ success: false, error: `Failed to save BL details: ${detailErr.message}` }, 500);
+      if (!detailResult.success) {
+        console.error(`❌ Failed to insert detail for ${detail.narticle}:`, detailResult.error);
+        return c.json({ success: false, error: `Failed to save BL details: ${detailResult.error}` }, 500);
       }
     }
 
     // 7. Mettre à jour les stocks
     for (const detail of processedDetails) {
-      const { error: stockError } = await databaseRouter.rpc('update_stock_bl_simple', {
+      const stockUpdateResult = await backendDatabaseService.executeRPC('update_stock_bl_simple', {
         p_tenant: tenant,
         p_narticle: detail.narticle,
         p_quantity: detail.qte
       });
 
-      if (stockError) {
-        console.warn(`⚠️ Stock update failed for ${detail.narticle}:`, stockError);
+      if (!stockUpdateResult.success) {
+        console.warn(`⚠️ Stock update failed for ${detail.narticle}:`, stockUpdateResult.error);
       }
     }
 

@@ -334,7 +334,7 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
                 <p>Email : {companyInfo?.email || 'contact@entreprise.dz'}</p>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <h2 style={{ color: '#17a2b8', fontSize: '1.8rem' }}>FACTURE PROFORMA</h2>
+                <h2 style={{ color: 'var(--info-color)', fontSize: '1.8rem' }}>FACTURE PROFORMA</h2>
                 <p><strong>N° :</strong> {proforma.nfact || proforma.nfprof}</p>
                 <p><strong>Date :</strong> {new Date(proforma.date_fact).toLocaleDateString('fr-FR')}</p>
               </div>
@@ -406,15 +406,15 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
           </div>
 
           {/* Montant en lettres */}
-          <div className={styles.formSection} style={{ background: '#f8f9fa', border: '2px solid #17a2b8', borderRadius: '8px' }}>
-            <h3 style={{ color: '#17a2b8', marginBottom: '10px' }}>Montant en lettres :</h3>
-            <p style={{ fontSize: '1.1rem', fontWeight: 'bold', fontStyle: 'italic', color: '#333' }}>
+          <div className={styles.formSection} style={{ background: 'var(--info-bg)', border: '2px solid var(--info-color)', borderRadius: '8px' }}>
+            <h3 style={{ color: 'var(--info-color)', marginBottom: '10px' }}>Montant en lettres :</h3>
+            <p style={{ fontSize: '1.1rem', fontWeight: 'bold', fontStyle: 'italic', color: 'var(--text-primary)' }}>
               {numberToWords(parseFloat(proforma.montant_ht?.toString() || '0') + parseFloat(proforma.tva?.toString() || '0'))}
             </p>
           </div>
 
           {/* Conditions */}
-          <div className={styles.formSection} style={{ background: '#e7f3ff', borderLeft: '4px solid #17a2b8' }}>
+          <div className={styles.formSection} style={{ background: 'var(--info-bg)', borderLeft: '4px solid var(--info-color)' }}>
             <h2>Conditions du devis :</h2>
             <ul>
               <li>Ce devis est valable 30 jours à compter de la date d'émission</li>
@@ -425,12 +425,12 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
           </div>
 
           {/* Note importante */}
-          <div className={styles.formSection} style={{ background: '#fff3cd', borderLeft: '4px solid #ffc107' }}>
+          <div className={styles.formSection} style={{ background: 'var(--warning-bg)', borderLeft: '4px solid var(--warning-color)' }}>
             <p><strong>Note :</strong> Cette facture proforma n'a aucune valeur comptable. Elle constitue uniquement une proposition commerciale.</p>
           </div>
 
           {/* Informations de création */}
-          <div className={styles.formSection} style={{ textAlign: 'center', color: '#666' }}>
+          <div className={styles.formSection} style={{ textAlign: 'center', color: 'var(--text-tertiary)' }}>
             <p><small>Devis créé le : {new Date(proforma.created_at).toLocaleString('fr-FR')}</small></p>
           </div>
         </div>

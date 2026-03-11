@@ -269,7 +269,7 @@ export default function ProformaList() {
               }}>
                 {/* Filtre par client */}
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#333' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'var(--text-primary)' }}>
                     👤 Client spécifique
                   </label>
                   <select
@@ -292,7 +292,7 @@ export default function ProformaList() {
 
                 {/* Filtre par date */}
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#333' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'var(--text-primary)' }}>
                     📅 Date de début
                   </label>
                   <input
@@ -310,7 +310,7 @@ export default function ProformaList() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#333' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'var(--text-primary)' }}>
                     📅 Date de fin
                   </label>
                   <input
@@ -329,7 +329,7 @@ export default function ProformaList() {
 
                 {/* Filtre par montant */}
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#333' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'var(--text-primary)' }}>
                     💰 Montant min (DA)
                   </label>
                   <input
@@ -348,7 +348,7 @@ export default function ProformaList() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#333' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'var(--text-primary)' }}>
                     💰 Montant max (DA)
                   </label>
                   <input

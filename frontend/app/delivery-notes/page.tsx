@@ -3,11 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PrintOptions from '../../components/PrintOptions';
-import styles from '../page.module.css';
+import styles from './delivery-notes.module.css';
 
 interface Client {
   nclient: string;
   raison_sociale: string;
+  adresse?: string;
+  telephone?: string;
+  solde?: number;
 }
 
 interface Article {
@@ -25,7 +28,7 @@ interface DeliveryLine {
   Qte: number;
   prix: number;
   tva: number;
-  total_ligne: number;
+  total: number;
 }
 
 export default function CreateDeliveryNote() {
@@ -33,6 +36,8 @@ export default function CreateDeliveryNote() {
   const [clients, setClients] = useState<Client[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedClient, setSelectedClient] = useState('');
+  const [selectedClientInfo, setSelectedClientInfo] = useState<Client | null>(null);
+  const [selectedArticleInfo, setSelectedArticleInfo] = useState<Article | null>(null);
   const [dateBL, setDateBL] = useState(new Date().toISOString().split('T')[0]);
   const [lines, setLines] = useState<DeliveryLine[]>([]);
   const [currentLine, setCurrentLine] = useState({
@@ -55,6 +60,33 @@ export default function CreateDeliveryNote() {
     fetchArticles();
     fetchNextBLNumber();
   }, []);
+
+  // Mettre à jour les infos client quand sélectionné
+  useEffect(() => {
+    if (selectedClient) {
+      const client = clients.find(c => c.nclient === selectedClient);
+      setSelectedClientInfo(client || null);
+    } else {
+      setSelectedClientInfo(null);
+    }
+  }, [selectedClient, clients]);
+
+  // Mettre à jour les infos article quand sélectionné
+  useEffect(() => {
+    if (currentLine.Narticle) {
+      const article = articles.find(a => a.narticle === currentLine.Narticle);
+      setSelectedArticleInfo(article || null);
+      if (article) {
+        setCurrentLine(prev => ({
+          ...prev,
+          prix: article.prix_vente,
+          tva: article.tva
+        }));
+      }
+    } else {
+      setSelectedArticleInfo(null);
+    }
+  }, [currentLine.Narticle, articles]);
 
   const fetchNextBLNumber = async () => {
     try {
@@ -220,7 +252,7 @@ export default function CreateDeliveryNote() {
       Qte: currentLine.Qte,
       prix: parseFloat(currentLine.prix.toString()) || 0,
       tva: parseFloat(currentLine.tva.toString()) || 0,
-      total_ligne: totalLigne
+      total: totalLigne
     };
 
     if (editingIndex !== null) {
@@ -274,8 +306,8 @@ export default function CreateDeliveryNote() {
   };
 
   const calculateTotals = () => {
-    const montantHT = lines.reduce((sum, line) => sum + parseFloat(line.total_ligne.toString()), 0);
-    const totalTVA = lines.reduce((sum, line) => sum + (parseFloat(line.total_ligne.toString()) * parseFloat(line.tva.toString()) / 100), 0);
+    const montantHT = lines.reduce((sum, line) => sum + parseFloat(line.total.toString()), 0);
+    const totalTVA = lines.reduce((sum, line) => sum + (parseFloat(line.total.toString()) * parseFloat(line.tva.toString()) / 100), 0);
     const totalTTC = montantHT + totalTVA;
 
     return { montantHT, totalTVA, totalTTC };
@@ -295,11 +327,15 @@ export default function CreateDeliveryNote() {
     }
 
     try {
+      const tenant = localStorage.getItem('tenant') || '2025_bu01';
+      const databaseType = localStorage.getItem('databaseType') || 'mysql';
+      
       const response = await fetch(`http://localhost:3005/api/sales/delivery-notes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Tenant': '2025_bu01'
+          'X-Tenant': tenant,
+          'X-Database-Type': databaseType
         },
         body: JSON.stringify({
           Nclient: selectedClient,
@@ -355,47 +391,114 @@ export default function CreateDeliveryNote() {
   const totals = calculateTotals();
 
   return (
-    <div className={styles.page}>
+    <div className={styles.container}>
       <header className={styles.header}>
-        <h1>Créer un Bon de Livraison {nextBLNumber && `N° ${nextBLNumber}`}</h1>
-        <button onClick={() => router.push('/')}>Retour</button>
+        <div className={styles.title}>
+          Créer un Bon de Livraison 
+          {nextBLNumber && <span className={styles.blNumber}>N° {nextBLNumber}</span>}
+        </div>
+        <button onClick={() => router.push('/')} className={styles.backButton}>
+          ← Retour
+        </button>
       </header>
 
-      <main className={styles.main}>
+      <main className={styles.form}>
         <form onSubmit={handleSubmit}>
-          <div className={styles.formSection}>
-            <h2>Informations Bon de Livraison</h2>
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label>Client:</label>
-                <select
-                  value={selectedClient}
-                  onChange={(e) => setSelectedClient(e.target.value)}
-                  required
-                >
-                  <option value="">Sélectionner un client</option>
-                  {clients.map((client, index) => (
-                    <option key={`${client.nclient}-${index}`} value={client.nclient}>
-                      {client.nclient} - {client.raison_sociale}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>Informations Bon de Livraison</h2>
+            <div className={styles.formGroup}>
+              <label>Client:</label>
+              <select
+                value={selectedClient}
+                onChange={(e) => setSelectedClient(e.target.value)}
+                required
+              >
+                <option value="">Sélectionner un client</option>
+                {clients.map((client, index) => (
+                  <option key={`${client.nclient}-${index}`} value={client.nclient}>
+                    {client.nclient} - {client.raison_sociale}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              <div className={styles.formGroup}>
-                <label>Date:</label>
-                <input
-                  type="date"
-                  value={dateBL}
-                  onChange={(e) => setDateBL(e.target.value)}
-                  required
-                />
+            {/* Carte d'information client */}
+            {selectedClientInfo && (
+              <div className={`${styles.clientInfoCard} ${
+                selectedClientInfo.solde && selectedClientInfo.solde > 0 
+                  ? styles.warning 
+                  : styles.success
+              }`}>
+                <div className={styles.clientInfoGrid}>
+                  <div className={styles.clientInfoItem}>
+                    <span className={styles.clientInfoLabel}>Raison Sociale</span>
+                    <span className={styles.clientInfoValue}>{selectedClientInfo.raison_sociale}</span>
+                  </div>
+                  <div className={styles.clientInfoItem}>
+                    <span className={styles.clientInfoLabel}>Téléphone</span>
+                    <span className={styles.clientInfoValue}>{selectedClientInfo.telephone || 'N/A'}</span>
+                  </div>
+                  <div className={styles.clientInfoItem}>
+                    <span className={styles.clientInfoLabel}>Solde / Dette</span>
+                    <span className={styles.clientInfoValue}>
+                      {selectedClientInfo.solde ? `${selectedClientInfo.solde.toFixed(2)} DA` : '0.00 DA'}
+                    </span>
+                    <span className={styles.clientStatus}>
+                      {selectedClientInfo.solde && selectedClientInfo.solde > 0 
+                        ? '⚠️ Client endetté' 
+                        : '✅ Aucune dette'}
+                    </span>
+                  </div>
+                </div>
+                {selectedClientInfo.adresse && (
+                  <div style={{ marginTop: '12px', opacity: 0.9 }}>
+                    <span className={styles.clientInfoLabel}>Adresse:</span> {selectedClientInfo.adresse}
+                  </div>
+                )}
               </div>
+            )}
+
+            <div className={styles.formGroup} style={{ marginTop: '20px' }}>
+              <label>Date:</label>
+              <input
+                type="date"
+                value={dateBL}
+                onChange={(e) => setDateBL(e.target.value)}
+                required
+              />
             </div>
           </div>
 
-          <div className={styles.formSection}>
-            <h2>Ajouter des Articles</h2>
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>Ajouter des Articles</h2>
+            
+            {/* Carte d'information article */}
+            {selectedArticleInfo && (
+              <div className={styles.articleInfoCard}>
+                <div className={styles.articleInfoGrid}>
+                  <div className={styles.articleInfoItem}>
+                    <span className={styles.articleInfoLabel}>Désignation</span>
+                    <span className={styles.articleInfoValue}>{selectedArticleInfo.designation}</span>
+                  </div>
+                  <div className={styles.articleInfoItem}>
+                    <span className={styles.articleInfoLabel}>Stock BL Disponible</span>
+                    <span className={styles.articleInfoValue}>{selectedArticleInfo.stock_bl}</span>
+                    <span className={`${styles.stockBadge} ${
+                      selectedArticleInfo.stock_bl > 100 ? styles.high :
+                      selectedArticleInfo.stock_bl > 20 ? styles.medium : styles.low
+                    }`}>
+                      {selectedArticleInfo.stock_bl > 100 ? '✓ Stock élevé' :
+                       selectedArticleInfo.stock_bl > 20 ? '⚠ Stock moyen' : '⚠️ Stock faible'}
+                    </span>
+                  </div>
+                  <div className={styles.articleInfoItem}>
+                    <span className={styles.articleInfoLabel}>Stock Final</span>
+                    <span className={styles.articleInfoValue}>{selectedArticleInfo.stock_f}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label>Article:</label>
@@ -406,7 +509,7 @@ export default function CreateDeliveryNote() {
                   <option value="">Sélectionner un article</option>
                   {articles.map(article => (
                     <option key={article.narticle} value={article.narticle}>
-                      {article.narticle} - {article.designation} (Stock BL: {article.stock_bl})
+                      {article.narticle} - {article.designation}
                     </option>
                   ))}
                 </select>
@@ -417,8 +520,10 @@ export default function CreateDeliveryNote() {
                 <input
                   type="number"
                   min="1"
+                  max={selectedArticleInfo?.stock_bl || 999999}
                   value={currentLine.Qte}
                   onChange={(e) => setCurrentLine({ ...currentLine, Qte: parseInt(e.target.value) || 1 })}
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
@@ -442,84 +547,126 @@ export default function CreateDeliveryNote() {
                 />
               </div>
 
-              <button type="button" onClick={addLine} className={styles.primaryButton}>
-                {editingIndex !== null ? 'Modifier' : 'Ajouter'}
+              <button type="button" onClick={addLine} className={styles.addButton}>
+                {editingIndex !== null ? '✓ Modifier' : '+ Ajouter'}
               </button>
+              
               {editingIndex !== null && (
-                <button type="button" onClick={cancelEdit} className={styles.secondaryButton}>
-                  Annuler
+                <button 
+                  type="button" 
+                  onClick={cancelEdit} 
+                  style={{
+                    padding: '12px 24px',
+                    background: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  ✕ Annuler
                 </button>
               )}
             </div>
           </div>
 
-          <div className={styles.tableContainer}>
-            <h2>Lignes du Bon de Livraison</h2>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Article</th>
-                  <th>Désignation</th>
-                  <th>Quantité</th>
-                  <th>Prix Unit.</th>
-                  <th>TVA (%)</th>
-                  <th>Total</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line, index) => (
-                  <tr key={index}>
-                    <td>{line.Narticle}</td>
-                    <td>{line.designation}</td>
-                    <td>{line.Qte}</td>
-                    <td>{parseFloat(line.prix.toString()).toFixed(2)} DA</td>
-                    <td>{parseFloat(line.tva.toString()).toFixed(0)}%</td>
-                    <td>{parseFloat(line.total_ligne.toString()).toFixed(2)} DA</td>
-                    <td>
-                      <button
-                        type="button"
-                        onClick={() => editLine(index)}
-                        className={styles.editButton}
-                        style={{ marginRight: '10px' }}
-                      >
-                        Modifier
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeLine(index)}
-                        className={styles.deleteButton}
-                      >
-                        Supprimer
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>Lignes du Bon de Livraison</h2>
+            {lines.length === 0 ? (
+              <div className={styles.emptyState}>
+                Aucune ligne ajoutée. Sélectionnez un article ci-dessus pour commencer.
+              </div>
+            ) : (
+              <>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Article</th>
+                      <th>Désignation</th>
+                      <th>Quantité</th>
+                      <th>Prix Unit.</th>
+                      <th>TVA (%)</th>
+                      <th>Total</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.map((line, index) => (
+                      <tr key={index}>
+                        <td>{line.Narticle}</td>
+                        <td>{line.designation}</td>
+                        <td>{line.Qte}</td>
+                        <td>{parseFloat(line.prix.toString()).toFixed(2)} DA</td>
+                        <td>{parseFloat(line.tva.toString()).toFixed(0)}%</td>
+                        <td>{parseFloat(line.total.toString()).toFixed(2)} DA</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => editLine(index)}
+                              style={{
+                                padding: '8px 16px',
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: '500',
+                                transition: 'all 0.2s'
+                              }}
+                            >
+                              ✏️ Modifier
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeLine(index)}
+                              className={styles.deleteButton}
+                            >
+                              🗑 Supprimer
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <div className={styles.totals}>
+                  <div className={styles.totalRow}>
+                    <span className={styles.totalLabel}>Montant HT:</span>
+                    <span className={styles.totalValue}>{totals.montantHT.toFixed(2)} DA</span>
+                  </div>
+                  <div className={styles.totalRow}>
+                    <span className={styles.totalLabel}>TVA:</span>
+                    <span className={styles.totalValue}>{totals.totalTVA.toFixed(2)} DA</span>
+                  </div>
+                  <div className={styles.totalRow}>
+                    <span className={styles.totalLabel}>Total TTC:</span>
+                    <span className={styles.totalValue}>{totals.totalTTC.toFixed(2)} DA</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
-          <div className={styles.totalsSection}>
-            <div className={styles.totalRow}>
-              <span>Montant HT:</span>
-              <span>{totals.montantHT.toFixed(2)} DA</span>
-            </div>
-            <div className={styles.totalRow}>
-              <span>TVA:</span>
-              <span>{totals.totalTVA.toFixed(2)} DA</span>
-            </div>
-            <div className={styles.totalRow}>
-              <strong>Total TTC:</strong>
-              <strong>{totals.totalTTC.toFixed(2)} DA</strong>
-            </div>
-          </div>
-
-          <div className={styles.formActions}>
-            <button type="submit" className={styles.primaryButton}>
-              Créer le Bon de Livraison
-            </button>
-            <button type="button" onClick={() => router.push('/')} className={styles.secondaryButton}>
+          <div className={styles.actions}>
+            <button 
+              type="button" 
+              onClick={() => router.push('/')} 
+              className={styles.cancelButton}
+            >
               Annuler
+            </button>
+            <button 
+              type="submit" 
+              className={styles.submitButton}
+              disabled={lines.length === 0 || !selectedClient}
+            >
+              ✓ Créer le Bon de Livraison
             </button>
           </div>
         </form>

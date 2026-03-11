@@ -353,6 +353,7 @@ export default function CreateProforma() {
                   min="1"
                   value={currentLine.Qte}
                   onChange={(e) => setCurrentLine({ ...currentLine, Qte: parseInt(e.target.value) || 1 })}
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
