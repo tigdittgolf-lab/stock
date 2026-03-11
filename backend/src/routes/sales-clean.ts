@@ -800,11 +800,24 @@ sales.get('/delivery-notes/next-number', async (c) => {
 
     if (result.success && result.data && result.data.length > 0) {
       const nextNumber = result.data[0].next_number || 1;
-      console.log(`✅ Next BL number: ${nextNumber}`);
+      console.log(`✅ Next BL number from RPC: ${nextNumber}`);
       return c.json({ success: true, data: { next_number: nextNumber } });
     }
 
-    // Fallback: retourner 1 si aucun BL n'existe
+    // Fallback: utiliser get_bl_list_by_tenant
+    console.warn('⚠️ RPC failed, using fallback via get_bl_list');
+    const blListResult = await backendDatabaseService.executeRPC('get_bl_list_by_tenant', {
+      p_tenant: tenant
+    });
+    
+    if (blListResult.success && blListResult.data && blListResult.data.length > 0) {
+      const maxNfact = Math.max(...blListResult.data.map((bl: any) => bl.nfact || 0));
+      const nextNumber = maxNfact + 1;
+      console.log(`✅ Next BL number from bl_list (max ${maxNfact}): ${nextNumber}`);
+      return c.json({ success: true, data: { next_number: nextNumber } });
+    }
+
+    // Aucun BL existant
     console.log(`✅ Next BL number: 1 (no existing BLs)`);
     return c.json({ success: true, data: { next_number: 1 } });
 
