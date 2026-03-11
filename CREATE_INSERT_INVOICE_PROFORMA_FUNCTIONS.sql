@@ -1,6 +1,4 @@
 -- Fonctions RPC pour insérer des factures et proformas dans Supabase
-
--- Supprimer les anciennes versions avec les signatures exactes
 DROP FUNCTION IF EXISTS insert_fact_safe(TEXT, CHARACTER VARYING, DATE, NUMERIC, NUMERIC) CASCADE;
 DROP FUNCTION IF EXISTS insert_detail_fact_safe(TEXT, INTEGER, CHARACTER VARYING, NUMERIC, NUMERIC, NUMERIC, NUMERIC) CASCADE;
 DROP FUNCTION IF EXISTS update_stock_facture(TEXT, TEXT, NUMERIC) CASCADE;

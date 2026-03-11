@@ -1,6 +1,4 @@
 -- Fonctions RPC pour insérer des BL et leurs détails dans Supabase
--- À exécuter dans l'éditeur SQL de Supabase
-
 -- Supprimer les anciennes versions si elles existent
 DROP FUNCTION IF EXISTS insert_bl_simple(TEXT, INTEGER, TEXT, DATE, NUMERIC, NUMERIC);
 DROP FUNCTION IF EXISTS insert_detail_bl_simple(TEXT, INTEGER, TEXT, NUMERIC, NUMERIC, NUMERIC, NUMERIC);
