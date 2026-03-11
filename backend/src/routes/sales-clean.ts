@@ -507,13 +507,22 @@ sales.post('/delivery-notes', async (c) => {
   try {
     const tenant = c.get('tenant');
     if (!tenant) {
+      console.error('❌ No tenant header provided');
       return c.json({ success: false, error: 'Tenant header required' }, 400);
     }
 
     const body = await c.req.json();
+    console.log('📦 Received BL creation request:', JSON.stringify(body, null, 2));
+    
     const { Nclient, date_fact, detail_bl } = body;
 
+    if (!Nclient) {
+      console.error('❌ No Nclient provided');
+      return c.json({ success: false, error: 'Nclient is required' }, 400);
+    }
+
     if (!detail_bl || !Array.isArray(detail_bl) || detail_bl.length === 0) {
+      console.error('❌ Invalid detail_bl:', detail_bl);
       return c.json({ success: false, error: 'detail_bl is required and must be a non-empty array' }, 400);
     }
 

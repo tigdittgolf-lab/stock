@@ -333,14 +333,31 @@ export default function CreateDeliveryNote() {
     }
 
     try {
-      const tenant = localStorage.getItem('tenant') || '2025_bu01';
-      const databaseType = localStorage.getItem('databaseType') || 'mysql';
+      // Utiliser selectedTenant au lieu de tenant
+      const tenantInfo = localStorage.getItem('tenant_info');
+      if (!tenantInfo) {
+        alert('Erreur: Informations de tenant manquantes');
+        return;
+      }
+      
+      const tenant = JSON.parse(tenantInfo);
+      const tenantSchema = tenant.schema || localStorage.getItem('selectedTenant') || '2025_bu01';
+      
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const databaseType = dbConfig ? JSON.parse(dbConfig).type : 'mysql';
+      
+      console.log('📤 Submitting BL with:', {
+        tenant: tenantSchema,
+        client: selectedClient,
+        lines: lines.length,
+        dbType: databaseType
+      });
       
       const response = await fetch(`http://localhost:3005/api/sales/delivery-notes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Tenant': tenant,
+          'X-Tenant': tenantSchema,
           'X-Database-Type': databaseType
         },
         body: JSON.stringify({
