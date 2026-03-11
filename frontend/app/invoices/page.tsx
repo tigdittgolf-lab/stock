@@ -111,6 +111,12 @@ export default function CreateInvoice() {
   const handleArticleChange = (articleId: string) => {
     const article = articles.find(a => a.narticle === articleId);
     if (article) {
+      // Si on est en mode édition et que l'article n'a pas changé, ne pas écraser les valeurs
+      if (editingIndex !== null && currentLine.Narticle === articleId) {
+        console.log('⚠️ Same article in edit mode, keeping current values');
+        return;
+      }
+      
       setCurrentLine({
         ...currentLine,
         Narticle: articleId,
@@ -360,7 +366,7 @@ export default function CreateInvoice() {
                   type="number"
                   step="0.01"
                   value={currentLine.tva}
-                  readOnly
+                  onChange={(e) => setCurrentLine({ ...currentLine, tva: parseFloat(e.target.value) || 0 })}
                 />
               </div>
 
