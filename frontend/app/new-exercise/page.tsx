@@ -28,12 +28,23 @@ export default function NewExercise() {
     try {
       const response = await fetch(getApiUrl('auth/business-units'));
       const data = await response.json();
-      if (data.success) {
-        setBusinessUnits(data.data.map((bu: any) => bu.id));
+      console.log('📊 Business units response:', data);
+      
+      if (data.success && data.data) {
+        // Filtrer les business units valides (avec un id défini)
+        const validBUs = data.data
+          .filter((bu: any) => bu && (bu.id || bu.tenant_id || bu.schema_name))
+          .map((bu: any) => bu.id || bu.tenant_id || bu.schema_name);
+        
+        console.log('✅ Valid business units:', validBUs);
+        setBusinessUnits(validBUs);
+      } else {
+        console.warn('⚠️ No business units data, using fallback');
+        setBusinessUnits(['2025_bu01', '2009_bu02']);
       }
     } catch (error) {
-      console.error('Error loading business units:', error);
-      setBusinessUnits(['bu01', 'bu02', 'bu03']);
+      console.error('❌ Error loading business units:', error);
+      setBusinessUnits(['2025_bu01', '2009_bu02']);
     }
   };
 
@@ -134,9 +145,9 @@ export default function NewExercise() {
               }}
             >
               <option value="">Sélectionner une unité d'affaires</option>
-              {businessUnits.map(bu => (
+              {businessUnits.filter(bu => bu).map(bu => (
                 <option key={bu} value={bu}>
-                  {bu.toUpperCase()}
+                  {bu?.toUpperCase() || bu}
                 </option>
               ))}
             </select>

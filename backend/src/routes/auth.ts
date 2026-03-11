@@ -129,17 +129,38 @@ auth.get('/business-units', async (c) => {
       }
     } else if (dbType === 'supabase') {
       // Lire depuis Supabase
-      const result = await backendDatabaseService.executeRPC('list_available_tenants', {});
-      
-      if (result.success && result.data) {
-        const businessUnits = result.data.map((bu: any) => ({
-          id: bu.tenant_id || bu.schema_name,
-          name: bu.name || bu.tenant_id || bu.schema_name,
-          description: bu.description || ''
-        }));
+      try {
+        const result = await backendDatabaseService.executeRPC('list_available_tenants', {});
         
-        console.log(`✅ Found ${businessUnits.length} business units from Supabase`);
-        return c.json({ success: true, data: businessUnits, database_type: dbType });
+        if (result.success && result.data) {
+          const businessUnits = result.data.map((bu: any) => ({
+            id: bu.tenant_id || bu.schema_name,
+            name: bu.name || bu.tenant_id || bu.schema_name,
+            description: bu.description || ''
+          }));
+          
+          console.log(`✅ Found ${businessUnits.length} business units from Supabase`);
+          return c.json({ success: true, data: businessUnits, database_type: dbType });
+        }
+      } catch (rpcError) {
+        console.warn('⚠️ RPC list_available_tenants not available, using fallback query');
+        
+        // Fallback: essayer de lire directement depuis la table business_units si elle existe
+        const result = await backendDatabaseService.executeQuery(
+          'SELECT schema_name as tenant_id, name, description FROM business_units WHERE active = true ORDER BY schema_name',
+          []
+        );
+        
+        if (result.success && result.data && result.data.length > 0) {
+          const businessUnits = result.data.map((bu: any) => ({
+            id: bu.tenant_id,
+            name: bu.name || bu.tenant_id,
+            description: bu.description || ''
+          }));
+          
+          console.log(`✅ Found ${businessUnits.length} business units from Supabase table`);
+          return c.json({ success: true, data: businessUnits, database_type: dbType });
+        }
       }
     }
     
