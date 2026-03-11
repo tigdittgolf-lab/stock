@@ -7,6 +7,15 @@ import { backendDatabaseService } from '../services/databaseService.js';
 
 const sales = new Hono();
 
+// Helper function pour valider un client avec normalisation
+function findClient(clients: any[], nclient: string | number): any {
+  const normalizedNclient = String(nclient).trim();
+  return clients?.find(client => {
+    const clientCode = String(client.nclient).trim();
+    return clientCode === normalizedNclient || clientCode === nclient;
+  });
+}
+
 // Middleware pour extraire le tenant
 sales.use('*', async (c, next) => {
   const tenant = c.req.header('X-Tenant');
@@ -533,10 +542,19 @@ sales.post('/delivery-notes', async (c) => {
       return c.json({ success: false, error: 'Failed to validate client' }, 500);
     }
 
-    const clientExists = clientsResult.data?.find(client => client.nclient === Nclient);
+    console.log(`🔍 Looking for client: "${Nclient}" (type: ${typeof Nclient})`);
+    console.log(`📊 Total clients available: ${clientsResult.data?.length || 0}`);
+    
+    // Utiliser la fonction helper pour trouver le client
+    const clientExists = findClient(clientsResult.data, Nclient);
+    
     if (!clientExists) {
+      console.error(`❌ Client "${Nclient}" not found. Sample clients:`, 
+        clientsResult.data?.slice(0, 5).map(c => c.nclient));
       return c.json({ success: false, error: `Client ${Nclient} not found` }, 400);
     }
+    
+    console.log(`✅ Client found:`, clientExists.nclient, clientExists.raison_sociale || clientExists.nom);
 
     // 3. Valider les articles
     const articlesResult = await backendDatabaseService.executeRPC('get_articles_by_tenant', {
@@ -1009,7 +1027,7 @@ sales.post('/invoices', async (c) => {
       return c.json({ success: false, error: 'Failed to validate client' }, 500);
     }
 
-    const clientExists = clients?.find(client => client.nclient === Nclient);
+    const clientExists = findClient(clients, Nclient);
     if (!clientExists) {
       return c.json({ success: false, error: `Client ${Nclient} not found` }, 400);
     }
@@ -1193,7 +1211,7 @@ sales.post('/proforma', async (c) => {
       return c.json({ success: false, error: 'Failed to validate client' }, 500);
     }
 
-    const clientExists = clients?.find(client => client.nclient === Nclient);
+    const clientExists = findClient(clients, Nclient);
     if (!clientExists) {
       return c.json({ success: false, error: `Client ${Nclient} not found` }, 400);
     }
