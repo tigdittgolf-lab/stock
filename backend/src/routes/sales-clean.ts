@@ -603,29 +603,22 @@ sales.post('/delivery-notes', async (c) => {
     const processedDetails = [];
 
     for (const detail of detail_bl) {
-      const articleExists = articlesResult.data?.find(article => article.narticle.trim() === detail.Narticle.trim());
+      // Trim article code to handle leading/trailing spaces
+      const trimmedNarticle = detail.Narticle.trim();
+      
+      const articleExists = articlesResult.data?.find(article => article.narticle.trim() === trimmedNarticle);
       if (!articleExists) {
-        return c.json({ success: false, error: `Article ${detail.Narticle} not found` }, 400);
+        return c.json({ success: false, error: `Article ${trimmedNarticle} not found` }, 400);
       }
 
-      // Vérifier le stock
-      const stockResult = await backendDatabaseService.executeRPC('get_article_stock_simple', {
-        p_tenant: tenant,
-        p_narticle: detail.Narticle
-      });
-
-      if (!stockResult.success) {
-        console.error(`❌ Failed to get stock for ${detail.Narticle}:`, stockResult.error);
-        return c.json({ success: false, error: `Failed to check stock for ${detail.Narticle}` }, 500);
-      }
-
-      const currentStockBL = parseFloat(stockResult.data?.stock_bl || '0');
+      // Vérifier le stock - use stock data from article (already loaded)
+      const currentStockBL = parseFloat(articleExists.stock_bl || '0');
       const requestedQty = parseFloat(detail.Qte);
       
       if (currentStockBL < requestedQty) {
         return c.json({ 
           success: false, 
-          error: `Stock insuffisant pour ${detail.Narticle}. Disponible: ${currentStockBL}, demandé: ${requestedQty}`
+          error: `Stock insuffisant pour ${trimmedNarticle}. Disponible: ${currentStockBL}, demandé: ${requestedQty}`
         }, 400);
       }
 
@@ -637,7 +630,7 @@ sales.post('/delivery-notes', async (c) => {
 
       processedDetails.push({
         nfact: nextNBl,
-        narticle: detail.Narticle,
+        narticle: trimmedNarticle,
         qte: requestedQty,
         tva: parseFloat(detail.tva),
         prix: parseFloat(detail.prix),
@@ -708,7 +701,7 @@ sales.post('/delivery-notes', async (c) => {
         montant_ttc: montant_ht + TVA,
         details: processedDetails.map(detail => ({
           narticle: detail.narticle,
-          designation: articles?.find(a => a.narticle.trim() === detail.narticle.trim())?.designation || '',
+          designation: articlesResult.data?.find(a => a.narticle.trim() === detail.narticle.trim())?.designation || '',
           qte: detail.qte,
           prix: detail.prix,
           tva: detail.tva,
@@ -1116,29 +1109,22 @@ sales.post('/invoices', async (c) => {
     const processedDetails = [];
 
     for (const detail of detail_fact) {
-      const articleExists = articles?.find(article => article.narticle.trim() === detail.Narticle.trim());
+      // Trim article code to handle leading/trailing spaces
+      const trimmedNarticle = detail.Narticle.trim();
+      
+      const articleExists = articles?.find(article => article.narticle.trim() === trimmedNarticle);
       if (!articleExists) {
-        return c.json({ success: false, error: `Article ${detail.Narticle} not found` }, 400);
+        return c.json({ success: false, error: `Article ${trimmedNarticle} not found` }, 400);
       }
 
-      // Vérifier le stock facture
-      const { data: stockInfo, error: stockError } = await databaseRouter.rpc('get_article_stock_simple', {
-        p_tenant: tenant,
-        p_narticle: detail.Narticle
-      });
-
-      if (stockError) {
-        console.error(`❌ Failed to get stock for ${detail.Narticle}:`, stockError);
-        return c.json({ success: false, error: `Failed to check stock for ${detail.Narticle}` }, 500);
-      }
-
-      const currentStockF = parseFloat(stockInfo?.stock_f || '0');
+      // Vérifier le stock facture - use stock data from article (already loaded)
+      const currentStockF = parseFloat(articleExists.stock_f || '0');
       const requestedQty = parseFloat(detail.Qte);
       
       if (currentStockF < requestedQty) {
         return c.json({ 
           success: false, 
-          error: `Stock facture insuffisant pour ${detail.Narticle}. Disponible: ${currentStockF}, demandé: ${requestedQty}`
+          error: `Stock facture insuffisant pour ${trimmedNarticle}. Disponible: ${currentStockF}, demandé: ${requestedQty}`
         }, 400);
       }
 
@@ -1150,7 +1136,7 @@ sales.post('/invoices', async (c) => {
 
       processedDetails.push({
         nfact: nextNumber,
-        narticle: detail.Narticle,
+        narticle: trimmedNarticle,
         qte: requestedQty,
         tva: parseFloat(detail.tva),
         prix: parseFloat(detail.prix),
@@ -1331,9 +1317,12 @@ sales.post('/proforma', async (c) => {
     const processedDetails = [];
 
     for (const detail of detail_proforma) {
-      const articleExists = articles?.find(article => article.narticle.trim() === detail.Narticle.trim());
+      // Trim article code to handle leading/trailing spaces
+      const trimmedNarticle = detail.Narticle.trim();
+      
+      const articleExists = articles?.find(article => article.narticle.trim() === trimmedNarticle);
       if (!articleExists) {
-        return c.json({ success: false, error: `Article ${detail.Narticle} not found` }, 400);
+        return c.json({ success: false, error: `Article ${trimmedNarticle} not found` }, 400);
       }
 
       const total_ligne = parseFloat(detail.Qte) * parseFloat(detail.prix);
@@ -1344,7 +1333,7 @@ sales.post('/proforma', async (c) => {
 
       processedDetails.push({
         nfact: nextNumber,
-        narticle: detail.Narticle,
+        narticle: trimmedNarticle,
         qte: parseFloat(detail.Qte),
         tva: parseFloat(detail.tva),
         prix: parseFloat(detail.prix),
