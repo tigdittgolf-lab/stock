@@ -36,7 +36,7 @@ SELECT '=== ARTICLES DOUBLONS ===' as info;
 SELECT 
   "Narticle",
   COUNT(*) as nb_doublons,
-  STRING_AGG("Designation", ' | ') as designations,
+  STRING_AGG(designation, ' | ') as designations,
   STRING_AGG(COALESCE(stock, 0)::text, ' | ') as stocks,
   STRING_AGG(COALESCE(prix_vente, 0)::text, ' | ') as prix
 FROM "2009_bu02".article
@@ -60,7 +60,7 @@ SELECT
   "Nfournisseur",
   COUNT(*) as nb_doublons,
   STRING_AGG("Raison_sociale", ' | ') as raisons_sociales,
-  STRING_AGG(COALESCE(adresse, ''), ' | ') as adresses
+  STRING_AGG(COALESCE("Adresse_fourni", ''), ' | ') as adresses
 FROM "2009_bu02".fournisseur
 GROUP BY "Nfournisseur"
 HAVING COUNT(*) > 1

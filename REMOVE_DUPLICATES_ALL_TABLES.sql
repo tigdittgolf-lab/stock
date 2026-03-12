@@ -48,7 +48,7 @@ WHERE ctid IN (
 SELECT 
   "Narticle",
   COUNT(*) as nb_doublons,
-  STRING_AGG("Designation", ' | ') as designations
+  STRING_AGG(designation, ' | ') as designations
 FROM "2009_bu02".article
 GROUP BY "Narticle"
 HAVING COUNT(*) > 1
