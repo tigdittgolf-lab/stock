@@ -82,7 +82,7 @@ SELECT
   "NFact",
   COUNT(*) as nb_doublons,
   STRING_AGG("Nclient", ' | ') as clients,
-  STRING_AGG(date_bl::text, ' | ') as dates,
+  STRING_AGG(date_bc::text, ' | ') as dates,
   STRING_AGG((montant_ht + "TVA")::text, ' | ') as montants_ttc
 FROM "2009_bu02".bl
 GROUP BY "NFact"
@@ -100,7 +100,7 @@ FROM "2009_bu02".bl;
 SELECT 
   b."NFact",
   b."Nclient",
-  b.date_bl,
+  b.date_bc,
   b.montant_ht,
   b."TVA",
   b.montant_ht + b."TVA" as total_ttc,
@@ -112,7 +112,7 @@ WHERE b."NFact" IN (
   GROUP BY "NFact"
   HAVING COUNT(*) > 1
 )
-ORDER BY b."NFact", b.date_bl DESC;
+ORDER BY b."NFact", b.date_bc DESC;
 
 -- ============================================================================
 -- 5. FACTURES - Doublons basés sur NFact

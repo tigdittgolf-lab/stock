@@ -111,13 +111,13 @@ SELECT
   "NFact",
   COUNT(*) as nb_doublons,
   STRING_AGG("Nclient", ' | ') as clients,
-  STRING_AGG(date_bl::text, ' | ') as dates
+  STRING_AGG(date_bc::text, ' | ') as dates
 FROM "2009_bu02".bl
 GROUP BY "NFact"
 HAVING COUNT(*) > 1
 ORDER BY nb_doublons DESC;
 
--- ÉTAPE 2: Supprimer les doublons BL (garde le plus récent basé sur date_bl)
+-- ÉTAPE 2: Supprimer les doublons BL (garde le plus récent basé sur date_bc)
 -- ATTENTION: Supprime aussi les détails associés
 DO $$
 DECLARE
@@ -132,7 +132,7 @@ BEGIN
         ROW_NUMBER() OVER (
           PARTITION BY "NFact" 
           ORDER BY 
-            date_bl DESC,
+            date_bc DESC,
             ctid DESC
         ) as rn
       FROM "2009_bu02".bl
