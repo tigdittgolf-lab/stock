@@ -59,7 +59,7 @@ SELECT '=== FOURNISSEURS DOUBLONS ===' as info;
 SELECT 
   "Nfournisseur",
   COUNT(*) as nb_doublons,
-  STRING_AGG("Raison_sociale", ' | ') as raisons_sociales,
+  STRING_AGG("Nom_fournisseur", ' | ') as noms_fournisseurs,
   STRING_AGG(COALESCE("Adresse_fourni", ''), ' | ') as adresses
 FROM "2009_bu02".fournisseur
 GROUP BY "Nfournisseur"
