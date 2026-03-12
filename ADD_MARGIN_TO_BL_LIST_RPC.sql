@@ -10,8 +10,9 @@ DECLARE
   result JSON;
 BEGIN
   EXECUTE format('
-    SELECT json_agg(
-      jsonb_build_object(
+    SELECT COALESCE(json_agg(bl_data), ''[]''::json)
+    FROM (
+      SELECT jsonb_build_object(
         ''nfact'', b."NFact",
         ''nclient'', b."Nclient",
         ''client_name'', COALESCE(c."Raison_sociale", b."Nclient"),
@@ -28,15 +29,15 @@ BEGIN
           ELSE 0 
         END,
         ''created_at'', b.date_fact
-      )
-    )
-    FROM %I.bl b
-    LEFT JOIN %I.client c ON c."Nclient" = b."Nclient"
-    ORDER BY b."NFact" DESC
+      ) as bl_data
+      FROM %I.bl b
+      LEFT JOIN %I.client c ON c."Nclient" = b."Nclient"
+      ORDER BY b."NFact" DESC
+    ) sub
   ', p_tenant, p_tenant)
   INTO result;
   
-  RETURN COALESCE(result, '[]'::json);
+  RETURN result;
 END;
 $$;
 
@@ -52,8 +53,9 @@ DECLARE
   result JSON;
 BEGIN
   EXECUTE format('
-    SELECT json_agg(
-      jsonb_build_object(
+    SELECT COALESCE(json_agg(fact_data), ''[]''::json)
+    FROM (
+      SELECT jsonb_build_object(
         ''nfact'', f."NFact",
         ''nclient'', f."Nclient",
         ''client_name'', COALESCE(c."Raison_sociale", f."Nclient"),
@@ -69,15 +71,15 @@ BEGIN
           ELSE 0 
         END,
         ''created_at'', f.date_fact
-      )
-    )
-    FROM %I.fact f
-    LEFT JOIN %I.client c ON c."Nclient" = f."Nclient"
-    ORDER BY f."NFact" DESC
+      ) as fact_data
+      FROM %I.fact f
+      LEFT JOIN %I.client c ON c."Nclient" = f."Nclient"
+      ORDER BY f."NFact" DESC
+    ) sub
   ', p_tenant, p_tenant)
   INTO result;
   
-  RETURN COALESCE(result, '[]'::json);
+  RETURN result;
 END;
 $$;
 
