@@ -298,7 +298,7 @@ export default function CreateProforma() {
     <div className={styles.page}>
       <header className={styles.header}>
         <h1>Créer une Facture Proforma {nextProformaNumber && `N° ${nextProformaNumber}`}</h1>
-        <button onClick={() => router.push('/dashboard')}>Retour</button>
+        <button onClick={() => router.push('/proforma/list')}>Retour</button>
       </header>
 
       <main className={styles.main}>
@@ -459,7 +459,7 @@ export default function CreateProforma() {
             <button type="submit" className={styles.primaryButton}>
               Créer la Facture Proforma
             </button>
-            <button type="button" onClick={() => router.push('/dashboard')} className={styles.secondaryButton}>
+            <button type="button" onClick={() => router.push('/proforma/list')} className={styles.secondaryButton}>
               Annuler
             </button>
           </div>
