@@ -5,6 +5,8 @@
 -- Utilisez-le pour analyser la situation avant de supprimer
 -- ============================================================================
 
+-- IMPORTANT: Remplacez '2009_bu02' par votre tenant dans tout le script
+
 -- ============================================================================
 -- 1. CLIENTS - Doublons basés sur Nclient
 -- ============================================================================
