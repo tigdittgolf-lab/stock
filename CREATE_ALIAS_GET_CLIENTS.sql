@@ -1,4 +1,5 @@
--- Créer un alias pour get_clients_by_tenant qui utilise la nouvelle fonction avec dette
+-- Créer un alias pour get_clients_by_tenant qui utilise la version SIMPLE (sans dette)
+-- Pour éviter les timeouts avec 1000 clients
 DROP FUNCTION IF EXISTS get_clients_by_tenant(TEXT);
 
 CREATE OR REPLACE FUNCTION get_clients_by_tenant(p_tenant TEXT)
@@ -19,16 +20,16 @@ AS $$
 BEGIN
   RETURN QUERY
   SELECT 
-    gcd.nclient,
-    gcd.raison_sociale,
-    gcd.adresse,
-    gcd.tel as telephone,
-    gcd.email,
-    gcd.c_affaire_fact,
-    gcd.c_affaire_bl,
-    gcd.chiffre_affaire,
-    gcd.solde
-  FROM get_clients_with_debt(p_tenant) gcd;
+    gcs.nclient,
+    gcs.raison_sociale,
+    gcs.adresse,
+    gcs.tel as telephone,
+    gcs.email,
+    gcs.c_affaire_fact,
+    gcs.c_affaire_bl,
+    gcs.chiffre_affaire,
+    gcs.solde
+  FROM get_clients_simple(p_tenant) gcs;
 END;
 $$;
 

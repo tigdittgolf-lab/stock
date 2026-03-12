@@ -203,6 +203,44 @@ sales.get('/clients/:id', async (c) => {
   }
 });
 
+// GET /api/sales/clients/:id/debt - Récupérer la dette d'un client spécifique
+sales.get('/clients/:id/debt', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    const id = c.req.param('id');
+    
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    console.log(`💰 Sales: Fetching debt for client ${id} in schema: ${tenant}`);
+
+    const { data: clientDebt, error } = await databaseRouter.rpc('get_client_debt', {
+      p_tenant: tenant,
+      p_client_code: id
+    });
+    
+    if (error) {
+      console.error('❌ RPC Error in sales/clients/:id/debt:', error);
+      return c.json({ success: false, error: 'RPC function not available' }, 404);
+    }
+    
+    if (clientDebt && clientDebt.length > 0) {
+      return c.json({ 
+        success: true, 
+        data: clientDebt[0],
+        database_type: backendDatabaseService.getActiveDatabaseType() 
+      });
+    } else {
+      return c.json({ success: false, error: 'Client not found' }, 404);
+    }
+    
+  } catch (error) {
+    console.error('Error in sales/clients/:id/debt:', error);
+    return c.json({ success: false, error: 'Internal error' }, 500);
+  }
+});
+
 // POST /api/sales/clients - Créer un client
 sales.post('/clients', async (c) => {
   try {
@@ -2354,9 +2392,11 @@ sales.get('/report', async (c) => {
             return true;
           });
 
-          // Calculer les marges réelles pour chaque BL
+          // Calculer les marges réelles pour chaque BL (DÉSACTIVÉ pour performance)
           for (const bl of filteredBL) {
-            const { marge, margePercent } = await calculateRealMargin(bl.nfact, 'bl');
+            // const { marge, margePercent } = await calculateRealMargin(bl.nfact, 'bl');
+            const marge = 0; // Temporairement désactivé pour éviter 4694 appels
+            const margePercent = 0;
             
             allSales.push({
               type: 'BL',
@@ -2367,8 +2407,8 @@ sales.get('/report', async (c) => {
               montant_ht: parseFloat(bl.montant_ht || '0'),
               tva: parseFloat(bl.tva || '0'),
               montant_ttc: parseFloat(bl.montant_ht || '0') + parseFloat(bl.tva || '0'),
-              marge: marge, // MARGE RÉELLE calculée
-              marge_percentage: margePercent, // POURCENTAGE RÉEL calculé
+              marge: marge,
+              marge_percentage: margePercent,
               created_at: bl.created_at || bl.date_fact
             });
           }
@@ -2395,7 +2435,10 @@ sales.get('/report', async (c) => {
 
           // Calculer les marges réelles pour chaque facture
           for (const fact of filteredFactures) {
-            const { marge, margePercent } = await calculateRealMargin(fact.nfact, 'facture');
+            // TEMPORAIREMENT DÉSACTIVÉ: Calcul de marge réelle (causait boucle infinie avec 4694 BL)
+            // const { marge, margePercent } = await calculateRealMargin(fact.nfact, 'facture');
+            const marge = 0;
+            const margePercent = 0;
             
             allSales.push({
               type: 'FACTURE',
@@ -2406,8 +2449,8 @@ sales.get('/report', async (c) => {
               montant_ht: parseFloat(fact.montant_ht || '0'),
               tva: parseFloat(fact.tva || '0'),
               montant_ttc: parseFloat(fact.montant_ht || '0') + parseFloat(fact.tva || '0'),
-              marge: marge, // MARGE RÉELLE calculée
-              marge_percentage: margePercent, // POURCENTAGE RÉEL calculé
+              marge: marge, // TEMPORAIREMENT À 0
+              marge_percentage: margePercent, // TEMPORAIREMENT À 0
               created_at: fact.created_at || fact.date_fact
             });
           }

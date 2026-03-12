@@ -67,8 +67,29 @@ export default function CreateDeliveryNote() {
   // Mettre à jour les infos client quand sélectionné
   useEffect(() => {
     if (selectedClient) {
-      const client = clients.find(c => c.nclient === selectedClient);
-      setSelectedClientInfo(client || null);
+      // Appeler l'endpoint pour récupérer les infos avec dette
+      fetch(`/api/sales/clients/${selectedClient}/debt`, {
+        headers: {
+          'x-tenant': tenantInfo?.schema || '',
+          'x-database-type': tenantInfo?.database_type || 'supabase'
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data) {
+            setSelectedClientInfo(data.data);
+          } else {
+            // Fallback: utiliser les données de base sans dette
+            const client = clients.find(c => c.nclient === selectedClient);
+            setSelectedClientInfo(client || null);
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching client debt:', err);
+          // Fallback: utiliser les données de base sans dette
+          const client = clients.find(c => c.nclient === selectedClient);
+          setSelectedClientInfo(client || null);
+        });
     } else {
       setSelectedClientInfo(null);
     }
