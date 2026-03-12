@@ -67,6 +67,10 @@ export default function CreateDeliveryNote() {
   // Mettre à jour les infos client quand sélectionné
   useEffect(() => {
     if (selectedClient) {
+      // Récupérer les infos tenant depuis localStorage
+      const tenantInfoStr = localStorage.getItem('tenant_info');
+      const tenantInfo = tenantInfoStr ? JSON.parse(tenantInfoStr) : null;
+      
       // Appeler l'endpoint pour récupérer les infos avec dette
       fetch(`/api/sales/clients/${selectedClient}/debt`, {
         headers: {
