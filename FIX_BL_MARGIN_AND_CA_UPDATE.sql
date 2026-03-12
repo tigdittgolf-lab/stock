@@ -25,10 +25,7 @@ CREATE OR REPLACE FUNCTION calculate_document_margin(
   p_nfact INTEGER,
   p_document_type TEXT -- 'bl' ou 'fact'
 )
-RETURNS TABLE(
-  total_marge NUMERIC,
-  marge_percent NUMERIC
-)
+RETURNS NUMERIC -- Retourne seulement la marge, pas le pourcentage
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
@@ -38,7 +35,6 @@ DECLARE
   v_total_ht NUMERIC := 0;
   v_total_cost NUMERIC := 0;
   v_marge NUMERIC := 0;
-  v_marge_percent NUMERIC := 0;
 BEGIN
   -- Déterminer la table de détails
   IF p_document_type = 'bl' THEN
@@ -64,14 +60,7 @@ BEGIN
   -- Calculer la marge
   v_marge := v_total_ht - v_total_cost;
   
-  -- Calculer le pourcentage de marge
-  IF v_total_ht > 0 THEN
-    v_marge_percent := (v_marge / v_total_ht) * 100;
-  ELSE
-    v_marge_percent := 0;
-  END IF;
-  
-  RETURN QUERY SELECT v_marge, v_marge_percent;
+  RETURN v_marge;
 END;
 $$;
 
@@ -143,10 +132,10 @@ BEGIN
   sql_query := format('
     INSERT INTO %I.bl (
       "NFact", "Nclient", date_fact, montant_ht, "TVA", timbre, autre_taxe, 
-      facturer, banq, ncheque, "NBC", date_bc, nom_preneur, marge, marge_percent
+      facturer, banq, ncheque, "NBC", date_bc, nom_preneur, marge
     ) VALUES (
       %s, %L, %L, %s, %s, 0, 0,
-      0, '''', '''', '''', %L, '''', 0, 0
+      0, '''', '''', '''', %L, '''', 0
     )',
     p_tenant, p_nfact, p_nclient, p_date_fact, p_montant_ht, p_tva, p_date_fact
   );
@@ -176,7 +165,6 @@ DECLARE
   sql_query TEXT;
   v_table_name TEXT;
   v_marge NUMERIC;
-  v_marge_percent NUMERIC;
 BEGIN
   -- Déterminer la table
   IF p_document_type = 'bl' THEN
@@ -188,21 +176,19 @@ BEGIN
   END IF;
 
   -- Calculer la marge
-  SELECT total_marge, marge_percent 
-  INTO v_marge, v_marge_percent
-  FROM calculate_document_margin(p_tenant, p_nfact, p_document_type);
+  v_marge := calculate_document_margin(p_tenant, p_nfact, p_document_type);
   
   -- Mettre à jour le document
   sql_query := format('
     UPDATE %I.%I 
-    SET marge = %s, marge_percent = %s
+    SET marge = %s
     WHERE "NFact" = %s
-  ', p_tenant, v_table_name, v_marge, v_marge_percent, p_nfact);
+  ', p_tenant, v_table_name, v_marge, p_nfact);
   
   EXECUTE sql_query;
   
-  RETURN format('Marge mise à jour pour %s %s: %s DA (%s%%)', 
-    p_document_type, p_nfact, v_marge, ROUND(v_marge_percent, 2));
+  RETURN format('Marge mise à jour pour %s %s: %s DA', 
+    p_document_type, p_nfact, v_marge);
 END;
 $$;
 
@@ -235,10 +221,10 @@ BEGIN
   sql_query := format('
     INSERT INTO %I.fact (
       "NFact", "Nclient", date_fact, montant_ht, "TVA", timbre, autre_taxe,
-      banq, ncheque, marge, marge_percent
+      banq, ncheque, marge
     ) VALUES (
       %s, %L, %L, %s, %s, 0, 0,
-      '''', '''', 0, 0
+      '''', '''', 0
     )',
     p_tenant, p_nfact, p_nclient, p_date_fact, p_montant_ht, p_tva
   );

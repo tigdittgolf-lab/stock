@@ -1,4 +1,4 @@
--- Ajouter les colonnes marge et marge_percent à get_bl_list_by_tenant
+-- Ajouter les colonnes marge à get_bl_list_by_tenant
 DROP FUNCTION IF EXISTS get_bl_list_by_tenant(TEXT) CASCADE;
 
 CREATE OR REPLACE FUNCTION get_bl_list_by_tenant(p_tenant TEXT)
@@ -22,7 +22,11 @@ BEGIN
         ''autre_taxe'', COALESCE(b.autre_taxe, 0),
         ''facturer'', COALESCE(b.facturer, 0),
         ''marge'', COALESCE(b.marge, 0),
-        ''marge_percent'', COALESCE(b.marge_percent, 0),
+        ''marge_percent'', CASE 
+          WHEN COALESCE(b.montant_ht, 0) > 0 
+          THEN (COALESCE(b.marge, 0) / b.montant_ht) * 100 
+          ELSE 0 
+        END,
         ''created_at'', b.date_fact
       )
     )
@@ -59,7 +63,11 @@ BEGIN
         ''timbre'', COALESCE(f.timbre, 0),
         ''autre_taxe'', COALESCE(f.autre_taxe, 0),
         ''marge'', COALESCE(f.marge, 0),
-        ''marge_percent'', COALESCE(f.marge_percent, 0),
+        ''marge_percent'', CASE 
+          WHEN COALESCE(f.montant_ht, 0) > 0 
+          THEN (COALESCE(f.marge, 0) / f.montant_ht) * 100 
+          ELSE 0 
+        END,
         ''created_at'', f.date_fact
       )
     )
