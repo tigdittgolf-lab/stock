@@ -36,6 +36,10 @@ export default function SalesReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+
   // Filtres
   const [filters, setFilters] = useState({
     dateFrom: '',
@@ -44,6 +48,17 @@ export default function SalesReport() {
     type: 'ALL', // ALL, BL, FACTURE
     todayOnly: false
   });
+
+  // Calculer les données paginées
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentSales = sales.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(sales.length / itemsPerPage);
+
+  // Réinitialiser à la page 1 quand les filtres changent
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, itemsPerPage]);
 
   useEffect(() => {
     // Initialiser avec une plage plus large par défaut
@@ -305,7 +320,28 @@ export default function SalesReport() {
           </div>
         ) : (
           <div className={styles.tableContainer}>
-            <h2>📋 Détail des Ventes ({sales.length} documents)</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h2>📋 Détail des Ventes ({sales.length} documents)</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <label style={{ fontWeight: 'bold' }}>Lignes par page:</label>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                  style={{
+                    padding: '5px 10px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px'
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={200}>200</option>
+                </select>
+              </div>
+            </div>
+            
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -322,7 +358,7 @@ export default function SalesReport() {
                 </tr>
               </thead>
               <tbody>
-                {sales.map((sale, index) => (
+                {currentSales.map((sale, index) => (
                   <tr key={`${sale.type}-${sale.numero}`}>
                     <td>
                       <span style={{ 
@@ -369,6 +405,76 @@ export default function SalesReport() {
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '10px',
+                marginTop: '20px',
+                padding: '15px',
+                background: '#f8f9fa',
+                borderRadius: '5px'
+              }}>
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className={styles.secondaryButton}
+                  style={{
+                    opacity: currentPage === 1 ? 0.5 : 1,
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  ⏮️ Début
+                </button>
+                
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className={styles.secondaryButton}
+                  style={{
+                    opacity: currentPage === 1 ? 0.5 : 1,
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  ◀️ Précédent
+                </button>
+
+                <span style={{ fontWeight: 'bold', padding: '0 15px' }}>
+                  Page {currentPage} sur {totalPages}
+                  <br />
+                  <small style={{ color: '#666' }}>
+                    ({indexOfFirstItem + 1}-{Math.min(indexOfLastItem, sales.length)} sur {sales.length})
+                  </small>
+                </span>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className={styles.secondaryButton}
+                  style={{
+                    opacity: currentPage === totalPages ? 0.5 : 1,
+                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Suivant ▶️
+                </button>
+
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className={styles.secondaryButton}
+                  style={{
+                    opacity: currentPage === totalPages ? 0.5 : 1,
+                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Fin ⏭️
+                </button>
+              </div>
+            )}
           </div>
         )}
       </main>
