@@ -595,7 +595,7 @@ export class PDFService {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Date: ${new Date(deliveryData.date_fact).toLocaleDateString('fr-FR')}`, 20, yPos);
-    doc.text(`Code client: ${deliveryData.client.raison_sociale}`, 120, yPos);
+    doc.text(`Client: ${deliveryData.client.raison_sociale}`, 120, yPos);
     yPos += 20;
 
     // Table header - Plus compact
@@ -741,12 +741,9 @@ export class PDFService {
     doc.setFontSize(6);
 
     deliveryData.detail_bl.forEach((item) => {
-      // Désignation sur une ligne
+      // Toutes les colonnes sur la même ligne
       const designation = (item.article?.designation || item.designation || '').substring(0, 20); // Raccourci pour laisser plus de place
       doc.text(designation, 5, yPos);
-      yPos += 3;
-
-      // Quantité, prix, total sur la ligne suivante avec meilleur espacement
       doc.text(formatQuantity(item.qte), 45, yPos, { align: 'center' });
       
       if (item.prix) {
