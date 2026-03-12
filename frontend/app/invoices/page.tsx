@@ -285,7 +285,7 @@ export default function CreateInvoice() {
     <div className={styles.page}>
       <header className={styles.header}>
         <h1>Créer une Facture {nextInvoiceNumber && `N° ${nextInvoiceNumber}`}</h1>
-        <button onClick={() => router.push('/')}>Retour</button>
+        <button onClick={() => router.push('/dashboard')}>Retour</button>
       </header>
 
       <main className={styles.main}>
@@ -446,7 +446,7 @@ export default function CreateInvoice() {
             <button type="submit" className={styles.primaryButton}>
               Créer la Facture
             </button>
-            <button type="button" onClick={() => router.push('/')} className={styles.secondaryButton}>
+            <button type="button" onClick={() => router.push('/dashboard')} className={styles.secondaryButton}>
               Annuler
             </button>
           </div>

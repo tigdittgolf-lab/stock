@@ -420,7 +420,7 @@ export default function CreateDeliveryNote() {
           Créer un Bon de Livraison 
           {nextBLNumber && <span className={styles.blNumber}>N° {nextBLNumber}</span>}
         </div>
-        <button onClick={() => router.push('/')} className={styles.backButton}>
+        <button onClick={() => router.push('/dashboard')} className={styles.backButton}>
           ← Retour
         </button>
       </header>
@@ -679,7 +679,7 @@ export default function CreateDeliveryNote() {
           <div className={styles.actions}>
             <button 
               type="button" 
-              onClick={() => router.push('/')} 
+              onClick={() => router.push('/dashboard')} 
               className={styles.cancelButton}
             >
               Annuler
