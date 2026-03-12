@@ -12,6 +12,8 @@ interface Client {
   telephone?: string;
   solde?: number;
   chiffre_affaire?: number;
+  c_affaire_fact?: number;
+  c_affaire_bl?: number;
 }
 
 interface Article {
@@ -463,8 +465,20 @@ export default function CreateDeliveryNote() {
                     <span className={styles.clientInfoValue}>{selectedClientInfo.telephone || 'N/A'}</span>
                   </div>
                   <div className={styles.clientInfoItem}>
-                    <span className={styles.clientInfoLabel}>Chiffre d'Affaires</span>
-                    <span className={styles.clientInfoValue} style={{ color: '#28a745', fontWeight: 'bold' }}>
+                    <span className={styles.clientInfoLabel}>CA Factures</span>
+                    <span className={styles.clientInfoValue} style={{ color: '#17a2b8', fontWeight: 'bold' }}>
+                      {selectedClientInfo.c_affaire_fact ? `${selectedClientInfo.c_affaire_fact.toFixed(2)} DA` : '0.00 DA'}
+                    </span>
+                  </div>
+                  <div className={styles.clientInfoItem}>
+                    <span className={styles.clientInfoLabel}>CA Bons de Livraison</span>
+                    <span className={styles.clientInfoValue} style={{ color: '#17a2b8', fontWeight: 'bold' }}>
+                      {selectedClientInfo.c_affaire_bl ? `${selectedClientInfo.c_affaire_bl.toFixed(2)} DA` : '0.00 DA'}
+                    </span>
+                  </div>
+                  <div className={styles.clientInfoItem}>
+                    <span className={styles.clientInfoLabel}>CA Total</span>
+                    <span className={styles.clientInfoValue} style={{ color: '#28a745', fontWeight: 'bold', fontSize: '1.1em' }}>
                       {selectedClientInfo.chiffre_affaire ? `${selectedClientInfo.chiffre_affaire.toFixed(2)} DA` : '0.00 DA'}
                     </span>
                   </div>
@@ -472,7 +486,8 @@ export default function CreateDeliveryNote() {
                     <span className={styles.clientInfoLabel}>Dette / Reste à Payer</span>
                     <span className={styles.clientInfoValue} style={{ 
                       color: selectedClientInfo.solde && selectedClientInfo.solde > 0 ? '#dc3545' : '#28a745',
-                      fontWeight: 'bold'
+                      fontWeight: 'bold',
+                      fontSize: '1.1em'
                     }}>
                       {selectedClientInfo.solde ? `${selectedClientInfo.solde.toFixed(2)} DA` : '0.00 DA'}
                     </span>
