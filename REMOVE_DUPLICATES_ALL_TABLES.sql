@@ -5,8 +5,7 @@
 -- Exécutez d'abord les requêtes SELECT pour vérifier avant de supprimer
 -- ============================================================================
 
--- Remplacer '2009_bu02' par votre tenant
-\set tenant '2009_bu02'
+-- IMPORTANT: Remplacez '2009_bu02' par votre tenant dans tout le script
 
 -- ============================================================================
 -- 1. CLIENTS - Doublons basés sur Nclient
