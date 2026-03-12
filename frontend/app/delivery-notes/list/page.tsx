@@ -554,6 +554,9 @@ export default function DeliveryNotesList() {
         // Récupération de l'ID réel du BL - CORRECTION MAJEURE
         let validId = bl.nbl || bl.id || bl.nfact;
         
+        // Créer une clé unique combinant plusieurs champs pour éviter les doublons
+        const uniqueKey = `${validId}-${bl.date_bl || ''}-${bl.nclient || ''}-${index}`;
+        
         console.log(`🔍 MOBILE BL ${index} VALID ID:`, {
           validId: validId,
           validId_type: typeof validId
@@ -572,7 +575,7 @@ export default function DeliveryNotesList() {
 
         return (
           <div 
-            key={`${validId}-${index}`}
+            key={uniqueKey}
             style={{
               background: 'var(--card-background)',
               borderRadius: '10px',
@@ -895,6 +898,9 @@ export default function DeliveryNotesList() {
             // Récupération de l'ID réel du BL - CORRECTION MAJEURE
             let validId = bl.nbl || bl.id || bl.nfact;
             
+            // Créer une clé unique combinant plusieurs champs pour éviter les doublons
+            const uniqueKey = `${validId}-${bl.date_bl || ''}-${bl.nclient || ''}-${index}`;
+            
             console.log(`🔍 DESKTOP BL ${index} VALID ID:`, {
               validId: validId,
               validId_type: typeof validId
@@ -913,7 +919,7 @@ export default function DeliveryNotesList() {
 
             return (
               <tr 
-                key={`${validId}-${index}`}
+                key={uniqueKey}
                 style={{ 
                   borderBottom: '1px solid var(--border-color)',
                   backgroundColor: index % 2 === 0 ? 'var(--card-background)' : 'var(--background-secondary)'
