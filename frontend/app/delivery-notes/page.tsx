@@ -11,6 +11,7 @@ interface Client {
   adresse?: string;
   telephone?: string;
   solde?: number;
+  chiffre_affaire?: number;
 }
 
 interface Article {
@@ -462,8 +463,17 @@ export default function CreateDeliveryNote() {
                     <span className={styles.clientInfoValue}>{selectedClientInfo.telephone || 'N/A'}</span>
                   </div>
                   <div className={styles.clientInfoItem}>
-                    <span className={styles.clientInfoLabel}>Solde / Dette</span>
-                    <span className={styles.clientInfoValue}>
+                    <span className={styles.clientInfoLabel}>Chiffre d'Affaires</span>
+                    <span className={styles.clientInfoValue} style={{ color: '#28a745', fontWeight: 'bold' }}>
+                      {selectedClientInfo.chiffre_affaire ? `${selectedClientInfo.chiffre_affaire.toFixed(2)} DA` : '0.00 DA'}
+                    </span>
+                  </div>
+                  <div className={styles.clientInfoItem}>
+                    <span className={styles.clientInfoLabel}>Dette / Reste à Payer</span>
+                    <span className={styles.clientInfoValue} style={{ 
+                      color: selectedClientInfo.solde && selectedClientInfo.solde > 0 ? '#dc3545' : '#28a745',
+                      fontWeight: 'bold'
+                    }}>
                       {selectedClientInfo.solde ? `${selectedClientInfo.solde.toFixed(2)} DA` : '0.00 DA'}
                     </span>
                     <span className={styles.clientStatus}>
