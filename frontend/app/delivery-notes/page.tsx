@@ -69,13 +69,25 @@ export default function CreateDeliveryNote() {
     if (selectedClient) {
       // Récupérer les infos tenant depuis localStorage
       const tenantInfoStr = localStorage.getItem('tenant_info');
-      const tenantInfo = tenantInfoStr ? JSON.parse(tenantInfoStr) : null;
+      let tenantInfo = null;
+      
+      try {
+        if (tenantInfoStr) {
+          tenantInfo = JSON.parse(tenantInfoStr);
+        }
+      } catch (e) {
+        console.warn('Failed to parse tenant_info:', e);
+      }
+      
+      // Fallback: utiliser selectedTenant si tenant_info n'existe pas
+      const tenant = tenantInfo?.schema || localStorage.getItem('selectedTenant') || '2009_bu02';
+      const dbType = tenantInfo?.database_type || 'supabase';
       
       // Appeler l'endpoint pour récupérer les infos avec dette
       fetch(`/api/sales/clients/${selectedClient}/debt`, {
         headers: {
-          'x-tenant': tenantInfo?.schema || '',
-          'x-database-type': tenantInfo?.database_type || 'supabase'
+          'x-tenant': tenant,
+          'x-database-type': dbType
         }
       })
         .then(res => res.json())
