@@ -140,6 +140,8 @@ FROM "2009_bu02".fact;
 -- ============================================================================
 -- 6. PROFORMAS - Doublons basés sur NFact
 -- ============================================================================
+-- NOTE: Table proforma n'existe pas dans ce schéma - Section commentée
+/*
 SELECT '=== PROFORMAS DOUBLONS ===' as info;
 
 SELECT 
@@ -159,6 +161,7 @@ SELECT
   COUNT(DISTINCT "NFact") as proformas_uniques,
   COUNT(*) - COUNT(DISTINCT "NFact") as nb_doublons_a_supprimer
 FROM "2009_bu02".proforma;
+*/
 
 -- ============================================================================
 -- RÉSUMÉ GLOBAL
@@ -203,7 +206,9 @@ SELECT
   COUNT(DISTINCT "NFact"),
   COUNT(*) - COUNT(DISTINCT "NFact"),
   ROUND(100.0 * (COUNT(*) - COUNT(DISTINCT "NFact")) / NULLIF(COUNT(*), 0), 2)
-FROM "2009_bu02".fact
+FROM "2009_bu02".fact;
+-- Proformas commenté car table n'existe pas
+/*
 UNION ALL
 SELECT 
   'Proformas',
@@ -212,3 +217,4 @@ SELECT
   COUNT(*) - COUNT(DISTINCT "NFact"),
   ROUND(100.0 * (COUNT(*) - COUNT(DISTINCT "NFact")) / NULLIF(COUNT(*), 0), 2)
 FROM "2009_bu02".proforma;
+*/
