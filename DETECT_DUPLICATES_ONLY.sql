@@ -37,7 +37,7 @@ SELECT
   "Narticle",
   COUNT(*) as nb_doublons,
   STRING_AGG(designation, ' | ') as designations,
-  STRING_AGG(COALESCE(stock, 0)::text, ' | ') as stocks,
+  STRING_AGG(COALESCE(stock_f, 0)::text, ' | ') as stocks,
   STRING_AGG(COALESCE(prix_vente, 0)::text, ' | ') as prix
 FROM "2009_bu02".article
 GROUP BY "Narticle"

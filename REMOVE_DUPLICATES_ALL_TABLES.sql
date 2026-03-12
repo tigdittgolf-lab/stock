@@ -64,7 +64,7 @@ WHERE ctid IN (
       ROW_NUMBER() OVER (
         PARTITION BY "Narticle" 
         ORDER BY 
-          COALESCE(stock, 0) DESC,
+          COALESCE(stock_f, 0) DESC,
           ctid DESC
       ) as rn
     FROM "2009_bu02".article
