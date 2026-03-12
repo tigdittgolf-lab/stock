@@ -724,6 +724,23 @@ sales.post('/delivery-notes', async (c) => {
       }
     }
 
+    // 8. Calculer et mettre à jour la marge du BL
+    try {
+      const marginResult = await backendDatabaseService.executeRPC('update_document_margin', {
+        p_tenant: tenant,
+        p_nfact: nextNBl,
+        p_document_type: 'bl'
+      });
+
+      if (marginResult.success) {
+        console.log(`✅ Marge calculée pour BL ${nextNBl}:`, marginResult.data);
+      } else {
+        console.warn(`⚠️ Margin calculation failed for BL ${nextNBl}:`, marginResult.error);
+      }
+    } catch (error) {
+      console.warn(`⚠️ Margin calculation error for BL ${nextNBl}:`, error);
+    }
+
     console.log(`✅ BL ${nextNBl} created successfully for client ${Nclient}`);
 
     return c.json({
@@ -1228,6 +1245,23 @@ sales.post('/invoices', async (c) => {
       if (stockError) {
         console.warn(`⚠️ Stock facture update failed for ${detail.narticle}:`, stockError);
       }
+    }
+
+    // 8. Calculer et mettre à jour la marge de la facture
+    try {
+      const marginResult = await backendDatabaseService.executeRPC('update_document_margin', {
+        p_tenant: tenant,
+        p_nfact: nextNumber,
+        p_document_type: 'fact'
+      });
+
+      if (marginResult.success) {
+        console.log(`✅ Marge calculée pour facture ${nextNumber}:`, marginResult.data);
+      } else {
+        console.warn(`⚠️ Margin calculation failed for invoice ${nextNumber}:`, marginResult.error);
+      }
+    } catch (error) {
+      console.warn(`⚠️ Margin calculation error for invoice ${nextNumber}:`, error);
     }
 
     console.log(`✅ Invoice ${nextNumber} created successfully for client ${Nclient}`);
@@ -2392,11 +2426,10 @@ sales.get('/report', async (c) => {
             return true;
           });
 
-          // Calculer les marges réelles pour chaque BL (DÉSACTIVÉ pour performance)
+          // Utiliser la marge déjà calculée dans la base de données
           for (const bl of filteredBL) {
-            // const { marge, margePercent } = await calculateRealMargin(bl.nfact, 'bl');
-            const marge = 0; // Temporairement désactivé pour éviter 4694 appels
-            const margePercent = 0;
+            const marge = parseFloat(bl.marge || '0');
+            const margePercent = parseFloat(bl.marge_percent || '0');
             
             allSales.push({
               type: 'BL',
@@ -2433,12 +2466,10 @@ sales.get('/report', async (c) => {
             return true;
           });
 
-          // Calculer les marges réelles pour chaque facture
+          // Utiliser la marge déjà calculée dans la base de données
           for (const fact of filteredFactures) {
-            // TEMPORAIREMENT DÉSACTIVÉ: Calcul de marge réelle (causait boucle infinie avec 4694 BL)
-            // const { marge, margePercent } = await calculateRealMargin(fact.nfact, 'facture');
-            const marge = 0;
-            const margePercent = 0;
+            const marge = parseFloat(fact.marge || '0');
+            const margePercent = parseFloat(fact.marge_percent || '0');
             
             allSales.push({
               type: 'FACTURE',
@@ -2449,8 +2480,8 @@ sales.get('/report', async (c) => {
               montant_ht: parseFloat(fact.montant_ht || '0'),
               tva: parseFloat(fact.tva || '0'),
               montant_ttc: parseFloat(fact.montant_ht || '0') + parseFloat(fact.tva || '0'),
-              marge: marge, // TEMPORAIREMENT À 0
-              marge_percentage: margePercent, // TEMPORAIREMENT À 0
+              marge: marge,
+              marge_percentage: margePercent,
               created_at: fact.created_at || fact.date_fact
             });
           }
