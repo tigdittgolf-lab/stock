@@ -115,7 +115,10 @@ END;
 $$;
 
 -- ÉTAPE 4: Recréer insert_bl_simple avec calcul marge et MAJ CA
-DROP FUNCTION IF EXISTS insert_bl_simple(TEXT, INTEGER, TEXT, DATE, NUMERIC, NUMERIC);
+-- Supprimer toutes les versions existantes
+DROP FUNCTION IF EXISTS insert_bl_simple(TEXT, INTEGER, TEXT, DATE, NUMERIC, NUMERIC) CASCADE;
+DROP FUNCTION IF EXISTS insert_bl_simple(TEXT, TEXT, TEXT, DATE, NUMERIC, NUMERIC) CASCADE;
+DROP FUNCTION IF EXISTS insert_bl_simple CASCADE;
 
 CREATE OR REPLACE FUNCTION insert_bl_simple(
   p_tenant TEXT,
@@ -204,7 +207,10 @@ END;
 $$;
 
 -- ÉTAPE 6: Même chose pour les factures
-DROP FUNCTION IF EXISTS insert_fact_safe(TEXT, INTEGER, TEXT, DATE, NUMERIC, NUMERIC);
+-- Supprimer toutes les versions existantes de insert_fact_safe
+DROP FUNCTION IF EXISTS insert_fact_safe(TEXT, INTEGER, TEXT, DATE, NUMERIC, NUMERIC) CASCADE;
+DROP FUNCTION IF EXISTS insert_fact_safe(TEXT, TEXT, TEXT, DATE, NUMERIC, NUMERIC) CASCADE;
+DROP FUNCTION IF EXISTS insert_fact_safe CASCADE;
 
 CREATE OR REPLACE FUNCTION insert_fact_safe(
   p_tenant TEXT,
