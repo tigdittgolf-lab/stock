@@ -57,6 +57,12 @@ export default function CreateDeliveryNote() {
     number: number;
     clientName: string;
   } | null>(null);
+  
+  // États pour le paiement
+  const [paymentType, setPaymentType] = useState<'total' | 'partial'>('total');
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState<string>('cash');
+  const [paymentNotes, setPaymentNotes] = useState<string>('');
 
   useEffect(() => {
     fetchClients();
@@ -417,12 +423,47 @@ export default function CreateDeliveryNote() {
 
       if (data.success) {
         const blNumber = data.data.nbl || data.data.nfact;
+        const totalTTC = data.data.total_ttc || 0;
+        
+        // Enregistrer le paiement si un montant est spécifié
+        if (paymentType === 'total' || (paymentType === 'partial' && paymentAmount > 0)) {
+          const amountToPay = paymentType === 'total' ? totalTTC : paymentAmount;
+          
+          try {
+            const paymentResponse = await fetch(`/api/payments`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Tenant': tenantSchema,
+                'X-Database-Type': databaseType
+              },
+              body: JSON.stringify({
+                documentType: 'delivery_note',
+                documentId: blNumber,
+                paymentDate: dateBL,
+                amount: amountToPay,
+                paymentMethod: paymentMethod,
+                notes: paymentNotes || null
+              })
+            });
+            
+            const paymentData = await paymentResponse.json();
+            if (!paymentData.success) {
+              console.error('❌ Erreur lors de l\'enregistrement du paiement:', paymentData.error);
+            } else {
+              console.log('✅ Paiement enregistré avec succès');
+            }
+          } catch (paymentError) {
+            console.error('❌ Erreur lors de l\'enregistrement du paiement:', paymentError);
+          }
+        }
+        
         const message = `✅ ${data.data.message || 'Bon de livraison créé avec succès!'}\n\n` +
                        `📋 Numéro: ${blNumber}\n` +
                        `👤 Client: ${selectedClient}\n` +
                        `📅 Date: ${dateBL}\n` +
                        `💰 Total HT: ${data.data.montant_ht?.toFixed(2)} DA\n` +
-                       `💰 Total TTC: ${data.data.total_ttc?.toFixed(2)} DA\n` +
+                       `💰 Total TTC: ${totalTTC.toFixed(2)} DA\n` +
                        `📦 Articles: ${lines.length} ligne(s)`;
         
         // Préparer les données pour le modal d'impression
@@ -439,6 +480,10 @@ export default function CreateDeliveryNote() {
         setDateBL(new Date().toISOString().split('T')[0]);
         setLines([]);
         resetCurrentLine();
+        setPaymentType('total');
+        setPaymentAmount(0);
+        setPaymentMethod('cash');
+        setPaymentNotes('');
         
         // Afficher le modal d'impression
         setShowPrintModal(true);
@@ -617,8 +662,10 @@ export default function CreateDeliveryNote() {
                 <input
                   type="number"
                   step="0.01"
+                  lang="en"
                   value={currentLine.prix}
                   onChange={(e) => setCurrentLine({ ...currentLine, prix: parseFloat(e.target.value) || 0 })}
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
@@ -627,8 +674,10 @@ export default function CreateDeliveryNote() {
                 <input
                   type="number"
                   step="0.01"
+                  lang="en"
                   value={currentLine.tva}
                   onChange={(e) => setCurrentLine({ ...currentLine, tva: parseFloat(e.target.value) || 0 })}
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
@@ -735,6 +784,98 @@ export default function CreateDeliveryNote() {
                   </div>
                 </div>
               </>
+            )}
+          </div>
+
+          {/* Section Paiement */}
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>💰 Paiement</h2>
+            
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label>Type de paiement:</label>
+                <select
+                  value={paymentType}
+                  onChange={(e) => {
+                    const type = e.target.value as 'total' | 'partial';
+                    setPaymentType(type);
+                    if (type === 'total') {
+                      setPaymentAmount(totals.totalTTC);
+                    }
+                  }}
+                >
+                  <option value="total">Paiement total</option>
+                  <option value="partial">Paiement partiel</option>
+                </select>
+              </div>
+
+              {paymentType === 'partial' && (
+                <div className={styles.formGroup}>
+                  <label>Montant versé (DA):</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    lang="en"
+                    min="0"
+                    max={totals.totalTTC}
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="0.00"
+                  />
+                  <small style={{ color: '#666', fontSize: '12px' }}>
+                    Total TTC: {totals.totalTTC.toFixed(2)} DA
+                  </small>
+                </div>
+              )}
+
+              <div className={styles.formGroup}>
+                <label>Méthode de paiement:</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                >
+                  <option value="cash">Espèces</option>
+                  <option value="check">Chèque</option>
+                  <option value="bank_transfer">Virement bancaire</option>
+                  <option value="credit_card">Carte bancaire</option>
+                  <option value="other">Autre</option>
+                </select>
+              </div>
+            </div>
+
+            {paymentType === 'partial' && (
+              <div className={styles.formRow}>
+                <div className={styles.formGroup} style={{ flex: 1 }}>
+                  <label>Notes (optionnel):</label>
+                  <textarea
+                    value={paymentNotes}
+                    onChange={(e) => setPaymentNotes(e.target.value)}
+                    placeholder="Ex: Premier versement, reste à payer..."
+                    rows={2}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '8px',
+                      border: '1px solid #ddd',
+                      fontSize: '14px',
+                      fontFamily: 'inherit'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {paymentType === 'partial' && paymentAmount > 0 && paymentAmount < totals.totalTTC && (
+              <div style={{
+                padding: '12px',
+                background: '#fff3cd',
+                border: '1px solid #ffc107',
+                borderRadius: '8px',
+                marginTop: '12px'
+              }}>
+                <strong>⚠️ Reste à payer: {(totals.totalTTC - paymentAmount).toFixed(2)} DA</strong>
+              </div>
             )}
           </div>
 

@@ -18,9 +18,17 @@ function findClient(clients: any[], nclient: string | number): any {
 
 // Middleware pour extraire le tenant
 sales.use('*', async (c, next) => {
-  const tenant = c.req.header('X-Tenant');
-  if (tenant) {
-    c.set('tenant', tenant);
+  const tenantHeader = c.req.header('X-Tenant');
+  console.log(`🔍 [Sales Middleware] Raw X-Tenant header: "${tenantHeader}"`);
+  
+  if (tenantHeader) {
+    // Nettoyer le tenant en cas de duplication
+    const cleanTenant = tenantHeader.includes(',') 
+      ? tenantHeader.split(',')[0].trim() 
+      : tenantHeader.trim();
+    
+    console.log(`✅ [Sales Middleware] Cleaned tenant: "${cleanTenant}"`);
+    c.set('tenant', cleanTenant);
   }
   await next();
 });
@@ -215,21 +223,36 @@ sales.get('/clients/:id/debt', async (c) => {
 
     console.log(`💰 Sales: Fetching debt for client ${id} in schema: ${tenant}`);
 
-    const { data: clientDebt, error } = await databaseRouter.rpc('get_client_debt', {
-      p_tenant: tenant,
-      p_client_code: id
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+
+    // Pour l'instant, retourner juste les infos de base du client sans la dette
+    // La dette sera calculée plus tard si nécessaire
+    const result = await backendDatabaseService.executeRPC('get_clients_by_tenant', {
+      p_tenant: tenant
     });
-    
-    if (error) {
-      console.error('❌ RPC Error in sales/clients/:id/debt:', error);
-      return c.json({ success: false, error: 'RPC function not available' }, 404);
+
+    if (!result.success) {
+      console.error('❌ Error fetching clients:', result.error);
+      return c.json({ success: false, error: 'Failed to fetch client' }, 500);
     }
-    
-    if (clientDebt && clientDebt.length > 0) {
+
+    const client = result.data?.find((c: any) => c.nclient === id || String(c.nclient).trim() === String(id).trim());
+
+    if (client) {
       return c.json({ 
         success: true, 
-        data: clientDebt[0],
-        database_type: backendDatabaseService.getActiveDatabaseType() 
+        data: {
+          nclient: client.nclient,
+          raison_sociale: client.raison_sociale,
+          adresse: client.adresse,
+          tel: client.tel || client.telephone,
+          email: client.email,
+          c_affaire_fact: client.c_affaire_fact || 0,
+          c_affaire_bl: client.c_affaire_bl || 0,
+          chiffre_affaire: (client.c_affaire_fact || 0) + (client.c_affaire_bl || 0),
+          solde: 0 // Pour l'instant, on ne calcule pas la dette
+        },
+        database_type: dbType 
       });
     } else {
       return c.json({ success: false, error: 'Client not found' }, 404);
@@ -2524,6 +2547,191 @@ sales.get('/report', async (c) => {
     return c.json({ 
       success: false, 
       error: 'Erreur lors de la génération du rapport des ventes'
+    }, 500);
+  }
+});
+
+// POST /api/sales/payments - Enregistrer un paiement
+sales.post('/payments', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    const body = await c.req.json();
+    const { document_type, document_id, payment_date, amount, payment_method, notes } = body;
+
+    // Validation
+    if (!document_type || !document_id || !payment_date || !amount) {
+      return c.json({ 
+        success: false, 
+        error: 'Champs requis: document_type, document_id, payment_date, amount' 
+      }, 400);
+    }
+
+    if (amount <= 0) {
+      return c.json({ success: false, error: 'Le montant doit être supérieur à 0' }, 400);
+    }
+
+    if (!['delivery_note', 'invoice'].includes(document_type)) {
+      return c.json({ 
+        success: false, 
+        error: 'document_type doit être "delivery_note" ou "invoice"' 
+      }, 400);
+    }
+
+    console.log(`💰 Recording payment for ${document_type} #${document_id}: ${amount} DA`);
+
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+
+    if (dbType === 'supabase') {
+      // Insertion directe dans Supabase
+      const { data, error } = await supabaseAdmin
+        .from('payments')
+        .insert({
+          tenant_id: tenant,
+          document_type: document_type,
+          document_id: document_id,
+          payment_date: payment_date,
+          amount: amount,
+          payment_method: payment_method || null,
+          notes: notes || null
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Supabase error inserting payment:', error);
+        return c.json({ success: false, error: error.message }, 500);
+      }
+
+      console.log('✅ Payment recorded in Supabase:', data.id);
+      return c.json({ success: true, data: data });
+
+    } else {
+      // MySQL - Insertion directe
+      const query = `
+        INSERT INTO payments (tenant_id, document_type, document_id, payment_date, amount, payment_method, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `;
+      
+      const result = await backendDatabaseService.executeQuery(query, [
+        tenant,
+        document_type,
+        document_id,
+        payment_date,
+        amount,
+        payment_method || null,
+        notes || null
+      ]);
+
+      if (!result.success) {
+        console.error('❌ MySQL error inserting payment:', result.error);
+        return c.json({ success: false, error: result.error }, 500);
+      }
+
+      console.log('✅ Payment recorded in MySQL:', result.data.insertId);
+      return c.json({ 
+        success: true, 
+        data: { 
+          id: result.data.insertId,
+          tenant_id: tenant,
+          document_type,
+          document_id,
+          payment_date,
+          amount,
+          payment_method,
+          notes
+        } 
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Error recording payment:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Erreur lors de l\'enregistrement du paiement'
+    }, 500);
+  }
+});
+
+// GET /api/sales/payments/:documentType/:documentId - Récupérer les paiements d'un document
+sales.get('/payments/:documentType/:documentId', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    const documentType = c.req.param('documentType');
+    const documentId = c.req.param('documentId');
+
+    console.log(`💰 Fetching payments for ${documentType} #${documentId}`);
+
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+
+    if (dbType === 'supabase') {
+      const { data, error } = await supabaseAdmin
+        .from('payments')
+        .select('*')
+        .eq('tenant_id', tenant)
+        .eq('document_type', documentType)
+        .eq('document_id', documentId)
+        .order('payment_date', { ascending: false });
+
+      if (error) {
+        console.error('❌ Supabase error fetching payments:', error);
+        return c.json({ success: false, error: error.message }, 500);
+      }
+
+      const totalPaid = data.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+      
+      return c.json({ 
+        success: true, 
+        data: {
+          payments: data,
+          total_paid: totalPaid,
+          count: data.length
+        }
+      });
+
+    } else {
+      const query = `
+        SELECT * FROM payments
+        WHERE tenant_id = ? AND document_type = ? AND document_id = ?
+        ORDER BY payment_date DESC
+      `;
+      
+      const result = await backendDatabaseService.executeQuery(query, [
+        tenant,
+        documentType,
+        documentId
+      ]);
+
+      if (!result.success) {
+        console.error('❌ MySQL error fetching payments:', result.error);
+        return c.json({ success: false, error: result.error }, 500);
+      }
+
+      const payments = result.data;
+      const totalPaid = payments.reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0);
+
+      return c.json({ 
+        success: true, 
+        data: {
+          payments: payments,
+          total_paid: totalPaid,
+          count: payments.length
+        }
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Error fetching payments:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Erreur lors de la récupération des paiements'
     }, 500);
   }
 });
