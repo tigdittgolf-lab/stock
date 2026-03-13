@@ -1439,4 +1439,103 @@ purchases.post('/stock/adjustment', async (c) => {
   }
 });
 
+// GET /api/purchases/supplier-debts - Calculer les dettes fournisseurs
+purchases.get('/supplier-debts', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    console.log(`💰 Calculating supplier debts for tenant: ${tenant}`);
+
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+
+    // Récupérer tous les fournisseurs
+    const suppliersResult = await backendDatabaseService.executeRPC('get_suppliers_by_tenant', {
+      p_tenant: tenant
+    });
+
+    if (!suppliersResult.success) {
+      return c.json({ success: false, error: 'Failed to fetch suppliers' }, 500);
+    }
+
+    const suppliers = suppliersResult.data || [];
+    const debts = [];
+
+    // Pour chaque fournisseur, calculer la dette
+    for (const supplier of suppliers) {
+      try {
+        // Récupérer tous les paiements pour ce fournisseur
+        const paymentsQuery = `
+          SELECT COALESCE(SUM(amount), 0) as total_paid
+          FROM public.payments p
+          WHERE p.tenant_id = ?
+            AND p.document_type IN ('purchase_delivery_note', 'purchase_invoice')
+            AND p.document_id IN (
+              SELECT "NFact" FROM ${tenant}.bachat WHERE "Nfournisseur" = ?
+              UNION
+              SELECT nfact_achat FROM ${tenant}.fact_achat WHERE nfournisseur = ?
+            )
+        `;
+
+        let totalPaid = 0;
+        
+        if (dbType === 'supabase') {
+          // Pour Supabase, utiliser une approche différente
+          const { data: payments } = await backendDatabaseService.supabase
+            .from('payments')
+            .select('amount')
+            .eq('tenant_id', tenant)
+            .in('document_type', ['purchase_delivery_note', 'purchase_invoice']);
+          
+          totalPaid = payments?.reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0) || 0;
+        } else {
+          const result = await backendDatabaseService.executeQuery(paymentsQuery, [
+            tenant,
+            supplier.nfournisseur,
+            supplier.nfournisseur
+          ]);
+          
+          if (result.success && result.data.length > 0) {
+            totalPaid = parseFloat(result.data[0].total_paid) || 0;
+          }
+        }
+
+        // Calculer le total des achats (simplifié pour l'instant)
+        const totalAchats = 0; // TODO: Calculer depuis bachat et fact_achat
+        const dette = totalAchats - totalPaid;
+
+        if (dette > 0 || totalPaid > 0) {
+          debts.push({
+            nfournisseur: supplier.nfournisseur,
+            nom_fournisseur: supplier.nom_fournisseur,
+            total_achats: totalAchats,
+            total_paye: totalPaid,
+            dette: dette,
+            nb_documents: 0 // TODO: Compter les documents
+          });
+        }
+      } catch (error) {
+        console.error(`Error calculating debt for supplier ${supplier.nfournisseur}:`, error);
+      }
+    }
+
+    console.log(`✅ Calculated debts for ${debts.length} suppliers`);
+
+    return c.json({
+      success: true,
+      data: debts
+    });
+
+  } catch (error) {
+    console.error('❌ Error calculating supplier debts:', error);
+    return c.json({ 
+      success: false, 
+      error: 'Erreur lors du calcul des dettes fournisseurs'
+    }, 500);
+  }
+});
+
 export default purchases;

@@ -46,6 +46,12 @@ export default function CreatePurchaseInvoice() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  // États pour le paiement
+  const [paymentType, setPaymentType] = useState<'total' | 'partial'>('total');
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState<string>('cash');
+  const [paymentNotes, setPaymentNotes] = useState<string>('');
 
   useEffect(() => {
     fetchSuppliers();
@@ -188,12 +194,50 @@ export default function CreatePurchaseInvoice() {
       const data = await response.json();
       
       if (data.success) {
-        setSuccess(`Facture d'achat ${data.data.nfact_achat} créée avec succès !`);
+        const factNumber = data.data.nfact_achat;
+        const totalTTC = calculateTotals().totalTTC;
+        
+        // Enregistrer le paiement si un montant est spécifié
+        if (paymentType === 'total' || (paymentType === 'partial' && paymentAmount > 0)) {
+          const amountToPay = paymentType === 'total' ? totalTTC : paymentAmount;
+          
+          try {
+            const paymentResponse = await fetch(`/api/payments`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                documentType: 'purchase_invoice',
+                documentId: factNumber,
+                paymentDate: invoiceDate,
+                amount: amountToPay,
+                paymentMethod: paymentMethod,
+                notes: paymentNotes || null
+              })
+            });
+            
+            const paymentData = await paymentResponse.json();
+            if (!paymentData.success) {
+              console.error('❌ Erreur lors de l\'enregistrement du paiement:', paymentData.error);
+            } else {
+              console.log('✅ Paiement enregistré avec succès');
+            }
+          } catch (paymentError) {
+            console.error('❌ Erreur lors de l\'enregistrement du paiement:', paymentError);
+          }
+        }
+        
+        setSuccess(`Facture d'achat ${factNumber} créée avec succès !`);
         // Reset form
         setSelectedSupplier('');
         setInvoiceNumber('');
         setDetails([{ Narticle: '', Qte: 1, prix: 0, tva: 19 }]);
         setInvoiceDate(new Date().toISOString().split('T')[0]);
+        setPaymentType('total');
+        setPaymentAmount(0);
+        setPaymentMethod('cash');
+        setPaymentNotes('');
       } else {
         setError(data.error || 'Erreur lors de la création');
       }
@@ -386,6 +430,98 @@ export default function CreatePurchaseInvoice() {
                 <strong>{calculateTotal().toFixed(2)} DA</strong>
               </div>
             </div>
+          </div>
+
+          {/* Section Paiement Fournisseur */}
+          <div className={styles.formSection}>
+            <h2>💰 Paiement Fournisseur</h2>
+            
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label>Type de paiement:</label>
+                <select
+                  value={paymentType}
+                  onChange={(e) => {
+                    const type = e.target.value as 'total' | 'partial';
+                    setPaymentType(type);
+                    if (type === 'total') {
+                      setPaymentAmount(calculateTotals().totalTTC);
+                    }
+                  }}
+                >
+                  <option value="total">Paiement total</option>
+                  <option value="partial">Paiement partiel</option>
+                </select>
+              </div>
+
+              {paymentType === 'partial' && (
+                <div className={styles.formGroup}>
+                  <label>Montant versé (DA):</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    lang="en"
+                    min="0"
+                    max={calculateTotals().totalTTC}
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="0.00"
+                  />
+                  <small style={{ color: '#666', fontSize: '12px' }}>
+                    Total TTC: {calculateTotals().totalTTC.toFixed(2)} DA
+                  </small>
+                </div>
+              )}
+
+              <div className={styles.formGroup}>
+                <label>Méthode de paiement:</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                >
+                  <option value="cash">Espèces</option>
+                  <option value="check">Chèque</option>
+                  <option value="bank_transfer">Virement bancaire</option>
+                  <option value="credit_card">Carte bancaire</option>
+                  <option value="other">Autre</option>
+                </select>
+              </div>
+            </div>
+
+            {paymentType === 'partial' && (
+              <div className={styles.formRow}>
+                <div className={styles.formGroup} style={{ flex: 1 }}>
+                  <label>Notes (optionnel):</label>
+                  <textarea
+                    value={paymentNotes}
+                    onChange={(e) => setPaymentNotes(e.target.value)}
+                    placeholder="Ex: Premier versement, reste à payer..."
+                    rows={2}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '8px',
+                      border: '1px solid #ddd',
+                      fontSize: '14px',
+                      fontFamily: 'inherit'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {paymentType === 'partial' && paymentAmount > 0 && paymentAmount < calculateTotals().totalTTC && (
+              <div style={{
+                padding: '12px',
+                background: '#fff3cd',
+                border: '1px solid #ffc107',
+                borderRadius: '8px',
+                marginTop: '12px'
+              }}>
+                <strong>⚠️ Dette restante: {(calculateTotals().totalTTC - paymentAmount).toFixed(2)} DA</strong>
+              </div>
+            )}
           </div>
 
           {/* Messages */}
