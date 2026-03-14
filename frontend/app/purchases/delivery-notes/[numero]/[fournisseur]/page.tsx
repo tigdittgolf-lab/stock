@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { getApiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
-import styles from '../../../../../purchases.module.css';
+import styles from '../../purchases.module.css';
 
 interface PurchaseBLDetail {
   nbl_achat: number;
