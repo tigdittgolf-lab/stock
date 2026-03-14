@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { getApiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
-import styles from '../../../../page.module.css';
+import styles from '../../../../../purchases.module.css';
 
 interface PurchaseBLDetail {
   nbl_achat: number;
@@ -12,6 +12,7 @@ interface PurchaseBLDetail {
   numero_bl_fournisseur: string;
   supplier_name: string;
   supplier_address: string;
+  supplier_phone: string;
   date_bl: string;
   montant_ht: number;
   tva: number;
@@ -36,60 +37,62 @@ export default function PurchaseBLDetailPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const numero = resolvedParams.numero;
   const fournisseur = resolvedParams.fournisseur;
-  
+
   const [bl, setBl] = useState<PurchaseBLDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (numero && fournisseur) {
-      fetchBL();
-    }
+    if (numero && fournisseur) fetchBL();
   }, [numero, fournisseur]);
 
   const fetchBL = async () => {
     try {
-      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(getApiUrl(`purchases/delivery-notes/${encodeURIComponent(numero)}/${encodeURIComponent(fournisseur)}`), {
-        headers: {
-          'X-Tenant': tenant
-        }
-      });
-      
+      const tenant = localStorage.getItem('selectedTenant') || '2009_bu02';
+      const response = await fetch(
+        getApiUrl(`purchases/delivery-notes/${encodeURIComponent(numero)}/${encodeURIComponent(fournisseur)}`),
+        { headers: { 'X-Tenant': tenant } }
+      );
       const data = await response.json();
       if (data.success) {
         setBl(data.data);
       } else {
-        setError(data.error || 'BL d\'achat non trouvé');
+        setError(data.error || 'BL introuvable');
       }
-    } catch (error) {
-      console.error('Error fetching purchase BL:', error);
+    } catch {
       setError('Erreur de connexion');
     } finally {
       setLoading(false);
     }
   };
 
-  const formatNumber = (num: number) => {
-    return num?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') || '0.00';
+  const fmt = (n: number) =>
+    (n ?? 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const fmtDate = (d: string) => {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('fr-FR');
   };
 
   if (loading) {
     return (
-      <div className={styles.page}>
-        <div className={styles.loading}>Chargement...</div>
+      <div className={styles.container}>
+        <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-secondary)', fontSize: 18 }}>
+          ⏳ Chargement du BL...
+        </div>
       </div>
     );
   }
 
   if (error || !bl) {
     return (
-      <div className={styles.page}>
-        <div className={styles.error}>
-          <h2>❌ Erreur</h2>
-          <p>{error}</p>
-          <button onClick={() => router.push('/purchases/delivery-notes/list')} className={styles.primaryButton}>
-            Retour à la liste
+      <div className={styles.container}>
+        <div className={styles.errorMsg} style={{ margin: '40px auto', maxWidth: 500, textAlign: 'center' }}>
+          ❌ {error || 'BL introuvable'}
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <button className={styles.backButton} onClick={() => router.push('/purchases/delivery-notes/list')}>
+            ← Retour à la liste
           </button>
         </div>
       </div>
@@ -97,129 +100,125 @@ export default function PurchaseBLDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className={styles.page} style={{ paddingTop: '20px' }}>
-      <header className={styles.header}>
-        <h1>BL d'Achat - {bl.numero_bl_fournisseur || `ID-${bl.nbl_achat}`}</h1>
-        <div>
-          <button 
+    <div className={styles.container}>
+      {/* Header */}
+      <div className={styles.header}>
+        <div className={styles.title}>
+          📋 BL d'Achat
+          <span className={styles.docNumber}>
+            {bl.numero_bl_fournisseur || `#${bl.nbl_achat}`}
+          </span>
+        </div>
+        <div className={styles.headerButtons}>
+          <button
+            className={styles.navButton}
             onClick={() => router.push(`/purchases/delivery-notes/${encodeURIComponent(numero)}/${encodeURIComponent(fournisseur)}/edit`)}
-            className={styles.primaryButton}
           >
-            Modifier
+            ✏️ Modifier
           </button>
-          <button onClick={() => router.push('/purchases/delivery-notes/list')} className={styles.secondaryButton}>
-            Retour à la liste
+          <button
+            className={styles.backButton}
+            onClick={() => router.push('/purchases/delivery-notes/list')}
+          >
+            ← Retour à la liste
           </button>
         </div>
-      </header>
+      </div>
 
-      <main className={styles.main}>
-        {/* Informations générales */}
-        <div className={styles.invoiceSection}>
-          <h2>Informations Générales</h2>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-            gap: '1rem',
-            marginTop: '1rem'
-          }}>
-            <div className={styles.invoiceField}>
-              <label>N° BL Fournisseur :</label>
-              <span>{bl.numero_bl_fournisseur || 'Non spécifié'}</span>
+      <div className={styles.form}>
+        {/* Fournisseur */}
+        <div className={styles.section}>
+          <div className={styles.sectionTitle}>🏭 Informations Fournisseur</div>
+          <div className={styles.supplierInfoCard}>
+            <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
+              {bl.supplier_name || bl.nfournisseur}
             </div>
-            <div className={styles.invoiceField}>
-              <label>ID Interne :</label>
-              <span>{bl.nbl_achat}</span>
+            <div style={{ opacity: 0.85, fontSize: 14, marginBottom: 12 }}>
+              Code: {bl.nfournisseur}
             </div>
-            <div className={styles.invoiceField}>
-              <label>Fournisseur :</label>
-              <span>{bl.supplier_name || bl.nfournisseur}</span>
-            </div>
-            <div className={styles.invoiceField}>
-              <label>Date de BL :</label>
-              <span>{new Date(bl.date_bl).toLocaleDateString('fr-FR')}</span>
-            </div>
-            <div className={styles.invoiceField}>
-              <label>Adresse Fournisseur :</label>
-              <span>{bl.supplier_address || 'Non spécifiée'}</span>
-            </div>
-            <div className={styles.invoiceField}>
-              <label>Date de Création :</label>
-              <span>{new Date(bl.created_at).toLocaleDateString('fr-FR')} à {new Date(bl.created_at).toLocaleTimeString('fr-FR')}</span>
+            <div className={styles.supplierInfoGrid}>
+              {bl.supplier_address && (
+                <div className={styles.supplierInfoItem}>
+                  <span className={styles.supplierInfoLabel}>📍 Adresse</span>
+                  <span className={styles.supplierInfoValue} style={{ fontSize: 15 }}>
+                    {bl.supplier_address}
+                  </span>
+                </div>
+              )}
+              {bl.supplier_phone && (
+                <div className={styles.supplierInfoItem}>
+                  <span className={styles.supplierInfoLabel}>📞 Téléphone</span>
+                  <span className={styles.supplierInfoValue} style={{ fontSize: 15 }}>
+                    {bl.supplier_phone}
+                  </span>
+                </div>
+              )}
+              <div className={styles.supplierInfoItem}>
+                <span className={styles.supplierInfoLabel}>📅 Date BL</span>
+                <span className={styles.supplierInfoValue}>{fmtDate(bl.date_bl)}</span>
+              </div>
+              <div className={styles.supplierInfoItem}>
+                <span className={styles.supplierInfoLabel}>🗓️ Créé le</span>
+                <span className={styles.supplierInfoValue} style={{ fontSize: 14 }}>
+                  {fmtDate(bl.created_at)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Détails des articles */}
-        <div className={styles.invoiceSection}>
-          <h2>Articles Livrés</h2>
-          <div className={styles.tableContainer}>
+        {/* Articles */}
+        <div className={styles.section}>
+          <div className={styles.sectionTitle}>📦 Articles Livrés</div>
+          {bl.details && bl.details.length > 0 ? (
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Code</th>
+                  <th>Code Article</th>
                   <th>Désignation</th>
                   <th style={{ textAlign: 'right' }}>Quantité</th>
                   <th style={{ textAlign: 'right' }}>Prix Unitaire</th>
-                  <th style={{ textAlign: 'right' }}>TVA (%)</th>
+                  <th style={{ textAlign: 'right' }}>TVA</th>
                   <th style={{ textAlign: 'right' }}>Total Ligne</th>
                 </tr>
               </thead>
               <tbody>
-                {bl.details?.map((detail, index) => (
-                  <tr key={index}>
-                    <td>{detail.narticle}</td>
-                    <td>{detail.designation}</td>
-                    <td style={{ textAlign: 'right' }}>{formatNumber(detail.qte)}</td>
-                    <td style={{ textAlign: 'right' }}>{formatNumber(detail.prix)} DA</td>
-                    <td style={{ textAlign: 'right' }}>{formatNumber(detail.tva)}%</td>
-                    <td style={{ textAlign: 'right' }}>{formatNumber(detail.total_ligne)} DA</td>
+                {bl.details.map((d, i) => (
+                  <tr key={i}>
+                    <td><strong>{d.narticle}</strong></td>
+                    <td>{d.designation || '—'}</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(d.qte)}</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(d.prix)} DA</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(d.tva)} %</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(d.total_ligne)} DA</td>
                   </tr>
-                )) || (
-                  <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>
-                      Aucun détail disponible
-                    </td>
-                  </tr>
-                )}
+                ))}
               </tbody>
             </table>
-          </div>
+          ) : (
+            <div className={styles.emptyState}>Aucun article enregistré pour ce BL.</div>
+          )}
         </div>
 
         {/* Totaux */}
-        <div className={styles.invoiceSection}>
-          <h2>Totaux</h2>
-          <div className={styles.totalsGrid}>
+        <div className={styles.section}>
+          <div className={styles.sectionTitle}>💰 Récapitulatif</div>
+          <div className={styles.totals}>
             <div className={styles.totalRow}>
-              <span>Montant HT :</span>
-              <span>{formatNumber(bl.montant_ht)} DA</span>
+              <span className={styles.totalLabel}>Montant HT</span>
+              <span className={styles.totalValue}>{fmt(bl.montant_ht)} DA</span>
             </div>
             <div className={styles.totalRow}>
-              <span>TVA :</span>
-              <span>{formatNumber(bl.tva)} DA</span>
+              <span className={styles.totalLabel}>TVA</span>
+              <span className={styles.totalValue}>{fmt(bl.tva)} DA</span>
             </div>
             <div className={styles.totalRow}>
-              <strong>Total TTC :</strong>
-              <strong>{formatNumber(bl.total_ttc)} DA</strong>
+              <span className={styles.totalLabel}>Total TTC</span>
+              <span className={styles.totalValue}>{fmt(bl.total_ttc || bl.montant_ht + bl.tva)} DA</span>
             </div>
           </div>
         </div>
-
-        {/* Informations sur les stocks */}
-        <div className={styles.invoiceSection}>
-          <div className={styles.stockInfo}>
-            <h3>📦 Impact sur les Stocks</h3>
-            <p>Ce BL d'achat a généré une <strong>entrée de stock BL</strong> pour tous les articles listés.</p>
-            <p>Les quantités ont été ajoutées au stock BL (stock_bl) de chaque article.</p>
-            <div style={{ marginTop: '1rem', padding: '0.5rem', backgroundColor: 'var(--success-bg)', borderRadius: '4px', border: '1px solid var(--success-border)' }}>
-              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--success-text)' }}>
-                💡 <strong>Différence avec les factures :</strong> Les BL affectent le stock_bl, les factures affectent le stock_f
-              </p>
-            </div>
-          </div>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }

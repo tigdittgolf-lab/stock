@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { getApiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
-import styles from '../../../page.module.css';
+import styles from '../../purchases.module.css';
 
 interface PurchaseInvoiceDetail {
   nfact_achat: number;
@@ -12,6 +12,7 @@ interface PurchaseInvoiceDetail {
   numero_facture_fournisseur: string;
   supplier_name: string;
   supplier_address: string;
+  supplier_phone: string;
   date_fact: string;
   montant_ht: number;
   tva: number;
@@ -35,60 +36,61 @@ export default function PurchaseInvoiceDetail({ params }: PageProps) {
   const router = useRouter();
   const resolvedParams = use(params);
   const invoiceId = resolvedParams.id;
-  
+
   const [invoice, setInvoice] = useState<PurchaseInvoiceDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (invoiceId) {
-      fetchInvoice();
-    }
+    if (invoiceId) fetchInvoice();
   }, [invoiceId]);
 
   const fetchInvoice = async () => {
     try {
-      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
+      const tenant = localStorage.getItem('selectedTenant') || '2009_bu02';
       const response = await fetch(getApiUrl(`purchases/invoices/${invoiceId}`), {
-        headers: {
-          'X-Tenant': tenant
-        }
+        headers: { 'X-Tenant': tenant }
       });
-      
       const data = await response.json();
       if (data.success) {
         setInvoice(data.data);
       } else {
-        setError(data.error || 'Facture d\'achat non trouvée');
+        setError(data.error || 'Facture introuvable');
       }
-    } catch (error) {
-      console.error('Error fetching purchase invoice:', error);
+    } catch {
       setError('Erreur de connexion');
     } finally {
       setLoading(false);
     }
   };
 
-  const formatNumber = (num: number) => {
-    return num?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') || '0.00';
+  const fmt = (n: number) =>
+    (n ?? 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const fmtDate = (d: string) => {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('fr-FR');
   };
 
   if (loading) {
     return (
-      <div className={styles.page}>
-        <div className={styles.loading}>Chargement...</div>
+      <div className={styles.container}>
+        <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-secondary)', fontSize: 18 }}>
+          ⏳ Chargement de la facture...
+        </div>
       </div>
     );
   }
 
   if (error || !invoice) {
     return (
-      <div className={styles.page}>
-        <div className={styles.error}>
-          <h2>❌ Erreur</h2>
-          <p>{error}</p>
-          <button onClick={() => router.push('/purchases/invoices/list')} className={styles.primaryButton}>
-            Retour à la liste
+      <div className={styles.container}>
+        <div className={styles.errorMsg} style={{ margin: '40px auto', maxWidth: 500, textAlign: 'center' }}>
+          ❌ {error || 'Facture introuvable'}
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <button className={styles.backButton} onClick={() => router.push('/purchases/invoices/list')}>
+            ← Retour à la liste
           </button>
         </div>
       </div>
@@ -96,119 +98,125 @@ export default function PurchaseInvoiceDetail({ params }: PageProps) {
   }
 
   return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <h1>Facture d'Achat - {invoice.numero_facture_fournisseur || `ID-${invoice.nfact_achat}`}</h1>
-        <div>
-          <button 
+    <div className={styles.container}>
+      {/* Header */}
+      <div className={styles.header}>
+        <div className={styles.title}>
+          🧾 Facture d'Achat
+          <span className={styles.docNumber}>
+            {invoice.numero_facture_fournisseur || `#${invoice.nfact_achat}`}
+          </span>
+        </div>
+        <div className={styles.headerButtons}>
+          <button
+            className={styles.navButton}
             onClick={() => router.push(`/purchases/invoices/${invoice.nfact_achat}/edit`)}
-            className={styles.primaryButton}
           >
-            Modifier
+            ✏️ Modifier
           </button>
-          <button onClick={() => router.push('/purchases/invoices/list')} className={styles.secondaryButton}>
-            Retour à la liste
+          <button
+            className={styles.backButton}
+            onClick={() => router.push('/purchases/invoices/list')}
+          >
+            ← Retour à la liste
           </button>
         </div>
-      </header>
+      </div>
 
-      <main className={styles.main}>
-        {/* Informations générales */}
-        <div className={styles.invoiceSection}>
-          <h2>Informations Générales</h2>
-          <div className={styles.invoiceGrid}>
-            <div className={styles.invoiceField}>
-              <label>N° Facture Fournisseur :</label>
-              <span>{invoice.numero_facture_fournisseur || 'Non spécifié'}</span>
+      <div className={styles.form}>
+        {/* Fournisseur */}
+        <div className={styles.section}>
+          <div className={styles.sectionTitle}>🏭 Informations Fournisseur</div>
+          <div className={styles.supplierInfoCard}>
+            <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
+              {invoice.supplier_name || invoice.nfournisseur}
             </div>
-            <div className={styles.invoiceField}>
-              <label>ID Interne :</label>
-              <span>{invoice.nfact_achat}</span>
+            <div style={{ opacity: 0.85, fontSize: 14, marginBottom: 12 }}>
+              Code: {invoice.nfournisseur}
             </div>
-            <div className={styles.invoiceField}>
-              <label>Fournisseur :</label>
-              <span>{invoice.supplier_name || invoice.nfournisseur}</span>
-            </div>
-            <div className={styles.invoiceField}>
-              <label>Date de Facture :</label>
-              <span>{new Date(invoice.date_fact).toLocaleDateString('fr-FR')}</span>
-            </div>
-            <div className={styles.invoiceField}>
-              <label>Adresse Fournisseur :</label>
-              <span>{invoice.supplier_address || 'Non spécifiée'}</span>
-            </div>
-            <div className={styles.invoiceField}>
-              <label>Date de Création :</label>
-              <span>{new Date(invoice.created_at).toLocaleDateString('fr-FR')} à {new Date(invoice.created_at).toLocaleTimeString('fr-FR')}</span>
+            <div className={styles.supplierInfoGrid}>
+              {invoice.supplier_address && (
+                <div className={styles.supplierInfoItem}>
+                  <span className={styles.supplierInfoLabel}>📍 Adresse</span>
+                  <span className={styles.supplierInfoValue} style={{ fontSize: 15 }}>
+                    {invoice.supplier_address}
+                  </span>
+                </div>
+              )}
+              {invoice.supplier_phone && (
+                <div className={styles.supplierInfoItem}>
+                  <span className={styles.supplierInfoLabel}>📞 Téléphone</span>
+                  <span className={styles.supplierInfoValue} style={{ fontSize: 15 }}>
+                    {invoice.supplier_phone}
+                  </span>
+                </div>
+              )}
+              <div className={styles.supplierInfoItem}>
+                <span className={styles.supplierInfoLabel}>📅 Date Facture</span>
+                <span className={styles.supplierInfoValue}>{fmtDate(invoice.date_fact)}</span>
+              </div>
+              <div className={styles.supplierInfoItem}>
+                <span className={styles.supplierInfoLabel}>🗓️ Créée le</span>
+                <span className={styles.supplierInfoValue} style={{ fontSize: 14 }}>
+                  {fmtDate(invoice.created_at)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Détails des articles */}
-        <div className={styles.invoiceSection}>
-          <h2>Articles Achetés</h2>
-          <div className={styles.tableContainer}>
+        {/* Articles */}
+        <div className={styles.section}>
+          <div className={styles.sectionTitle}>📦 Articles Achetés</div>
+          {invoice.details && invoice.details.length > 0 ? (
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Code</th>
+                  <th>Code Article</th>
                   <th>Désignation</th>
                   <th style={{ textAlign: 'right' }}>Quantité</th>
                   <th style={{ textAlign: 'right' }}>Prix Unitaire</th>
-                  <th style={{ textAlign: 'right' }}>TVA (%)</th>
+                  <th style={{ textAlign: 'right' }}>TVA</th>
                   <th style={{ textAlign: 'right' }}>Total Ligne</th>
                 </tr>
               </thead>
               <tbody>
-                {invoice.details?.map((detail, index) => (
-                  <tr key={index}>
-                    <td>{detail.narticle}</td>
-                    <td>{detail.designation}</td>
-                    <td style={{ textAlign: 'right' }}>{formatNumber(detail.qte)}</td>
-                    <td style={{ textAlign: 'right' }}>{formatNumber(detail.prix)} DA</td>
-                    <td style={{ textAlign: 'right' }}>{formatNumber(detail.tva)}%</td>
-                    <td style={{ textAlign: 'right' }}>{formatNumber(detail.total_ligne)} DA</td>
+                {invoice.details.map((d, i) => (
+                  <tr key={i}>
+                    <td><strong>{d.narticle}</strong></td>
+                    <td>{d.designation || '—'}</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(d.qte)}</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(d.prix)} DA</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(d.tva)} %</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(d.total_ligne)} DA</td>
                   </tr>
-                )) || (
-                  <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>
-                      Aucun détail disponible
-                    </td>
-                  </tr>
-                )}
+                ))}
               </tbody>
             </table>
-          </div>
+          ) : (
+            <div className={styles.emptyState}>Aucun article enregistré pour cette facture.</div>
+          )}
         </div>
 
         {/* Totaux */}
-        <div className={styles.invoiceSection}>
-          <h2>Totaux</h2>
-          <div className={styles.totalsGrid}>
+        <div className={styles.section}>
+          <div className={styles.sectionTitle}>💰 Récapitulatif</div>
+          <div className={styles.totals}>
             <div className={styles.totalRow}>
-              <span>Montant HT :</span>
-              <span>{formatNumber(invoice.montant_ht)} DA</span>
+              <span className={styles.totalLabel}>Montant HT</span>
+              <span className={styles.totalValue}>{fmt(invoice.montant_ht)} DA</span>
             </div>
             <div className={styles.totalRow}>
-              <span>TVA :</span>
-              <span>{formatNumber(invoice.tva)} DA</span>
+              <span className={styles.totalLabel}>TVA</span>
+              <span className={styles.totalValue}>{fmt(invoice.tva)} DA</span>
             </div>
             <div className={styles.totalRow}>
-              <strong>Total TTC :</strong>
-              <strong>{formatNumber(invoice.total_ttc)} DA</strong>
+              <span className={styles.totalLabel}>Total TTC</span>
+              <span className={styles.totalValue}>{fmt(invoice.total_ttc || invoice.montant_ht + invoice.tva)} DA</span>
             </div>
           </div>
         </div>
-
-        {/* Informations sur les stocks */}
-        <div className={styles.invoiceSection}>
-          <div className={styles.stockInfo}>
-            <h3>📦 Impact sur les Stocks</h3>
-            <p>Cette facture d'achat a généré une <strong>entrée de stock</strong> pour tous les articles listés.</p>
-            <p>Les quantités ont été ajoutées au stock facture (stock_f) de chaque article.</p>
-          </div>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }

@@ -301,7 +301,9 @@ export class BackendDatabaseService {
         if (error.message.includes('Could not find the function') || 
             error.message.includes('schema cache') ||
             error.message.includes('does not exist') ||
-            error.message.includes('column')) {
+            error.message.includes('column') ||
+            error.message.includes('function name is not unique') ||
+            error.message.includes('is not unique')) {
           console.log(`🔄 Supabase RPC ${functionName} failed (${error.message}), using adaptive fallback...`);
           return this.executeSupabaseAdaptiveFallback(functionName, params);
         }
@@ -313,7 +315,9 @@ export class BackendDatabaseService {
       // Essayer le fallback adaptatif
       if (error instanceof Error && (error.message.includes('Could not find the function') || 
                                       error.message.includes('does not exist') ||
-                                      error.message.includes('column'))) {
+                                      error.message.includes('column') ||
+                                      error.message.includes('function name is not unique') ||
+                                      error.message.includes('is not unique'))) {
         console.log(`🔄 Using adaptive fallback for ${functionName}...`);
         return this.executeSupabaseAdaptiveFallback(functionName, params);
       }
@@ -366,6 +370,28 @@ export class BackendDatabaseService {
         case 'get_fournisseurs_by_tenant':
           return getSuppliersFromSupabase(tenant);
           
+        case 'update_stock_purchase_invoice':
+        case 'update_stock_f_simple': {
+          const { p_narticle, p_quantity } = params;
+          console.log(`📦 [Supabase fallback] update stock_f +${p_quantity} for article ${p_narticle} in tenant ${tenant}`);
+          const { error: sfErr } = await supabaseAdmin.rpc('exec_sql', {
+            sql: `UPDATE "${tenant}".article SET stock_f = COALESCE(stock_f, 0) + ${parseFloat(p_quantity)} WHERE "Narticle" = '${p_narticle}'`
+          });
+          if (sfErr) console.warn(`⚠️ stock_f update fallback error: ${sfErr.message}`);
+          return { success: true, data: `stock_f +${p_quantity} pour ${p_narticle}` };
+        }
+
+        case 'update_stock_purchase_bl':
+        case 'update_stock_bl_simple': {
+          const { p_narticle, p_quantity } = params;
+          console.log(`📦 [Supabase fallback] update stock_bl +${p_quantity} for article ${p_narticle} in tenant ${tenant}`);
+          const { error: sblErr } = await supabaseAdmin.rpc('exec_sql', {
+            sql: `UPDATE "${tenant}".article SET stock_bl = COALESCE(stock_bl, 0) + ${parseFloat(p_quantity)} WHERE "Narticle" = '${p_narticle}'`
+          });
+          if (sblErr) console.warn(`⚠️ stock_bl update fallback error: ${sblErr.message}`);
+          return { success: true, data: `stock_bl +${p_quantity} pour ${p_narticle}` };
+        }
+
         default:
           console.log(`⚠️ No adaptive fallback available for ${functionName}, using mock data`);
           return await this.getMockDataForFunction(functionName, params);
@@ -1355,6 +1381,13 @@ export class BackendDatabaseService {
           return this.updateStockBL(dbType, params);
         case 'update_stock_f':
           return this.updateStockF(dbType, params);
+        // Achats: entrée de stock (augmentation) — on passe une quantité négative pour inverser le signe du -
+        case 'update_stock_purchase_bl':
+        case 'update_stock_bl_simple':
+          return this.updateStockPurchaseBL(dbType, params);
+        case 'update_stock_purchase_invoice':
+        case 'update_stock_f_simple':
+          return this.updateStockPurchaseInvoice(dbType, params);
         // Fonctions pour les familles et settings
         case 'get_families_by_tenant':
           return this.getFamiliesByTenant(dbType, params.p_tenant);
@@ -3767,8 +3800,41 @@ export class BackendDatabaseService {
     }
   }
 
+  // Stock vente (déduction)
+  private async updateStockBL(dbType: 'mysql' | 'postgresql', params: any): Promise<any> {
+    const { p_tenant, p_narticle, p_qte } = params;
+    const sql = dbType === 'mysql'
+      ? `UPDATE \`${p_tenant}\`.article SET stock_bl = stock_bl - ? WHERE narticle = ?`
+      : `UPDATE "${p_tenant}".article SET stock_bl = stock_bl - $1 WHERE narticle = $2`;
+    return dbType === 'mysql' ? this.executeMySQLQuery(sql, [p_qte, p_narticle]) : this.executePostgreSQLQuery(sql, [p_qte, p_narticle]);
+  }
+
+  private async updateStockF(dbType: 'mysql' | 'postgresql', params: any): Promise<any> {
+    const { p_tenant, p_narticle, p_qte } = params;
+    const sql = dbType === 'mysql'
+      ? `UPDATE \`${p_tenant}\`.article SET stock_f = stock_f - ? WHERE narticle = ?`
+      : `UPDATE "${p_tenant}".article SET stock_f = stock_f - $1 WHERE narticle = $2`;
+    return dbType === 'mysql' ? this.executeMySQLQuery(sql, [p_qte, p_narticle]) : this.executePostgreSQLQuery(sql, [p_qte, p_narticle]);
+  }
+
+  // Stock achat (ajout — entrée de stock)
+  private async updateStockPurchaseBL(dbType: 'mysql' | 'postgresql', params: any): Promise<any> {
+    const { p_tenant, p_narticle, p_quantity } = params;
+    const sql = dbType === 'mysql'
+      ? `UPDATE \`${p_tenant}\`.article SET stock_bl = COALESCE(stock_bl, 0) + ? WHERE narticle = ?`
+      : `UPDATE "${p_tenant}".article SET stock_bl = COALESCE(stock_bl, 0) + $1 WHERE narticle = $2`;
+    return dbType === 'mysql' ? this.executeMySQLQuery(sql, [p_quantity, p_narticle]) : this.executePostgreSQLQuery(sql, [p_quantity, p_narticle]);
+  }
+
+  private async updateStockPurchaseInvoice(dbType: 'mysql' | 'postgresql', params: any): Promise<any> {
+    const { p_tenant, p_narticle, p_quantity } = params;
+    const sql = dbType === 'mysql'
+      ? `UPDATE \`${p_tenant}\`.article SET stock_f = COALESCE(stock_f, 0) + ? WHERE narticle = ?`
+      : `UPDATE "${p_tenant}".article SET stock_f = COALESCE(stock_f, 0) + $1 WHERE narticle = $2`;
+    return dbType === 'mysql' ? this.executeMySQLQuery(sql, [p_quantity, p_narticle]) : this.executePostgreSQLQuery(sql, [p_quantity, p_narticle]);
+  }
+
 }
 
 // Export singleton instance
 export const backendDatabaseService = BackendDatabaseService.getInstance();
-

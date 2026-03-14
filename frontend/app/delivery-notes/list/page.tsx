@@ -155,129 +155,40 @@ export default function DeliveryNotesList() {
 
   // Fonction pour charger les statuts de paiement en arrière-plan (non bloquant)
   const loadPaymentStatusesInBackground = async (notes: DeliveryNote[], tenantSchema: string) => {
-    // Limiter à 3 requêtes simultanées pour ne pas surcharger MySQL
-    const batchSize = 3;
-    const statuses: Record<number, string> = {};
-    
-    const dbConfig = localStorage.getItem('activeDbConfig');
-    const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
-    
-    // Traiter par lots de 3
-    for (let i = 0; i < notes.length; i += batchSize) {
-      const batch = notes.slice(i, i + batchSize);
-      
-      await Promise.all(
-        batch.map(async (note) => {
-          try {
-            const response = await fetch(
-              `/api/payments/balance?documentType=delivery_note&documentId=${note.nbl}`,
-              {
-                headers: {
-                  'X-Tenant': tenantSchema,
-                  'X-Database-Type': dbType
-                }
-              }
-            );
-            
-            if (response.ok) {
-              const data = await response.json();
-              if (data.success && data.data) {
-                statuses[note.nbl] = data.data.status;
-              }
-            }
-          } catch (error) {
-            // Ignorer les erreurs silencieusement
-          }
-        })
-      );
-      
-      // Mettre à jour l'état après chaque lot
-      setPaymentStatuses(prev => ({ ...prev, ...statuses }));
-      
-      // Petite pause entre les lots pour éviter de surcharger
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+      await loadPaymentStatusesOptimized(notes, tenantSchema, dbType);
     }
-  };
 
   // Fonction optimisée pour calculer les statuts de paiement localement
   // Charge les statuts pour tous les BLs filtrés quand nécessaire
+  // UNE SEULE requête pour tous les statuts — remplace les N requêtes individuelles
   const loadPaymentStatusesOptimized = async (notes: DeliveryNote[], tenantSchema: string, dbType: string) => {
-    // Éviter les chargements multiples simultanés
-    if (isLoadingStatuses.current) {
-      console.log('⏸️ Already loading statuses, skipping...');
-      return null;
-    }
-    
+    if (isLoadingStatuses.current) return null;
     isLoadingStatuses.current = true;
-    console.log(`📊 Loading payment statuses for ${notes.length} BLs...`);
-    
     try {
-      const statuses: Record<number, string> = {};
-      
-      // Calculer le statut pour tous les BLs
-      for (const note of notes) {
-        try {
-          // Récupérer les paiements pour ce BL
-          const response = await fetch(
-            `/api/payments?documentType=delivery_note&documentId=${note.nbl}`,
-            {
-              headers: {
-                'X-Tenant': tenantSchema,
-                'X-Database-Type': dbType
-              }
-            }
-          );
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data) {
-              const payments = data.data;
-              
-              // Calculer le total payé
-              const totalPaid = payments.reduce((sum: number, p: any) => {
-                const amount = typeof p.amount === 'string' ? parseFloat(p.amount) : p.amount;
-                return sum + (isNaN(amount) ? 0 : amount);
-              }, 0);
-              
-              // Calculer le montant total du BL
-              const totalAmount = typeof note.montant_ttc === 'string' 
-                ? parseFloat(note.montant_ttc) 
-                : (note.montant_ttc || (note.montant_ht + note.tva));
-              
-              // Déterminer le statut
-              const balance = totalAmount - totalPaid;
-              
-              if (Math.abs(balance) < 0.01) {
-                statuses[note.nbl] = 'paid';
-              } else if (totalPaid > 0 && balance > 0) {
-                statuses[note.nbl] = 'partially_paid';
-                console.log(`💰 BL ${note.nbl}: Total=${totalAmount.toFixed(2)}, Payé=${totalPaid.toFixed(2)}, Statut=partially_paid`);
-              } else if (totalPaid > totalAmount) {
-                statuses[note.nbl] = 'overpaid';
-              } else {
-                statuses[note.nbl] = 'unpaid';
-              }
-            }
-          }
-        } catch (error) {
-          console.error(`Error loading payment status for BL ${note.nbl}:`, error);
-          statuses[note.nbl] = 'unpaid';
-        }
-      }
-      
-      console.log(`✅ Loaded payment statuses for ${Object.keys(statuses).length} BLs`);
-      console.log(`📊 Status breakdown:`, {
-        paid: Object.values(statuses).filter(s => s === 'paid').length,
-        partially_paid: Object.values(statuses).filter(s => s === 'partially_paid').length,
-        unpaid: Object.values(statuses).filter(s => s === 'unpaid').length,
-        overpaid: Object.values(statuses).filter(s => s === 'overpaid').length
+      const response = await fetch('/api/sales/payments/summary', {
+        headers: { 'X-Tenant': tenantSchema, 'X-Database-Type': dbType }
       });
-      
-      // Retourner les statuts
+      const data = await response.json();
+      const payMap: Record<string, number> = data.success ? (data.data || {}) : {};
+
+      const statuses: Record<number, string> = {};
+      for (const note of notes) {
+        const paid = payMap[`delivery_note::${note.nbl}`] || 0;
+        const total = typeof note.montant_ttc === 'string'
+          ? parseFloat(note.montant_ttc)
+          : (note.montant_ttc || note.montant_ht + note.tva);
+        const balance = total - paid;
+        if (Math.abs(balance) < 0.01) statuses[note.nbl] = 'paid';
+        else if (paid > 0 && balance > 0) statuses[note.nbl] = 'partially_paid';
+        else if (paid > total) statuses[note.nbl] = 'overpaid';
+        else statuses[note.nbl] = 'unpaid';
+      }
+      setPaymentStatuses(statuses);
       return statuses;
-    } finally {
-      isLoadingStatuses.current = false;
-    }
+    } catch { return null; }
+    finally { isLoadingStatuses.current = false; }
   };
 
   // Fonction de filtrage améliorée
@@ -772,7 +683,55 @@ export default function DeliveryNotesList() {
               </button>
             </div>
             
-            {/* Actions - Deuxième ligne: Options d'impression */}
+            {/* Actions - Deuxième ligne: Gestion des paiements */}
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              flexWrap: 'wrap',
+              marginBottom: '8px'
+            }}>
+              <button
+                onClick={() => {
+                  router.push(`/payments/add?type=delivery_note&id=${validId}`);
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: '120px',
+                  padding: '10px',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 'bold'
+                }}
+              >
+                💰 Ajouter Paiement
+              </button>
+              
+              <button
+                onClick={() => {
+                  router.push(`/payments/history?type=delivery_note&id=${validId}`);
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: '120px',
+                  padding: '10px',
+                  backgroundColor: '#17a2b8',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 'bold'
+                }}
+              >
+                📜 Historique
+              </button>
+            </div>
+            
+            {/* Actions - Troisième ligne: Options d'impression */}
             <div style={{
               display: 'flex',
               gap: '8px',
@@ -843,7 +802,7 @@ export default function DeliveryNotesList() {
               </button>
             </div>
             
-            {/* Actions - Troisième ligne: WhatsApp */}
+            {/* Actions - Quatrième ligne: WhatsApp */}
             <div style={{
               display: 'flex',
               gap: '8px',

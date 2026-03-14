@@ -2830,6 +2830,20 @@ export default function Dashboard() {
                   </div>
 
                   <div className={styles.moduleCard}>
+                    <div className={styles.moduleIcon}>💼</div>
+                    <h3>Situation Financière</h3>
+                    <p>Dettes fournisseurs, créances clients et solde net</p>
+                    <div className={styles.moduleActions}>
+                      <button
+                        onClick={() => router.push('/finances')}
+                        className={styles.primaryButton}
+                      >
+                        Voir Finances
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={styles.moduleCard}>
                     <div className={styles.moduleIcon}>📈</div>
                     <h3>Gestion du Stock</h3>
                     <p>Vue d'ensemble, alertes, valorisation et ajustements de stock</p>

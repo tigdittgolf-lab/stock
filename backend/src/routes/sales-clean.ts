@@ -2736,4 +2736,409 @@ sales.get('/payments/:documentType/:documentId', async (c) => {
   }
 });
 
+// GET /api/sales/payments/report - Rapport global des paiements
+sales.get('/payments/report', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    const dateFrom = c.req.query('dateFrom');
+    const dateTo = c.req.query('dateTo');
+    const documentType = c.req.query('documentType'); // optional filter
+
+    console.log(`📊 Generating payments report for tenant: ${tenant}`);
+
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    let query = '';
+    let params: any[] = [tenant];
+
+    if (dbType === 'supabase') {
+      let supabaseQuery = supabaseAdmin
+        .from('payments')
+        .select('*')
+        .eq('tenant_id', tenant);
+
+      if (dateFrom) {
+        supabaseQuery = supabaseQuery.gte('payment_date', dateFrom);
+      }
+      if (dateTo) {
+        supabaseQuery = supabaseQuery.lte('payment_date', dateTo);
+      }
+      if (documentType) {
+        supabaseQuery = supabaseQuery.eq('document_type', documentType);
+      }
+
+      const { data, error } = await supabaseQuery.order('payment_date', { ascending: false });
+
+      if (error) {
+        console.error('❌ Supabase error fetching payments report:', error);
+        return c.json({ success: false, error: error.message }, 500);
+      }
+
+      // Calculer les statistiques
+      const stats = {
+        total_payments: data.length,
+        total_amount: data.reduce((sum, p) => sum + parseFloat(p.amount), 0),
+        by_type: {} as Record<string, any>,
+        by_method: {} as Record<string, any>,
+        by_month: {} as Record<string, any>
+      };
+
+      // Grouper par type de document
+      data.forEach(p => {
+        if (!stats.by_type[p.document_type]) {
+          stats.by_type[p.document_type] = { count: 0, amount: 0 };
+        }
+        stats.by_type[p.document_type].count++;
+        stats.by_type[p.document_type].amount += parseFloat(p.amount);
+      });
+
+      // Grouper par méthode de paiement
+      data.forEach(p => {
+        const method = p.payment_method || 'non_specifie';
+        if (!stats.by_method[method]) {
+          stats.by_method[method] = { count: 0, amount: 0 };
+        }
+        stats.by_method[method].count++;
+        stats.by_method[method].amount += parseFloat(p.amount);
+      });
+
+      // Grouper par mois
+      data.forEach(p => {
+        const month = p.payment_date.substring(0, 7); // YYYY-MM
+        if (!stats.by_month[month]) {
+          stats.by_month[month] = { count: 0, amount: 0 };
+        }
+        stats.by_month[month].count++;
+        stats.by_month[month].amount += parseFloat(p.amount);
+      });
+
+      return c.json({
+        success: true,
+        data: {
+          payments: data,
+          statistics: stats,
+          filters: { dateFrom, dateTo, documentType }
+        }
+      });
+
+    } else {
+      // MySQL
+      query = `
+        SELECT * FROM payments
+        WHERE tenant_id = ?
+      `;
+
+      if (dateFrom) {
+        query += ` AND payment_date >= ?`;
+        params.push(dateFrom);
+      }
+      if (dateTo) {
+        query += ` AND payment_date <= ?`;
+        params.push(dateTo);
+      }
+      if (documentType) {
+        query += ` AND document_type = ?`;
+        params.push(documentType);
+      }
+
+      query += ` ORDER BY payment_date DESC`;
+
+      const result = await backendDatabaseService.executeQuery(query, params);
+
+      if (!result.success) {
+        console.error('❌ MySQL error fetching payments report:', result.error);
+        return c.json({ success: false, error: result.error }, 500);
+      }
+
+      const data = result.data;
+
+      // Calculer les statistiques
+      const stats = {
+        total_payments: data.length,
+        total_amount: data.reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0),
+        by_type: {} as Record<string, any>,
+        by_method: {} as Record<string, any>,
+        by_month: {} as Record<string, any>
+      };
+
+      // Grouper par type de document
+      data.forEach((p: any) => {
+        if (!stats.by_type[p.document_type]) {
+          stats.by_type[p.document_type] = { count: 0, amount: 0 };
+        }
+        stats.by_type[p.document_type].count++;
+        stats.by_type[p.document_type].amount += parseFloat(p.amount);
+      });
+
+      // Grouper par méthode de paiement
+      data.forEach((p: any) => {
+        const method = p.payment_method || 'non_specifie';
+        if (!stats.by_method[method]) {
+          stats.by_method[method] = { count: 0, amount: 0 };
+        }
+        stats.by_method[method].count++;
+        stats.by_method[method].amount += parseFloat(p.amount);
+      });
+
+      // Grouper par mois
+      data.forEach((p: any) => {
+        const month = p.payment_date.substring(0, 7); // YYYY-MM
+        if (!stats.by_month[month]) {
+          stats.by_month[month] = { count: 0, amount: 0 };
+        }
+        stats.by_month[month].count++;
+        stats.by_month[month].amount += parseFloat(p.amount);
+      });
+
+      return c.json({
+        success: true,
+        data: {
+          payments: data,
+          statistics: stats,
+          filters: { dateFrom, dateTo, documentType }
+        }
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Error generating payments report:', error);
+    return c.json({
+      success: false,
+      error: 'Erreur lors de la génération du rapport'
+    }, 500);
+  }
+});
+
+// GET /api/sales/payments/overdue - Paiements en retard
+sales.get('/payments/overdue', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    console.log(`⚠️ Fetching overdue payments for tenant: ${tenant}`);
+
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    const today = new Date().toISOString().split('T')[0];
+
+    if (dbType === 'supabase') {
+      const { data, error } = await supabaseAdmin
+        .from('payments')
+        .select('*')
+        .eq('tenant_id', tenant)
+        .lt('due_date', today)
+        .order('due_date', { ascending: true });
+
+      if (error) {
+        console.error('❌ Supabase error fetching overdue payments:', error);
+        return c.json({ success: false, error: error.message }, 500);
+      }
+
+      return c.json({
+        success: true,
+        data: {
+          overdue_payments: data,
+          count: data.length,
+          total_amount: data.reduce((sum, p) => sum + parseFloat(p.amount), 0)
+        }
+      });
+
+    } else {
+      const query = `
+        SELECT * FROM payments
+        WHERE tenant_id = ? AND due_date < ? AND due_date IS NOT NULL
+        ORDER BY due_date ASC
+      `;
+
+      const result = await backendDatabaseService.executeQuery(query, [tenant, today]);
+
+      if (!result.success) {
+        console.error('❌ MySQL error fetching overdue payments:', result.error);
+        return c.json({ success: false, error: result.error }, 500);
+      }
+
+      const data = result.data;
+
+      return c.json({
+        success: true,
+        data: {
+          overdue_payments: data,
+          count: data.length,
+          total_amount: data.reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0)
+        }
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Error fetching overdue payments:', error);
+    return c.json({
+      success: false,
+      error: 'Erreur lors de la récupération des paiements en retard'
+    }, 500);
+  }
+});
+
+// GET /api/sales/clients/:id/payments - Historique des paiements d'un client
+sales.get('/clients/:id/payments', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    const clientId = c.req.param('id');
+    
+    if (!tenant) {
+      return c.json({ success: false, error: 'Tenant header required' }, 400);
+    }
+
+    console.log(`💰 Fetching payment history for client: ${clientId}`);
+
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+
+    // D'abord, récupérer tous les documents du client (BL et factures)
+    const blResult = await backendDatabaseService.executeRPC('get_bl_list_by_tenant', {
+      p_tenant: tenant
+    });
+
+    const invoiceResult = await backendDatabaseService.executeRPC('get_invoices_by_tenant', {
+      p_tenant: tenant
+    });
+
+    const clientBLs = blResult.data?.filter((bl: any) => bl.nclient === clientId) || [];
+    const clientInvoices = invoiceResult.data?.filter((inv: any) => inv.nclient === clientId) || [];
+
+    // Récupérer les paiements pour tous ces documents
+    const allPayments: any[] = [];
+
+    if (dbType === 'supabase') {
+      // Récupérer les paiements des BL
+      for (const bl of clientBLs) {
+        const { data } = await supabaseAdmin
+          .from('payments')
+          .select('*')
+          .eq('tenant_id', tenant)
+          .eq('document_type', 'delivery_note')
+          .eq('document_id', bl.nfact);
+        
+        if (data) {
+          allPayments.push(...data.map(p => ({ ...p, document_number: bl.nfact, document_date: bl.date_fact })));
+        }
+      }
+
+      // Récupérer les paiements des factures
+      for (const inv of clientInvoices) {
+        const { data } = await supabaseAdmin
+          .from('payments')
+          .select('*')
+          .eq('tenant_id', tenant)
+          .eq('document_type', 'invoice')
+          .eq('document_id', inv.nfact);
+        
+        if (data) {
+          allPayments.push(...data.map(p => ({ ...p, document_number: inv.nfact, document_date: inv.date_fact })));
+        }
+      }
+
+    } else {
+      // MySQL
+      const blIds = clientBLs.map((bl: any) => bl.nfact);
+      const invoiceIds = clientInvoices.map((inv: any) => inv.nfact);
+
+      if (blIds.length > 0) {
+        const query = `
+          SELECT * FROM payments
+          WHERE tenant_id = ? AND document_type = 'delivery_note' AND document_id IN (${blIds.join(',')})
+        `;
+        const result = await backendDatabaseService.executeQuery(query, [tenant]);
+        if (result.success) {
+          allPayments.push(...result.data);
+        }
+      }
+
+      if (invoiceIds.length > 0) {
+        const query = `
+          SELECT * FROM payments
+          WHERE tenant_id = ? AND document_type = 'invoice' AND document_id IN (${invoiceIds.join(',')})
+        `;
+        const result = await backendDatabaseService.executeQuery(query, [tenant]);
+        if (result.success) {
+          allPayments.push(...result.data);
+        }
+      }
+    }
+
+    // Trier par date
+    allPayments.sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime());
+
+    const totalPaid = allPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+    return c.json({
+      success: true,
+      data: {
+        client_id: clientId,
+        payments: allPayments,
+        total_paid: totalPaid,
+        count: allPayments.length,
+        documents: {
+          delivery_notes: clientBLs.length,
+          invoices: clientInvoices.length
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching client payment history:', error);
+    return c.json({
+      success: false,
+      error: 'Erreur lors de la récupération de l\'historique'
+    }, 500);
+  }
+});
+
+// GET /sales/payments/summary - Tous les totaux payés ventes en une seule requête
+sales.get('/payments/summary', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) return c.json({ success: false, error: 'Tenant requis' }, 400);
+
+    console.log(`💰 Fetching sales payments summary for tenant: ${tenant}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+
+    if (dbType === 'supabase') {
+      const { data, error } = await supabaseAdmin
+        .from('payments')
+        .select('document_type, document_id, amount')
+        .eq('tenant_id', tenant)
+        .in('document_type', ['invoice', 'delivery_note']);
+
+      if (error) return c.json({ success: false, error: error.message }, 500);
+
+      const map: Record<string, number> = {};
+      for (const p of data || []) {
+        const key = `${p.document_type}::${p.document_id}`;
+        map[key] = (map[key] || 0) + parseFloat(p.amount || 0);
+      }
+      return c.json({ success: true, data: map });
+
+    } else {
+      const result = await backendDatabaseService.executeQuery(
+        `SELECT document_type, document_id, SUM(amount) as total_paid FROM payments
+         WHERE tenant_id = ? AND document_type IN ('invoice','delivery_note')
+         GROUP BY document_type, document_id`,
+        [tenant]
+      );
+      if (!result.success) return c.json({ success: false, error: result.error }, 500);
+      const map: Record<string, number> = {};
+      for (const row of result.data || []) {
+        map[`${row.document_type}::${row.document_id}`] = parseFloat(row.total_paid || 0);
+      }
+      return c.json({ success: true, data: map });
+    }
+  } catch (error) {
+    console.error('❌ Error fetching sales payments summary:', error);
+    return c.json({ success: false, error: 'Erreur résumé paiements ventes' }, 500);
+  }
+});
+
 export default sales;

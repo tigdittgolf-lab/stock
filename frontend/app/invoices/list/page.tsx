@@ -110,118 +110,38 @@ export default function InvoicesList() {
     }
   };
 
-  // Fonction optimisée pour calculer les statuts de paiement localement
-  // Charge uniquement les statuts pour les factures visibles (page courante)
+  // UNE SEULE requête pour tous les statuts — remplace les N requêtes individuelles
   const loadPaymentStatusesOptimized = async (invoices: Invoice[], tenantSchema: string, dbType: string) => {
-    // Note: Les factures n'ont pas de pagination visible dans le code actuel
-    // On va limiter à 50 premières factures pour éviter la surcharge
-    const visibleInvoices = invoices.slice(0, 50);
-    
-    console.log(`📊 Loading payment statuses for ${visibleInvoices.length} invoices (limited to avoid overload)`);
-    
-    const statuses: Record<number, string> = {};
-    
-    // Calculer le statut uniquement pour les factures visibles
-    for (const invoice of visibleInvoices) {
-      try {
-        // Récupérer les paiements pour cette facture
-        const response = await fetch(
-          `/api/payments?documentType=invoice&documentId=${invoice.nfact}`,
-          {
-            headers: {
-              'X-Tenant': tenantSchema,
-              'X-Database-Type': dbType
-            }
-          }
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data) {
-            const payments = data.data;
-            
-            // Calculer le total payé
-            const totalPaid = payments.reduce((sum: number, p: any) => {
-              const amount = typeof p.amount === 'string' ? parseFloat(p.amount) : p.amount;
-              return sum + (isNaN(amount) ? 0 : amount);
-            }, 0);
-            
-            // Calculer le montant total de la facture
-            const totalAmount = typeof invoice.montant_ttc === 'string' 
-              ? parseFloat(invoice.montant_ttc) 
-              : (invoice.montant_ttc || (invoice.montant_ht + invoice.tva));
-            
-            // Déterminer le statut
-            const balance = totalAmount - totalPaid;
-            
-            if (Math.abs(balance) < 0.01) {
-              statuses[invoice.nfact] = 'paid';
-            } else if (totalPaid > 0 && balance > 0) {
-              statuses[invoice.nfact] = 'partially_paid';
-            } else if (totalPaid > totalAmount) {
-              statuses[invoice.nfact] = 'overpaid';
-            } else {
-              statuses[invoice.nfact] = 'unpaid';
-            }
-            
-            console.log(`💰 Facture ${invoice.nfact}: Total=${totalAmount.toFixed(2)}, Payé=${totalPaid.toFixed(2)}, Statut=${statuses[invoice.nfact]}`);
-          }
-        }
-      } catch (error) {
-        console.error(`Error loading payment status for invoice ${invoice.nfact}:`, error);
-        // En cas d'erreur, considérer comme non payé
-        statuses[invoice.nfact] = 'unpaid';
+    try {
+      const response = await fetch('/api/sales/payments/summary', {
+        headers: { 'X-Tenant': tenantSchema, 'X-Database-Type': dbType }
+      });
+      const data = await response.json();
+      const payMap: Record<string, number> = data.success ? (data.data || {}) : {};
+
+      const statuses: Record<number, string> = {};
+      for (const invoice of invoices) {
+        const paid = payMap[`invoice::${invoice.nfact}`] || 0;
+        const total = typeof invoice.montant_ttc === 'string'
+          ? parseFloat(invoice.montant_ttc)
+          : (invoice.montant_ttc || invoice.montant_ht + invoice.tva);
+        const balance = total - paid;
+        if (Math.abs(balance) < 0.01) statuses[invoice.nfact] = 'paid';
+        else if (paid > 0 && balance > 0) statuses[invoice.nfact] = 'partially_paid';
+        else if (paid > total) statuses[invoice.nfact] = 'overpaid';
+        else statuses[invoice.nfact] = 'unpaid';
       }
+      setPaymentStatuses(statuses);
+    } catch (error) {
+      console.error('Error loading payment statuses:', error);
     }
-    
-    // Mettre à jour les statuts (merge avec les existants)
-    setPaymentStatuses(prev => ({ ...prev, ...statuses }));
-    console.log(`✅ Loaded payment statuses for ${Object.keys(statuses).length} invoices`);
   };
 
-  // Fonction pour charger les statuts de paiement en arrière-plan (non bloquant)
+  // Wrapper non-bloquant
   const loadPaymentStatusesInBackground = async (invoices: Invoice[], tenantSchema: string) => {
-    const batchSize = 3;
-    const statuses: Record<number, string> = {};
-    
     const dbConfig = localStorage.getItem('activeDbConfig');
     const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
-    
-    // Traiter par lots de 3
-    for (let i = 0; i < invoices.length; i += batchSize) {
-      const batch = invoices.slice(i, i + batchSize);
-      
-      await Promise.all(
-        batch.map(async (invoice) => {
-          try {
-            const response = await fetch(
-              `/api/payments/balance?documentType=invoice&documentId=${invoice.nfact}`,
-              {
-                headers: {
-                  'X-Tenant': tenantSchema,
-                  'X-Database-Type': dbType
-                }
-              }
-            );
-            
-            if (response.ok) {
-              const data = await response.json();
-              if (data.success && data.data) {
-                statuses[invoice.nfact] = data.data.status;
-              }
-            }
-          } catch (error) {
-            // Ignorer les erreurs silencieusement
-          }
-        })
-      );
-      
-      // Mettre à jour l'état après chaque lot
-      setPaymentStatuses(prev => ({ ...prev, ...statuses }));
-      
-      // Petite pause entre les lots pour éviter de surcharger
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
+    await loadPaymentStatusesOptimized(invoices, tenantSchema, dbType);
   };
 
   // Fonction de filtrage
@@ -525,7 +445,55 @@ export default function InvoicesList() {
             </button>
           </div>
           
-          {/* Actions - Deuxième ligne: Options d'impression */}
+          {/* Actions - Deuxième ligne: Gestion des paiements */}
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            flexWrap: 'wrap',
+            marginBottom: '8px'
+          }}>
+            <button
+              onClick={() => {
+                router.push(`/payments/add?type=invoice&id=${fact.nfact}`);
+              }}
+              style={{
+                flex: 1,
+                minWidth: '120px',
+                padding: '10px',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: 'bold'
+              }}
+            >
+              💰 Ajouter Paiement
+            </button>
+            
+            <button
+              onClick={() => {
+                router.push(`/payments/history?type=invoice&id=${fact.nfact}`);
+              }}
+              style={{
+                flex: 1,
+                minWidth: '120px',
+                padding: '10px',
+                backgroundColor: '#17a2b8',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: 'bold'
+              }}
+            >
+              📜 Historique
+            </button>
+          </div>
+          
+          {/* Actions - Troisième ligne: Options d'impression */}
           <div style={{
             display: 'flex',
             gap: '8px',

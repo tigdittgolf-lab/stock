@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getApiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import styles from '../../../page.module.css';
+import styles from '../../purchases.module.css';
 
 interface PurchaseInvoice {
   nfact_achat: number;
@@ -14,350 +14,274 @@ interface PurchaseInvoice {
   montant_ht: number;
   tva: number;
   total_ttc: number;
-  created_at: string;
+  total_paid?: number;
+  payment_status?: 'paid' | 'partial' | 'unpaid';
 }
+
+const STATUS: Record<string, { label: string; color: string; bg: string }> = {
+  paid:    { label: '✅ Réglée',     color: '#155724', bg: '#d4edda' },
+  partial: { label: '⚠️ Partielle',  color: '#856404', bg: '#fff3cd' },
+  unpaid:  { label: '❌ Non réglée', color: '#721c24', bg: '#f8d7da' },
+};
 
 export default function PurchaseInvoicesList() {
   const router = useRouter();
   const [invoices, setInvoices] = useState<PurchaseInvoice[]>([]);
-  const [filteredInvoices, setFilteredInvoices] = useState<PurchaseInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [search, setSearch] = useState('');
+  const [filterSupplier, setFilterSupplier] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
   const [sortField, setSortField] = useState<keyof PurchaseInvoice>('date_fact');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
 
-  useEffect(() => {
-    fetchInvoices();
-  }, []);
+  const getTenant = () => {
+    const ti = localStorage.getItem('tenant_info');
+    if (ti) { try { return JSON.parse(ti).schema || '2009_bu02'; } catch {} }
+    return localStorage.getItem('selectedTenant') || '2009_bu02';
+  };
 
-  useEffect(() => {
-    filterAndSortInvoices();
-  }, [invoices, searchTerm, sortField, sortDirection]);
+  useEffect(() => { fetchInvoices(); }, []);
 
   const fetchInvoices = async () => {
+    setLoading(true);
     try {
-      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(getApiUrl('purchases/invoices'), {
-        headers: {
-          'X-Tenant': tenant
-        }
-      });
-      
-      const data = await response.json();
-      if (data.success) {
-        setInvoices(data.data);
-      } else {
-        setError(data.error || 'Erreur lors du chargement');
-      }
-    } catch (error) {
-      console.error('Error fetching purchase invoices:', error);
-      setError('Erreur de connexion');
-    } finally {
-      setLoading(false);
-    }
+      const tenant = getTenant();
+      const headers = { 'X-Tenant': tenant };
+
+      // Charger factures + résumé paiements en parallèle (2 requêtes au lieu de N)
+      const [invRes, payRes] = await Promise.all([
+        fetch(getApiUrl('purchases/invoices'), { headers }),
+        fetch(getApiUrl('purchases/payments/summary'), { headers }),
+      ]);
+      const [invData, payData] = await Promise.all([invRes.json(), payRes.json()]);
+
+      if (invData.success) {
+        const payMap: Record<string, number> = payData.success ? (payData.data || {}) : {};
+        const list: PurchaseInvoice[] = (invData.data || []).map((inv: PurchaseInvoice) => {
+          const paid = payMap[`purchase_invoice::${inv.nfact_achat}`] || 0;
+          const ttc = inv.total_ttc || inv.montant_ht + inv.tva;
+          const status: PurchaseInvoice['payment_status'] = paid >= ttc - 0.01 ? 'paid' : paid > 0 ? 'partial' : 'unpaid';
+          return { ...inv, total_paid: paid, payment_status: status };
+        });
+        setInvoices(list);
+      } else { setError(invData.error || 'Erreur chargement'); }
+    } catch { setError('Erreur de connexion'); }
+    finally { setLoading(false); }
   };
 
-  const filterAndSortInvoices = () => {
-    let filtered = [...invoices];
+  const suppliers = useMemo(() =>
+    [...new Map(invoices.map(i => [i.nfournisseur, i.supplier_name || i.nfournisseur])).entries()], [invoices]);
 
-    if (searchTerm) {
-      filtered = filtered.filter(inv =>
-        inv.numero_facture_fournisseur?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inv.supplier_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inv.nfournisseur?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    filtered.sort((a, b) => {
-      const aValue = a[sortField];
-      const bValue = b[sortField];
-      
-      if (aValue === null || aValue === undefined) return 1;
-      if (bValue === null || bValue === undefined) return -1;
-      
-      if (sortDirection === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
-
-    setFilteredInvoices(filtered);
-    setCurrentPage(1);
-  };
-
-  const handleSort = (field: keyof PurchaseInvoice) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('desc');
-    }
-  };
-
-  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentInvoices = filteredInvoices.slice(startIndex, endIndex);
-
-  const formatNumber = (num: number) => {
-    return num?.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') || '0.00';
-  };
-
-  const SortIcon = ({ field }: { field: keyof PurchaseInvoice }) => {
-    if (sortField !== field) return <span style={{ opacity: 0.3 }}>↕</span>;
-    return <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>;
-  };
-
-  if (loading) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.loading}>Chargement...</div>
-      </div>
+  const filtered = useMemo(() => {
+    let r = [...invoices];
+    if (search) r = r.filter(i =>
+      i.numero_facture_fournisseur?.toLowerCase().includes(search.toLowerCase()) ||
+      (i.supplier_name || i.nfournisseur)?.toLowerCase().includes(search.toLowerCase())
     );
-  }
+    if (filterSupplier) r = r.filter(i => i.nfournisseur === filterSupplier);
+    if (filterStatus) r = r.filter(i =>
+      filterStatus === 'indebted'
+        ? i.payment_status === 'partial' || i.payment_status === 'unpaid'
+        : i.payment_status === filterStatus
+    );
+    if (filterDateFrom) r = r.filter(i => i.date_fact >= filterDateFrom);
+    if (filterDateTo) r = r.filter(i => i.date_fact <= filterDateTo);
+    r.sort((a, b) => {
+      const av = a[sortField] ?? '', bv = b[sortField] ?? '';
+      return sortDir === 'asc' ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+    });
+    return r;
+  }, [invoices, search, filterSupplier, filterStatus, filterDateFrom, filterDateTo, sortField, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
+
+  const fmt = (n: number) => (n ?? 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
+
+  const sort = (f: keyof PurchaseInvoice) => {
+    if (sortField === f) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(f); setSortDir('desc'); }
+    setPage(1);
+  };
+  const SortIcon = ({ f }: { f: keyof PurchaseInvoice }) =>
+    <span style={{ opacity: sortField === f ? 1 : 0.3, marginLeft: 4 }}>{sortField === f ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>;
+
+  const totals = useMemo(() => ({
+    ht: filtered.reduce((s, i) => s + (i.montant_ht || 0), 0),
+    tva: filtered.reduce((s, i) => s + (i.tva || 0), 0),
+    ttc: filtered.reduce((s, i) => s + (i.total_ttc || 0), 0),
+    paid: filtered.reduce((s, i) => s + (i.total_paid || 0), 0),
+    unpaid: filtered.filter(i => i.payment_status === 'unpaid').length,
+    partial: filtered.filter(i => i.payment_status === 'partial').length,
+  }), [filtered]);
+
+  if (loading) return (
+    <div className={styles.container}>
+      <div style={{ textAlign: 'center', padding: '80px', color: 'var(--text-secondary)', fontSize: 18 }}>⏳ Chargement...</div>
+    </div>
+  );
 
   return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <h1>🧾 Liste des Factures d'Achat</h1>
-        <div>
-          <button onClick={() => router.push('/purchases')} className={styles.primaryButton}>
-            + Nouvelle Facture
-          </button>
-          <button onClick={() => router.push('/dashboard')} className={styles.secondaryButton}>
-            Retour
-          </button>
+    <div className={styles.container}>
+      {/* Header */}
+      <div className={styles.header}>
+        <div className={styles.title}>🧾 Factures d'Achat</div>
+        <div className={styles.headerButtons}>
+          <button className={styles.navButton} onClick={() => router.push('/purchases')}>+ Nouvelle Facture</button>
+          <button className={styles.backButton} onClick={() => router.push('/dashboard')}>← Tableau de bord</button>
         </div>
-      </header>
+      </div>
 
-      <main className={styles.main}>
-        {/* Barre de recherche et filtres */}
-        <div style={{ 
-          display: 'flex', 
-          gap: '1rem', 
-          marginBottom: '1.5rem',
-          alignItems: 'center',
-          flexWrap: 'wrap'
-        }}>
-          <input
-            type="text"
-            placeholder="🔍 Rechercher par N° facture ou fournisseur..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              flex: 1,
-              minWidth: '300px',
-              padding: '0.75rem',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '1rem'
-            }}
-          />
-          <select
-            value={itemsPerPage}
-            onChange={(e) => {
-              setItemsPerPage(Number(e.target.value));
-              setCurrentPage(1);
-            }}
-            style={{
-              padding: '0.75rem',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '1rem'
-            }}
-          >
-            <option value={10}>10 par page</option>
-            <option value={25}>25 par page</option>
-            <option value={50}>50 par page</option>
-            <option value={100}>100 par page</option>
-          </select>
-        </div>
-        {error && (
-          <div className={styles.error}>
-            <h2>❌ Erreur</h2>
-            <p>{error}</p>
-            <button onClick={fetchInvoices} className={styles.primaryButton}>
-              Réessayer
-            </button>
+      {/* Filtres */}
+      <div className={styles.form} style={{ marginBottom: 20 }}>
+        <div className={styles.section} style={{ paddingBottom: 20 }}>
+          <div className={styles.sectionTitle}>🔍 Filtres</div>
+          <div className={styles.formGrid}>
+            <div className={styles.formGroup}>
+              <label>Recherche</label>
+              <input type="text" placeholder="N° facture, fournisseur..." value={search}
+                onChange={e => { setSearch(e.target.value); setPage(1); }} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>Fournisseur</label>
+              <select value={filterSupplier} onChange={e => { setFilterSupplier(e.target.value); setPage(1); }}>
+                <option value="">Tous les fournisseurs</option>
+                {suppliers.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+              </select>
+            </div>
+            <div className={styles.formGroup}>
+              <label>Statut paiement</label>
+              <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1); }}>
+                <option value="">Tous les statuts</option>
+                <option value="unpaid">❌ Non réglée</option>
+                <option value="partial">⚠️ Partielle</option>
+                <option value="indebted">🔴 En souffrance (partielle + non réglée)</option>
+                <option value="paid">✅ Réglée</option>
+              </select>
+            </div>
+            <div className={styles.formGroup}>
+              <label>Du</label>
+              <input type="date" value={filterDateFrom} onChange={e => { setFilterDateFrom(e.target.value); setPage(1); }} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>Au</label>
+              <input type="date" value={filterDateTo} onChange={e => { setFilterDateTo(e.target.value); setPage(1); }} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>Par page</label>
+              <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }}>
+                {[10,25,50,100].map(n => <option key={n} value={n}>{n} par page</option>)}
+              </select>
+            </div>
           </div>
-        )}
+        </div>
+      </div>
 
-        {!error && (
-          <>
-            <div className={styles.tableContainer}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th onClick={() => handleSort('numero_facture_fournisseur')} style={{ cursor: 'pointer' }}>
-                      N° Facture Fournisseur <SortIcon field="numero_facture_fournisseur" />
-                    </th>
-                    <th onClick={() => handleSort('supplier_name')} style={{ cursor: 'pointer' }}>
-                      Fournisseur <SortIcon field="supplier_name" />
-                    </th>
-                    <th onClick={() => handleSort('date_fact')} style={{ cursor: 'pointer' }}>
-                      Date <SortIcon field="date_fact" />
-                    </th>
-                    <th onClick={() => handleSort('montant_ht')} style={{ textAlign: 'right', cursor: 'pointer' }}>
-                      Montant HT <SortIcon field="montant_ht" />
-                    </th>
-                    <th onClick={() => handleSort('tva')} style={{ textAlign: 'right', cursor: 'pointer' }}>
-                      TVA <SortIcon field="tva" />
-                    </th>
-                    <th onClick={() => handleSort('total_ttc')} style={{ textAlign: 'right', cursor: 'pointer' }}>
-                      Total TTC <SortIcon field="total_ttc" />
-                    </th>
-                    <th style={{ textAlign: 'center' }}>Actions</th>
+      {error && <div className={styles.errorMsg}>❌ {error} <button onClick={fetchInvoices} style={{ marginLeft: 10, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}>Réessayer</button></div>}
+
+      {/* Tableau */}
+      <div className={styles.form}>
+        <div className={styles.section}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th onClick={() => sort('numero_facture_fournisseur')} style={{ cursor: 'pointer' }}>N° Facture<SortIcon f="numero_facture_fournisseur" /></th>
+                <th onClick={() => sort('supplier_name')} style={{ cursor: 'pointer' }}>Fournisseur<SortIcon f="supplier_name" /></th>
+                <th onClick={() => sort('date_fact')} style={{ cursor: 'pointer' }}>Date<SortIcon f="date_fact" /></th>
+                <th style={{ textAlign: 'right', cursor: 'pointer' }} onClick={() => sort('montant_ht')}>Montant HT<SortIcon f="montant_ht" /></th>
+                <th style={{ textAlign: 'right', cursor: 'pointer' }} onClick={() => sort('total_ttc')}>Total TTC<SortIcon f="total_ttc" /></th>
+                <th style={{ textAlign: 'center' }}>Statut</th>
+                <th style={{ textAlign: 'right' }}>Payé</th>
+                <th style={{ textAlign: 'center' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginated.length === 0 ? (
+                <tr><td colSpan={8} className={styles.emptyState}>
+                  {search || filterSupplier || filterStatus ? 'Aucun résultat pour ces filtres.' : 'Aucune facture d\'achat enregistrée.'}
+                </td></tr>
+              ) : paginated.map(inv => {
+                const st = STATUS[inv.payment_status || 'unpaid'];
+                const ttc = inv.total_ttc || inv.montant_ht + inv.tva;
+                const reste = Math.max(0, ttc - (inv.total_paid || 0));
+                return (
+                  <tr key={inv.nfact_achat}>
+                    <td><strong style={{ color: '#fd7e14' }}>{inv.numero_facture_fournisseur || `#${inv.nfact_achat}`}</strong></td>
+                    <td>{inv.supplier_name || inv.nfournisseur}</td>
+                    <td>{fmtDate(inv.date_fact)}</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(inv.montant_ht)} DA</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(ttc)} DA</td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, color: st.color, background: st.bg }}>
+                        {st.label}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right', fontSize: 16 }}>
+                      <div style={{ color: '#155724', fontWeight: 700 }}>{fmt(inv.total_paid || 0)} DA</div>
+                      {reste > 0.01 && <div style={{ color: '#721c24', fontSize: 14, fontWeight: 700, textDecoration: 'underline' }}>Reste: {fmt(reste)} DA</div>}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                        <button className={styles.editButton} onClick={() => router.push(`/purchases/invoices/${inv.nfact_achat}`)}>👁️ Voir</button>
+                        <button className={styles.navButton} style={{ padding: '6px 12px', fontSize: 13 }} onClick={() => router.push(`/purchases/invoices/${inv.nfact_achat}/edit`)}>✏️</button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {currentInvoices.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '3rem' }}>
-                        <div>
-                          <h3>😔 {searchTerm ? 'Aucun résultat' : 'Aucune facture d\'achat'}</h3>
-                          <p>{searchTerm ? 'Essayez avec d\'autres termes de recherche.' : 'Commencez par créer votre première facture d\'achat.'}</p>
-                          {!searchTerm && (
-                            <button 
-                              onClick={() => router.push('/purchases')} 
-                              className={styles.primaryButton}
-                              style={{ marginTop: '1rem' }}
-                            >
-                              + Créer une Facture d'Achat
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    currentInvoices.map((invoice) => (
-                      <tr key={invoice.nfact_achat}>
-                        <td><strong>{invoice.numero_facture_fournisseur || `ID-${invoice.nfact_achat}`}</strong></td>
-                        <td>{invoice.supplier_name || invoice.nfournisseur}</td>
-                        <td>{new Date(invoice.date_fact).toLocaleDateString('fr-FR')}</td>
-                        <td style={{ textAlign: 'right' }}>
-                          {formatNumber(invoice.montant_ht)} DA
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          {formatNumber(invoice.tva)} DA
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <strong style={{ color: 'var(--success-text)' }}>{formatNumber(invoice.total_ttc)} DA</strong>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                            <button 
-                              onClick={() => router.push(`/purchases/invoices/${invoice.nfact_achat}`)}
-                              className={styles.primaryButton}
-                              style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}
-                            >
-                              👁️ Voir
-                            </button>
-                            <button 
-                              onClick={() => router.push(`/purchases/invoices/${invoice.nfact_achat}/edit`)}
-                              className={styles.secondaryButton}
-                              style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}
-                            >
-                              ✏️ Modifier
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
 
-            {/* Pagination */}
-            {filteredInvoices.length > 0 && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginTop: '1.5rem',
-                padding: '1rem',
-                backgroundColor: 'var(--background-secondary)',
-                borderRadius: '8px'
-              }}>
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                  Affichage de {startIndex + 1} à {Math.min(endIndex, filteredInvoices.length)} sur {filteredInvoices.length} facture{filteredInvoices.length > 1 ? 's' : ''}
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
-                    className={styles.secondaryButton}
-                    style={{ padding: '0.5rem 0.75rem' }}
-                  >
-                    ⏮️
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className={styles.secondaryButton}
-                    style={{ padding: '0.5rem 0.75rem' }}
-                  >
-                    ◀️
-                  </button>
-                  <span style={{ padding: '0.5rem 1rem', backgroundColor: 'var(--card-background)', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
-                    Page {currentPage} / {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={styles.secondaryButton}
-                    style={{ padding: '0.5rem 0.75rem' }}
-                  >
-                    ▶️
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={currentPage === totalPages}
-                    className={styles.secondaryButton}
-                    style={{ padding: '0.5rem 0.75rem' }}
-                  >
-                    ⏭️
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {filteredInvoices.length > 0 && (
-          <div className={styles.summary} style={{ marginTop: '1.5rem' }}>
-            <h3>📊 Résumé</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-              <div style={{ padding: '1rem', backgroundColor: 'var(--info-bg)', borderRadius: '8px', border: '1px solid var(--info-border)' }}>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Total Factures</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--info-text)' }}>{filteredInvoices.length}</div>
-              </div>
-              <div style={{ padding: '1rem', backgroundColor: 'var(--success-bg)', borderRadius: '8px', border: '1px solid var(--success-border)' }}>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Total HT</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--success-text)' }}>
-                  {formatNumber(filteredInvoices.reduce((sum, inv) => sum + (inv.montant_ht || 0), 0))} DA
-                </div>
-              </div>
-              <div style={{ padding: '1rem', backgroundColor: 'var(--warning-bg)', borderRadius: '8px', border: '1px solid var(--warning-border)' }}>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Total TVA</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--warning-text)' }}>
-                  {formatNumber(filteredInvoices.reduce((sum, inv) => sum + (inv.tva || 0), 0))} DA
-                </div>
-              </div>
-              <div style={{ padding: '1rem', backgroundColor: 'var(--info-bg)', borderRadius: '8px', border: '1px solid var(--info-border)' }}>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Total TTC</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--info-text)' }}>
-                  {formatNumber(filteredInvoices.reduce((sum, inv) => sum + (inv.total_ttc || 0), 0))} DA
-                </div>
-              </div>
+        {/* Pagination */}
+        {filtered.length > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 30px', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap', gap: 10 }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
+              {(page-1)*perPage+1}–{Math.min(page*perPage, filtered.length)} sur {filtered.length} facture{filtered.length > 1 ? 's' : ''}
+            </span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className={styles.backButton} style={{ padding: '6px 12px' }} disabled={page === 1} onClick={() => setPage(1)}>⏮</button>
+              <button className={styles.backButton} style={{ padding: '6px 12px' }} disabled={page === 1} onClick={() => setPage(p => p-1)}>◀</button>
+              <span style={{ padding: '6px 16px', background: 'var(--background-secondary)', borderRadius: 6, fontSize: 14 }}>Page {page} / {totalPages}</span>
+              <button className={styles.backButton} style={{ padding: '6px 12px' }} disabled={page === totalPages} onClick={() => setPage(p => p+1)}>▶</button>
+              <button className={styles.backButton} style={{ padding: '6px 12px' }} disabled={page === totalPages} onClick={() => setPage(totalPages)}>⏭</button>
             </div>
           </div>
         )}
-      </main>
+      </div>
+
+      {/* Résumé */}
+      {filtered.length > 0 && (
+        <div className={styles.totals} style={{ marginTop: 20, borderRadius: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 20 }}>
+            {[
+              { label: 'Total factures', value: filtered.length, unit: '' },
+              { label: 'Total HT', value: fmt(totals.ht), unit: ' DA' },
+              { label: 'Total TVA', value: fmt(totals.tva), unit: ' DA' },
+              { label: 'Total TTC', value: fmt(totals.ttc), unit: ' DA' },
+              { label: 'Total payé', value: fmt(totals.paid), unit: ' DA' },
+              { label: 'Reste à payer', value: fmt(totals.ttc - totals.paid), unit: ' DA' },
+            ].map(({ label, value, unit }) => (
+              <div key={label} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>{label}</div>
+                <div style={{ fontSize: 20, fontWeight: 700 }}>{value}{unit}</div>
+              </div>
+            ))}
+          </div>
+          {(totals.unpaid > 0 || totals.partial > 0) && (
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.3)', display: 'flex', gap: 20, justifyContent: 'center', fontSize: 14 }}>
+              {totals.unpaid > 0 && <span>❌ {totals.unpaid} non réglée{totals.unpaid > 1 ? 's' : ''}</span>}
+              {totals.partial > 0 && <span>⚠️ {totals.partial} partielle{totals.partial > 1 ? 's' : ''}</span>}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

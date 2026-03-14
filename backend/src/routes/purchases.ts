@@ -743,6 +743,71 @@ purchases.get('/invoices/:id', async (c) => {
   }
 });
 
+// PUT /api/purchases/invoices/:id - Modifier une facture d'achat
+purchases.put('/invoices/:id', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    const id = c.req.param('id');
+
+    if (!tenant) return c.json({ success: false, error: 'Tenant header required' }, 400);
+
+    const invoiceId = parseInt(id);
+    if (isNaN(invoiceId)) return c.json({ success: false, error: 'Invalid invoice ID' }, 400);
+
+    const body = await c.req.json();
+    const { Nfournisseur, numero_facture_fournisseur, date_fact, detail_fact_achat } = body;
+
+    if (!detail_fact_achat || !Array.isArray(detail_fact_achat) || detail_fact_achat.length === 0) {
+      return c.json({ success: false, error: 'detail_fact_achat is required' }, 400);
+    }
+
+    console.log(`✏️ Updating purchase invoice ${invoiceId} for tenant: ${tenant}`);
+
+    // Calculer les totaux
+    let montant_ht = 0;
+    let TVA = 0;
+    for (const detail of detail_fact_achat) {
+      const total_ligne = parseFloat(detail.Qte) * parseFloat(detail.prix);
+      montant_ht += total_ligne;
+      TVA += total_ligne * (parseFloat(detail.tva) / 100);
+    }
+
+    // Utiliser une seule fonction RPC qui fait tout en transaction
+    const { error: updateError } = await databaseRouter.rpc('update_purchase_invoice_full', {
+      p_tenant: tenant,
+      p_nfact_achat: invoiceId,
+      p_nfournisseur: Nfournisseur,
+      p_numero_facture_fournisseur: numero_facture_fournisseur,
+      p_date_fact: date_fact,
+      p_montant_ht: montant_ht,
+      p_tva: TVA,
+      p_details: detail_fact_achat.map((d: any) => ({
+        narticle: d.Narticle,
+        qte: parseFloat(d.Qte),
+        prix: parseFloat(d.prix),
+        tva: parseFloat(d.tva),
+        total_ligne: parseFloat(d.Qte) * parseFloat(d.prix)
+      }))
+    });
+
+    if (updateError) {
+      console.error('❌ Failed to update invoice:', updateError);
+      return c.json({ success: false, error: `Erreur mise à jour: ${updateError.message}` }, 500);
+    }
+
+    console.log(`✅ Purchase invoice ${invoiceId} updated successfully`);
+    return c.json({
+      success: true,
+      message: `Facture d'achat ${invoiceId} modifiée avec succès`,
+      data: { nfact_achat: invoiceId, montant_ht, tva: TVA, total_ttc: montant_ht + TVA }
+    });
+
+  } catch (error) {
+    console.error('❌ Error updating purchase invoice:', error);
+    return c.json({ success: false, error: 'Erreur lors de la modification' }, 500);
+  }
+});
+
 // ===== STATISTIQUES ACHATS =====
 
 // GET /api/purchases/stats/overview - Vue d'ensemble des statistiques
@@ -1535,6 +1600,149 @@ purchases.get('/supplier-debts', async (c) => {
       success: false, 
       error: 'Erreur lors du calcul des dettes fournisseurs'
     }, 500);
+  }
+});
+
+// =====================================================
+// ROUTES PAIEMENTS FOURNISSEURS
+// =====================================================
+
+// GET /purchases/payments/:documentType/:documentId
+purchases.get('/payments/:documentType/:documentId', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) return c.json({ success: false, error: 'Tenant requis' }, 400);
+
+    const documentType = c.req.param('documentType');
+    const documentId = c.req.param('documentId');
+
+    console.log(`💰 Fetching payments for ${documentType} #${documentId} (tenant: ${tenant})`);
+
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+
+    if (dbType === 'supabase') {
+      const { data, error } = await supabaseAdmin
+        .from('payments')
+        .select('*')
+        .eq('tenant_id', tenant)
+        .eq('document_type', documentType)
+        .eq('document_id', documentId)
+        .order('payment_date', { ascending: false });
+
+      if (error) return c.json({ success: false, error: error.message }, 500);
+
+      const totalPaid = (data || []).reduce((s: number, p: any) => s + parseFloat(p.amount || 0), 0);
+      return c.json({ success: true, data: { payments: data || [], total_paid: totalPaid, count: (data || []).length } });
+
+    } else {
+      const result = await backendDatabaseService.executeQuery(
+        `SELECT * FROM payments WHERE tenant_id = ? AND document_type = ? AND document_id = ? ORDER BY payment_date DESC`,
+        [tenant, documentType, documentId]
+      );
+      if (!result.success) return c.json({ success: false, error: result.error }, 500);
+      const payments = result.data || [];
+      const totalPaid = payments.reduce((s: number, p: any) => s + parseFloat(p.amount || 0), 0);
+      return c.json({ success: true, data: { payments, total_paid: totalPaid, count: payments.length } });
+    }
+  } catch (error) {
+    console.error('❌ Error fetching purchase payments:', error);
+    return c.json({ success: false, error: 'Erreur récupération paiements' }, 500);
+  }
+});
+
+// GET /purchases/payments/summary - Tous les totaux payés en une seule requête
+purchases.get('/payments/summary', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) return c.json({ success: false, error: 'Tenant requis' }, 400);
+
+    console.log(`💰 Fetching payments summary for tenant: ${tenant}`);
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+
+    if (dbType === 'supabase') {
+      const { data, error } = await supabaseAdmin
+        .from('payments')
+        .select('document_type, document_id, amount')
+        .eq('tenant_id', tenant)
+        .in('document_type', ['purchase_invoice', 'purchase_delivery_note']);
+
+      if (error) return c.json({ success: false, error: error.message }, 500);
+
+      // Agréger par document_type + document_id
+      const map: Record<string, number> = {};
+      for (const p of data || []) {
+        const key = `${p.document_type}::${p.document_id}`;
+        map[key] = (map[key] || 0) + parseFloat(p.amount || 0);
+      }
+      return c.json({ success: true, data: map });
+
+    } else {
+      const result = await backendDatabaseService.executeQuery(
+        `SELECT document_type, document_id, SUM(amount) as total_paid FROM payments
+         WHERE tenant_id = ? AND document_type IN ('purchase_invoice','purchase_delivery_note')
+         GROUP BY document_type, document_id`,
+        [tenant]
+      );
+      if (!result.success) return c.json({ success: false, error: result.error }, 500);
+      const map: Record<string, number> = {};
+      for (const row of result.data || []) {
+        map[`${row.document_type}::${row.document_id}`] = parseFloat(row.total_paid || 0);
+      }
+      return c.json({ success: true, data: map });
+    }
+  } catch (error) {
+    console.error('❌ Error fetching payments summary:', error);
+    return c.json({ success: false, error: 'Erreur résumé paiements' }, 500);
+  }
+});
+
+// POST /purchases/payments - Enregistrer un paiement fournisseur
+purchases.post('/payments', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) return c.json({ success: false, error: 'Tenant requis' }, 400);
+
+    const body = await c.req.json();
+    const { document_type, document_id, payment_date, amount, payment_method, notes } = body;
+
+    if (!document_type || !document_id || !payment_date || !amount) {
+      return c.json({ success: false, error: 'Champs requis: document_type, document_id, payment_date, amount' }, 400);
+    }
+    if (amount <= 0) return c.json({ success: false, error: 'Montant doit être > 0' }, 400);
+    if (!['purchase_delivery_note', 'purchase_invoice'].includes(document_type)) {
+      return c.json({ success: false, error: 'document_type doit être "purchase_delivery_note" ou "purchase_invoice"' }, 400);
+    }
+
+    console.log(`💰 Recording purchase payment: ${document_type} #${document_id} → ${amount} DA (tenant: ${tenant})`);
+
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+
+    if (dbType === 'supabase') {
+      const { data, error } = await supabaseAdmin
+        .from('payments')
+        .insert({ tenant_id: tenant, document_type, document_id, payment_date, amount, payment_method: payment_method || null, notes: notes || null })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Supabase payment insert error:', error);
+        return c.json({ success: false, error: error.message }, 500);
+      }
+      console.log(`✅ Purchase payment recorded: ID ${data.id}`);
+      return c.json({ success: true, data });
+
+    } else {
+      const result = await backendDatabaseService.executeQuery(
+        `INSERT INTO payments (tenant_id, document_type, document_id, payment_date, amount, payment_method, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [tenant, document_type, document_id, payment_date, amount, payment_method || null, notes || null]
+      );
+      if (!result.success) return c.json({ success: false, error: result.error }, 500);
+      console.log(`✅ Purchase payment recorded: ID ${result.data.insertId}`);
+      return c.json({ success: true, data: { id: result.data.insertId, tenant_id: tenant, document_type, document_id, payment_date, amount } });
+    }
+  } catch (error) {
+    console.error('❌ Error recording purchase payment:', error);
+    return c.json({ success: false, error: 'Erreur enregistrement paiement' }, 500);
   }
 });
 

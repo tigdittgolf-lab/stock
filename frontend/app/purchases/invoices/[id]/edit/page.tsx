@@ -1,50 +1,35 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { getApiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
-import styles from '../../../../page.module.css';
+import styles from '../../../purchases.module.css';
 
 interface Supplier {
   nfournisseur: string;
   nom_fournisseur: string;
-  adresse_fourni: string;
+  adresse_fourni?: string;
+  tel?: string;
 }
 
 interface Article {
   narticle: string;
   designation: string;
-  prix_unitaire: number;
-  stock_f: number;
-  stock_bl: number;
-  nfournisseur: string;
+  prix_unitaire?: number;
+  prix_achat?: number;
+  tva?: number;
+  stock_f?: number;
+  nfournisseur?: string;
 }
 
-interface PurchaseDetail {
+interface PurchaseLine {
   Narticle: string;
-  designation?: string; // Ajout pour afficher la désignation
+  designation: string;
   Qte: number;
   prix: number;
   tva: number;
-}
-
-interface PurchaseInvoiceDetail {
-  nfact_achat: number;
-  nfournisseur: string;
-  numero_facture_fournisseur: string;
-  date_fact: string;
-  montant_ht: number;
-  tva: number;
-  total_ttc: number;
-  details: Array<{
-    narticle: string;
-    designation: string;
-    qte: number;
-    prix: number;
-    tva: number;
-    total_ligne: number;
-  }>;
+  total: number;
 }
 
 interface PageProps {
@@ -55,66 +40,109 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
   const router = useRouter();
   const resolvedParams = use(params);
   const invoiceId = resolvedParams.id;
-  
+
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
+
+  // Entête
   const [selectedSupplier, setSelectedSupplier] = useState('');
+  const [selectedSupplierInfo, setSelectedSupplierInfo] = useState<Supplier | null>(null);
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [invoiceDate, setInvoiceDate] = useState('');
-  const [details, setDetails] = useState<PurchaseDetail[]>([
-    { Narticle: '', Qte: 1, prix: 0, tva: 19 }
-  ]);
-  
-  // Articles filtrés par fournisseur sélectionné
-  const filteredArticles = selectedSupplier 
-    ? articles.filter(article => article.nfournisseur === selectedSupplier)
-    : [];
+
+  // Ligne courante
+  const [currentLine, setCurrentLine] = useState({ Narticle: '', Qte: 1, prix: 0, tva: 19 });
+  const [selectedArticleInfo, setSelectedArticleInfo] = useState<Article | null>(null);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  // Lignes
+  const [lines, setLines] = useState<PurchaseLine[]>([]);
+
+  // Paiement
+  const [paymentType, setPaymentType] = useState<'total' | 'partial' | 'none'>('none');
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [existingPayments, setExistingPayments] = useState<{id: number; paymentDate: string; amount: number; paymentMethod: string; notes?: string}[]>([]);
+  const [totalPaid, setTotalPaid] = useState(0);
+
+  // UI
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [updating, setUpdating] = useState(false); // Indicateur pour les mises à jour de lignes
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [articleSearch, setArticleSearch] = useState<{[key: number]: string}>({});
+
+  // Articles filtrés par fournisseur (en édition on garde tous les articles du fournisseur)
+  const filteredArticles = selectedSupplier
+    ? articles.filter(a => !a.nfournisseur || a.nfournisseur.trim() === selectedSupplier.trim())
+    : [];
+
+  const getTenant = () => {
+    const tenantInfo = localStorage.getItem('tenant_info');
+    if (tenantInfo) {
+      try { return JSON.parse(tenantInfo).schema || '2009_bu02'; } catch {}
+    }
+    return localStorage.getItem('selectedTenant') || '2009_bu02';
+  };
 
   useEffect(() => {
-    if (invoiceId) {
-      fetchInvoice();
-      fetchSuppliers();
-      fetchArticles();
-    }
+    fetchInvoice();
+    fetchSuppliers();
+    fetchArticles();
   }, [invoiceId]);
+
+  useEffect(() => {
+    if (invoiceId) fetchExistingPayments();
+  }, [invoiceId]);
+
+  useEffect(() => {
+    if (selectedSupplier && suppliers.length > 0) {
+      const s = suppliers.find(s => s.nfournisseur === selectedSupplier);
+      setSelectedSupplierInfo(s || null);
+    }
+  }, [selectedSupplier, suppliers]);
+
+  useEffect(() => {
+    if (currentLine.Narticle) {
+      const a = articles.find(a => a.narticle === currentLine.Narticle);
+      setSelectedArticleInfo(a || null);
+      if (a && editingIndex === null) {
+        setCurrentLine(prev => ({
+          ...prev,
+          prix: a.prix_unitaire || a.prix_achat || 0,
+          tva: a.tva || 19
+        }));
+      }
+    } else {
+      setSelectedArticleInfo(null);
+    }
+  }, [currentLine.Narticle, articles]);
 
   const fetchInvoice = async () => {
     try {
-      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(getApiUrl(`purchases/invoices/${invoiceId}`), {
-        headers: {
-          'X-Tenant': tenant
-        }
+      const tenant = getTenant();
+      const res = await fetch(getApiUrl(`purchases/invoices/${invoiceId}`), {
+        headers: { 'X-Tenant': tenant }
       });
-      
-      const data = await response.json();
+      const data = await res.json();
       if (data.success && data.data) {
-        const invoice = data.data;
-        setSelectedSupplier(invoice.nfournisseur);
-        setInvoiceNumber(invoice.numero_facture_fournisseur || '');
-        setInvoiceDate(invoice.date_fact);
-        
-        // Convert details to editable format
-        const editableDetails = invoice.details?.map((detail: any) => ({
-          Narticle: detail.narticle,
-          designation: detail.designation,
-          Qte: detail.qte,
-          prix: detail.prix,
-          tva: detail.tva
-        })) || [{ Narticle: '', designation: '', Qte: 1, prix: 0, tva: 19 }];
-        
-        setDetails(editableDetails);
+        const inv = data.data;
+        setSelectedSupplier(inv.nfournisseur);
+        setInvoiceNumber(inv.numero_facture_fournisseur || '');
+        setInvoiceDate(inv.date_fact?.split('T')[0] || '');
+        const loadedLines: PurchaseLine[] = (inv.details || []).map((d: any) => ({
+          Narticle: d.narticle,
+          designation: d.designation || d.narticle,
+          Qte: d.qte,
+          prix: d.prix,
+          tva: d.tva,
+          total: d.qte * d.prix
+        }));
+        setLines(loadedLines);
       } else {
-        setError('Facture d\'achat non trouvée');
+        setError('Facture introuvable');
       }
-    } catch (error) {
-      console.error('Error fetching purchase invoice:', error);
+    } catch (e) {
       setError('Erreur de connexion');
     } finally {
       setLoading(false);
@@ -123,178 +151,159 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
 
   const fetchSuppliers = async () => {
     try {
-      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(getApiUrl('sales/suppliers'), {
-        headers: {
-          'X-Tenant': tenant
-        }
-      });
-      
-      const data = await response.json();
-      if (data.success) {
-        setSuppliers(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching suppliers:', error);
-    }
+      const tenant = getTenant();
+      const res = await fetch(getApiUrl('sales/suppliers'), { headers: { 'X-Tenant': tenant } });
+      const data = await res.json();
+      if (data.success) setSuppliers(data.data);
+    } catch (e) { console.error(e); }
   };
 
   const fetchArticles = async () => {
     try {
-      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(getApiUrl('sales/articles'), {
-        headers: {
-          'X-Tenant': tenant
-        }
+      const tenant = getTenant();
+      const res = await fetch(getApiUrl('sales/articles'), { headers: { 'X-Tenant': tenant } });
+      const data = await res.json();
+      if (data.success) setArticles(data.data);
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchExistingPayments = async () => {
+    try {
+      const tenant = getTenant();
+      const res = await fetch(getApiUrl(`purchases/payments/purchase_invoice/${invoiceId}`), {
+        headers: { 'X-Tenant': tenant }
       });
-      
-      const data = await response.json();
-      if (data.success) {
-        setArticles(data.data);
+      const data = await res.json();
+      if (data.success && data.data) {
+        const payments = data.data.payments || [];
+        setExistingPayments(payments.map((p: any) => ({
+          id: p.id,
+          paymentDate: p.payment_date,
+          amount: parseFloat(p.amount),
+          paymentMethod: p.payment_method,
+          notes: p.notes
+        })));
+        setTotalPaid(data.data.total_paid || 0);
       }
-    } catch (error) {
-      console.error('Error fetching articles:', error);
+    } catch (e) { console.error('Error fetching payments:', e); }
+  };
+
+  const handleArticleChange = (narticle: string) => {
+    const a = articles.find(a => a.narticle === narticle);
+    if (a && editingIndex === null) {
+      setCurrentLine({ Narticle: narticle, Qte: 1, prix: a.prix_unitaire || a.prix_achat || 0, tva: a.tva || 19 });
+    } else {
+      setCurrentLine(prev => ({ ...prev, Narticle: narticle }));
     }
   };
 
-  const addDetail = () => {
-    setDetails([...details, { Narticle: '', Qte: 1, prix: 0, tva: 19 }]);
+  const addLine = () => {
+    if (!currentLine.Narticle || currentLine.Qte <= 0) {
+      alert('Veuillez sélectionner un article et une quantité valide');
+      return;
+    }
+    const article = articles.find(a => a.narticle === currentLine.Narticle);
+    if (!article) { alert('Article non trouvé'); return; }
+
+    const newLine: PurchaseLine = {
+      Narticle: currentLine.Narticle,
+      designation: article.designation,
+      Qte: currentLine.Qte,
+      prix: currentLine.prix,
+      tva: currentLine.tva,
+      total: currentLine.Qte * currentLine.prix
+    };
+
+    if (editingIndex !== null) {
+      const updated = [...lines];
+      updated[editingIndex] = newLine;
+      setLines(updated);
+      setEditingIndex(null);
+    } else {
+      setLines([...lines, newLine]);
+    }
+    setCurrentLine({ Narticle: '', Qte: 1, prix: 0, tva: 19 });
   };
 
-  const removeDetail = (index: number) => {
-    if (details.length > 1) {
-      setDetails(details.filter((_, i) => i !== index));
+  const editLine = (index: number) => {
+    const line = lines[index];
+    setCurrentLine({ Narticle: line.Narticle, Qte: line.Qte, prix: line.prix, tva: line.tva });
+    setEditingIndex(index);
+  };
+
+  const removeLine = (index: number) => {
+    setLines(lines.filter((_, i) => i !== index));
+    if (editingIndex === index) {
+      setEditingIndex(null);
+      setCurrentLine({ Narticle: '', Qte: 1, prix: 0, tva: 19 });
     }
   };
 
-  const updateDetail = useCallback((index: number, field: keyof PurchaseDetail, value: string | number) => {
-    setUpdating(true);
-    
-    // Utiliser setTimeout pour permettre l'affichage du loader
-    setTimeout(() => {
-      const newDetails = [...details];
-      newDetails[index] = { ...newDetails[index], [field]: value };
-      
-      // Auto-fill designation and price from article data when article changes
-      if (field === 'Narticle' && value) {
-        const article = articles.find(a => a.narticle === value);
-        console.log('🔍 Article sélectionné:', article);
-        if (article) {
-          newDetails[index].designation = article.designation;
-          // Essayer différents champs de prix
-          const prix = article.prix_unitaire || article.prix_vente || article.prix_achat || 0;
-          console.log('💰 Prix trouvé:', prix, 'depuis:', { 
-            prix_unitaire: article.prix_unitaire, 
-            prix_vente: article.prix_vente, 
-            prix_achat: article.prix_achat 
-          });
-          newDetails[index].prix = prix;
-        } else {
-          console.warn('⚠️ Article non trouvé:', value);
-        }
-      }
-      
-      setDetails(newDetails);
-      setUpdating(false);
-    }, 0);
-  }, [details, articles]);
-
-  // Filtrer les articles par recherche pour chaque ligne
-  const getFilteredArticles = useCallback((index: number) => {
-    const search = articleSearch[index]?.toLowerCase() || '';
-    if (!search) return articles.slice(0, 100); // Limiter à 100 articles par défaut
-    
-    return articles.filter(article => 
-      article.narticle.toLowerCase().includes(search) ||
-      article.designation?.toLowerCase().includes(search)
-    ).slice(0, 100); // Limiter les résultats à 100
-  }, [articles, articleSearch]);
-
-  // Ne pas réinitialiser les détails quand le fournisseur change en mode édition
-  const handleSupplierChange = (newSupplier: string) => {
-    setSelectedSupplier(newSupplier);
-    // En mode édition, on garde les détails existants
-    // L'utilisateur peut les modifier manuellement si nécessaire
+  const calculateTotals = () => {
+    const montantHT = lines.reduce((s, l) => s + l.total, 0);
+    const totalTVA = lines.reduce((s, l) => s + (l.total * l.tva / 100), 0);
+    return { montantHT, totalTVA, totalTTC: montantHT + totalTVA };
   };
 
-  const calculateTotal = () => {
-    return details.reduce((total, detail) => {
-      const lineTotal = detail.Qte * detail.prix;
-      const tvaAmount = lineTotal * (detail.tva / 100);
-      return total + lineTotal + tvaAmount;
-    }, 0);
-  };
-
-  const calculateHT = () => {
-    return details.reduce((total, detail) => {
-      return total + (detail.Qte * detail.prix);
-    }, 0);
-  };
-
-  const calculateTVA = () => {
-    return details.reduce((total, detail) => {
-      const lineTotal = detail.Qte * detail.prix;
-      return total + (lineTotal * (detail.tva / 100));
-    }, 0);
-  };
+  const totals = calculateTotals();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!selectedSupplier) {
-      setError('Veuillez sélectionner un fournisseur');
-      return;
-    }
-
-    if (!invoiceNumber.trim()) {
-      setError('Veuillez saisir le numéro de facture du fournisseur');
-      return;
-    }
-
-    if (details.some(d => !d.Narticle || d.Qte <= 0 || d.prix <= 0)) {
-      setError('Veuillez remplir tous les détails correctement');
-      return;
-    }
+    if (!selectedSupplier) { setError('Veuillez sélectionner un fournisseur'); return; }
+    if (!invoiceNumber.trim()) { setError('Veuillez saisir le numéro de facture'); return; }
+    if (lines.length === 0) { setError('Veuillez ajouter au moins un article'); return; }
 
     setSaving(true);
     setError('');
     setSuccess('');
 
     try {
-      // Note: This would require implementing an update endpoint
-      // For now, we'll show a message that edit functionality needs backend implementation
-      setError('La modification des factures d\'achat nécessite l\'implémentation d\'un endpoint de mise à jour dans le backend.');
-      
-      // TODO: Implement PUT /api/purchases/invoices/:id endpoint
-      /*
-      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`getApiUrl('purchases/invoices/${invoiceId}')`, {
+      const tenant = getTenant();
+      const res = await fetch(getApiUrl(`purchases/invoices/${invoiceId}`), {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Tenant': tenant
-        },
+        headers: { 'Content-Type': 'application/json', 'X-Tenant': tenant },
         body: JSON.stringify({
           Nfournisseur: selectedSupplier,
           numero_facture_fournisseur: invoiceNumber,
           date_fact: invoiceDate,
-          detail_fact_achat: details
+          detail_fact_achat: lines.map(l => ({
+            Narticle: l.Narticle,
+            Qte: l.Qte,
+            prix: l.prix,
+            tva: l.tva
+          }))
         })
       });
 
-      const data = await response.json();
-      
+      const data = await res.json();
       if (data.success) {
-        setSuccess('Facture d\'achat modifiée avec succès !');
-        setTimeout(() => {
-          router.push(`/purchases/invoices/${invoiceId}`);
-        }, 2000);
+        // Enregistrer un nouveau paiement si demandé
+        if (paymentType !== 'none') {
+          const amountToPay = paymentType === 'total' ? Math.max(0, totals.totalTTC - totalPaid) : paymentAmount;
+          if (amountToPay > 0) {
+            try {
+              const today = new Date().toISOString().split('T')[0];
+              await fetch(getApiUrl('purchases/payments'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Tenant': getTenant() },
+                body: JSON.stringify({
+                  document_type: 'purchase_invoice',
+                  document_id: parseInt(invoiceId),
+                  payment_date: invoiceDate || today,
+                  amount: amountToPay,
+                  payment_method: paymentMethod,
+                  notes: paymentNotes || null
+                })
+              });
+            } catch (pe) { console.error('Payment error:', pe); }
+          }
+        }
+        setSuccess('✅ Facture modifiée avec succès !');
+        setTimeout(() => router.push('/purchases/invoices/list'), 1500);
       } else {
         setError(data.error || 'Erreur lors de la modification');
       }
-      */
-    } catch (error) {
-      console.error('Error updating purchase invoice:', error);
+    } catch (e) {
       setError('Erreur de connexion');
     } finally {
       setSaving(false);
@@ -303,238 +312,409 @@ export default function EditPurchaseInvoice({ params }: PageProps) {
 
   if (loading) {
     return (
-      <div className={styles.page}>
-        <div className={styles.loading}>Chargement...</div>
+      <div className={styles.container}>
+        <div style={{ textAlign: 'center', padding: '80px', color: 'var(--text-tertiary)', fontSize: '18px' }}>
+          ⏳ Chargement de la facture...
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.page}>
-      {updating && (
-        <div style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          background: 'var(--card-background)',
-          padding: '1rem 2rem',
-          borderRadius: '8px',
-          boxShadow: 'var(--shadow-lg)',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          border: '1px solid var(--border-color)'
-        }}>
-          <div style={{
-            width: '20px',
-            height: '20px',
-            border: '3px solid var(--border-color)',
-            borderTop: '3px solid var(--primary-color)',
-            borderRadius: '50%',
-            animation: 'spin 0.8s linear infinite'
-          }}></div>
-          <span style={{ color: 'var(--text-primary)' }}>Mise à jour...</span>
-        </div>
-      )}
-      
+    <div className={styles.container}>
+      {/* En-tête */}
       <header className={styles.header}>
-        <h1>Modifier Facture d'Achat - {invoiceNumber || `ID-${invoiceId}`}</h1>
-        <div>
-          <button onClick={() => router.push(`/purchases/invoices/${invoiceId}`)} className={styles.secondaryButton}>
-            Annuler
+        <div className={styles.title}>
+          ✏️ Modifier Facture d'Achat
+          {invoiceNumber && (
+            <span className={styles.docNumber}>{invoiceNumber}</span>
+          )}
+        </div>
+        <div className={styles.headerButtons}>
+          <button onClick={() => router.push('/purchases/invoices/list')} className={styles.navButton}>
+            📋 Liste Factures
+          </button>
+          <button onClick={() => router.push('/purchases/invoices/list')} className={styles.backButton}>
+            ← Annuler
           </button>
         </div>
       </header>
 
-      <main className={styles.main}>
-        <form onSubmit={handleSubmit}>
-          {/* Informations générales */}
-          <div className={styles.formSection}>
-            <h2>Informations Générales</h2>
-            <div className={styles.formGrid}>
-              <div className={styles.formGroup}>
-                <label>Fournisseur *</label>
-                <select 
-                  value={selectedSupplier} 
-                  onChange={(e) => handleSupplierChange(e.target.value)}
-                  required
-                >
-                  <option value="">Sélectionner un fournisseur</option>
-                  {suppliers.map((supplier, index) => (
-                    <option key={`${supplier.nfournisseur}-${index}`} value={supplier.nfournisseur}>
-                      {supplier.nom_fournisseur} ({supplier.nfournisseur})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className={styles.formGroup}>
-                <label>N° Facture Fournisseur *</label>
-                <input
-                  type="text"
-                  placeholder="Ex: FAC-2025-001"
-                  value={invoiceNumber}
-                  onChange={(e) => setInvoiceNumber(e.target.value)}
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Date de Facture</label>
-                <input
-                  type="date"
-                  value={invoiceDate}
-                  onChange={(e) => setInvoiceDate(e.target.value)}
-                />
-              </div>
+      <form onSubmit={handleSubmit} className={styles.form}>
+
+        {/* ===== SECTION 1: INFORMATIONS GÉNÉRALES ===== */}
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>📋 Informations Générales</h2>
+          <div className={styles.formGrid}>
+            <div className={styles.formGroup}>
+              <label>Fournisseur *</label>
+              <select
+                value={selectedSupplier}
+                onChange={(e) => setSelectedSupplier(e.target.value)}
+                required
+              >
+                <option value="">— Sélectionner un fournisseur —</option>
+                {suppliers.map((s, i) => (
+                  <option key={`${s.nfournisseur}-${i}`} value={s.nfournisseur}>
+                    {s.nom_fournisseur} ({s.nfournisseur})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>N° Facture Fournisseur *</label>
+              <input
+                type="text"
+                placeholder="Ex: FAC-2025-001"
+                value={invoiceNumber}
+                onChange={(e) => setInvoiceNumber(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Date de Facture</label>
+              <input
+                type="date"
+                value={invoiceDate}
+                onChange={(e) => setInvoiceDate(e.target.value)}
+              />
             </div>
           </div>
 
-          {/* Détails des articles */}
-          <div className={styles.formSection}>
-            <h2>Articles Achetés</h2>
-            <div className={styles.tableContainer}>
+          {selectedSupplierInfo && (
+            <div className={styles.supplierInfoCard}>
+              <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '4px' }}>
+                🏭 {selectedSupplierInfo.nom_fournisseur}
+              </div>
+              <div className={styles.supplierInfoGrid}>
+                <div className={styles.supplierInfoItem}>
+                  <span className={styles.supplierInfoLabel}>Code Fournisseur</span>
+                  <span className={styles.supplierInfoValue}>{selectedSupplierInfo.nfournisseur}</span>
+                </div>
+                {selectedSupplierInfo.tel && (
+                  <div className={styles.supplierInfoItem}>
+                    <span className={styles.supplierInfoLabel}>Téléphone</span>
+                    <span className={styles.supplierInfoValue}>{selectedSupplierInfo.tel}</span>
+                  </div>
+                )}
+                {selectedSupplierInfo.adresse_fourni && (
+                  <div className={styles.supplierInfoItem}>
+                    <span className={styles.supplierInfoLabel}>Adresse</span>
+                    <span className={styles.supplierInfoValue} style={{ fontSize: '14px' }}>
+                      {selectedSupplierInfo.adresse_fourni}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ===== SECTION 2: AJOUTER / MODIFIER ARTICLE ===== */}
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>
+            {editingIndex !== null ? '✏️ Modifier l\'Article' : '➕ Ajouter un Article'}
+          </h2>
+
+          {selectedArticleInfo && (
+            <div className={styles.articleInfoCard}>
+              <div className={styles.articleInfoGrid}>
+                <div className={styles.articleInfoItem}>
+                  <span className={styles.articleInfoLabel}>Désignation</span>
+                  <span className={styles.articleInfoValue} style={{ fontSize: '16px' }}>
+                    {selectedArticleInfo.designation}
+                  </span>
+                </div>
+                <div className={styles.articleInfoItem}>
+                  <span className={styles.articleInfoLabel}>Stock Disponible</span>
+                  <span className={styles.articleInfoValue}>{selectedArticleInfo.stock_f ?? '-'}</span>
+                  <span className={`${styles.stockBadge} ${
+                    (selectedArticleInfo.stock_f ?? 0) > 100 ? styles.high :
+                    (selectedArticleInfo.stock_f ?? 0) > 20 ? styles.medium : styles.low
+                  }`}>
+                    {(selectedArticleInfo.stock_f ?? 0) > 100 ? '✓ Stock élevé' :
+                     (selectedArticleInfo.stock_f ?? 0) > 20 ? '⚠ Stock moyen' : '⚠️ Stock faible'}
+                  </span>
+                </div>
+                <div className={styles.articleInfoItem}>
+                  <span className={styles.articleInfoLabel}>Prix d'Achat</span>
+                  <span className={styles.articleInfoValue}>
+                    {(selectedArticleInfo.prix_unitaire || selectedArticleInfo.prix_achat || 0).toFixed(2)} DA
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label>Article *</label>
+              <select
+                value={currentLine.Narticle}
+                onChange={(e) => handleArticleChange(e.target.value)}
+              >
+                <option value="">— Sélectionner un article —</option>
+                {(filteredArticles.length > 0 ? filteredArticles : articles).map(a => (
+                  <option key={a.narticle} value={a.narticle}>
+                    {a.narticle} — {a.designation}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Quantité *</label>
+              <input
+                type="number" min="0.01" step="0.01" lang="en"
+                value={currentLine.Qte || ''}
+                onChange={(e) => setCurrentLine({ ...currentLine, Qte: parseFloat(e.target.value) || 0 })}
+                onFocus={(e) => e.target.select()}
+                placeholder="0"
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Prix Unitaire (DA) *</label>
+              <input
+                type="number" min="0" step="0.01" lang="en"
+                value={currentLine.prix || ''}
+                onChange={(e) => setCurrentLine({ ...currentLine, prix: parseFloat(e.target.value) || 0 })}
+                onFocus={(e) => e.target.select()}
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>TVA (%)</label>
+              <input
+                type="number" min="0" max="100" step="0.01" lang="en"
+                value={currentLine.tva || ''}
+                onChange={(e) => setCurrentLine({ ...currentLine, tva: parseFloat(e.target.value) || 0 })}
+                onFocus={(e) => e.target.select()}
+                placeholder="19"
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', paddingBottom: '20px' }}>
+              <button type="button" onClick={addLine} className={styles.addButton}>
+                {editingIndex !== null ? '✓ Modifier' : '+ Ajouter'}
+              </button>
+              {editingIndex !== null && (
+                <button
+                  type="button"
+                  onClick={() => { setEditingIndex(null); setCurrentLine({ Narticle: '', Qte: 1, prix: 0, tva: 19 }); }}
+                  className={styles.cancelButton}
+                  style={{ padding: '12px 16px' }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ===== SECTION 3: TABLEAU DES ARTICLES ===== */}
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>📦 Articles de la Facture</h2>
+
+          {lines.length === 0 ? (
+            <div className={styles.emptyState}>
+              Aucun article. Utilisez le formulaire ci-dessus pour en ajouter.
+            </div>
+          ) : (
+            <>
               <table className={styles.table}>
                 <thead>
                   <tr>
+                    <th>#</th>
                     <th>Code Article</th>
                     <th>Désignation</th>
-                    <th>Quantité</th>
-                    <th>Prix Unitaire (DA)</th>
-                    <th>TVA (%)</th>
-                    <th>Total Ligne</th>
-                    <th>Actions</th>
+                    <th style={{ textAlign: 'right' }}>Quantité</th>
+                    <th style={{ textAlign: 'right' }}>Prix Unit. (DA)</th>
+                    <th style={{ textAlign: 'right' }}>TVA (%)</th>
+                    <th style={{ textAlign: 'right' }}>Total HT (DA)</th>
+                    <th style={{ textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {details.map((detail, index) => (
-                    <tr key={index}>
-                      <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                          <input
-                            type="text"
-                            placeholder="🔍 Rechercher..."
-                            value={articleSearch[index] || ''}
-                            onChange={(e) => setArticleSearch({...articleSearch, [index]: e.target.value})}
-                            style={{ 
-                              padding: '0.25rem 0.5rem', 
-                              fontSize: '0.85rem',
-                              border: '1px solid var(--border-color)',
-                              borderRadius: '4px',
-                              background: 'var(--background)'
-                            }}
-                          />
-                          <select
-                            value={detail.Narticle}
-                            onChange={(e) => updateDetail(index, 'Narticle', e.target.value)}
-                            required
-                            style={{ minWidth: '150px' }}
-                          >
-                            <option value="">Sélectionner...</option>
-                            {getFilteredArticles(index).map(article => (
-                              <option key={article.narticle} value={article.narticle}>
-                                {article.narticle}
-                              </option>
-                            ))}
-                          </select>
+                  {lines.map((line, index) => (
+                    <tr key={index} style={{
+                      background: editingIndex === index ? 'rgba(253,126,20,0.08)' : undefined
+                    }}>
+                      <td style={{ color: 'var(--text-secondary)', fontWeight: '600' }}>{index + 1}</td>
+                      <td style={{ fontWeight: '600', color: '#fd7e14' }}>{line.Narticle}</td>
+                      <td>{line.designation}</td>
+                      <td style={{ textAlign: 'right', fontWeight: '600' }}>{line.Qte}</td>
+                      <td style={{ textAlign: 'right' }}>{line.prix.toFixed(2)}</td>
+                      <td style={{ textAlign: 'right' }}>{line.tva.toFixed(0)}%</td>
+                      <td style={{ textAlign: 'right', fontWeight: '700', color: '#fd7e14' }}>
+                        {line.total.toFixed(2)}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                          <button type="button" onClick={() => editLine(index)} className={styles.editButton}>
+                            ✏️ Modifier
+                          </button>
+                          <button type="button" onClick={() => removeLine(index)} className={styles.deleteButton}>
+                            🗑 Supprimer
+                          </button>
                         </div>
-                      </td>
-                      <td style={{ minWidth: '200px' }}>
-                        {detail.designation || '-'}
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          min="0.01"
-                          step="0.01"
-                          value={isNaN(detail.Qte) ? '' : detail.Qte}
-                          onChange={(e) => updateDetail(index, 'Qte', parseFloat(e.target.value) || 0)}
-                          required
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={isNaN(detail.prix) ? '' : detail.prix}
-                          onChange={(e) => updateDetail(index, 'prix', parseFloat(e.target.value) || 0)}
-                          required
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          value={isNaN(detail.tva) ? '' : detail.tva}
-                          onChange={(e) => updateDetail(index, 'tva', parseFloat(e.target.value) || 0)}
-                          required
-                        />
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        {((detail.Qte * detail.prix) * (1 + detail.tva / 100)).toFixed(2)} DA
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          onClick={() => removeDetail(index)}
-                          className={styles.deleteButton}
-                          disabled={details.length === 1}
-                        >
-                          Supprimer
-                        </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-            <button type="button" onClick={addDetail} className={styles.secondaryButton}>
-              Ajouter un Article
-            </button>
-          </div>
 
-          {/* Totaux */}
-          <div className={styles.totalsSection}>
-            <div className={styles.totalsGrid}>
-              <div className={styles.totalRow}>
-                <span>Montant HT :</span>
-                <span>{calculateHT().toFixed(2)} DA</span>
+              <div className={styles.totals}>
+                <div className={styles.totalRow}>
+                  <span className={styles.totalLabel}>Montant HT:</span>
+                  <span className={styles.totalValue}>{totals.montantHT.toFixed(2)} DA</span>
+                </div>
+                <div className={styles.totalRow}>
+                  <span className={styles.totalLabel}>TVA:</span>
+                  <span className={styles.totalValue}>{totals.totalTVA.toFixed(2)} DA</span>
+                </div>
+                <div className={styles.totalRow}>
+                  <span className={styles.totalLabel}>Total TTC:</span>
+                  <span className={styles.totalValue}>{totals.totalTTC.toFixed(2)} DA</span>
+                </div>
               </div>
-              <div className={styles.totalRow}>
-                <span>TVA :</span>
-                <span>{calculateTVA().toFixed(2)} DA</span>
-              </div>
-              <div className={styles.totalRow}>
-                <strong>Total TTC :</strong>
-                <strong>{calculateTotal().toFixed(2)} DA</strong>
-              </div>
-            </div>
-          </div>
+            </>
+          )}
+        </div>
 
-          {/* Messages */}
-          {error && (
-            <div className={styles.error}>
-              <p>❌ {error}</p>
+        {/* ===== SECTION 4: PAIEMENT ===== */}
+        <div className={styles.paymentSection}>
+          <h2 className={styles.sectionTitle}>💰 Paiement Fournisseur</h2>
+
+          {/* Historique des paiements existants */}
+          {existingPayments.length > 0 && (
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontWeight: '600', marginBottom: '10px', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                📋 Paiements déjà enregistrés:
+              </div>
+              <table className={styles.table} style={{ marginTop: 0 }}>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Méthode</th>
+                    <th style={{ textAlign: 'right' }}>Montant</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {existingPayments.map((p) => (
+                    <tr key={p.id}>
+                      <td>{new Date(p.paymentDate).toLocaleDateString('fr-FR')}</td>
+                      <td>{{cash:'💵 Espèces', check:'📝 Chèque', bank_transfer:'🏦 Virement', credit_card:'💳 Carte'}[p.paymentMethod] || p.paymentMethod}</td>
+                      <td style={{ textAlign: 'right', fontWeight: '700', color: '#fd7e14' }}>{p.amount.toFixed(2)} DA</td>
+                      <td style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{p.notes || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: totalPaid >= totals.totalTTC ? '#d4edda' : '#fff3cd', borderRadius: '8px', marginTop: '10px', fontWeight: '600' }}>
+                <span>Total déjà payé:</span>
+                <span style={{ color: totalPaid >= totals.totalTTC ? '#155724' : '#856404' }}>
+                  {totalPaid.toFixed(2)} DA
+                  {totals.totalTTC > 0 && ` / ${totals.totalTTC.toFixed(2)} DA`}
+                </span>
+              </div>
+              {totalPaid < totals.totalTTC && totals.totalTTC > 0 && (
+                <div style={{ padding: '10px 16px', background: '#f8d7da', borderRadius: '8px', marginTop: '8px', fontWeight: '600', color: '#721c24' }}>
+                  ⚠️ Reste à payer: <strong>{(totals.totalTTC - totalPaid).toFixed(2)} DA</strong>
+                </div>
+              )}
             </div>
           )}
 
-          {success && (
-            <div className={styles.success}>
-              <p>✅ {success}</p>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className={styles.formActions}>
-            <button type="submit" disabled={saving} className={styles.primaryButton}>
-              {saving ? 'Modification...' : 'Modifier la Facture d\'Achat'}
-            </button>
+          {/* Ajouter un nouveau paiement */}
+          <div style={{ fontWeight: '600', marginBottom: '12px', color: 'var(--text-secondary)', fontSize: '14px' }}>
+            ➕ Ajouter un paiement supplémentaire:
           </div>
-        </form>
-      </main>
+          <div className={styles.paymentGrid}>
+            <div className={styles.formGroup}>
+              <label>Type de paiement</label>
+              <select
+                value={paymentType}
+                onChange={(e) => {
+                  const t = e.target.value as 'total' | 'partial' | 'none';
+                  setPaymentType(t);
+                  if (t === 'total') setPaymentAmount(Math.max(0, totals.totalTTC - totalPaid));
+                  else if (t === 'none') setPaymentAmount(0);
+                }}
+              >
+                <option value="none">— Aucun nouveau paiement —</option>
+                <option value="total">✅ Solder le reste ({Math.max(0, totals.totalTTC - totalPaid).toFixed(2)} DA)</option>
+                <option value="partial">⚠️ Paiement partiel</option>
+              </select>
+            </div>
+
+            {paymentType === 'partial' && (
+              <div className={styles.formGroup}>
+                <label>Montant versé (DA)</label>
+                <input
+                  type="number" step="0.01" lang="en" min="0.01"
+                  value={paymentAmount || ''}
+                  onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+                  onFocus={(e) => e.target.select()}
+                  placeholder="0.00"
+                />
+              </div>
+            )}
+
+            {paymentType !== 'none' && (
+              <div className={styles.formGroup}>
+                <label>Méthode de paiement</label>
+                <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+                  <option value="cash">💵 Espèces</option>
+                  <option value="check">📝 Chèque</option>
+                  <option value="bank_transfer">🏦 Virement bancaire</option>
+                  <option value="credit_card">💳 Carte bancaire</option>
+                  <option value="other">Autre</option>
+                </select>
+              </div>
+            )}
+
+            {paymentType !== 'none' && (
+              <div className={styles.formGroup}>
+                <label>Notes (optionnel)</label>
+                <input
+                  type="text"
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  placeholder="Ex: Solde final, 2ème versement..."
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Messages */}
+        {error && <div className={styles.errorMsg}>❌ {error}</div>}
+        {success && <div className={styles.successMsg}>{success}</div>}
+
+        {/* Actions */}
+        <div className={styles.actions}>
+          <button
+            type="button"
+            onClick={() => router.push('/purchases/invoices/list')}
+            className={styles.cancelButton}
+          >
+            Annuler
+          </button>
+          <button
+            type="submit"
+            disabled={saving || lines.length === 0}
+            className={styles.submitButton}
+          >
+            {saving ? '⏳ Enregistrement...' : '💾 Enregistrer les Modifications'}
+          </button>
+        </div>
+
+      </form>
     </div>
   );
 }
