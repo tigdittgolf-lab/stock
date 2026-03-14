@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from '../../page.module.css';
 
@@ -14,7 +14,7 @@ interface Document {
   balance: number;
 }
 
-export default function AddPayment() {
+function AddPaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -315,5 +315,13 @@ export default function AddPayment() {
         </form>
       </main>
     </div>
+  );
+}
+
+export default function AddPayment() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <AddPaymentContent />
+    </Suspense>
   );
 }

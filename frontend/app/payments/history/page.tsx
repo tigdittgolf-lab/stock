@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from '../../page.module.css';
 
@@ -13,7 +13,7 @@ interface Payment {
   createdAt: string;
 }
 
-export default function PaymentHistory() {
+function PaymentHistoryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -172,5 +172,13 @@ export default function PaymentHistory() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function PaymentHistory() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <PaymentHistoryContent />
+    </Suspense>
   );
 }
