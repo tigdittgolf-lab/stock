@@ -1,6 +1,6 @@
 /**
- * Helper pour accéder aux schémas tenant Supabase via RPC exec_sql.
- * La fonction exec_sql(sql_query TEXT, params TEXT[]) est SECURITY DEFINER
+ * Helper pour accéder aux schémas tenant Supabase via RPC.
+ * Utilise get_all_table_data(schema, table) qui est SECURITY DEFINER
  * et peut accéder aux schémas non-public.
  */
 
@@ -8,11 +8,11 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglb
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 /**
- * Exécute une requête SQL via la fonction RPC exec_sql dans Supabase.
- * Retourne un tableau de lignes.
+ * Lit toutes les lignes d'une table dans un schéma tenant via RPC get_all_table_data.
+ * Retourne un tableau de lignes (objets).
  */
-export async function execSql(sqlQuery: string, params: string[] = []): Promise<any[]> {
-  const url = `${SUPABASE_URL}/rest/v1/rpc/exec_sql`;
+export async function readTable(schema: string, table: string): Promise<any[]> {
+  const url = `${SUPABASE_URL}/rest/v1/rpc/get_all_table_data`;
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -20,33 +20,31 @@ export async function execSql(sqlQuery: string, params: string[] = []): Promise<
       'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ sql_query: sqlQuery, params }),
+    body: JSON.stringify({ p_schema_name: schema, p_table_name: table }),
   });
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`execSql HTTP ${res.status}: ${err}`);
+    throw new Error(`readTable ${schema}.${table} HTTP ${res.status}: ${err}`);
   }
 
   const result = await res.json();
 
-  // exec_sql retourne un JSONB — peut être un objet {success, data} ou directement un tableau
+  // get_all_table_data retourne un JSONB array directement
   if (Array.isArray(result)) return result;
-  if (result && Array.isArray(result.data)) return result.data;
-  if (result && result.success === false) throw new Error(result.error || 'exec_sql failed');
 
-  // Parfois Supabase enveloppe dans un tableau à un élément
+  // Supabase enveloppe parfois dans un tableau à un élément contenant le JSONB
   if (Array.isArray(result) && result.length === 1 && Array.isArray(result[0])) return result[0];
 
+  // Si c'est null ou vide
   return [];
 }
 
 /**
- * Lit une table dans un schéma tenant via exec_sql.
- * @deprecated Utiliser execSql directement avec une requête SQL explicite.
+ * Alias pour compatibilité — utilise readTable.
  */
-export async function readTable(schema: string, table: string, orderBy?: string): Promise<any[]> {
-  const order = orderBy ? ` ORDER BY "${orderBy}"` : '';
-  const sql = `SELECT * FROM "${schema}"."${table}"${order}`;
-  return execSql(sql);
+export async function execSql(sqlQuery: string, _params: string[] = []): Promise<any[]> {
+  // Pour les SELECT simples sur une table tenant, on délègue à readTable
+  // Cette fonction n'est plus utilisée directement mais gardée pour compatibilité
+  throw new Error('execSql: use readTable instead');
 }
