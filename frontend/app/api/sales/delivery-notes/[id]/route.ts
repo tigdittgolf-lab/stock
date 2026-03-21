@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const BACKEND_URL = process.env.BACKEND_URL;
+const BACKEND_URL = process.env.BACKEND_URL; // v2
 
 /** Fetch une table via REST Supabase avec filtre natif côté serveur */
 async function supabaseGet(schema: string, table: string, col: string, val: number, limit?: number): Promise<any[]> {
