@@ -7,7 +7,7 @@
 CREATE TABLE IF NOT EXISTS avoir (
   id INT AUTO_INCREMENT PRIMARY KEY,
   nclient VARCHAR(10) NOT NULL,
-  date_avoir DATE NOT NULL DEFAULT (CURRENT_DATE),
+  date_avoir DATE NOT NULL,
   document_type VARCHAR(20) NOT NULL,
   document_ref INT NOT NULL,
   montant_ht DECIMAL(15,2) NOT NULL DEFAULT 0,
