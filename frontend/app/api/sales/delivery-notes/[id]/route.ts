@@ -1,46 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readTableById, readTableWhere } from '@/lib/supabase-rpc';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const BACKEND_URL = process.env.BACKEND_URL;
 
-/**
- * Charge les lignes de detail_bl via l'API REST Supabase avec Accept-Profile (schéma).
- * Beaucoup plus rapide que readTable car filtre côté serveur.
- */
-async function fetchDetailBl(schema: string, nfact: number): Promise<any[]> {
-  // Essayer nfact puis nbl comme colonne de jointure
-  for (const col of ['nfact', 'nbl', 'Nfact', 'Nbl']) {
-    try {
-      const url = `${SUPABASE_URL}/rest/v1/detail_bl?${col}=eq.${nfact}&select=*`;
-      const res = await fetch(url, {
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Accept-Profile': schema,
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(8000),
-      });
-      if (res.ok) {
-        const rows = await res.json();
-        if (Array.isArray(rows) && rows.length > 0) {
-          console.log(`✅ [detail_bl REST] ${rows.length} lignes via ${col}=eq.${nfact} dans ${schema}`);
-          console.log(`🔑 [detail_bl REST] Colonnes:`, Object.keys(rows[0]));
-          return rows;
-        }
-      } else {
-        const err = await res.text();
-        console.warn(`[detail_bl REST] ${col} → ${res.status}: ${err.slice(0, 100)}`);
-      }
-    } catch (e) {
-      console.warn(`[detail_bl REST] Erreur col ${col}:`, e);
-    }
+/** Fetch une table via REST Supabase avec filtre natif côté serveur */
+async function supabaseGet(schema: string, table: string, col: string, val: number, limit?: number): Promise<any[]> {
+  const limitStr = limit ? `&limit=${limit}` : '';
+  const url = `${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${val}&select=*${limitStr}`;
+  const res = await fetch(url, {
+    headers: {
+      'apikey': SUPABASE_SERVICE_KEY,
+      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+      'Accept-Profile': schema,
+    },
+    signal: AbortSignal.timeout(7000),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`${table} ${col}=eq.${val} → ${res.status}: ${err.slice(0, 120)}`);
   }
-  return [];
+  const rows = await res.json();
+  return Array.isArray(rows) ? rows : [];
 }
 
-const BACKEND_URL = process.env.BACKEND_URL;
+/** Normalise les colonnes d'un objet (insensible à la casse) */
+function normalizeRow(r: any, mapping: Record<string, string[]>): Record<string, any> {
+  const keys = Object.keys(r);
+  const find = (...names: string[]) => {
+    for (const n of names) {
+      const k = keys.find(k => k.toLowerCase() === n.toLowerCase());
+      if (k !== undefined && r[k] !== null && r[k] !== undefined) return r[k];
+    }
+    return undefined;
+  };
+  const result: Record<string, any> = { ...r };
+  for (const [target, candidates] of Object.entries(mapping)) {
+    result[target] = find(...candidates);
+  }
+  return result;
+}
 
 export async function GET(
   request: NextRequest,
@@ -55,103 +54,73 @@ export async function GET(
     return NextResponse.json({ success: false, error: `ID BL invalide: ${id}` }, { status: 400 });
   }
 
-  // 1. Backend
+  // 1. Backend local (timeout court — 3s max pour ne pas bloquer Vercel)
   if (BACKEND_URL) {
     try {
       const res = await fetch(`${BACKEND_URL}/api/sales/delivery-notes/${numericId}`, {
-        headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType, 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
-        signal: AbortSignal.timeout(8000)
+        headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType, 'ngrok-skip-browser-warning': 'true' },
+        signal: AbortSignal.timeout(3000)
       });
       if (res.ok) return NextResponse.json(await res.json());
-    } catch { console.warn('[delivery-notes/id] Backend unavailable'); }
+    } catch { /* backend indisponible, fallback Supabase */ }
   }
 
-  // 2. Supabase direct
   if (dbType !== 'supabase') {
     return NextResponse.json({ success: false, error: 'Backend non disponible' }, { status: 503 });
   }
 
   try {
-    // Charger le BL via API REST Supabase avec Accept-Profile
-    let bl: any = null;
-    for (const col of ['nfact', 'nbl', 'Nfact', 'Nbl', 'id']) {
-      try {
-        const url = `${SUPABASE_URL}/rest/v1/bl?${col}=eq.${numericId}&select=*&limit=1`;
-        const res = await fetch(url, {
-          headers: {
-            'apikey': SUPABASE_SERVICE_KEY,
-            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-            'Accept-Profile': tenant,
-            'Content-Type': 'application/json',
-          },
-          signal: AbortSignal.timeout(8000),
-        });
-        if (res.ok) {
-          const rows = await res.json();
-          if (Array.isArray(rows) && rows.length > 0) {
-            bl = rows[0];
-            console.log(`✅ [bl REST] Trouvé via ${col}=eq.${numericId} dans ${tenant}`);
-            break;
-          }
-        }
-      } catch { /* essayer colonne suivante */ }
-    }
-    // Fallback RPC si REST échoue
-    if (!bl) bl = await readTableById(tenant, 'bl', numericId);
-    if (!bl) return NextResponse.json({ success: false, error: `BL ${numericId} introuvable` }, { status: 404 });
+    // Charger BL et detail_bl en parallèle via REST Supabase (filtre natif)
+    const [blRows, detailRowsNfact] = await Promise.all([
+      supabaseGet(tenant, 'bl', 'nfact', numericId, 1).catch(() =>
+        supabaseGet(tenant, 'bl', 'nbl', numericId, 1).catch(() => [])
+      ),
+      supabaseGet(tenant, 'detail_bl', 'nfact', numericId).catch(() => []),
+    ]);
 
-    // Normaliser les colonnes (insensible à la casse)
-    const keys = Object.keys(bl);
-    const find = (...names: string[]) => {
-      for (const n of names) {
-        const k = keys.find(k => k.toLowerCase() === n.toLowerCase());
-        if (k !== undefined && bl[k] !== null && bl[k] !== undefined) return bl[k];
-      }
-      return undefined;
-    };
-    const normalized = {
-      ...bl,
-      nbl: find('nbl', 'nfact', 'id'),
-      nfact: find('nfact', 'nbl', 'id'),
-      nclient: find('nclient', 'ncli', 'code_client'),
-      client_name: find('client_name', 'raison_sociale', 'nom', 'client'),
-      date_fact: find('date_fact', 'date_bl', 'date'),
-      date_bl: find('date_bl', 'date_fact', 'date'),
-      montant_ht: find('montant_ht', 'mht', 'total_ht'),
-      tva: find('tva', 'montant_tva', 'taxe'),
-      montant_ttc: find('montant_ttc', 'total_ttc', 'mttc'),
-    };
-
-    // Charger les détails via detail_bl — API REST Supabase avec filtre natif
-    let details: any[] = [];
-    try {
-      const detailRows = await fetchDetailBl(tenant, numericId);
-      details = detailRows.map((d: any) => {
-        const dk = Object.keys(d);
-        const df = (...names: string[]) => {
-          for (const n of names) {
-            const k = dk.find(k => k.toLowerCase() === n.toLowerCase());
-            if (k !== undefined && d[k] !== null && d[k] !== undefined) return d[k];
-          }
-          return undefined;
-        };
-        return {
-          ...d,
-          narticle: df('narticle', 'article', 'code_article', 'ref'),
-          designation: df('designation', 'libelle', 'nom_article', 'description'),
-          qte: df('qte', 'quantite', 'qty'),
-          prix: df('prix', 'prix_unitaire', 'pu', 'prix_vente'),
-          tva: df('tva', 'taux_tva', 'taxe'),
-          total_ligne: df('total_ligne', 'montant_ligne', 'total', 'montant'),
-        };
-      });
-    } catch (e) {
-      console.warn(`⚠️ Erreur chargement detail_bl:`, e);
+    const bl = blRows[0] ?? null;
+    if (!bl) {
+      return NextResponse.json({ success: false, error: `BL ${numericId} introuvable` }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: { ...normalized, details, detail_bl: details }, source: 'supabase_direct' });
+    // Si detail_bl vide avec nfact, essayer nbl
+    let detailRows = detailRowsNfact;
+    if (detailRows.length === 0) {
+      detailRows = await supabaseGet(tenant, 'detail_bl', 'nbl', numericId).catch(() => []);
+    }
+
+    console.log(`✅ [BL ${numericId}] bl trouvé, ${detailRows.length} détails dans ${tenant}`);
+    if (detailRows.length > 0) console.log(`🔑 [detail_bl] colonnes:`, Object.keys(detailRows[0]));
+
+    const normalized = normalizeRow(bl, {
+      nbl: ['nbl', 'nfact', 'id'],
+      nfact: ['nfact', 'nbl', 'id'],
+      nclient: ['nclient', 'ncli', 'code_client'],
+      client_name: ['client_name', 'raison_sociale', 'nom', 'client'],
+      date_fact: ['date_fact', 'date_bl', 'date'],
+      date_bl: ['date_bl', 'date_fact', 'date'],
+      montant_ht: ['montant_ht', 'mht', 'total_ht'],
+      tva: ['tva', 'montant_tva', 'taxe'],
+      montant_ttc: ['montant_ttc', 'total_ttc', 'mttc'],
+    });
+
+    const details = detailRows.map((d: any) => normalizeRow(d, {
+      narticle: ['narticle', 'article', 'code_article', 'ref'],
+      designation: ['designation', 'libelle', 'nom_article', 'description'],
+      qte: ['qte', 'quantite', 'qty'],
+      prix: ['prix', 'prix_unitaire', 'pu', 'prix_vente'],
+      tva: ['tva', 'taux_tva', 'taxe'],
+      total_ligne: ['total_ligne', 'montant_ligne', 'total', 'montant'],
+    }));
+
+    return NextResponse.json({
+      success: true,
+      data: { ...normalized, details, detail_bl: details },
+      source: 'supabase_direct'
+    });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Erreur';
+    console.error(`❌ [delivery-notes/${numericId}]`, msg);
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
@@ -168,7 +137,7 @@ export async function DELETE(
     try {
       const res = await fetch(`${BACKEND_URL}/api/sales/delivery-notes/${id}`, {
         method: 'DELETE',
-        headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType, 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+        headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType, 'ngrok-skip-browser-warning': 'true' },
         signal: AbortSignal.timeout(8000)
       });
       return NextResponse.json(await res.json(), { status: res.status });
