@@ -1,28 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-server';
+import { execSql } from '@/lib/supabase-rpc';
 
 const BACKEND_URL = process.env.BACKEND_URL;
-
-async function getArticlesDirect(tenant: string) {
-  if (!supabaseAdmin) throw new Error('Supabase not configured');
-  const { data, error } = await supabaseAdmin.rpc('exec_sql', {
-    sql: `SELECT * FROM "${tenant}".article ORDER BY "Narticle" ASC;`
-  });
-  if (error) throw new Error(`exec_sql error: ${error.message}`);
-  return (data || []).map((a: any) => ({
-    narticle: a.Narticle || a.narticle,
-    famille: a.famille || a.Famille,
-    designation: a.designation || a.Designation,
-    nfournisseur: a.Nfournisseur || a.nfournisseur,
-    prix_unitaire: a.prix_unitaire || a.Prix_unitaire,
-    marge: a.marge || a.Marge,
-    tva: a.TVA || a.tva,
-    prix_vente: a.prix_vente || a.Prix_vente,
-    seuil: a.seuil || a.Seuil,
-    stock_f: a.stock_f || a.Stock_f,
-    stock_bl: a.stock_bl || a.Stock_bl
-  }));
-}
 
 export async function GET(request: NextRequest) {
   const tenant = request.headers.get('X-Tenant') || '2025_bu01';
@@ -41,12 +20,24 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    if (dbType === 'supabase') {
-      const articles = await getArticlesDirect(tenant);
-      console.log(`✅ [articles direct] ${articles.length} for ${tenant}`);
-      return NextResponse.json({ success: true, data: articles, source: 'supabase_direct' });
-    }
-    return NextResponse.json({ success: true, data: [] });
+    if (dbType !== 'supabase') return NextResponse.json({ success: true, data: [] });
+
+    const rows = await execSql(`SELECT * FROM "${tenant}".article ORDER BY "Narticle" ASC`);
+    const data = rows.map((a: any) => ({
+      narticle: a.Narticle || a.narticle,
+      famille: a.famille || a.Famille,
+      designation: a.designation || a.Designation,
+      nfournisseur: a.Nfournisseur || a.nfournisseur,
+      prix_unitaire: a.prix_unitaire || a.Prix_unitaire,
+      marge: a.marge || a.Marge,
+      tva: a.TVA || a.tva,
+      prix_vente: a.prix_vente || a.Prix_vente,
+      seuil: a.seuil || a.Seuil,
+      stock_f: a.stock_f || a.Stock_f,
+      stock_bl: a.stock_bl || a.Stock_bl
+    }));
+    console.log(`✅ [articles direct] ${data.length} for ${tenant}`);
+    return NextResponse.json({ success: true, data, source: 'supabase_direct' });
   } catch (error) {
     console.error('❌ articles direct error:', error);
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Erreur' }, { status: 500 });
