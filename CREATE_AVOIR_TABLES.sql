@@ -92,7 +92,7 @@ BEGIN
       ORDER BY av.date_avoir DESC, av.id DESC
     ) a
   ', p_tenant, p_tenant) INTO v_result;
-  RETURN COALESCE(v_result, ''[]''::json);
+  RETURN COALESCE(v_result, '[]'::json);
 END;
 $function$;
 
