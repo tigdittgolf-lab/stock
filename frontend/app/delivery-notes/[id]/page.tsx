@@ -56,6 +56,39 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
     fetchCompanyInfo();
   }, []);
 
+  const fetchDeliveryNoteSupabaseDirect = async (id: string, tenant: string) => {
+    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co';
+    const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    const numericId = parseInt(id);
+    try {
+      // Charger BL et detail_bl en parallèle
+      const [blRes, detailRes] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/bl?nfact=eq.${numericId}&select=*&limit=1`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept-Profile': tenant }
+        }),
+        fetch(`${SUPABASE_URL}/rest/v1/detail_bl?nfact=eq.${numericId}&select=*`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept-Profile': tenant }
+        })
+      ]);
+      const blRows = blRes.ok ? await blRes.json() : [];
+      const detailRows = detailRes.ok ? await detailRes.json() : [];
+      console.log(`✅ Supabase direct: ${blRows.length} BL, ${detailRows.length} détails`);
+      if (!blRows[0]) { setError('Bon de livraison non trouvé'); return; }
+      const bl = blRows[0];
+      const keys = Object.keys(bl);
+      const find = (...names: string[]) => { for (const n of names) { const k = keys.find(k => k.toLowerCase() === n.toLowerCase()); if (k && bl[k] != null) return bl[k]; } return undefined; };
+      const details = (Array.isArray(detailRows) ? detailRows : []).map((d: any) => {
+        const dk = Object.keys(d);
+        const df = (...names: string[]) => { for (const n of names) { const k = dk.find(k => k.toLowerCase() === n.toLowerCase()); if (k && d[k] != null) return d[k]; } return undefined; };
+        return { ...d, narticle: df('narticle','article','code_article'), designation: df('designation','libelle','nom_article'), qte: df('qte','quantite'), prix: df('prix','prix_unitaire','pu'), tva: df('tva','taux_tva'), total_ligne: df('total_ligne','montant_ligne','total') };
+      });
+      setDeliveryNote({ ...bl, nbl: find('nbl','nfact','id'), nfact: find('nfact','nbl','id'), nclient: find('nclient','ncli'), client_name: find('client_name','raison_sociale','nom'), date_fact: find('date_fact','date_bl','date'), montant_ht: find('montant_ht','mht'), tva: find('tva','montant_tva'), montant_ttc: find('montant_ttc','total_ttc'), details, detail_bl: details });
+    } catch (e) {
+      console.error('Supabase direct error:', e);
+      setError('Erreur de connexion Supabase');
+    }
+  };
+
   const fetchDeliveryNote = async () => {
     try {
       console.log('🔍 Fetching delivery note with params:', resolvedParams);
@@ -68,14 +101,16 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
       }
       
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? (JSON.parse(dbConfig).type || 'supabase') : 'supabase';
       const response = await fetch(`/api/sales/delivery-notes/${resolvedParams.id}`, {
-        headers: {
-          'X-Tenant': tenant
-        }
+        headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType }
       });
       
+      // Si la route API est indisponible (404 = route pas déployée), fallback Supabase direct
       if (response.status === 404) {
-        setError('Bon de livraison non trouvé');
+        console.warn('⚠️ Route API 404, fallback Supabase direct côté client');
+        await fetchDeliveryNoteSupabaseDirect(resolvedParams.id, tenant);
         return;
       }
 
