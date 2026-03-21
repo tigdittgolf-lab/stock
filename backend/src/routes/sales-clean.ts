@@ -3318,6 +3318,163 @@ sales.post('/credit-notes', async (c) => {
 });
 
 // =====================================================
+// RECOUVREMENT — Documents impayés depuis X jours
+// =====================================================
+
+// GET /sales/overdue?days=30 — BL + Factures avec solde restant > 0
+sales.get('/overdue', async (c) => {
+  const tenant = c.req.header('X-Tenant') || '';
+  if (!tenant) return c.json({ success: false, error: 'Tenant requis' }, 400);
+
+  const days = parseInt(c.req.query('days') || '30');
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+  const cutoff = cutoffDate.toISOString().split('T')[0];
+
+  try {
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+
+    if (dbType === 'supabase') {
+      // Récupérer les paiements groupés par document
+      const { data: payments } = await supabaseAdmin
+        .from('payments')
+        .select('document_type, document_id, amount')
+        .eq('tenant_id', tenant);
+
+      // Construire un map des paiements par document
+      const payMap: Record<string, number> = {};
+      for (const p of (payments || [])) {
+        const key = `${p.document_type}::${p.document_id}`;
+        payMap[key] = (payMap[key] || 0) + parseFloat(p.amount);
+      }
+
+      // BL impayés
+      const { data: bls } = await supabaseAdmin.rpc('exec_sql', {
+        sql: `SELECT nbl as doc_id, nclient, date_fact, montant_ttc, montant_ht, tva,
+              (SELECT raison_sociale FROM "${tenant}".client WHERE "Nclient" = nclient LIMIT 1) as client_name
+              FROM "${tenant}".bl WHERE date_fact <= '${cutoff}'`
+      });
+
+      // Factures impayées
+      const { data: invoices } = await supabaseAdmin.rpc('exec_sql', {
+        sql: `SELECT "NFact" as doc_id, "Nclient" as nclient, date_fact, montant_ttc, montant_ht, tva,
+              (SELECT raison_sociale FROM "${tenant}".client WHERE "Nclient" = "Nclient" LIMIT 1) as client_name
+              FROM "${tenant}".facture WHERE date_fact <= '${cutoff}'`
+      });
+
+      const result: any[] = [];
+
+      for (const bl of (bls || [])) {
+        const paid = payMap[`delivery_note::${bl.doc_id}`] || 0;
+        const balance = parseFloat(bl.montant_ttc) - paid;
+        if (balance > 0.01) {
+          const daysOverdue = Math.floor((Date.now() - new Date(bl.date_fact).getTime()) / 86400000);
+          result.push({
+            document_type: 'delivery_note',
+            document_id: bl.doc_id,
+            nclient: bl.nclient,
+            client_name: bl.client_name,
+            date_fact: bl.date_fact,
+            montant_ttc: parseFloat(bl.montant_ttc),
+            paid,
+            balance,
+            days_overdue: daysOverdue
+          });
+        }
+      }
+
+      for (const inv of (invoices || [])) {
+        const paid = payMap[`invoice::${inv.doc_id}`] || 0;
+        const balance = parseFloat(inv.montant_ttc) - paid;
+        if (balance > 0.01) {
+          const daysOverdue = Math.floor((Date.now() - new Date(inv.date_fact).getTime()) / 86400000);
+          result.push({
+            document_type: 'invoice',
+            document_id: inv.doc_id,
+            nclient: inv.nclient,
+            client_name: inv.client_name,
+            date_fact: inv.date_fact,
+            montant_ttc: parseFloat(inv.montant_ttc),
+            paid,
+            balance,
+            days_overdue: daysOverdue
+          });
+        }
+      }
+
+      result.sort((a, b) => b.days_overdue - a.days_overdue);
+
+      return c.json({
+        success: true,
+        data: {
+          overdue_payments: result,
+          total_amount: result.reduce((s, r) => s + r.balance, 0),
+          count: result.length,
+          days_threshold: days
+        }
+      });
+
+    } else {
+      // MySQL
+      const r = await backendDatabaseService.executeQuery(`
+        SELECT
+          'delivery_note' as document_type,
+          b.nbl as document_id,
+          b.nclient,
+          c.raison_sociale as client_name,
+          b.date_fact,
+          b.montant_ttc,
+          COALESCE((SELECT SUM(p.amount) FROM payments p
+            WHERE p.tenant_id = ? AND p.document_type = 'delivery_note' AND p.document_id = b.nbl), 0) as paid
+        FROM bl b
+        LEFT JOIN client c ON b.nclient = c.Nclient
+        WHERE b.date_fact <= ?
+        UNION ALL
+        SELECT
+          'invoice' as document_type,
+          f.NFact as document_id,
+          f.Nclient as nclient,
+          c.raison_sociale as client_name,
+          f.date_fact,
+          f.montant_ttc,
+          COALESCE((SELECT SUM(p.amount) FROM payments p
+            WHERE p.tenant_id = ? AND p.document_type = 'invoice' AND p.document_id = f.NFact), 0) as paid
+        FROM facture f
+        LEFT JOIN client c ON f.Nclient = c.Nclient
+        WHERE f.date_fact <= ?
+      `, [tenant, cutoff, tenant, cutoff]);
+
+      if (!r.success) return c.json({ success: false, error: r.error }, 500);
+
+      const result = (r.data || [])
+        .map((row: any) => ({
+          ...row,
+          montant_ttc: parseFloat(row.montant_ttc),
+          paid: parseFloat(row.paid),
+          balance: parseFloat(row.montant_ttc) - parseFloat(row.paid),
+          days_overdue: Math.floor((Date.now() - new Date(row.date_fact).getTime()) / 86400000)
+        }))
+        .filter((row: any) => row.balance > 0.01)
+        .sort((a: any, b: any) => b.days_overdue - a.days_overdue);
+
+      return c.json({
+        success: true,
+        data: {
+          overdue_payments: result,
+          total_amount: result.reduce((s: number, r: any) => s + r.balance, 0),
+          count: result.length,
+          days_threshold: days
+        }
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Error fetching overdue:', error);
+    return c.json({ success: false, error: 'Erreur recouvrement' }, 500);
+  }
+});
+
+// =====================================================
 // AVOIRS / RETOURS CLIENTS
 // =====================================================
 

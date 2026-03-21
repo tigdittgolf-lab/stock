@@ -2,293 +2,186 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import styles from '../../page.module.css';
 
-interface OverduePayment {
-  id: number;
-  document_type: string;
+interface OverdueDoc {
+  document_type: 'delivery_note' | 'invoice';
   document_id: number;
-  payment_date: string;
-  due_date: string;
-  amount: number;
-  payment_method: string;
-  notes: string;
-  days_overdue?: number;
+  nclient: string;
+  client_name: string;
+  date_fact: string;
+  montant_ttc: number;
+  paid: number;
+  balance: number;
+  days_overdue: number;
 }
 
-export default function OverduePayments() {
+export default function OverduePage() {
   const router = useRouter();
-  const [payments, setPayments] = useState<OverduePayment[]>([]);
+  const [docs, setDocs] = useState<OverdueDoc[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [totalAmount, setTotalAmount] = useState(0);
+  const [days, setDays] = useState(30);
+  const [totalBalance, setTotalBalance] = useState(0);
 
-  useEffect(() => {
-    fetchOverduePayments();
-  }, []);
+  const getTenant = () => {
+    const ti = localStorage.getItem('tenant_info');
+    if (ti) { try { return JSON.parse(ti).schema; } catch {} }
+    return localStorage.getItem('selectedTenant') || '2009_bu02';
+  };
 
-  const fetchOverduePayments = async () => {
+  useEffect(() => { fetchOverdue(); }, [days]);
+
+  const fetchOverdue = async () => {
+    setLoading(true);
     try {
-      const tenant = localStorage.getItem('selectedTenant') || '2009_bu02';
+      const tenant = getTenant();
       const dbConfig = localStorage.getItem('activeDbConfig');
       const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
-      
-      const response = await fetch('/api/sales/payments/overdue', {
-        headers: {
-          'X-Tenant': tenant,
-          'X-Database-Type': dbType
-        }
+      const res = await fetch(`/api/sales/payments/overdue?days=${days}`, {
+        headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType }
       });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        const paymentsWithDays = result.data.overdue_payments.map((p: OverduePayment) => {
-          const dueDate = new Date(p.due_date);
-          const today = new Date();
-          const diffTime = today.getTime() - dueDate.getTime();
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          return { ...p, days_overdue: diffDays };
-        });
-        
-        setPayments(paymentsWithDays);
-        setTotalAmount(result.data.total_amount);
-      } else {
-        setError(result.error || 'Erreur lors du chargement');
+      const data = await res.json();
+      if (data.success) {
+        setDocs(data.data.overdue_payments || []);
+        setTotalBalance(data.data.total_amount || 0);
       }
-    } catch (error) {
-      console.error('Error fetching overdue payments:', error);
-      setError('Erreur de connexion');
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* silencieux */ }
+    finally { setLoading(false); }
   };
 
-  const getDocumentTypeLabel = (type: string) => {
-    switch (type) {
-      case 'delivery_note': return 'BL Client';
-      case 'invoice': return 'Facture Client';
-      case 'purchase_delivery_note': return 'BL Fournisseur';
-      case 'purchase_invoice': return 'Facture Fournisseur';
-      default: return type;
-    }
-  };
+  const fmt = (n: number) => (n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' DA';
+  const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
 
-  const getUrgencyColor = (daysOverdue: number) => {
-    if (daysOverdue > 30) return '#dc3545'; // Rouge
-    if (daysOverdue > 15) return '#fd7e14'; // Orange
-    return '#ffc107'; // Jaune
-  };
+  const urgencyColor = (d: number) => d > 60 ? '#c0392b' : d > 30 ? '#e67e22' : '#f39c12';
+  const urgencyLabel = (d: number) => d > 60 ? '🔴 Critique' : d > 30 ? '🟠 Urgent' : '🟡 Attention';
 
-  if (loading) {
-    return (
-      <div className={styles.container}>
-        <main className={styles.main}>
-          <h1>Chargement...</h1>
-        </main>
-      </div>
-    );
-  }
+  const byClient = docs.reduce((acc, d) => {
+    const key = d.nclient;
+    if (!acc[key]) acc[key] = { name: d.client_name || d.nclient, balance: 0, count: 0 };
+    acc[key].balance += d.balance;
+    acc[key].count += 1;
+    return acc;
+  }, {} as Record<string, { name: string; balance: number; count: number }>);
 
   return (
-    <div className={styles.container}>
-      <main className={styles.main}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <h1>⚠️ Paiements en Retard</h1>
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button 
-              onClick={() => fetchOverduePayments()}
-              className={styles.primaryButton}
-            >
-              🔄 Actualiser
-            </button>
-            <button onClick={() => router.push('/dashboard')} className={styles.secondaryButton}>
-              ← Retour Dashboard
-            </button>
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: 20, fontFamily: 'sans-serif' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24,
+        background: 'linear-gradient(135deg, #e67e22, #d35400)', borderRadius: 12, padding: '20px 24px', color: 'white' }}>
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 700 }}>⚠️ Recouvrement — Impayés</div>
+          <div style={{ fontSize: 14, opacity: 0.85, marginTop: 4 }}>
+            Documents avec solde restant depuis plus de {days} jours
           </div>
         </div>
-
-        {error && (
-          <div className={styles.error}>
-            <p>❌ {error}</p>
-          </div>
-        )}
-
-        {/* Résumé des alertes */}
-        <div className={styles.formSection} style={{ marginBottom: '2rem', background: '#fff3cd', border: '2px solid #ffc107' }}>
-          <h2>⚠️ Résumé des Retards</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
-            <div>
-              <div style={{ fontSize: '0.9rem', color: '#856404' }}>Paiements en retard</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc3545' }}>
-                {payments.length}
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: '0.9rem', color: '#856404' }}>Montant total</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc3545' }}>
-                {totalAmount.toFixed(2)} DA
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: '0.9rem', color: '#856404' }}>Retard moyen</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc3545' }}>
-                {payments.length > 0 
-                  ? Math.round(payments.reduce((sum, p) => sum + (p.days_overdue || 0), 0) / payments.length)
-                  : 0} jours
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: '0.9rem', color: '#856404' }}>Retard maximum</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc3545' }}>
-                {payments.length > 0 
-                  ? Math.max(...payments.map(p => p.days_overdue || 0))
-                  : 0} jours
-              </div>
-            </div>
-          </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <select value={days} onChange={e => setDays(parseInt(e.target.value))}
+            style={{ padding: '8px 12px', borderRadius: 8, border: 'none', fontSize: 14, fontWeight: 600 }}>
+            <option value={15}>15 jours</option>
+            <option value={30}>30 jours</option>
+            <option value={60}>60 jours</option>
+            <option value={90}>90 jours</option>
+          </select>
+          <button onClick={fetchOverdue}
+            style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
+            🔄
+          </button>
+          <button onClick={() => router.push('/dashboard')}
+            style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
+            ← Dashboard
+          </button>
         </div>
+      </div>
 
-        {/* Légende */}
-        <div style={{ 
-          display: 'flex', 
-          gap: '1rem', 
-          marginBottom: '1rem',
-          padding: '1rem',
-          background: '#f8f9fa',
-          borderRadius: '8px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ width: '20px', height: '20px', background: '#ffc107', borderRadius: '4px' }}></div>
-            <span>1-15 jours</span>
+      {/* Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
+        {[
+          { label: 'Documents impayés', value: docs.length, color: '#e67e22' },
+          { label: 'Montant total restant', value: fmt(totalBalance), color: '#c0392b' },
+          { label: 'Clients concernés', value: Object.keys(byClient).length, color: '#8e44ad' },
+          { label: 'Retard max', value: docs.length ? Math.max(...docs.map(d => d.days_overdue)) + ' j' : '—', color: '#c0392b' },
+        ].map((s, i) => (
+          <div key={i} style={{ background: 'white', borderRadius: 10, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: `2px solid ${s.color}20`, textAlign: 'center' }}>
+            <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>{s.label}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: s.color }}>{s.value}</div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ width: '20px', height: '20px', background: '#fd7e14', borderRadius: '4px' }}></div>
-            <span>16-30 jours</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ width: '20px', height: '20px', background: '#dc3545', borderRadius: '4px' }}></div>
-            <span>+30 jours</span>
-          </div>
+        ))}
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 60, fontSize: 18 }}>⏳ Chargement...</div>
+      ) : docs.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 60, background: '#d4edda', borderRadius: 12, border: '2px solid #28a745' }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#155724' }}>Aucun impayé depuis {days} jours</div>
+          <div style={{ color: '#155724', marginTop: 8 }}>Tous les documents sont réglés.</div>
         </div>
-
-        {/* Liste des paiements en retard */}
-        <div className={styles.formSection}>
-          <h2>📋 Détail des Retards</h2>
-          
-          {payments.length === 0 ? (
-            <div style={{ 
-              textAlign: 'center', 
-              padding: '3rem', 
-              background: '#d4edda',
-              borderRadius: '8px',
-              border: '2px solid #28a745'
-            }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
-              <h3 style={{ color: '#155724', margin: 0 }}>Aucun paiement en retard!</h3>
-              <p style={{ color: '#155724', marginTop: '0.5rem' }}>
-                Tous les paiements sont à jour.
-              </p>
+      ) : (
+        <>
+          {/* Résumé par client */}
+          <div style={{ background: 'white', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e0e0e0' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, color: '#333' }}>👥 Résumé par client</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              {Object.entries(byClient).sort((a, b) => b[1].balance - a[1].balance).map(([code, info]) => (
+                <div key={code} style={{ padding: '8px 14px', background: '#fff5f0', border: '1px solid #e67e22', borderRadius: 8, fontSize: 13 }}>
+                  <span style={{ fontWeight: 700 }}>{info.name}</span>
+                  <span style={{ color: '#666', marginLeft: 6 }}>({info.count} doc)</span>
+                  <span style={{ color: '#c0392b', fontWeight: 700, marginLeft: 8 }}>{fmt(info.balance)}</span>
+                </div>
+              ))}
             </div>
-          ) : (
-            <table className={styles.table}>
+          </div>
+
+          {/* Tableau détail */}
+          <div style={{ background: 'white', borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e0e0e0' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr>
-                  <th>Urgence</th>
-                  <th>Document</th>
-                  <th>N° Document</th>
-                  <th>Date Échéance</th>
-                  <th>Retard (jours)</th>
-                  <th>Montant</th>
-                  <th>Actions</th>
+                <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, fontWeight: 700 }}>Urgence</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, fontWeight: 700 }}>Type</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, fontWeight: 700 }}>N°</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, fontWeight: 700 }}>Client</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, fontWeight: 700 }}>Date</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 13, fontWeight: 700 }}>Total TTC</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 13, fontWeight: 700 }}>Payé</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 13, fontWeight: 700 }}>Reste</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: 13, fontWeight: 700 }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {payments
-                  .sort((a, b) => (b.days_overdue || 0) - (a.days_overdue || 0))
-                  .map((payment) => (
-                  <tr key={payment.id} style={{ 
-                    background: `${getUrgencyColor(payment.days_overdue || 0)}20` 
-                  }}>
-                    <td>
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        background: getUrgencyColor(payment.days_overdue || 0),
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        fontSize: '18px'
-                      }}>
-                        ⚠️
-                      </div>
-                    </td>
-                    <td>
-                      <span style={{
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        background: payment.document_type.includes('invoice') ? '#28a745' : '#17a2b8',
-                        color: 'white'
-                      }}>
-                        {getDocumentTypeLabel(payment.document_type)}
+                {docs.map((doc, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #f0f0f0', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
+                    <td style={{ padding: '10px 16px' }}>
+                      <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                        background: urgencyColor(doc.days_overdue) + '20', color: urgencyColor(doc.days_overdue) }}>
+                        {urgencyLabel(doc.days_overdue)} — {doc.days_overdue}j
                       </span>
                     </td>
-                    <td style={{ fontWeight: 'bold' }}>#{payment.document_id}</td>
-                    <td>{new Date(payment.due_date).toLocaleDateString('fr-FR')}</td>
-                    <td>
-                      <span style={{
-                        padding: '6px 12px',
-                        borderRadius: '20px',
-                        background: getUrgencyColor(payment.days_overdue || 0),
-                        color: 'white',
-                        fontWeight: 'bold'
-                      }}>
-                        {payment.days_overdue} jours
+                    <td style={{ padding: '10px 16px' }}>
+                      <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                        background: doc.document_type === 'delivery_note' ? '#e3f2fd' : '#e8f5e9',
+                        color: doc.document_type === 'delivery_note' ? '#1565c0' : '#2e7d32' }}>
+                        {doc.document_type === 'delivery_note' ? '📋 BL' : '🧾 Facture'}
                       </span>
                     </td>
-                    <td style={{ fontWeight: 'bold', color: '#dc3545' }}>
-                      {parseFloat(payment.amount.toString()).toFixed(2)} DA
+                    <td style={{ padding: '10px 16px', fontWeight: 700, color: '#333' }}>#{doc.document_id}</td>
+                    <td style={{ padding: '10px 16px', fontSize: 13 }}>
+                      <div style={{ fontWeight: 600 }}>{doc.client_name || doc.nclient}</div>
+                      <div style={{ fontSize: 11, color: '#999' }}>{doc.nclient}</div>
                     </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                          onClick={() => {
-                            router.push(`/payments/add?type=${payment.document_type}&id=${payment.document_id}`);
-                          }}
-                          style={{
-                            padding: '6px 12px',
-                            background: '#28a745',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold'
-                          }}
-                        >
+                    <td style={{ padding: '10px 16px', fontSize: 13 }}>{fmtDate(doc.date_fact)}</td>
+                    <td style={{ padding: '10px 16px', textAlign: 'right', fontSize: 13 }}>{fmt(doc.montant_ttc)}</td>
+                    <td style={{ padding: '10px 16px', textAlign: 'right', fontSize: 13, color: '#28a745' }}>{fmt(doc.paid)}</td>
+                    <td style={{ padding: '10px 16px', textAlign: 'right', fontSize: 14, fontWeight: 700, color: '#c0392b',
+                      textDecoration: 'underline' }}>{fmt(doc.balance)}</td>
+                    <td style={{ padding: '10px 16px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                        <button onClick={() => router.push(`/payments/add?type=${doc.document_type}&id=${doc.document_id}`)}
+                          style={{ padding: '6px 12px', background: '#28a745', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
                           💰 Payer
                         </button>
-                        <button
-                          onClick={() => {
-                            router.push(`/payments/history?type=${payment.document_type}&id=${payment.document_id}`);
-                          }}
-                          style={{
-                            padding: '6px 12px',
-                            background: '#17a2b8',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold'
-                          }}
-                        >
-                          📜 Historique
+                        <button onClick={() => router.push(`/payments/history?type=${doc.document_type}&id=${doc.document_id}`)}
+                          style={{ padding: '6px 12px', background: '#17a2b8', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                          📜
                         </button>
                       </div>
                     </td>
@@ -296,28 +189,15 @@ export default function OverduePayments() {
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
-
-        {/* Conseils */}
-        {payments.length > 0 && (
-          <div style={{ 
-            marginTop: '2rem', 
-            padding: '1rem', 
-            background: '#e7f3ff', 
-            border: '1px solid #2196F3',
-            borderRadius: '8px'
-          }}>
-            <h3 style={{ margin: '0 0 0.5rem 0', color: '#1976D2' }}>💡 Conseils</h3>
-            <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#1976D2' }}>
-              <li>Contactez les clients/fournisseurs avec des retards de plus de 30 jours</li>
-              <li>Proposez des plans de paiement échelonnés pour les montants importants</li>
-              <li>Envoyez des rappels automatiques pour les retards de 15-30 jours</li>
-              <li>Mettez à jour les dates d'échéance si des accords ont été conclus</li>
-            </ul>
           </div>
-        )}
-      </main>
+
+          {/* Total */}
+          <div style={{ marginTop: 20, padding: 20, background: 'linear-gradient(135deg, #e67e22, #d35400)', borderRadius: 12, color: 'white', textAlign: 'center' }}>
+            <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 6 }}>Total à recouvrer ({docs.length} documents)</div>
+            <div style={{ fontSize: 32, fontWeight: 700 }}>{fmt(totalBalance)}</div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

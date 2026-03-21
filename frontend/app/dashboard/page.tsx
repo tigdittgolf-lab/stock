@@ -2744,6 +2744,37 @@ export default function Dashboard() {
                     </div>
                     <div style={{ marginTop: '15px' }}>
                       <button 
+                        onClick={() => router.push('/payments/overdue')}
+                        style={{
+                          margin: '5px',
+                          padding: '12px 25px',
+                          backgroundColor: '#e67e22',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        ⚠️ Recouvrement / Impayés
+                      </button>
+                      <button 
+                        onClick={() => router.push('/payments/report')}
+                        style={{
+                          margin: '5px',
+                          padding: '12px 25px',
+                          backgroundColor: '#6c757d',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        📊 Rapport Paiements
+                      </button>
+                    </div>
+                    <div style={{ marginTop: '15px' }}>
+                      <button 
                         onClick={() => router.push('/returns/new')}
                         style={{
                           margin: '5px',
