@@ -1,82 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase-server';
 
-// Configuration du backend via variable d'environnement
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3005';
+const BACKEND_URL = process.env.BACKEND_URL;
+
+async function getClientsDirect(tenant: string) {
+  if (!supabaseAdmin) throw new Error('Supabase not configured');
+  const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+    sql: `SELECT * FROM "${tenant}".client ORDER BY "Nclient" ASC;`
+  });
+  if (error) throw new Error(`exec_sql error: ${error.message}`);
+  return (data || []).map((c: any) => ({
+    nclient: c.Nclient || c.nclient,
+    raison_sociale: c.Raison_sociale || c.raison_sociale,
+    adresse: c.adresse || c.Adresse,
+    contact_person: c.contact_person || c.Contact_person,
+    tel: c.Tel || c.tel,
+    email: c.email || c.Email,
+    nrc: c.NRC || c.nrc,
+    date_rc: c.Date_RC || c.date_rc,
+    lieu_rc: c.Lieu_RC || c.lieu_rc,
+    i_fiscal: c.I_Fiscal || c.i_fiscal,
+    n_article: c.N_article || c.n_article,
+    c_affaire_fact: c.C_affaire_fact || c.c_affaire_fact,
+    c_affaire_bl: c.C_affaire_bl || c.c_affaire_bl,
+    commentaire: c.Commentaire || c.commentaire
+  }));
+}
 
 export async function GET(request: NextRequest) {
-  try {
-    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
-    const dbType = request.headers.get('X-Database-Type') || 'supabase';
-    
-    console.log(`🔄 Frontend API: Forwarding clients request to backend for tenant ${tenant}, DB: ${dbType}`);
-    console.log(`🌐 BACKEND_URL configured: ${BACKEND_URL}`);
-    console.log(`🎯 Full URL: ${BACKEND_URL}/api/sales/clients`);
-    
-    // Forwarder la requête vers le backend
-    const backendResponse = await fetch(`${BACKEND_URL}/api/sales/clients`, {
-      method: 'GET',
-      headers: {
-        'X-Tenant': tenant,
-        'X-Database-Type': dbType,
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
-      }
-    });
+  const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+  const dbType = request.headers.get('X-Database-Type') || 'supabase';
 
-    if (!backendResponse.ok) {
-      throw new Error(`Backend responded with status ${backendResponse.status}`);
+  if (BACKEND_URL) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/sales/clients`, {
+        headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType, 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (res.ok) return NextResponse.json(await res.json());
+    } catch (e) {
+      console.warn('[clients] Backend unavailable, using Supabase direct');
     }
+  }
 
-    const data = await backendResponse.json();
-    
-    console.log(`✅ Frontend API: Received ${data.data?.length || 0} clients from backend (${data.database_type || 'unknown'} database)`);
-    
-    return NextResponse.json(data);
-
+  try {
+    if (dbType === 'supabase') {
+      const clients = await getClientsDirect(tenant);
+      console.log(`✅ [clients direct] ${clients.length} for ${tenant}`);
+      return NextResponse.json({ success: true, data: clients, source: 'supabase_direct' });
+    }
+    return NextResponse.json({ success: true, data: [] });
   } catch (error) {
-    console.error('❌ Frontend API error forwarding to backend:', error);
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Erreur serveur'
-    }, { status: 500 });
+    console.error('❌ clients direct error:', error);
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Erreur' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
-    const dbType = request.headers.get('X-Database-Type') || 'supabase';
-    const body = await request.json();
-    
-    console.log(`🔄 Frontend API: Forwarding client creation to backend for tenant ${tenant}, DB: ${dbType}`);
-    
-    // Forwarder la requête vers le backend
-    const backendResponse = await fetch(`${BACKEND_URL}/api/sales/clients`, {
-      method: 'POST',
-      headers: {
-        'X-Tenant': tenant,
-        'X-Database-Type': dbType,
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
-      },
-      body: JSON.stringify(body)
-    });
+  const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+  const dbType = request.headers.get('X-Database-Type') || 'supabase';
+  const body = await request.json();
 
-    if (!backendResponse.ok) {
-      throw new Error(`Backend responded with status ${backendResponse.status}`);
+  if (BACKEND_URL) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/sales/clients`, {
+        method: 'POST',
+        headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(8000)
+      });
+      if (res.ok) return NextResponse.json(await res.json());
+    } catch (e) {
+      console.warn('[clients POST] Backend unavailable');
     }
-
-    const data = await backendResponse.json();
-    
-    console.log(`✅ Frontend API: Client created via backend (${data.database_type || 'unknown'} database)`);
-    
-    return NextResponse.json(data);
-
-  } catch (error) {
-    console.error('❌ Frontend API error forwarding to backend:', error);
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Erreur serveur'
-    }, { status: 500 });
   }
+  return NextResponse.json({ success: false, error: 'Backend not available' }, { status: 503 });
 }

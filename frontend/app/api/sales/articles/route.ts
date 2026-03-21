@@ -1,82 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase-server';
 
-// Configuration du backend via variable d'environnement
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3005';
+const BACKEND_URL = process.env.BACKEND_URL;
+
+async function getArticlesDirect(tenant: string) {
+  if (!supabaseAdmin) throw new Error('Supabase not configured');
+  const { data, error } = await supabaseAdmin.rpc('exec_sql', {
+    sql: `SELECT * FROM "${tenant}".article ORDER BY "Narticle" ASC;`
+  });
+  if (error) throw new Error(`exec_sql error: ${error.message}`);
+  return (data || []).map((a: any) => ({
+    narticle: a.Narticle || a.narticle,
+    famille: a.famille || a.Famille,
+    designation: a.designation || a.Designation,
+    nfournisseur: a.Nfournisseur || a.nfournisseur,
+    prix_unitaire: a.prix_unitaire || a.Prix_unitaire,
+    marge: a.marge || a.Marge,
+    tva: a.TVA || a.tva,
+    prix_vente: a.prix_vente || a.Prix_vente,
+    seuil: a.seuil || a.Seuil,
+    stock_f: a.stock_f || a.Stock_f,
+    stock_bl: a.stock_bl || a.Stock_bl
+  }));
+}
 
 export async function GET(request: NextRequest) {
-  try {
-    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
-    const dbType = request.headers.get('X-Database-Type') || 'supabase';
-    
-    console.log(`🔄 Frontend API: Forwarding articles request to backend for tenant ${tenant}, DB: ${dbType}`);
-    console.log(`🌐 BACKEND_URL configured: ${BACKEND_URL}`);
-    console.log(`🎯 Full URL: ${BACKEND_URL}/api/sales/articles`);
-    
-    // Forwarder la requête vers le backend
-    const backendResponse = await fetch(`${BACKEND_URL}/api/sales/articles`, {
-      method: 'GET',
-      headers: {
-        'X-Tenant': tenant,
-        'X-Database-Type': dbType,
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
-      }
-    });
+  const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+  const dbType = request.headers.get('X-Database-Type') || 'supabase';
 
-    if (!backendResponse.ok) {
-      throw new Error(`Backend responded with status ${backendResponse.status}`);
+  if (BACKEND_URL) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/sales/articles`, {
+        headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType, 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (res.ok) return NextResponse.json(await res.json());
+    } catch (e) {
+      console.warn('[articles] Backend unavailable, using Supabase direct');
     }
+  }
 
-    const data = await backendResponse.json();
-    
-    console.log(`✅ Frontend API: Received ${data.data?.length || 0} articles from backend (${data.database_type || 'unknown'} database)`);
-    
-    return NextResponse.json(data);
-
+  try {
+    if (dbType === 'supabase') {
+      const articles = await getArticlesDirect(tenant);
+      console.log(`✅ [articles direct] ${articles.length} for ${tenant}`);
+      return NextResponse.json({ success: true, data: articles, source: 'supabase_direct' });
+    }
+    return NextResponse.json({ success: true, data: [] });
   } catch (error) {
-    console.error('❌ Frontend API error forwarding to backend:', error);
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Erreur serveur'
-    }, { status: 500 });
+    console.error('❌ articles direct error:', error);
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Erreur' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
-    const dbType = request.headers.get('X-Database-Type') || 'supabase';
-    const body = await request.json();
-    
-    console.log(`🔄 Frontend API: Forwarding article creation to backend for tenant ${tenant}, DB: ${dbType}`);
-    
-    // Forwarder la requête vers le backend
-    const backendResponse = await fetch(`${BACKEND_URL}/api/sales/articles`, {
-      method: 'POST',
-      headers: {
-        'X-Tenant': tenant,
-        'X-Database-Type': dbType,
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
-      },
-      body: JSON.stringify(body)
-    });
+  const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+  const dbType = request.headers.get('X-Database-Type') || 'supabase';
+  const body = await request.json();
 
-    if (!backendResponse.ok) {
-      throw new Error(`Backend responded with status ${backendResponse.status}`);
+  if (BACKEND_URL) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/sales/articles`, {
+        method: 'POST',
+        headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(8000)
+      });
+      if (res.ok) return NextResponse.json(await res.json());
+    } catch (e) {
+      console.warn('[articles POST] Backend unavailable');
     }
-
-    const data = await backendResponse.json();
-    
-    console.log(`✅ Frontend API: Article created via backend (${data.database_type || 'unknown'} database)`);
-    
-    return NextResponse.json(data);
-
-  } catch (error) {
-    console.error('❌ Frontend API error forwarding to backend:', error);
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Erreur serveur'
-    }, { status: 500 });
   }
+  return NextResponse.json({ success: false, error: 'Backend not available' }, { status: 503 });
 }
