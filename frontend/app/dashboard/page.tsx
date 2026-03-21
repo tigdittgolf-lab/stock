@@ -376,7 +376,11 @@ export default function Dashboard() {
   };
 
   const getTotalValue = () => {
-    return articles.reduce((total, article) => total + (article.stock_f * article.prix_vente), 0);
+    return articles.reduce((total, article) => {
+      const stock = parseFloat(String(article.stock_f || 0)) || 0;
+      const prix = parseFloat(String(article.prix_vente || 0)) || 0;
+      return total + (stock * prix);
+    }, 0);
   };
 
   // Fonctions de filtrage
