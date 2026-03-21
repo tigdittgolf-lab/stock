@@ -3141,4 +3141,180 @@ sales.get('/payments/summary', async (c) => {
   }
 });
 
+// ===== AVOIRS / RETOURS EN STOCK =====
+
+// GET /api/sales/credit-notes - Liste des avoirs
+sales.get('/credit-notes', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) return c.json({ success: false, error: 'Tenant requis' }, 400);
+
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+
+    if (dbType === 'supabase') {
+      const { data, error } = await supabaseAdmin.rpc('get_avoirs_by_tenant', { p_tenant: tenant });
+      if (error) return c.json({ success: false, error: error.message }, 500);
+      return c.json({ success: true, data: data || [] });
+    } else {
+      const result = await backendDatabaseService.executeQuery(
+        `SELECT av.*, c.Raison_sociale as client_name
+         FROM \`${tenant}\`.avoir av
+         LEFT JOIN \`${tenant}\`.client c ON av.nclient = c.Nclient
+         ORDER BY av.date_avoir DESC, av.id DESC`,
+        []
+      );
+      return c.json({ success: result.success, data: result.data || [] });
+    }
+  } catch (error) {
+    return c.json({ success: false, error: 'Erreur récupération avoirs' }, 500);
+  }
+});
+
+// GET /api/sales/credit-notes/:id - Détail d'un avoir
+sales.get('/credit-notes/:id', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    const id = parseInt(c.req.param('id'));
+    if (!tenant || isNaN(id)) return c.json({ success: false, error: 'Paramètres invalides' }, 400);
+
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+
+    if (dbType === 'supabase') {
+      const { data, error } = await supabaseAdmin.rpc('get_avoir_with_details', { p_tenant: tenant, p_avoir_id: id });
+      if (error) return c.json({ success: false, error: error.message }, 500);
+      return c.json({ success: true, data });
+    } else {
+      const result = await backendDatabaseService.executeQuery(
+        `SELECT av.*, c.Raison_sociale as client_name FROM \`${tenant}\`.avoir av
+         LEFT JOIN \`${tenant}\`.client c ON av.nclient = c.Nclient WHERE av.id = ?`,
+        [id]
+      );
+      if (!result.success || !result.data?.[0]) return c.json({ success: false, error: 'Avoir introuvable' }, 404);
+      const avoir = result.data[0];
+      const details = await backendDatabaseService.executeQuery(
+        `SELECT da.*, a.designation FROM \`${tenant}\`.detail_avoir da
+         LEFT JOIN \`${tenant}\`.article a ON da.narticle = a.Narticle WHERE da.avoir_id = ?`,
+        [id]
+      );
+      return c.json({ success: true, data: { ...avoir, details: details.data || [] } });
+    }
+  } catch (error) {
+    return c.json({ success: false, error: 'Erreur récupération avoir' }, 500);
+  }
+});
+
+// POST /api/sales/credit-notes - Créer un avoir (retour en stock)
+sales.post('/credit-notes', async (c) => {
+  try {
+    const tenant = c.get('tenant');
+    if (!tenant) return c.json({ success: false, error: 'Tenant requis' }, 400);
+
+    const body = await c.req.json();
+    const { nclient, document_type, document_ref, date_avoir, motif, lines } = body;
+
+    if (!nclient || !document_type || !document_ref || !lines?.length) {
+      return c.json({ success: false, error: 'Champs requis: nclient, document_type, document_ref, lines' }, 400);
+    }
+    if (!['bl', 'invoice'].includes(document_type)) {
+      return c.json({ success: false, error: 'document_type doit être "bl" ou "invoice"' }, 400);
+    }
+
+    // Calculer les totaux
+    let montant_ht = 0, tva_total = 0;
+    for (const line of lines) {
+      const total = parseFloat(line.qte) * parseFloat(line.prix);
+      montant_ht += total;
+      tva_total += total * (parseFloat(line.tva) / 100);
+    }
+    const montant_ttc = montant_ht + tva_total;
+    const dateAvoir = date_avoir || new Date().toISOString().split('T')[0];
+
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    let avoirId: number;
+
+    if (dbType === 'supabase') {
+      // 1. Créer l'avoir
+      const { data: idData, error: avoirErr } = await supabaseAdmin.rpc('insert_avoir', {
+        p_tenant: tenant, p_nclient: nclient, p_date_avoir: dateAvoir,
+        p_document_type: document_type, p_document_ref: document_ref,
+        p_montant_ht: montant_ht, p_tva: tva_total, p_montant_ttc: montant_ttc,
+        p_motif: motif || null
+      });
+      if (avoirErr) return c.json({ success: false, error: `Erreur création avoir: ${avoirErr.message}` }, 500);
+      avoirId = idData;
+
+      // 2. Insérer les détails + remettre le stock
+      for (const line of lines) {
+        const qte = parseFloat(line.qte);
+        const prix = parseFloat(line.prix);
+        const tva = parseFloat(line.tva);
+        const total_ligne = qte * prix;
+
+        await supabaseAdmin.rpc('insert_detail_avoir', {
+          p_tenant: tenant, p_avoir_id: avoirId, p_narticle: line.narticle,
+          p_qte: qte, p_prix: prix, p_tva: tva, p_total_ligne: total_ligne
+        });
+
+        // Remettre le stock selon le type de document
+        const stockCol = document_type === 'bl' ? 'stock_bl' : 'stock_f';
+        await supabaseAdmin.rpc('exec_sql', {
+          sql: `UPDATE "${tenant}".article SET ${stockCol} = COALESCE(${stockCol}, 0) + ${qte} WHERE "Narticle" = '${line.narticle}'`
+        });
+      }
+
+      // 3. Enregistrer comme crédit dans payments (montant négatif = crédit client)
+      await supabaseAdmin.from('payments').insert({
+        tenant_id: tenant,
+        document_type: document_type === 'bl' ? 'delivery_note' : 'invoice',
+        document_id: document_ref,
+        payment_date: dateAvoir,
+        amount: -montant_ttc,  // négatif = avoir/crédit
+        payment_method: 'avoir',
+        notes: `Avoir N°${avoirId} — ${motif || 'Retour client'}`
+      });
+
+    } else {
+      // MySQL/PostgreSQL
+      const insertAvoir = await backendDatabaseService.executeQuery(
+        `INSERT INTO \`${tenant}\`.avoir (nclient, date_avoir, document_type, document_ref, montant_ht, tva, montant_ttc, motif)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [nclient, dateAvoir, document_type, document_ref, montant_ht, tva_total, montant_ttc, motif || null]
+      );
+      if (!insertAvoir.success) return c.json({ success: false, error: 'Erreur création avoir' }, 500);
+      avoirId = insertAvoir.data?.insertId;
+
+      for (const line of lines) {
+        const qte = parseFloat(line.qte);
+        const prix = parseFloat(line.prix);
+        const tva = parseFloat(line.tva);
+        await backendDatabaseService.executeQuery(
+          `INSERT INTO \`${tenant}\`.detail_avoir (avoir_id, narticle, qte, prix, tva, total_ligne) VALUES (?, ?, ?, ?, ?, ?)`,
+          [avoirId, line.narticle, qte, prix, tva, qte * prix]
+        );
+        const stockCol = document_type === 'bl' ? 'stock_bl' : 'stock_f';
+        await backendDatabaseService.executeQuery(
+          `UPDATE \`${tenant}\`.article SET ${stockCol} = COALESCE(${stockCol}, 0) + ? WHERE Narticle = ?`,
+          [qte, line.narticle]
+        );
+      }
+      await backendDatabaseService.executeQuery(
+        `INSERT INTO payments (tenant_id, document_type, document_id, payment_date, amount, payment_method, notes)
+         VALUES (?, ?, ?, ?, ?, 'avoir', ?)`,
+        [tenant, document_type === 'bl' ? 'delivery_note' : 'invoice', document_ref, dateAvoir, -montant_ttc, `Avoir N°${avoirId}`]
+      );
+    }
+
+    console.log(`✅ Avoir N°${avoirId} créé pour client ${nclient}, document ${document_type} #${document_ref}`);
+    return c.json({
+      success: true,
+      message: `Avoir N°${avoirId} créé avec succès`,
+      data: { avoir_id: avoirId, montant_ht, tva: tva_total, montant_ttc }
+    });
+
+  } catch (error) {
+    console.error('❌ Error creating avoir:', error);
+    return c.json({ success: false, error: 'Erreur création avoir' }, 500);
+  }
+});
+
 export default sales;

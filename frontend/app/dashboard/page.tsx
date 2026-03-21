@@ -2742,6 +2742,36 @@ export default function Dashboard() {
                         📋 Liste Proforma
                       </button>
                     </div>
+                    <div style={{ marginTop: '15px' }}>
+                      <button 
+                        onClick={() => router.push('/returns/new')}
+                        style={{
+                          margin: '5px',
+                          padding: '12px 25px',
+                          backgroundColor: '#e74c3c',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ↩️ Nouveau Retour / Avoir
+                      </button>
+                      <button 
+                        onClick={() => router.push('/returns/list')}
+                        style={{
+                          margin: '5px',
+                          padding: '12px 25px',
+                          backgroundColor: '#6c757d',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        📋 Liste Avoirs
+                      </button>
+                    </div>
                     <div style={{ marginTop: '20px', borderTop: '1px solid #dee2e6', paddingTop: '20px' }}>
                       <button 
                         onClick={() => router.push('/sales-report')}

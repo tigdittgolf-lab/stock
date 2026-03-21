@@ -311,6 +311,46 @@ export default function DeliveryNoteActions({
               </div>
             </div>
             
+            {/* Divider - Retour */}
+            <div style={{
+              padding: '8px 16px',
+              fontSize: '11px',
+              fontWeight: '600',
+              color: '#c0392b',
+              backgroundColor: 'var(--background-secondary)',
+              borderBottom: '1px solid var(--border-color)'
+            }}>
+              ↩️ RETOUR CLIENT
+            </div>
+            
+            {/* Créer un avoir */}
+            <button
+              onClick={() => {
+                router.push(`/returns/new?type=bl&id=${validId}`);
+                setShowMenu(false);
+              }}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                backgroundColor: 'transparent',
+                color: '#c0392b',
+                border: 'none',
+                borderBottom: '1px solid var(--border-color)',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '600',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff5f5'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              ↩️ Retour / Avoir
+            </button>
+
             {/* Divider - Danger */}
             <div style={{
               padding: '8px 16px',
