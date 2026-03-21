@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         id: find('id'),
         nom_entreprise: find('nom_entreprise', 'nom', 'raison_sociale', 'name'),
         adresse: find('adresse', 'address'),
-        telephone: find('telephone', 'tel', 'phone', 'tel1', 'tel2', 'gsm', 'mobile', 'fax', 'Telephone', 'Tel'),
+        telephone: find('telephone', 'tel', 'phone', 'tel1', 'tel2', 'gsm', 'mobile', 'fax', 'Telephone', 'Tel', 'TEL', 'TELEPHONE', 'Fax', 'FAX'),
         email: find('email', 'mail', 'e_mail', 'E_mail', 'courriel', 'email1'),
         rc: find('rc', 'registre_commerce'),
         nif: find('nif'),

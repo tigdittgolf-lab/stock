@@ -100,11 +100,11 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const dbConfig = localStorage.getItem('activeDbConfig');
       const dbType = dbConfig ? (JSON.parse(dbConfig).type || 'supabase') : 'supabase';
-      const response = await fetch(`/api/sales/delivery-notes/${resolvedParams.id}`, {
+      // Utiliser /detail/[id] pour éviter le conflit de routing Vercel avec la route liste
+      const response = await fetch(`/api/sales/delivery-notes/detail/${resolvedParams.id}`, {
         headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType }
       });
       
-      // Si la route API est indisponible (404 = route pas déployée), fallback Supabase direct
       if (response.status === 404) {
         console.warn('⚠️ Route API 404, fallback Supabase direct côté client');
         await fetchDeliveryNoteSupabaseDirect(resolvedParams.id, tenant);
@@ -148,17 +148,18 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
         console.log('✅ Company info response:', data);
         
         if (data.success && data.data && data.data.length > 0) {
-          const activity = data.data[0]; // Prendre la première activité
+          const activity = data.data[0];
+          const phone = activity.telephone || activity.tel || activity.phone || activity.gsm || activity.mobile || activity.fax || '';
           setCompanyInfo({
             name: activity.nom_entreprise || 'VOTRE ENTREPRISE',
             address: activity.adresse || 'Adresse de votre entreprise',
-            phone: activity.telephone || '+213 XX XX XX XX',
+            phone: phone || '+213 XX XX XX XX',
             email: activity.email || 'contact@entreprise.dz'
           });
           console.log('✅ Company info set:', {
             name: activity.nom_entreprise,
             address: activity.adresse,
-            phone: activity.telephone,
+            phone,
             email: activity.email
           });
         } else {
