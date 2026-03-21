@@ -1,0 +1,40 @@
+-- =====================================================
+-- RETOUR EN STOCK — Tables avoir + detail_avoir
+-- Script MySQL — à exécuter dans la base du tenant
+-- =====================================================
+
+-- 1. Table avoir (note de crédit / retour client)
+CREATE TABLE IF NOT EXISTS avoir (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nclient VARCHAR(10) NOT NULL,
+  date_avoir DATE NOT NULL DEFAULT (CURRENT_DATE),
+  document_type VARCHAR(20) NOT NULL,
+  document_ref INT NOT NULL,
+  montant_ht DECIMAL(15,2) NOT NULL DEFAULT 0,
+  tva DECIMAL(15,2) NOT NULL DEFAULT 0,
+  montant_ttc DECIMAL(15,2) NOT NULL DEFAULT 0,
+  motif TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Table detail_avoir
+CREATE TABLE IF NOT EXISTS detail_avoir (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  avoir_id INT NOT NULL,
+  narticle VARCHAR(10) NOT NULL,
+  qte DECIMAL(15,2) NOT NULL,
+  prix DECIMAL(15,2) NOT NULL,
+  tva DECIMAL(5,2) NOT NULL DEFAULT 19,
+  total_ligne DECIMAL(15,2) NOT NULL,
+  FOREIGN KEY (avoir_id) REFERENCES avoir(id) ON DELETE CASCADE
+);
+
+-- 3. Index
+CREATE INDEX IF NOT EXISTS idx_avoir_nclient ON avoir(nclient);
+CREATE INDEX IF NOT EXISTS idx_avoir_document ON avoir(document_type, document_ref);
+CREATE INDEX IF NOT EXISTS idx_detail_avoir_id ON detail_avoir(avoir_id);
+
+-- Vérification
+SELECT table_name FROM information_schema.tables
+WHERE table_schema = DATABASE()
+AND table_name IN ('avoir', 'detail_avoir');
