@@ -35,6 +35,5 @@ CREATE INDEX IF NOT EXISTS idx_avoir_document ON avoir(document_type, document_r
 CREATE INDEX IF NOT EXISTS idx_detail_avoir_id ON detail_avoir(avoir_id);
 
 -- Vérification
-SELECT table_name FROM information_schema.tables
-WHERE table_schema = DATABASE()
-AND table_name IN ('avoir', 'detail_avoir');
+SHOW TABLES LIKE 'avoir';
+SHOW TABLES LIKE 'detail_avoir';
