@@ -1,9 +1,8 @@
 -- =====================================================
 -- RETOUR EN STOCK — Tables avoir + detail_avoir
--- Script MySQL — à exécuter dans la base du tenant
+-- Script MySQL
 -- =====================================================
 
--- 1. Table avoir (note de crédit / retour client)
 CREATE TABLE IF NOT EXISTS avoir (
   id INT AUTO_INCREMENT PRIMARY KEY,
   nclient VARCHAR(10) NOT NULL,
@@ -14,10 +13,11 @@ CREATE TABLE IF NOT EXISTS avoir (
   tva DECIMAL(15,2) NOT NULL DEFAULT 0,
   montant_ttc DECIMAL(15,2) NOT NULL DEFAULT 0,
   motif TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_avoir_nclient (nclient),
+  INDEX idx_avoir_document (document_type, document_ref)
 );
 
--- 2. Table detail_avoir
 CREATE TABLE IF NOT EXISTS detail_avoir (
   id INT AUTO_INCREMENT PRIMARY KEY,
   avoir_id INT NOT NULL,
@@ -26,14 +26,9 @@ CREATE TABLE IF NOT EXISTS detail_avoir (
   prix DECIMAL(15,2) NOT NULL,
   tva DECIMAL(5,2) NOT NULL DEFAULT 19,
   total_ligne DECIMAL(15,2) NOT NULL,
+  INDEX idx_detail_avoir_id (avoir_id),
   FOREIGN KEY (avoir_id) REFERENCES avoir(id) ON DELETE CASCADE
 );
 
--- 3. Index
-CREATE INDEX IF NOT EXISTS idx_avoir_nclient ON avoir(nclient);
-CREATE INDEX IF NOT EXISTS idx_avoir_document ON avoir(document_type, document_ref);
-CREATE INDEX IF NOT EXISTS idx_detail_avoir_id ON detail_avoir(avoir_id);
-
--- Vérification
 SHOW TABLES LIKE 'avoir';
 SHOW TABLES LIKE 'detail_avoir';
