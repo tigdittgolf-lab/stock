@@ -1,6 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readTableById, readTableWhere } from '@/lib/supabase-rpc';
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+/**
+ * Charge les lignes de detail_bl via l'API REST Supabase avec Accept-Profile (schéma).
+ * Beaucoup plus rapide que readTable car filtre côté serveur.
+ */
+async function fetchDetailBl(schema: string, nfact: number): Promise<any[]> {
+  // Essayer nfact puis nbl comme colonne de jointure
+  for (const col of ['nfact', 'nbl', 'Nfact', 'Nbl']) {
+    try {
+      const url = `${SUPABASE_URL}/rest/v1/detail_bl?${col}=eq.${nfact}&select=*`;
+      const res = await fetch(url, {
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Accept-Profile': schema,
+          'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length > 0) {
+          console.log(`✅ [detail_bl REST] ${rows.length} lignes via ${col}=eq.${nfact} dans ${schema}`);
+          console.log(`🔑 [detail_bl REST] Colonnes:`, Object.keys(rows[0]));
+          return rows;
+        }
+      } else {
+        const err = await res.text();
+        console.warn(`[detail_bl REST] ${col} → ${res.status}: ${err.slice(0, 100)}`);
+      }
+    } catch (e) {
+      console.warn(`[detail_bl REST] Erreur col ${col}:`, e);
+    }
+  }
+  return [];
+}
+
 const BACKEND_URL = process.env.BACKEND_URL;
 
 export async function GET(
@@ -33,7 +72,32 @@ export async function GET(
   }
 
   try {
-    const bl = await readTableById(tenant, 'bl', numericId);
+    // Charger le BL via API REST Supabase avec Accept-Profile
+    let bl: any = null;
+    for (const col of ['nfact', 'nbl', 'Nfact', 'Nbl', 'id']) {
+      try {
+        const url = `${SUPABASE_URL}/rest/v1/bl?${col}=eq.${numericId}&select=*&limit=1`;
+        const res = await fetch(url, {
+          headers: {
+            'apikey': SUPABASE_SERVICE_KEY,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+            'Accept-Profile': tenant,
+            'Content-Type': 'application/json',
+          },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (res.ok) {
+          const rows = await res.json();
+          if (Array.isArray(rows) && rows.length > 0) {
+            bl = rows[0];
+            console.log(`✅ [bl REST] Trouvé via ${col}=eq.${numericId} dans ${tenant}`);
+            break;
+          }
+        }
+      } catch { /* essayer colonne suivante */ }
+    }
+    // Fallback RPC si REST échoue
+    if (!bl) bl = await readTableById(tenant, 'bl', numericId);
     if (!bl) return NextResponse.json({ success: false, error: `BL ${numericId} introuvable` }, { status: 404 });
 
     // Normaliser les colonnes (insensible à la casse)
@@ -58,18 +122,10 @@ export async function GET(
       montant_ttc: find('montant_ttc', 'total_ttc', 'mttc'),
     };
 
-    // Charger les détails via detail_bl — utiliser readTableWhere pour éviter de charger toute la table
+    // Charger les détails via detail_bl — API REST Supabase avec filtre natif
     let details: any[] = [];
     try {
-      // Essayer nfact d'abord, puis nbl
-      let detailRows = await readTableWhere(tenant, 'detail_bl', 'nfact', numericId);
-      if (detailRows.length === 0) {
-        detailRows = await readTableWhere(tenant, 'detail_bl', 'nbl', numericId);
-      }
-      console.log(`📦 [detail_bl] ${detailRows.length} lignes pour nfact=${numericId} dans ${tenant}`);
-      if (detailRows.length > 0) {
-        console.log(`🔑 [detail_bl] Colonnes:`, Object.keys(detailRows[0]));
-      }
+      const detailRows = await fetchDetailBl(tenant, numericId);
       details = detailRows.map((d: any) => {
         const dk = Object.keys(d);
         const df = (...names: string[]) => {
