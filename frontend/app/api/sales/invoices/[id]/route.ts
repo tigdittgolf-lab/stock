@@ -40,12 +40,32 @@ export async function GET(
     const facture = await readTableById(tenant, 'facture', numericId);
     if (!facture) return NextResponse.json({ success: false, error: `Facture ${numericId} introuvable` }, { status: 404 });
 
+    // Normaliser les colonnes
+    const keys = Object.keys(facture);
+    const find = (...names: string[]) => {
+      for (const n of names) {
+        const k = keys.find(k => k.toLowerCase() === n.toLowerCase());
+        if (k !== undefined && facture[k] !== null && facture[k] !== undefined) return facture[k];
+      }
+      return undefined;
+    };
+    const normalized = {
+      ...facture,
+      nfact: find('nfact', 'id'),
+      nclient: find('nclient', 'ncli', 'code_client'),
+      client_name: find('client_name', 'raison_sociale', 'nom', 'client'),
+      date_fact: find('date_fact', 'date'),
+      montant_ht: find('montant_ht', 'mht', 'total_ht'),
+      tva: find('tva', 'montant_tva'),
+      montant_ttc: find('montant_ttc', 'total_ttc', 'mttc'),
+    };
+
     let details: any[] = [];
     try {
       details = await readTableWhere(tenant, 'detail_fact', 'nfact', numericId);
     } catch { /* pas de détails */ }
 
-    return NextResponse.json({ success: true, data: { ...facture, detail_fact: details }, source: 'supabase_direct' });
+    return NextResponse.json({ success: true, data: { ...normalized, details, detail_fact: details }, source: 'supabase_direct' });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Erreur';
     if (schemaError(msg)) return NextResponse.json({ success: false, error: `Schéma ${tenant} introuvable` }, { status: 404 });

@@ -36,6 +36,28 @@ export async function GET(
     const bl = await readTableById(tenant, 'bl', numericId);
     if (!bl) return NextResponse.json({ success: false, error: `BL ${numericId} introuvable` }, { status: 404 });
 
+    // Normaliser les colonnes (insensible à la casse)
+    const keys = Object.keys(bl);
+    const find = (...names: string[]) => {
+      for (const n of names) {
+        const k = keys.find(k => k.toLowerCase() === n.toLowerCase());
+        if (k !== undefined && bl[k] !== null && bl[k] !== undefined) return bl[k];
+      }
+      return undefined;
+    };
+    const normalized = {
+      ...bl,
+      nbl: find('nbl', 'nfact', 'id'),
+      nfact: find('nfact', 'nbl', 'id'),
+      nclient: find('nclient', 'ncli', 'code_client'),
+      client_name: find('client_name', 'raison_sociale', 'nom', 'client'),
+      date_fact: find('date_fact', 'date_bl', 'date'),
+      date_bl: find('date_bl', 'date_fact', 'date'),
+      montant_ht: find('montant_ht', 'mht', 'total_ht'),
+      tva: find('tva', 'montant_tva', 'taxe'),
+      montant_ttc: find('montant_ttc', 'total_ttc', 'mttc'),
+    };
+
     // Charger les détails
     let details: any[] = [];
     try {
@@ -43,9 +65,29 @@ export async function GET(
       if (details.length === 0) {
         details = await readTableWhere(tenant, 'detail_bl', 'nbl', numericId);
       }
+      // Normaliser les détails aussi
+      details = details.map((d: any) => {
+        const dk = Object.keys(d);
+        const df = (...names: string[]) => {
+          for (const n of names) {
+            const k = dk.find(k => k.toLowerCase() === n.toLowerCase());
+            if (k !== undefined && d[k] !== null && d[k] !== undefined) return d[k];
+          }
+          return undefined;
+        };
+        return {
+          ...d,
+          narticle: df('narticle', 'article', 'code_article'),
+          designation: df('designation', 'libelle', 'nom_article'),
+          qte: df('qte', 'quantite', 'qty'),
+          prix: df('prix', 'prix_unitaire', 'pu'),
+          tva: df('tva', 'taux_tva'),
+          total_ligne: df('total_ligne', 'montant_ligne', 'total'),
+        };
+      });
     } catch { /* pas de détails */ }
 
-    return NextResponse.json({ success: true, data: { ...bl, detail_bl: details }, source: 'supabase_direct' });
+    return NextResponse.json({ success: true, data: { ...normalized, details, detail_bl: details }, source: 'supabase_direct' });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Erreur';
     return NextResponse.json({ success: false, error: msg }, { status: 500 });

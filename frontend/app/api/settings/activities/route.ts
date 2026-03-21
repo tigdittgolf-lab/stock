@@ -1,70 +1,84 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readTable } from '@/lib/supabase-rpc';
 
-const API_BASE_URL = process.env.BACKEND_URL 
-  ? `${process.env.BACKEND_URL}/api`
-  : 'http://localhost:3005/api';
+const BACKEND_URL = process.env.BACKEND_URL;
+
+const schemaError = (msg: string) =>
+  msg.includes('does not exist') || msg.includes('HTTP 404') || msg.includes('HTTP 400') || msg.includes('HTTP 422');
 
 export async function GET(request: NextRequest) {
-  try {
-    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
-    console.log(`🔍 Récupération activité pour le tenant: ${tenant}`);
+  const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+  const dbType = request.headers.get('X-Database-Type') || 'supabase';
 
-    const response = await fetch(`${API_BASE_URL}/settings/activities`, {
-      headers: {
-        'X-Tenant': tenant
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Backend error: ${response.status}`);
+  // 1. Backend
+  if (BACKEND_URL) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/settings/activities`, {
+        headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType, 'ngrok-skip-browser-warning': 'true' },
+        signal: AbortSignal.timeout(5000)
+      });
+      if (res.ok) return NextResponse.json(await res.json());
+      console.warn(`[activities] Backend ${res.status}, fallback Supabase`);
+    } catch {
+      console.warn('[activities] Backend unavailable, fallback Supabase');
     }
+  }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+  // 2. Supabase direct
+  if (dbType !== 'supabase') {
+    return NextResponse.json({ success: true, data: [] });
+  }
 
+  try {
+    const rows = await readTable(tenant, 'activite');
+    const data = rows.map((r: any) => {
+      const keys = Object.keys(r);
+      const find = (...names: string[]) => {
+        for (const n of names) {
+          const k = keys.find(k => k.toLowerCase() === n.toLowerCase());
+          if (k !== undefined && r[k] !== null && r[k] !== undefined) return r[k];
+        }
+        return undefined;
+      };
+      return {
+        id: find('id'),
+        nom_entreprise: find('nom_entreprise', 'nom', 'raison_sociale', 'name'),
+        adresse: find('adresse', 'address'),
+        telephone: find('telephone', 'tel', 'phone'),
+        email: find('email'),
+        rc: find('rc', 'registre_commerce'),
+        nif: find('nif'),
+        nis: find('nis'),
+        art: find('art'),
+      };
+    });
+    return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('❌ Erreur serveur:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Erreur interne du serveur',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Erreur';
+    if (schemaError(msg)) return NextResponse.json({ success: true, data: [] });
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
-    const body = await request.json();
-    
-    console.log(`🔍 Mise à jour activité pour le tenant: ${tenant}`, body);
+  const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+  const dbType = request.headers.get('X-Database-Type') || 'supabase';
+  const body = await request.json();
 
-    const response = await fetch(`${API_BASE_URL}/settings/activities`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-        'X-Tenant': tenant
-      },
-      body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return NextResponse.json({
-        success: false,
-        error: `Backend error: ${response.status} - ${errorText}`
-      }, { status: response.status });
+  if (BACKEND_URL) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/settings/activities`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Tenant': tenant, 'X-Database-Type': dbType, 'ngrok-skip-browser-warning': 'true' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(8000)
+      });
+      if (res.ok) return NextResponse.json(await res.json());
+      const err = await res.text();
+      return NextResponse.json({ success: false, error: `Backend error: ${res.status}` }, { status: res.status });
+    } catch {
+      console.warn('[activities POST] Backend unavailable');
     }
-
-    const data = await response.json();
-    return NextResponse.json(data);
-
-  } catch (error) {
-    console.error('❌ Erreur mise à jour activité:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Erreur interne du serveur'
-    }, { status: 500 });
   }
+  return NextResponse.json({ success: false, error: 'Backend non disponible' }, { status: 503 });
 }
