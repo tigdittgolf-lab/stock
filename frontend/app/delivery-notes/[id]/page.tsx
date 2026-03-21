@@ -81,6 +81,13 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
 
       const data = await response.json();
       if (data.success) {
+        console.log('📦 BL data reçu:', { 
+          nfact: data.data?.nfact, 
+          nbl: data.data?.nbl,
+          details_count: data.data?.details?.length,
+          detail_bl_count: data.data?.detail_bl?.length,
+          keys: Object.keys(data.data || {})
+        });
         setDeliveryNote(data.data);
       } else {
         setError(data.error || 'Erreur lors du chargement');

@@ -65,6 +65,17 @@ export async function GET(
       if (details.length === 0) {
         details = await readTableWhere(tenant, 'detail_bl', 'nbl', numericId);
       }
+      // Essayer d'autres noms de table si vide
+      if (details.length === 0) {
+        for (const tableName of ['detail_fact', 'detailbl', 'bl_detail', 'lignes_bl', 'ligne_bl']) {
+          try {
+            details = await readTableWhere(tenant, tableName, 'nfact', numericId);
+            if (details.length === 0) details = await readTableWhere(tenant, tableName, 'nbl', numericId);
+            if (details.length > 0) { console.log(`✅ Détails trouvés dans table: ${tableName}`); break; }
+          } catch { /* continuer */ }
+        }
+      }
+      console.log(`📦 [delivery-notes/${numericId}] ${details.length} lignes de détail`);
       // Normaliser les détails aussi
       details = details.map((d: any) => {
         const dk = Object.keys(d);
@@ -77,15 +88,17 @@ export async function GET(
         };
         return {
           ...d,
-          narticle: df('narticle', 'article', 'code_article'),
-          designation: df('designation', 'libelle', 'nom_article'),
-          qte: df('qte', 'quantite', 'qty'),
-          prix: df('prix', 'prix_unitaire', 'pu'),
-          tva: df('tva', 'taux_tva'),
-          total_ligne: df('total_ligne', 'montant_ligne', 'total'),
+          narticle: df('narticle', 'article', 'code_article', 'ref'),
+          designation: df('designation', 'libelle', 'nom_article', 'description'),
+          qte: df('qte', 'quantite', 'qty', 'quantité'),
+          prix: df('prix', 'prix_unitaire', 'pu', 'prix_vente'),
+          tva: df('tva', 'taux_tva', 'taxe'),
+          total_ligne: df('total_ligne', 'montant_ligne', 'total', 'montant'),
         };
       });
-    } catch { /* pas de détails */ }
+    } catch (e) {
+      console.warn(`⚠️ [delivery-notes/${numericId}] Erreur chargement détails:`, e);
+    }
 
     return NextResponse.json({ success: true, data: { ...normalized, details, detail_bl: details }, source: 'supabase_direct' });
   } catch (error) {
