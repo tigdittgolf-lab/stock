@@ -62,13 +62,10 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
     const numericId = parseInt(id);
     try {
       // Charger BL et detail_bl en parallèle
+      const supaHeaders = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept-Profile': tenant, 'Accept': 'application/json' };
       const [blRes, detailRes] = await Promise.all([
-        fetch(`${SUPABASE_URL}/rest/v1/bl?nfact=eq.${numericId}&select=*&limit=1`, {
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept-Profile': tenant }
-        }),
-        fetch(`${SUPABASE_URL}/rest/v1/detail_bl?nfact=eq.${numericId}&select=*`, {
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Accept-Profile': tenant }
-        })
+        fetch(`${SUPABASE_URL}/rest/v1/bl?nfact=eq.${numericId}&select=*&limit=1`, { headers: supaHeaders }),
+        fetch(`${SUPABASE_URL}/rest/v1/detail_bl?nfact=eq.${numericId}&select=*`, { headers: supaHeaders })
       ]);
       const blRows = blRes.ok ? await blRes.json() : [];
       const detailRows = detailRes.ok ? await detailRes.json() : [];
