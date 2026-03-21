@@ -1,62 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readTable } from '@/lib/supabase-rpc';
+
+const BACKEND_URL = process.env.BACKEND_URL;
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+  const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+  const dbType = request.headers.get('X-Database-Type') || 'supabase';
+
+  const numericId = parseInt(id);
+  if (!id || isNaN(numericId) || numericId <= 0) {
+    return NextResponse.json({ success: false, error: `ID facture invalide: ${id}` }, { status: 400 });
+  }
+
+  // 1. Backend
+  if (BACKEND_URL) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/sales/invoices/${numericId}`, {
+        headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType, 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (res.ok) return NextResponse.json(await res.json());
+    } catch { console.warn('[invoices/id] Backend unavailable'); }
+  }
+
+  // 2. Supabase direct
+  if (dbType !== 'supabase') {
+    return NextResponse.json({ success: false, error: 'Backend non disponible' }, { status: 503 });
+  }
+
   try {
-    // Attendre la résolution de la Promise params
-    const { id } = await params;
-    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
-    
-    console.log(`🔄 Frontend API: Forwarding invoice request for ID ${id}, tenant ${tenant}`);
-    
-    // Validation stricte de l'ID
-    const numericId = parseInt(id);
-    if (!id || id === 'undefined' || id === 'null' || isNaN(numericId) || numericId <= 0) {
-      console.error(`🚨 ERREUR: ID facture invalide reçu par le proxy: "${id}"`);
-      return NextResponse.json(
-        { success: false, error: `ID facture invalide: ${id}. Veuillez fournir un ID valide.` },
-        { status: 400 }
-      );
-    }
-    
-    const validId = String(numericId);
-    
-    // Utiliser Tailscale tunnel pour accéder au backend local
-    const backendUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://midi-charm-harvard-performed.trycloudflare.com/api'
-      : 'http://localhost:3005/api';
-    
-    const response = await fetch(`${backendUrl}/sales/invoices/${validId}`, {
-      method: 'GET',
-      headers: {
-        'X-Tenant': tenant,
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
-      }
-    });
+    const rows = await readTable(tenant, 'facture');
+    const facture = rows.find((r: any) => r.nfact == numericId);
+    if (!facture) return NextResponse.json({ success: false, error: `Facture ${numericId} introuvable` }, { status: 404 });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Backend error:  Backend error: ${response.status} - ${errorText}`);
-      
-      return NextResponse.json({
-        success: false,
-        error: `Backend error: ${response.status} - ${errorText}`
-      }, { status: response.status });
-    }
+    // Charger les détails
+    let details: any[] = [];
+    try {
+      const detailRows = await readTable(tenant, 'detail_fact');
+      details = detailRows.filter((d: any) => d.nfact == numericId);
+    } catch { /* pas de détails */ }
 
-    const data = await response.json();
-    console.log(`✅ Frontend API: Successfully forwarded invoice data for ID ${id}`);
-    
-    return NextResponse.json(data);
-
+    return NextResponse.json({ success: true, data: { ...facture, detail_fact: details }, source: 'supabase_direct' });
   } catch (error) {
-    console.error('❌ Frontend API error:', error);
-    return NextResponse.json({
-      success: false,
-      error: `Failed to fetch invoice: ${error instanceof Error ? error.message : 'Unknown error'}`
-    }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Erreur';
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }

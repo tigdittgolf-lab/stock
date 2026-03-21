@@ -1,95 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readTable } from '@/lib/supabase-rpc';
+
+const BACKEND_URL = process.env.BACKEND_URL;
+
+const emptyOk = () => NextResponse.json({ success: true, data: [], source: 'empty_schema' });
+const schemaError = (msg: string) =>
+  msg.includes('does not exist') || msg.includes('HTTP 404') || msg.includes('HTTP 400') || msg.includes('HTTP 422');
 
 export async function GET(request: NextRequest) {
-  try {
-    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
-    const dbType = request.headers.get('X-Database-Type') || 'supabase';
-    
-    console.log(`🔍 Frontend API: Proxying to backend for tenant ${tenant}, DB: ${dbType}`);
-    
-    // Faire la requête vers le backend (ngrok ou local)
-    const backendUrl = process.env.BACKEND_URL 
-      ? `${process.env.BACKEND_URL}/api`
-      : 'http://localhost:3005/api';
-    
-    console.log(`🌐 Backend URL: ${backendUrl}`);
-    
-    const response = await fetch(`${backendUrl}/sales/delivery-notes`, {
-      method: 'GET',
-      headers: {
-        'X-Tenant': tenant,
-        'X-Database-Type': dbType,
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
-      }
-    });
+  const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+  const dbType = request.headers.get('X-Database-Type') || 'supabase';
 
-    if (!response.ok) {
-      console.error(`Backend error: ${response.status} - ${await response.text()}`);
-      return NextResponse.json({
-        success: false,
-        error: `Backend error: ${response.status}`
-      }, { status: response.status });
+  // 1. Essayer le backend si disponible
+  if (BACKEND_URL) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/sales/delivery-notes`, {
+        headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType, 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (res.ok) return NextResponse.json(await res.json());
+      console.warn(`[delivery-notes] Backend ${res.status}, fallback Supabase`);
+    } catch {
+      console.warn('[delivery-notes] Backend unavailable, fallback Supabase');
     }
+  }
 
-    const data = await response.json();
-    console.log(`✅ Frontend API: Proxied ${data.data?.length || 0} delivery notes from backend (${data.database_type || 'unknown'} database)`);
+  // 2. Supabase direct
+  if (dbType !== 'supabase') return emptyOk();
 
-    return NextResponse.json(data);
-
+  try {
+    const rows = await readTable(tenant, 'bl');
+    const data = rows.map((r: any) => ({
+      nfact: r.nfact || r.nbl,
+      nbl: r.nbl || r.nfact,
+      date_fact: r.date_fact || r.date_bl,
+      date_bl: r.date_bl || r.date_fact,
+      nclient: r.nclient,
+      montant_ht: r.montant_ht,
+      tva: r.tva,
+      montant_ttc: r.montant_ttc || r.total_ttc,
+      timbre: r.timbre,
+      statut: r.statut,
+    }));
+    console.log(`✅ [delivery-notes direct] ${data.length} for ${tenant}`);
+    return NextResponse.json({ success: true, data, source: 'supabase_direct' });
   } catch (error) {
-    console.error('❌ Frontend API error:', error);
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Erreur serveur'
-    }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Erreur';
+    if (schemaError(msg)) {
+      console.warn(`⚠️ [delivery-notes] Schéma ${tenant} introuvable, retour vide`);
+      return emptyOk();
+    }
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const tenant = request.headers.get('X-Tenant') || '2025_bu01';
-    const dbType = request.headers.get('X-Database-Type') || 'supabase';
-    const body = await request.json();
-    
-    console.log(`📝 Frontend API: Proxying POST to backend for tenant ${tenant}, DB: ${dbType}`);
-    
-    // Faire la requête vers le backend (ngrok ou local)
-    const backendUrl = process.env.BACKEND_URL 
-      ? `${process.env.BACKEND_URL}/api`
-      : 'http://localhost:3005/api';
-    
-    console.log(`🌐 Backend URL: ${backendUrl}`);
-    
-    const response = await fetch(`${backendUrl}/sales/delivery-notes`, {
-      method: 'POST',
-      headers: {
-        'X-Tenant': tenant,
-        'X-Database-Type': dbType,
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
-      },
-      body: JSON.stringify(body)
-    });
+  const tenant = request.headers.get('X-Tenant') || '2025_bu01';
+  const dbType = request.headers.get('X-Database-Type') || 'supabase';
+  const body = await request.json();
 
-    if (!response.ok) {
-      console.error(`Backend POST error: ${response.status} - ${await response.text()}`);
-      return NextResponse.json({
-        success: false,
-        error: `Backend error: ${response.status}`
-      }, { status: response.status });
+  if (BACKEND_URL) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/sales/delivery-notes`, {
+        method: 'POST',
+        headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType, 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(15000)
+      });
+      if (res.ok) return NextResponse.json(await res.json());
+      const err = await res.text();
+      return NextResponse.json({ success: false, error: `Backend error: ${res.status} - ${err}` }, { status: res.status });
+    } catch (e) {
+      console.warn('[delivery-notes POST] Backend unavailable');
     }
-
-    const data = await response.json();
-    console.log(`✅ Frontend API: POST proxied successfully (${data.database_type || 'unknown'} database)`);
-
-    return NextResponse.json(data);
-
-  } catch (error) {
-    console.error('❌ Frontend API POST error:', error);
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Erreur serveur'
-    }, { status: 500 });
   }
+  return NextResponse.json({ success: false, error: 'Backend non disponible pour la création' }, { status: 503 });
 }
