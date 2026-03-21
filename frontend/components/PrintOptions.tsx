@@ -411,6 +411,12 @@ ${publicUrl}
       );
     }
     
+    const openArabicPrint = (lang: 'ar' | 'bilingual' = 'bilingual') => {
+      const typeMap: Record<string, string> = { bl: 'bl', invoice: 'invoice', proforma: 'proforma' };
+      const t = typeMap[documentType] || documentType;
+      window.open(`/print/${t}/${documentId}?lang=${lang}`, '_blank');
+    };
+
     const baseOptions = (() => {
       switch (documentType) {
         case 'bl':
@@ -434,25 +440,64 @@ ${publicUrl}
               >
                 🎫 Ticket
               </button>
+              <button
+                onClick={() => openArabicPrint('bilingual')}
+                className={styles.printButton}
+                style={{ background: '#1a6b3c', color: 'white' }}
+              >
+                🇩🇿 Bilingue AR/FR
+              </button>
+              <button
+                onClick={() => openArabicPrint('ar')}
+                className={styles.printButton}
+                style={{ background: '#0d4f2e', color: 'white' }}
+              >
+                عربي
+              </button>
             </>
           );
         case 'invoice':
           return (
-            <button 
-              onClick={() => handlePrint('invoice')}
-              className={styles.printButton}
-            >
-              📄 Imprimer Facture
-            </button>
+            <>
+              <button 
+                onClick={() => handlePrint('invoice')}
+                className={styles.printButton}
+              >
+                📄 Imprimer Facture
+              </button>
+              <button
+                onClick={() => openArabicPrint('bilingual')}
+                className={styles.printButton}
+                style={{ background: '#1a6b3c', color: 'white' }}
+              >
+                🇩🇿 Bilingue AR/FR
+              </button>
+              <button
+                onClick={() => openArabicPrint('ar')}
+                className={styles.printButton}
+                style={{ background: '#0d4f2e', color: 'white' }}
+              >
+                عربي
+              </button>
+            </>
           );
         case 'proforma':
           return (
-            <button 
-              onClick={() => handlePrint('proforma')}
-              className={styles.printButton}
-            >
-              📄 Imprimer Proforma
-            </button>
+            <>
+              <button 
+                onClick={() => handlePrint('proforma')}
+                className={styles.printButton}
+              >
+                📄 Imprimer Proforma
+              </button>
+              <button
+                onClick={() => openArabicPrint('bilingual')}
+                className={styles.printButton}
+                style={{ background: '#1a6b3c', color: 'white' }}
+              >
+                🇩🇿 Bilingue AR/FR
+              </button>
+            </>
           );
         default:
           return null;
