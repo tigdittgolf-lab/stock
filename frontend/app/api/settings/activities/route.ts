@@ -31,6 +31,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const rows = await readTable(tenant, 'activite');
+    if (rows.length > 0) {
+      console.log(`🔑 [activite] Colonnes pour ${tenant}:`, Object.keys(rows[0]));
+      console.log(`🔑 [activite] Première ligne:`, rows[0]);
+    }
     const data = rows.map((r: any) => {
       const keys = Object.keys(r);
       const find = (...names: string[]) => {
@@ -44,8 +48,8 @@ export async function GET(request: NextRequest) {
         id: find('id'),
         nom_entreprise: find('nom_entreprise', 'nom', 'raison_sociale', 'name'),
         adresse: find('adresse', 'address'),
-        telephone: find('telephone', 'tel', 'phone'),
-        email: find('email'),
+        telephone: find('telephone', 'tel', 'phone', 'tel1', 'tel2', 'gsm', 'mobile', 'fax'),
+        email: find('email', 'mail', 'e_mail', 'courriel', 'email1'),
         rc: find('rc', 'registre_commerce'),
         nif: find('nif'),
         nis: find('nis'),
