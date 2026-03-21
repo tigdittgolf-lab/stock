@@ -7,18 +7,28 @@ const emptyOk = () => NextResponse.json({ success: true, data: [], source: 'empt
 const schemaError = (msg: string) =>
   msg.includes('does not exist') || msg.includes('HTTP 404') || msg.includes('HTTP 400') || msg.includes('HTTP 422');
 
-const normalizeInvoice = (r: any) => ({
-  nfact: r.nfact ?? r.Nfact ?? r.NFACT ?? r.id,
-  date_fact: r.date_fact ?? r.Date_fact,
-  nclient: r.nclient ?? r.Nclient ?? r.NCLIENT,
-  client_name: r.client_name ?? r.raison_sociale ?? r.nom,
-  montant_ht: r.montant_ht ?? r.Montant_ht,
-  tva: r.tva ?? r.TVA ?? r.Tva,
-  montant_ttc: r.montant_ttc ?? r.Montant_ttc ?? r.total_ttc,
-  timbre: r.timbre ?? r.Timbre,
-  statut: r.statut ?? r.Statut,
-  marge: r.marge ?? r.Marge,
-});
+const normalizeInvoice = (r: any) => {
+  const keys = Object.keys(r);
+  const find = (...names: string[]) => {
+    for (const n of names) {
+      const k = keys.find(k => k.toLowerCase() === n.toLowerCase());
+      if (k !== undefined && r[k] !== undefined && r[k] !== null) return r[k];
+    }
+    return undefined;
+  };
+  return {
+    nfact: find('nfact', 'id', 'num_fact', 'numero'),
+    date_fact: find('date_fact', 'date'),
+    nclient: find('nclient', 'ncli', 'code_client'),
+    client_name: find('client_name', 'raison_sociale', 'nom', 'client'),
+    montant_ht: find('montant_ht', 'mht', 'total_ht'),
+    tva: find('tva', 'montant_tva', 'taxe'),
+    montant_ttc: find('montant_ttc', 'total_ttc', 'mttc'),
+    timbre: find('timbre'),
+    statut: find('statut', 'etat'),
+    marge: find('marge'),
+  };
+};
 
 export async function GET(request: NextRequest) {
   const tenant = request.headers.get('X-Tenant') || '2025_bu01';
@@ -41,6 +51,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const rows = await readTable(tenant, 'facture');
+    if (rows.length > 0) {
+      console.log(`🔑 [invoices] Colonnes réelles pour ${tenant}:`, Object.keys(rows[0]));
+    }
     const data = rows.map(normalizeInvoice);
     console.log(`✅ [invoices direct] ${data.length} for ${tenant}, sample nfact: ${data[0]?.nfact}`);
     return NextResponse.json({ success: true, data, count: data.length, source: 'supabase_direct' });

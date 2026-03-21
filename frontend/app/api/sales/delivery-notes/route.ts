@@ -30,23 +30,35 @@ export async function GET(request: NextRequest) {
 
   try {
     const rows = await readTable(tenant, 'bl');
-    // Normaliser les noms de colonnes (majuscules/minuscules selon l'ancienneté de la base)
+    // Log des vraies colonnes pour diagnostic (première ligne seulement)
+    if (rows.length > 0) {
+      console.log(`🔑 [delivery-notes] Colonnes réelles pour ${tenant}:`, Object.keys(rows[0]));
+    }
+    // Normaliser les noms de colonnes — recherche insensible à la casse
     const data = rows.map((r: any) => {
-      const nbl = r.nbl ?? r.Nbl ?? r.NBL ?? r.nfact ?? r.Nfact ?? r.NFACT ?? r.id;
-      const nfact = r.nfact ?? r.Nfact ?? r.NFACT ?? r.nbl ?? r.Nbl ?? r.id;
+      const keys = Object.keys(r);
+      const findKey = (...names: string[]) => {
+        for (const n of names) {
+          const k = keys.find(k => k.toLowerCase() === n.toLowerCase());
+          if (k !== undefined && r[k] !== undefined && r[k] !== null) return r[k];
+        }
+        return undefined;
+      };
+      const nbl = findKey('nbl', 'nfact', 'id', 'num_bl', 'numero');
+      const nfact = findKey('nfact', 'nbl', 'id', 'num_fact', 'numero');
       return {
         nbl,
         nfact,
-        date_fact: r.date_fact ?? r.Date_fact ?? r.date_bl ?? r.Date_bl,
-        date_bl: r.date_bl ?? r.Date_bl ?? r.date_fact ?? r.Date_fact,
-        nclient: r.nclient ?? r.Nclient ?? r.NCLIENT,
-        client_name: r.client_name ?? r.raison_sociale ?? r.nom,
-        montant_ht: r.montant_ht ?? r.Montant_ht,
-        tva: r.tva ?? r.TVA ?? r.Tva,
-        montant_ttc: r.montant_ttc ?? r.Montant_ttc ?? r.total_ttc,
-        timbre: r.timbre ?? r.Timbre,
-        statut: r.statut ?? r.Statut,
-        marge: r.marge ?? r.Marge,
+        date_fact: findKey('date_fact', 'date_bl', 'date'),
+        date_bl: findKey('date_bl', 'date_fact', 'date'),
+        nclient: findKey('nclient', 'ncli', 'code_client'),
+        client_name: findKey('client_name', 'raison_sociale', 'nom', 'client'),
+        montant_ht: findKey('montant_ht', 'mht', 'total_ht'),
+        tva: findKey('tva', 'montant_tva', 'taxe'),
+        montant_ttc: findKey('montant_ttc', 'total_ttc', 'mttc'),
+        timbre: findKey('timbre'),
+        statut: findKey('statut', 'etat'),
+        marge: findKey('marge'),
       };
     });
     console.log(`✅ [delivery-notes direct] ${data.length} for ${tenant}, sample nbl: ${data[0]?.nbl}`);
