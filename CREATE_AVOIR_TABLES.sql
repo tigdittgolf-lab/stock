@@ -80,16 +80,15 @@ RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
   v_result JSON;
 BEGIN
-  EXECUTE format(
-    'SELECT json_agg(row_to_json(a)) FROM (
-       SELECT av.*, c.raison_sociale AS client_name
-       FROM public.avoir av
-       LEFT JOIN %I.client c ON av.nclient = c."Nclient"
-       WHERE av.tenant = $1
-       ORDER BY av.date_avoir DESC, av.id DESC
-     ) a',
-    p_tenant
-  ) INTO v_result USING p_tenant;
+  SELECT json_agg(row_to_json(a))
+  INTO v_result
+  FROM (
+    SELECT av.id, av.tenant, av.nclient, av.date_avoir, av.document_type,
+           av.document_ref, av.montant_ht, av.tva, av.montant_ttc, av.motif, av.created_at
+    FROM public.avoir av
+    WHERE av.tenant = p_tenant
+    ORDER BY av.date_avoir DESC, av.id DESC
+  ) a;
   RETURN COALESCE(v_result, '[]'::json);
 END;
 $$;
@@ -100,24 +99,22 @@ RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
   v_result JSON;
 BEGIN
-  EXECUTE format(
-    'SELECT row_to_json(t) FROM (
-       SELECT av.*,
-         c.raison_sociale AS client_name,
-         (SELECT json_agg(row_to_json(d))
-          FROM (
-            SELECT da.*, a.designation
-            FROM public.detail_avoir da
-            LEFT JOIN %I.article a ON da.narticle = a."Narticle"
-            WHERE da.avoir_id = av.id
-          ) d
-         ) AS details
-       FROM public.avoir av
-       LEFT JOIN %I.client c ON av.nclient = c."Nclient"
-       WHERE av.id = $1 AND av.tenant = $2
-     ) t',
-    p_tenant, p_tenant
-  ) INTO v_result USING p_avoir_id, p_tenant;
+  SELECT row_to_json(t)
+  INTO v_result
+  FROM (
+    SELECT av.id, av.tenant, av.nclient, av.date_avoir, av.document_type,
+           av.document_ref, av.montant_ht, av.tva, av.montant_ttc, av.motif, av.created_at,
+      (
+        SELECT json_agg(row_to_json(d))
+        FROM (
+          SELECT da.id, da.avoir_id, da.narticle, da.qte, da.prix, da.tva, da.total_ligne
+          FROM public.detail_avoir da
+          WHERE da.avoir_id = av.id
+        ) d
+      ) AS details
+    FROM public.avoir av
+    WHERE av.id = p_avoir_id AND av.tenant = p_tenant
+  ) t;
   RETURN v_result;
 END;
 $$;
