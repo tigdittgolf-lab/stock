@@ -1060,6 +1060,16 @@ export default function Dashboard() {
             <span className={styles.label}>Stock</span>
           </button>
           <button
+            onClick={() => {
+              router.push('/fiscal');
+              setIsMobileMenuOpen(false);
+            }}
+            title="Fiscal"
+          >
+            <span className={styles.icon}>🧾</span>
+            <span className={styles.label}>Fiscal</span>
+          </button>
+          <button
             className={activeTab === 'settings' ? styles.sidebarActive : ''}
             onClick={() => {
               router.push('/settings');
