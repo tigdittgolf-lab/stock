@@ -1,32 +1,31 @@
 /**
- * Helper pour appeler exec_sql via l'API REST Supabase directement,
- * en contournant le schema cache du client JS.
+ * Helper pour lire des tables Supabase via l'API REST PostgREST
+ * en utilisant Accept-Profile pour accéder aux schémas tenant.
  */
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-export async function execSql(sql: string): Promise<any[]> {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
-    method: 'POST',
+/**
+ * Lit une table dans un schéma tenant via l'API REST Supabase.
+ * Utilise Accept-Profile pour cibler le bon schéma.
+ */
+export async function readTable(schema: string, table: string, orderBy?: string): Promise<any[]> {
+  const url = `${SUPABASE_URL}/rest/v1/${table}${orderBy ? `?order=${orderBy}` : ''}`;
+  const res = await fetch(url, {
+    method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
       'apikey': SUPABASE_SERVICE_KEY,
       'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+      'Accept-Profile': schema,
+      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ sql }),
   });
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`exec_sql HTTP ${res.status}: ${err}`);
+    throw new Error(`readTable ${schema}.${table} HTTP ${res.status}: ${err}`);
   }
 
-  const data = await res.json();
-  // exec_sql retourne un JSON array ou un objet JSON
-  if (Array.isArray(data)) return data;
-  if (typeof data === 'string') {
-    try { return JSON.parse(data); } catch { return []; }
-  }
-  return [];
+  return res.json();
 }

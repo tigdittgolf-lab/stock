@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { execSql } from '@/lib/supabase-rpc';
+import { readTable } from '@/lib/supabase-rpc';
 
 const BACKEND_URL = process.env.BACKEND_URL;
 
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   try {
     if (dbType !== 'supabase') return NextResponse.json({ success: true, data: [] });
 
-    const rows = await execSql(`SELECT * FROM "${tenant}".client ORDER BY "Nclient" ASC`);
+    const rows = await readTable(tenant, 'client', 'Nclient');
     const data = rows.map((c: any) => ({
       nclient: c.Nclient || c.nclient,
       raison_sociale: c.Raison_sociale || c.raison_sociale,
