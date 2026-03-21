@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -50,7 +50,7 @@ export default function CreateInvoice() {
     clientName: string;
   } | null>(null);
   
-  // États pour le paiement
+  // Ã‰tats pour le paiement
   const [paymentType, setPaymentType] = useState<'total' | 'partial'>('total');
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
@@ -65,7 +65,7 @@ export default function CreateInvoice() {
   const fetchNextInvoiceNumber = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`http://localhost:3005/api/sales/invoices/next-number`, {
+      const response = await fetch(`/api/sales/invoices/next-number`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -83,7 +83,7 @@ export default function CreateInvoice() {
   const fetchClients = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`http://localhost:3005/api/sales/clients`, {
+      const response = await fetch(`/api/sales/clients`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -100,7 +100,7 @@ export default function CreateInvoice() {
   const fetchArticles = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`http://localhost:3005/api/articles`, {
+      const response = await fetch(`/api/articles`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -117,9 +117,9 @@ export default function CreateInvoice() {
   const handleArticleChange = (articleId: string) => {
     const article = articles.find(a => a.narticle === articleId);
     if (article) {
-      // Si on est en mode édition et que l'article n'a pas changé, ne pas écraser les valeurs
+      // Si on est en mode Ã©dition et que l'article n'a pas changÃ©, ne pas Ã©craser les valeurs
       if (editingIndex !== null && currentLine.Narticle === articleId) {
-        console.log('⚠️ Same article in edit mode, keeping current values');
+        console.log('âš ï¸ Same article in edit mode, keeping current values');
         return;
       }
       
@@ -134,7 +134,7 @@ export default function CreateInvoice() {
 
   const addLine = () => {
     if (!currentLine.Narticle || currentLine.Qte <= 0) {
-      alert('Veuillez sélectionner un article et une quantité valide');
+      alert('Veuillez sÃ©lectionner un article et une quantitÃ© valide');
       return;
     }
 
@@ -173,7 +173,7 @@ export default function CreateInvoice() {
 
   const removeLine = (index: number) => {
     setLines(lines.filter((_, i) => i !== index));
-    // Si on supprime la ligne en cours de modification, annuler l'édition
+    // Si on supprime la ligne en cours de modification, annuler l'Ã©dition
     if (editingIndex === index) {
       setEditingIndex(null);
       resetCurrentLine();
@@ -217,7 +217,7 @@ export default function CreateInvoice() {
     e.preventDefault();
 
     if (!selectedClient) {
-      alert('Veuillez sélectionner un client');
+      alert('Veuillez sÃ©lectionner un client');
       return;
     }
 
@@ -247,14 +247,14 @@ export default function CreateInvoice() {
       const dbConfig = localStorage.getItem('activeDbConfig');
       const databaseType = dbConfig ? JSON.parse(dbConfig).type : 'mysql';
       
-      console.log('📤 Submitting Invoice with:', {
+      console.log('ðŸ“¤ Submitting Invoice with:', {
         tenant: tenantSchema,
         client: selectedClient,
         lines: lines.length,
         dbType: databaseType
       });
       
-      const response = await fetch(`http://localhost:3005/api/sales/invoices`, {
+      const response = await fetch(`/api/sales/invoices`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -280,7 +280,7 @@ export default function CreateInvoice() {
         const invoiceNumber = data.data.nfact;
         const totalTTC = data.data.total_ttc || 0;
         
-        // Enregistrer le paiement si un montant est spécifié
+        // Enregistrer le paiement si un montant est spÃ©cifiÃ©
         if (paymentType === 'total' || (paymentType === 'partial' && paymentAmount > 0)) {
           const amountToPay = paymentType === 'total' ? totalTTC : paymentAmount;
           
@@ -304,24 +304,24 @@ export default function CreateInvoice() {
             
             const paymentData = await paymentResponse.json();
             if (!paymentData.success) {
-              console.error('❌ Erreur lors de l\'enregistrement du paiement:', paymentData.error);
+              console.error('âŒ Erreur lors de l\'enregistrement du paiement:', paymentData.error);
             } else {
-              console.log('✅ Paiement enregistré avec succès');
+              console.log('âœ… Paiement enregistrÃ© avec succÃ¨s');
             }
           } catch (paymentError) {
-            console.error('❌ Erreur lors de l\'enregistrement du paiement:', paymentError);
+            console.error('âŒ Erreur lors de l\'enregistrement du paiement:', paymentError);
           }
         }
         
-        const message = `✅ ${data.data.message || 'Facture créée avec succès!'}\n\n` +
-                       `📋 Numéro: ${invoiceNumber}\n` +
-                       `👤 Client: ${selectedClient}\n` +
-                       `📅 Date: ${dateFacture}\n` +
-                       `💰 Total HT: ${data.data.montant_ht?.toFixed(2)} DA\n` +
-                       `💰 Total TTC: ${totalTTC.toFixed(2)} DA\n` +
-                       `📦 Articles: ${lines.length} ligne(s)`;
+        const message = `âœ… ${data.data.message || 'Facture crÃ©Ã©e avec succÃ¨s!'}\n\n` +
+                       `ðŸ“‹ NumÃ©ro: ${invoiceNumber}\n` +
+                       `ðŸ‘¤ Client: ${selectedClient}\n` +
+                       `ðŸ“… Date: ${dateFacture}\n` +
+                       `ðŸ’° Total HT: ${data.data.montant_ht?.toFixed(2)} DA\n` +
+                       `ðŸ’° Total TTC: ${totalTTC.toFixed(2)} DA\n` +
+                       `ðŸ“¦ Articles: ${lines.length} ligne(s)`;
         
-        // Préparer les données pour le modal d'impression
+        // PrÃ©parer les donnÃ©es pour le modal d'impression
         const clientName = clients.find(c => c.nclient === selectedClient)?.raison_sociale || selectedClient;
         
         setCreatedInvoice({
@@ -330,7 +330,7 @@ export default function CreateInvoice() {
           clientName: clientName
         });
         
-        // Réinitialiser le formulaire
+        // RÃ©initialiser le formulaire
         setSelectedClient('');
         setDateFacture(new Date().toISOString().split('T')[0]);
         setLines([]);
@@ -343,11 +343,11 @@ export default function CreateInvoice() {
         // Afficher le modal d'impression
         setShowPrintModal(true);
       } else {
-        alert('❌ Erreur: ' + data.error);
+        alert('âŒ Erreur: ' + data.error);
       }
     } catch (error) {
       console.error('Error creating invoice:', error);
-      alert('Erreur lors de la création de la facture');
+      alert('Erreur lors de la crÃ©ation de la facture');
     }
   };
 
@@ -356,7 +356,7 @@ export default function CreateInvoice() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1>Créer une Facture {nextInvoiceNumber && `N° ${nextInvoiceNumber}`}</h1>
+        <h1>CrÃ©er une Facture {nextInvoiceNumber && `NÂ° ${nextInvoiceNumber}`}</h1>
         <button onClick={() => router.push('/invoices/list')}>Retour</button>
       </header>
 
@@ -372,7 +372,7 @@ export default function CreateInvoice() {
                   onChange={(e) => setSelectedClient(e.target.value)}
                   required
                 >
-                  <option value="">Sélectionner un client</option>
+                  <option value="">SÃ©lectionner un client</option>
                   {clients.map((client, index) => (
                     <option key={`${client.nclient}-${index}`} value={client.nclient}>
                       {client.nclient} - {client.raison_sociale}
@@ -402,7 +402,7 @@ export default function CreateInvoice() {
                   value={currentLine.Narticle}
                   onChange={(e) => handleArticleChange(e.target.value)}
                 >
-                  <option value="">Sélectionner un article</option>
+                  <option value="">SÃ©lectionner un article</option>
                   {articles.map(article => (
                     <option key={article.narticle} value={article.narticle}>
                       {article.narticle} - {article.designation} (Stock Facture: {article.stock_f})
@@ -412,7 +412,7 @@ export default function CreateInvoice() {
               </div>
 
               <div className={styles.formGroup}>
-                <label>Quantité:</label>
+                <label>QuantitÃ©:</label>
                 <input
                   type="number"
                   min="1"
@@ -463,8 +463,8 @@ export default function CreateInvoice() {
               <thead>
                 <tr>
                   <th>Article</th>
-                  <th>Désignation</th>
-                  <th>Quantité</th>
+                  <th>DÃ©signation</th>
+                  <th>QuantitÃ©</th>
                   <th>Prix Unit.</th>
                   <th>TVA (%)</th>
                   <th>Total</th>
@@ -520,7 +520,7 @@ export default function CreateInvoice() {
 
           {/* Section Paiement */}
           <div className={styles.formSection}>
-            <h2>💰 Paiement</h2>
+            <h2>ðŸ’° Paiement</h2>
             
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
@@ -542,7 +542,7 @@ export default function CreateInvoice() {
 
               {paymentType === 'partial' && (
                 <div className={styles.formGroup}>
-                  <label>Montant versé (DA):</label>
+                  <label>Montant versÃ© (DA):</label>
                   <input
                     type="number"
                     step="0.01"
@@ -561,13 +561,13 @@ export default function CreateInvoice() {
               )}
 
               <div className={styles.formGroup}>
-                <label>Méthode de paiement:</label>
+                <label>MÃ©thode de paiement:</label>
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                 >
-                  <option value="cash">Espèces</option>
-                  <option value="check">Chèque</option>
+                  <option value="cash">EspÃ¨ces</option>
+                  <option value="check">ChÃ¨que</option>
                   <option value="bank_transfer">Virement bancaire</option>
                   <option value="credit_card">Carte bancaire</option>
                   <option value="other">Autre</option>
@@ -582,7 +582,7 @@ export default function CreateInvoice() {
                   <textarea
                     value={paymentNotes}
                     onChange={(e) => setPaymentNotes(e.target.value)}
-                    placeholder="Ex: Premier versement, reste à payer..."
+                    placeholder="Ex: Premier versement, reste Ã  payer..."
                     rows={2}
                     style={{
                       width: '100%',
@@ -605,14 +605,14 @@ export default function CreateInvoice() {
                 borderRadius: '8px',
                 marginTop: '12px'
               }}>
-                <strong>⚠️ Reste à payer: {(totals.totalTTC - paymentAmount).toFixed(2)} DA</strong>
+                <strong>âš ï¸ Reste Ã  payer: {(totals.totalTTC - paymentAmount).toFixed(2)} DA</strong>
               </div>
             )}
           </div>
 
           <div className={styles.formActions}>
             <button type="submit" className={styles.primaryButton}>
-              Créer la Facture
+              CrÃ©er la Facture
             </button>
             <button type="button" onClick={() => router.push('/invoices/list')} className={styles.secondaryButton}>
               Annuler
@@ -621,7 +621,7 @@ export default function CreateInvoice() {
         </form>
       </main>
       
-      {/* Modal d'impression après création */}
+      {/* Modal d'impression aprÃ¨s crÃ©ation */}
       {showPrintModal && createdInvoice && (
         <PrintOptions
           documentType="invoice"
@@ -640,3 +640,4 @@ export default function CreateInvoice() {
     </div>
   );
 }
+

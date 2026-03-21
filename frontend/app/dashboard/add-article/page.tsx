@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -46,7 +46,7 @@ export default function AddArticle() {
   });
 
   useEffect(() => {
-    // Vérifier l'authentification et les informations de tenant
+    // VÃ©rifier l'authentification et les informations de tenant
     const tenantInfoStr = localStorage.getItem('tenant_info');
     if (!tenantInfoStr) {
       router.push('/login');
@@ -78,14 +78,14 @@ export default function AddArticle() {
 
     } catch (err) {
       console.error('Error loading form data:', err);
-      setError('Erreur lors du chargement des données');
+      setError('Erreur lors du chargement des donnÃ©es');
     }
   };
 
   const fetchFamilies = async (headers: any) => {
     try {
-      console.log('🔍 Fetching families from settings API...');
-      const response = await fetch(`http://localhost:3005/api/settings/families`, { headers });
+      console.log('ðŸ” Fetching families from settings API...');
+      const response = await fetch(`/api/settings/families`, { headers });
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -95,22 +95,22 @@ export default function AddArticle() {
           designation: family.famille
         }));
         setFamilies(formattedFamilies);
-        console.log('✅ Families loaded from settings:', formattedFamilies);
+        console.log('âœ… Families loaded from settings:', formattedFamilies);
       } else {
-        console.warn('⚠️ No families found, using fallback');
+        console.warn('âš ï¸ No families found, using fallback');
         // Fallback en cas d'erreur
         const fallbackFamilies = [
-          { nfamille: 'Électricité', designation: 'Électricité' },
+          { nfamille: 'Ã‰lectricitÃ©', designation: 'Ã‰lectricitÃ©' },
           { nfamille: 'Plomberie', designation: 'Plomberie' },
           { nfamille: 'Outillage', designation: 'Outillage' }
         ];
         setFamilies(fallbackFamilies);
       }
     } catch (error) {
-      console.error('❌ Error fetching families:', error);
+      console.error('âŒ Error fetching families:', error);
       // Fallback en cas d'erreur
       const fallbackFamilies = [
-        { nfamille: 'Électricité', designation: 'Électricité' },
+        { nfamille: 'Ã‰lectricitÃ©', designation: 'Ã‰lectricitÃ©' },
         { nfamille: 'Plomberie', designation: 'Plomberie' },
         { nfamille: 'Outillage', designation: 'Outillage' }
       ];
@@ -138,7 +138,7 @@ export default function AddArticle() {
       [name]: value
     }));
 
-    // Vérifier si l'article existe quand on change le code
+    // VÃ©rifier si l'article existe quand on change le code
     if (name === 'narticle' && value.trim().length >= 3) {
       checkArticleExists(value.trim().toUpperCase());
     } else if (name === 'narticle') {
@@ -157,29 +157,29 @@ export default function AddArticle() {
   const checkArticleExists = async (articleCode: string) => {
     if (!tenantInfo || !articleCode) return;
 
-    console.log(`🔍 Checking if article exists: ${articleCode}`);
+    console.log(`ðŸ” Checking if article exists: ${articleCode}`);
     setCheckingArticle(true);
     try {
-      const response = await fetch(`http://localhost:3005/api/articles/${articleCode}`, {
+      const response = await fetch(`/api/articles/${articleCode}`, {
         headers: {
           'Content-Type': 'application/json',
           'X-Tenant': tenantInfo.schema
         }
       });
 
-      console.log(`📊 Article check response:`, { status: response.status, ok: response.ok });
+      console.log(`ðŸ“Š Article check response:`, { status: response.status, ok: response.ok });
 
       if (response.status === 200) {
-        console.log(`❌ Article ${articleCode} exists!`);
+        console.log(`âŒ Article ${articleCode} exists!`);
         setArticleExists(true);
-        setError(`L'article ${articleCode} existe déjà !`);
+        setError(`L'article ${articleCode} existe dÃ©jÃ  !`);
       } else {
-        console.log(`✅ Article ${articleCode} is available`);
+        console.log(`âœ… Article ${articleCode} is available`);
         setArticleExists(false);
         setError(null);
       }
     } catch (err) {
-      console.log(`✅ Article ${articleCode} is available (404 error)`);
+      console.log(`âœ… Article ${articleCode} is available (404 error)`);
       // Si erreur 404, l'article n'existe pas (c'est bon)
       setArticleExists(false);
       setError(null);
@@ -197,7 +197,7 @@ export default function AddArticle() {
       const prixAvecMarge = prixUnitaire * (1 + marge / 100);
       const prixVente = prixAvecMarge * (1 + tva / 100);
       
-      // Mettre à jour l'affichage du prix de vente
+      // Mettre Ã  jour l'affichage du prix de vente
       const prixVenteElement = document.getElementById('prix_vente_display');
       if (prixVenteElement) {
         prixVenteElement.textContent = `${prixVente.toFixed(2)} DA`;
@@ -216,9 +216,9 @@ export default function AddArticle() {
       return;
     }
 
-    // Vérifier si l'article existe déjà
+    // VÃ©rifier si l'article existe dÃ©jÃ 
     if (articleExists) {
-      setError(`L'article ${formData.narticle.toUpperCase()} existe déjà !`);
+      setError(`L'article ${formData.narticle.toUpperCase()} existe dÃ©jÃ  !`);
       return;
     }
 
@@ -251,7 +251,7 @@ export default function AddArticle() {
         stock_bl: stockBl
       };
 
-      const response = await fetch(`http://localhost:3005/api/articles`, {
+      const response = await fetch(`/api/articles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -260,41 +260,41 @@ export default function AddArticle() {
         body: JSON.stringify(articleData)
       });
 
-      console.log('📊 API Response:', { status: response.status, ok: response.ok });
+      console.log('ðŸ“Š API Response:', { status: response.status, ok: response.ok });
       
       let result;
       try {
         result = await response.json();
-        console.log('📊 API Result:', result);
+        console.log('ðŸ“Š API Result:', result);
       } catch (parseError) {
         console.error('Failed to parse response:', parseError);
         result = { success: false, error: 'Invalid response' };
       }
 
-      // TOUJOURS afficher un toast de succès et sauvegarder localement
-      console.log('🎉 Showing success toast regardless of API result');
+      // TOUJOURS afficher un toast de succÃ¨s et sauvegarder localement
+      console.log('ðŸŽ‰ Showing success toast regardless of API result');
       
-      // Sauvegarder l'article créé dans localStorage pour l'affichage immédiat
+      // Sauvegarder l'article crÃ©Ã© dans localStorage pour l'affichage immÃ©diat
       const createdArticles = JSON.parse(localStorage.getItem('created_articles') || '[]');
       createdArticles.push(articleData);
       localStorage.setItem('created_articles', JSON.stringify(createdArticles));
       
-      // Afficher un toast de succès
+      // Afficher un toast de succÃ¨s
       if (result.success) {
-        showSuccessToast(`✅ Article ${formData.narticle.toUpperCase()} créé avec succès !`);
+        showSuccessToast(`âœ… Article ${formData.narticle.toUpperCase()} crÃ©Ã© avec succÃ¨s !`);
       } else {
-        showSuccessToast(`✅ Article ${formData.narticle.toUpperCase()} créé localement !`);
+        showSuccessToast(`âœ… Article ${formData.narticle.toUpperCase()} crÃ©Ã© localement !`);
         console.warn('API failed but article saved locally:', result.error);
       }
       
       // Attendre un peu pour que l'utilisateur voie le toast
       setTimeout(() => {
-        router.push('/dashboard?tab=articles&message=Article ajouté avec succès');
+        router.push('/dashboard?tab=articles&message=Article ajoutÃ© avec succÃ¨s');
       }, 2000);
 
     } catch (err) {
       console.error('Error creating article:', err);
-      setError('Erreur lors de la création de l\'article');
+      setError('Erreur lors de la crÃ©ation de l\'article');
     } finally {
       setLoading(false);
     }
@@ -305,13 +305,13 @@ export default function AddArticle() {
   };
 
   const showSuccessToast = (message: string) => {
-    console.log('🎉 Showing success toast:', message);
+    console.log('ðŸŽ‰ Showing success toast:', message);
     setSuccessMessage(message);
     setError(null);
     
-    // Supprimer le message après 3 secondes
+    // Supprimer le message aprÃ¨s 3 secondes
     setTimeout(() => {
-      console.log('🕐 Hiding success toast');
+      console.log('ðŸ• Hiding success toast');
       setSuccessMessage(null);
     }, 3000);
   };
@@ -324,7 +324,7 @@ export default function AddArticle() {
         alignItems: 'center',
         minHeight: '100vh'
       }}>
-        <div>Vérification de l'authentification...</div>
+        <div>VÃ©rification de l'authentification...</div>
       </div>
     );
   }
@@ -351,7 +351,7 @@ export default function AddArticle() {
                 cursor: 'pointer'
               }}
             >
-              ← Retour
+              â† Retour
             </button>
           </div>
         </div>
@@ -406,7 +406,7 @@ export default function AddArticle() {
                       fontSize: '12px',
                       color: '#ffc107'
                     }}>
-                      Vérification...
+                      VÃ©rification...
                     </div>
                   )}
                   {articleExists && (
@@ -419,7 +419,7 @@ export default function AddArticle() {
                       color: '#dc3545',
                       fontWeight: 'bold'
                     }}>
-                      ❌ Existe déjà
+                      âŒ Existe dÃ©jÃ 
                     </div>
                   )}
                   {formData.narticle.length >= 3 && !checkingArticle && !articleExists && (
@@ -432,7 +432,7 @@ export default function AddArticle() {
                       color: '#28a745',
                       fontWeight: 'bold'
                     }}>
-                      ✅ Disponible
+                      âœ… Disponible
                     </div>
                   )}
                 </div>
@@ -455,7 +455,7 @@ export default function AddArticle() {
                     fontSize: '16px'
                   }}
                 >
-                  <option value="">Sélectionner une famille</option>
+                  <option value="">SÃ©lectionner une famille</option>
                   {families.map((family) => (
                     <option key={family.nfamille} value={family.designation}>
                       {family.designation}
@@ -467,7 +467,7 @@ export default function AddArticle() {
 
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Désignation *
+                DÃ©signation *
               </label>
               <input
                 type="text"
@@ -644,7 +644,7 @@ export default function AddArticle() {
 
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                  Prix de Vente Calculé
+                  Prix de Vente CalculÃ©
                 </label>
                 <div
                   id="prix_vente_display"
@@ -664,7 +664,7 @@ export default function AddArticle() {
               </div>
             </div>
 
-            {/* Toast de succès positionné juste au-dessus des boutons */}
+            {/* Toast de succÃ¨s positionnÃ© juste au-dessus des boutons */}
             {successMessage && (
               <div style={{
                 background: '#d4edda',
@@ -679,7 +679,7 @@ export default function AddArticle() {
                 boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
                 animation: 'slideIn 0.3s ease-out'
               }}>
-                🎉 {successMessage}
+                ðŸŽ‰ {successMessage}
               </div>
             )}
 
@@ -712,10 +712,10 @@ export default function AddArticle() {
                   fontSize: '16px'
                 }}
               >
-                {loading ? 'Création...' : 
-                 checkingArticle ? 'Vérification...' :
-                 articleExists ? 'Article existe déjà' :
-                 '✅ Créer l\'Article'}
+                {loading ? 'CrÃ©ation...' : 
+                 checkingArticle ? 'VÃ©rification...' :
+                 articleExists ? 'Article existe dÃ©jÃ ' :
+                 'âœ… CrÃ©er l\'Article'}
               </button>
             </div>
           </form>

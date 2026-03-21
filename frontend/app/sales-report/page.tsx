@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -49,26 +49,26 @@ export default function SalesReport() {
     todayOnly: false
   });
 
-  // Calculer les données paginées
+  // Calculer les donnÃ©es paginÃ©es
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentSales = sales.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(sales.length / itemsPerPage);
 
-  // Réinitialiser à la page 1 quand les filtres changent
+  // RÃ©initialiser Ã  la page 1 quand les filtres changent
   useEffect(() => {
     setCurrentPage(1);
   }, [filters, itemsPerPage]);
 
   useEffect(() => {
-    // Initialiser avec une plage plus large par défaut
+    // Initialiser avec une plage plus large par dÃ©faut
     const today = new Date().toISOString().split('T')[0];
     const startOfYear = '2025-01-01';
     setFilters(prev => ({
       ...prev,
       dateFrom: startOfYear,
       dateTo: today,
-      todayOnly: false // Désactiver le filtre "aujourd'hui seulement" par défaut
+      todayOnly: false // DÃ©sactiver le filtre "aujourd'hui seulement" par dÃ©faut
     }));
   }, []);
 
@@ -85,7 +85,7 @@ export default function SalesReport() {
       
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       
-      // Construire les paramètres de requête
+      // Construire les paramÃ¨tres de requÃªte
       const params = new URLSearchParams({
         dateFrom: filters.dateFrom,
         dateTo: filters.dateTo,
@@ -93,9 +93,9 @@ export default function SalesReport() {
         ...(filters.clientCode && { clientCode: filters.clientCode })
       });
 
-      console.log('🔍 Fetching sales data with filters:', filters);
+      console.log('ðŸ” Fetching sales data with filters:', filters);
       
-      const response = await fetch(`http://localhost:3005/api/sales/report?${params}`, {
+      const response = await fetch(`/api/sales/report?${params}`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -106,12 +106,12 @@ export default function SalesReport() {
       if (result.success) {
         setSales(result.data.sales || []);
         setTotals(result.data.totals || null);
-        console.log('✅ Sales data loaded:', result.data);
+        console.log('âœ… Sales data loaded:', result.data);
       } else {
         setError(result.error || 'Erreur lors du chargement');
       }
     } catch (error) {
-      console.error('❌ Error fetching sales data:', error);
+      console.error('âŒ Error fetching sales data:', error);
       setError('Erreur de connexion');
     } finally {
       setLoading(false);
@@ -122,7 +122,7 @@ export default function SalesReport() {
     setFilters(prev => {
       const newFilters = { ...prev, [field]: value };
       
-      // Si "Aujourd'hui seulement" est coché, mettre les dates à aujourd'hui
+      // Si "Aujourd'hui seulement" est cochÃ©, mettre les dates Ã  aujourd'hui
       if (field === 'todayOnly' && value) {
         const today = new Date().toISOString().split('T')[0];
         newFilters.dateFrom = today;
@@ -156,13 +156,13 @@ export default function SalesReport() {
   };
 
   const getTypeIcon = (type: string) => {
-    return type === 'BL' ? '📦' : '🧾';
+    return type === 'BL' ? 'ðŸ“¦' : 'ðŸ§¾';
   };
 
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1>📊 Rapport des Ventes</h1>
+        <h1>ðŸ“Š Rapport des Ventes</h1>
         <div>
           <button onClick={() => router.push('/dashboard')} className={styles.secondaryButton}>
             Retour
@@ -173,11 +173,11 @@ export default function SalesReport() {
       <main className={styles.main}>
         {/* Filtres */}
         <div className={styles.formSection} style={{ marginBottom: '20px' }}>
-          <h2>🔍 Filtres</h2>
+          <h2>ðŸ” Filtres</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', alignItems: 'end' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Date de début
+                Date de dÃ©but
               </label>
               <input
                 type="date"
@@ -264,7 +264,7 @@ export default function SalesReport() {
                 className={styles.secondaryButton}
                 style={{ width: '100%' }}
               >
-                🔄 Réinitialiser
+                ðŸ”„ RÃ©initialiser
               </button>
             </div>
           </div>
@@ -273,7 +273,7 @@ export default function SalesReport() {
         {/* Totaux */}
         {totals && (
           <div className={styles.formSection} style={{ marginBottom: '20px', background: '#f8f9fa' }}>
-            <h2>📈 Résumé</h2>
+            <h2>ðŸ“ˆ RÃ©sumÃ©</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
               <div style={{ textAlign: 'center', padding: '10px', background: 'white', borderRadius: '5px' }}>
                 <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#17a2b8' }}>{totals.count_bl}</div>
@@ -306,22 +306,22 @@ export default function SalesReport() {
         {/* Tableau des ventes */}
         {loading ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
-            <p>Chargement des données...</p>
+            <p>Chargement des donnÃ©es...</p>
           </div>
         ) : error ? (
           <div className={styles.formSection} style={{ background: '#f8d7da', color: '#721c24' }}>
-            <h2>❌ Erreur</h2>
+            <h2>âŒ Erreur</h2>
             <p>{error}</p>
           </div>
         ) : sales.length === 0 ? (
           <div className={styles.formSection} style={{ textAlign: 'center' }}>
-            <h2>📭 Aucune vente trouvée</h2>
-            <p>Aucune vente ne correspond aux critères sélectionnés.</p>
+            <h2>ðŸ“­ Aucune vente trouvÃ©e</h2>
+            <p>Aucune vente ne correspond aux critÃ¨res sÃ©lectionnÃ©s.</p>
           </div>
         ) : (
           <div className={styles.tableContainer}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h2>📋 Détail des Ventes ({sales.length} documents)</h2>
+              <h2>ðŸ“‹ DÃ©tail des Ventes ({sales.length} documents)</h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <label style={{ fontWeight: 'bold' }}>Lignes par page:</label>
                 <select
@@ -346,7 +346,7 @@ export default function SalesReport() {
               <thead>
                 <tr>
                   <th>Type</th>
-                  <th>N°</th>
+                  <th>NÂ°</th>
                   <th>Date</th>
                   <th>Client</th>
                   <th style={{ textAlign: 'right' }}>Montant HT</th>
@@ -427,7 +427,7 @@ export default function SalesReport() {
                     cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  ⏮️ Début
+                  â®ï¸ DÃ©but
                 </button>
                 
                 <button
@@ -439,7 +439,7 @@ export default function SalesReport() {
                     cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  ◀️ Précédent
+                  â—€ï¸ PrÃ©cÃ©dent
                 </button>
 
                 <span style={{ fontWeight: 'bold', padding: '0 15px' }}>
@@ -459,7 +459,7 @@ export default function SalesReport() {
                     cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  Suivant ▶️
+                  Suivant â–¶ï¸
                 </button>
 
                 <button
@@ -471,7 +471,7 @@ export default function SalesReport() {
                     cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  Fin ⏭️
+                  Fin â­ï¸
                 </button>
               </div>
             )}

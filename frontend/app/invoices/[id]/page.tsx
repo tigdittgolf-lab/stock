@@ -3,6 +3,9 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../../page.module.css';
+import PaymentSummary from '@/components/payments/PaymentSummary';
+import PaymentForm from '@/components/payments/PaymentForm';
+import PaymentHistory from '@/components/payments/PaymentHistory';
 
 interface Invoice {
   nfact: number;
@@ -43,7 +46,12 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
+  // Payment states
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false);
+  const [refreshPaymentTrigger, setRefreshPaymentTrigger] = useState(0);
+
   // Unwrap params using React.use()
   const resolvedParams = use(params);
 
@@ -64,7 +72,7 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
       }
       
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`http://localhost:3005/api/sales/invoices/${resolvedParams.id}`, {
+      const response = await fetch(`/api/sales/invoices/${resolvedParams.id}`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -95,7 +103,7 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       console.log('🏢 Fetching company info for tenant:', tenant);
       
-      const response = await fetch(`http://localhost:3005/api/settings/activities`, {
+      const response = await fetch(`/api/settings/activities`, {
         headers: {
           'X-Tenant': tenant
         }
@@ -159,8 +167,22 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
     }
   };
 
-  if (loading) {
-    return (
+  // Payment handlers
+  const handlePaymentSuccess = () => {
+    setShowPaymentForm(false);
+    setRefreshPaymentTrigger(prev => prev + 1);
+  };
+
+  const handlePaymentChange = () => {
+    setRefreshPaymentTrigger(prev => prev + 1);
+  };
+
+  const calculateTotalTTC = () => {
+    if (!invoice) return 0;
+    return parseFloat((invoice.total_ttc || (invoice.montant_ht + invoice.tva)).toString()) || 0;
+  };
+
+  if (loading) {    return (
       <div className={styles.page}>
         <div className={styles.loading}>Chargement...</div>
       </div>
@@ -213,28 +235,36 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
           <button onClick={() => router.push('/invoices/list')} className={styles.secondaryButton}>
             Retour à la liste
           </button>
+          <button
+            onClick={() => setShowPaymentForm(true)}
+            className={styles.primaryButton}
+            style={{ marginLeft: '10px', backgroundColor: '#10b981' }}
+          >
+            💰 Enregistrer un paiement
+          </button>
+          <button
+            onClick={() => router.push(`/returns/new?type=invoice&id=${invoice.nfact}`)}
+            className={styles.primaryButton}
+            style={{ marginLeft: '10px', backgroundColor: '#e74c3c' }}
+          >
+            ↩️ Retour / Avoir
+          </button>
           <button 
             onClick={async () => {
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
               try {
-                const response = await fetch(`http://localhost:3005/api/pdf/invoice/${invoice.nfact}`, {
-                  headers: {
-                    'X-Tenant': tenant
-                  }
+                const response = await fetch(`/api/pdf/invoice/${invoice.nfact}`, {
+                  headers: { 'X-Tenant': tenant }
                 });
-                
                 if (response.ok) {
                   const blob = await response.blob();
                   const url = window.URL.createObjectURL(blob);
                   window.open(url, '_blank');
                   window.URL.revokeObjectURL(url);
                 } else {
-                  const errorData = await response.json();
-                  console.error('PDF generation failed:', errorData);
-                  alert('Erreur lors de la génération du PDF: ' + (errorData.error || 'Erreur inconnue'));
+                  alert('Erreur lors de la génération du PDF');
                 }
-              } catch (error) {
-                console.error('Error generating PDF:', error);
+              } catch {
                 alert('Erreur lors de la génération du PDF');
               }
             }} 
@@ -248,6 +278,19 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
 
       <main className={styles.main}>
         <div>
+          {/* Widget de statut de paiement */}
+          {invoice.nfact && (
+            <div style={{ marginBottom: '30px' }}>
+              <PaymentSummary
+                documentType="invoice"
+                documentId={invoice.nfact}
+                totalAmount={calculateTotalTTC()}
+                onViewHistory={() => setShowPaymentHistory(true)}
+                refreshTrigger={refreshPaymentTrigger}
+              />
+            </div>
+          )}
+
           {/* En-tête du document */}
           <div className={styles.formSection}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -352,7 +395,49 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
         </div>
       </main>
 
+      {/* Modal de formulaire de paiement */}
+      {showPaymentForm && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', maxWidth: '600px', width: '90%', maxHeight: '90vh', overflow: 'auto' }}>
+            <PaymentForm
+              documentType="invoice"
+              documentId={invoice.nfact}
+              documentNumber={invoice.nfact.toString()}
+              documentTotalAmount={calculateTotalTTC()}
+              onSuccess={handlePaymentSuccess}
+              onCancel={() => setShowPaymentForm(false)}
+            />
+          </div>
+        </div>
+      )}
 
+      {/* Modal d'historique des paiements */}
+      {showPaymentHistory && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', maxWidth: '900px', width: '90%', maxHeight: '90vh', overflow: 'auto', padding: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0 }}>Historique des paiements</h2>
+              <button onClick={() => setShowPaymentHistory(false)}
+                style={{ padding: '8px 16px', background: '#f0f0f0', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                Fermer
+              </button>
+            </div>
+            <PaymentHistory
+              documentType="invoice"
+              documentId={invoice.nfact}
+              onPaymentChange={handlePaymentChange}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
