@@ -1,11 +1,17 @@
 -- =====================================================
 -- RETOUR EN STOCK — Tables avoir + detail_avoir
 -- Tables dans public avec colonne tenant
--- A exécuter UNE SEULE FOIS dans Supabase SQL Editor
+-- ETAPE 1: Supprimer les anciennes tables si elles existent
 -- =====================================================
 
--- 1. Table avoir
-CREATE TABLE IF NOT EXISTS public.avoir (
+DROP TABLE IF EXISTS public.detail_avoir CASCADE;
+DROP TABLE IF EXISTS public.avoir CASCADE;
+
+-- =====================================================
+-- ETAPE 2: Recréer les tables avec la colonne tenant
+-- =====================================================
+
+CREATE TABLE public.avoir (
   id SERIAL PRIMARY KEY,
   tenant TEXT NOT NULL,
   nclient VARCHAR(10) NOT NULL,
@@ -19,8 +25,7 @@ CREATE TABLE IF NOT EXISTS public.avoir (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- 2. Table detail_avoir
-CREATE TABLE IF NOT EXISTS public.detail_avoir (
+CREATE TABLE public.detail_avoir (
   id SERIAL PRIMARY KEY,
   avoir_id INTEGER NOT NULL REFERENCES public.avoir(id) ON DELETE CASCADE,
   narticle VARCHAR(10) NOT NULL,
@@ -30,13 +35,16 @@ CREATE TABLE IF NOT EXISTS public.detail_avoir (
   total_ligne NUMERIC(15,2) NOT NULL
 );
 
--- 3. Index
-CREATE INDEX IF NOT EXISTS idx_avoir_tenant ON public.avoir(tenant);
-CREATE INDEX IF NOT EXISTS idx_avoir_nclient ON public.avoir(tenant, nclient);
-CREATE INDEX IF NOT EXISTS idx_avoir_document ON public.avoir(tenant, document_type, document_ref);
-CREATE INDEX IF NOT EXISTS idx_detail_avoir_id ON public.detail_avoir(avoir_id);
+-- Index
+CREATE INDEX idx_avoir_tenant ON public.avoir(tenant);
+CREATE INDEX idx_avoir_nclient ON public.avoir(tenant, nclient);
+CREATE INDEX idx_avoir_document ON public.avoir(tenant, document_type, document_ref);
+CREATE INDEX idx_detail_avoir_id ON public.detail_avoir(avoir_id);
 
--- 4. Fonction: insérer un avoir
+-- =====================================================
+-- ETAPE 3: Fonctions RPC
+-- =====================================================
+
 CREATE OR REPLACE FUNCTION public.insert_avoir(
   p_tenant TEXT,
   p_nclient TEXT,
@@ -58,7 +66,6 @@ BEGIN
 END;
 $$;
 
--- 5. Fonction: insérer un détail avoir
 CREATE OR REPLACE FUNCTION public.insert_detail_avoir(
   p_tenant TEXT,
   p_avoir_id INTEGER,
@@ -74,7 +81,6 @@ BEGIN
 END;
 $$;
 
--- 6. Fonction: lister les avoirs d'un tenant
 CREATE OR REPLACE FUNCTION public.get_avoirs_by_tenant(p_tenant TEXT)
 RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
@@ -83,17 +89,16 @@ BEGIN
   SELECT json_agg(row_to_json(a))
   INTO v_result
   FROM (
-    SELECT av.id, av.tenant, av.nclient, av.date_avoir, av.document_type,
-           av.document_ref, av.montant_ht, av.tva, av.montant_ttc, av.motif, av.created_at
-    FROM public.avoir av
-    WHERE av.tenant = p_tenant
-    ORDER BY av.date_avoir DESC, av.id DESC
+    SELECT id, tenant, nclient, date_avoir, document_type,
+           document_ref, montant_ht, tva, montant_ttc, motif, created_at
+    FROM public.avoir
+    WHERE tenant = p_tenant
+    ORDER BY date_avoir DESC, id DESC
   ) a;
   RETURN COALESCE(v_result, '[]'::json);
 END;
 $$;
 
--- 7. Fonction: récupérer un avoir avec ses détails
 CREATE OR REPLACE FUNCTION public.get_avoir_with_details(p_tenant TEXT, p_avoir_id INTEGER)
 RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
@@ -119,7 +124,10 @@ BEGIN
 END;
 $$;
 
--- 8. Permissions
+-- =====================================================
+-- ETAPE 4: Permissions
+-- =====================================================
+
 GRANT ALL ON public.avoir TO anon, authenticated, service_role;
 GRANT ALL ON public.detail_avoir TO anon, authenticated, service_role;
 GRANT USAGE, SELECT ON SEQUENCE public.avoir_id_seq TO anon, authenticated, service_role;
@@ -129,8 +137,9 @@ GRANT EXECUTE ON FUNCTION public.insert_detail_avoir TO anon, authenticated, ser
 GRANT EXECUTE ON FUNCTION public.get_avoirs_by_tenant TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.get_avoir_with_details TO anon, authenticated, service_role;
 
--- Vérification
-SELECT table_name, table_schema
-FROM information_schema.tables
-WHERE table_name IN ('avoir', 'detail_avoir')
-AND table_schema = 'public';
+-- Vérification finale
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_schema = 'public'
+AND table_name = 'avoir'
+ORDER BY ordinal_position;
