@@ -42,6 +42,81 @@ export async function readTable(schema: string, table: string): Promise<any[]> {
 }
 
 /**
+ * Lit une seule ligne par ID via RPC get_row_by_id (rapide) ou fallback readTable.
+ * Essaie les colonnes nfact, nbl, id dans l'ordre.
+ */
+export async function readTableById(schema: string, table: string, idValue: number | string): Promise<any | null> {
+  const url = `${SUPABASE_URL}/rest/v1/rpc/get_row_by_id`;
+  // Essayer les colonnes candidates dans l'ordre
+  for (const col of ['nfact', 'nbl', 'id']) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          p_schema_name: schema,
+          p_table_name: table,
+          p_id_column: col,
+          p_id_value: String(idValue),
+        }),
+      });
+      if (res.ok) {
+        const row = await res.json();
+        if (row && typeof row === 'object' && !Array.isArray(row)) return row;
+      }
+    } catch { /* continuer */ }
+  }
+  // Fallback: charger toute la table
+  const rows = await readTable(schema, table);
+  return rows.find((r: any) => {
+    const keys = Object.keys(r);
+    for (const candidate of ['nfact', 'nbl', 'id']) {
+      const k = keys.find(k => k.toLowerCase() === candidate);
+      if (k && r[k] == idValue) return true;
+    }
+    return false;
+  }) ?? null;
+}
+
+/**
+ * Lit les lignes d'une table filtrées par une colonne via RPC get_table_rows_where.
+ */
+export async function readTableWhere(schema: string, table: string, column: string, value: number | string): Promise<any[]> {
+  const url = `${SUPABASE_URL}/rest/v1/rpc/get_table_rows_where`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        p_schema_name: schema,
+        p_table_name: table,
+        p_id_column: column,
+        p_id_value: String(value),
+      }),
+    });
+    if (res.ok) {
+      const result = await res.json();
+      if (Array.isArray(result)) return result;
+    }
+  } catch { /* fallback */ }
+  // Fallback: charger toute la table et filtrer
+  const rows = await readTable(schema, table);
+  return rows.filter((r: any) => {
+    const keys = Object.keys(r);
+    const k = keys.find(k => k.toLowerCase() === column.toLowerCase());
+    return k && r[k] == value;
+  });
+}
+
+/**
  * Alias pour compatibilité — utilise readTable.
  */
 export async function execSql(sqlQuery: string, _params: string[] = []): Promise<any[]> {

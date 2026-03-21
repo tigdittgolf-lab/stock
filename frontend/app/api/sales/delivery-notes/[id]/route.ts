@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readTable } from '@/lib/supabase-rpc';
+import { readTableById, readTableWhere } from '@/lib/supabase-rpc';
 
 const BACKEND_URL = process.env.BACKEND_URL;
 
@@ -33,15 +33,16 @@ export async function GET(
   }
 
   try {
-    const rows = await readTable(tenant, 'bl');
-    const bl = rows.find((r: any) => (r.nfact || r.nbl) == numericId);
+    const bl = await readTableById(tenant, 'bl', numericId);
     if (!bl) return NextResponse.json({ success: false, error: `BL ${numericId} introuvable` }, { status: 404 });
 
     // Charger les détails
     let details: any[] = [];
     try {
-      const detailRows = await readTable(tenant, 'detail_bl');
-      details = detailRows.filter((d: any) => d.nfact == numericId || d.nbl == numericId);
+      details = await readTableWhere(tenant, 'detail_bl', 'nfact', numericId);
+      if (details.length === 0) {
+        details = await readTableWhere(tenant, 'detail_bl', 'nbl', numericId);
+      }
     } catch { /* pas de détails */ }
 
     return NextResponse.json({ success: true, data: { ...bl, detail_bl: details }, source: 'supabase_direct' });
