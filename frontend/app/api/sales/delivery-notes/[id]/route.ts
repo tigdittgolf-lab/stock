@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readTableById, readTableWhere } from '@/lib/supabase-rpc';
 
 const BACKEND_URL = process.env.BACKEND_URL;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 export async function GET(
   request: NextRequest,
@@ -58,46 +60,53 @@ export async function GET(
       montant_ttc: find('montant_ttc', 'total_ttc', 'mttc'),
     };
 
-    // Charger les détails
+    // Charger les détails — d'abord découvrir les tables disponibles
     let details: any[] = [];
     try {
-      details = await readTableWhere(tenant, 'detail_bl', 'nfact', numericId);
-      if (details.length === 0) {
-        details = await readTableWhere(tenant, 'detail_bl', 'nbl', numericId);
-      }
-      // Essayer d'autres noms de table si vide
-      if (details.length === 0) {
-        for (const tableName of ['detail_fact', 'detailbl', 'bl_detail', 'lignes_bl', 'ligne_bl']) {
-          try {
-            details = await readTableWhere(tenant, tableName, 'nfact', numericId);
-            if (details.length === 0) details = await readTableWhere(tenant, tableName, 'nbl', numericId);
-            if (details.length > 0) { console.log(`✅ Détails trouvés dans table: ${tableName}`); break; }
-          } catch { /* continuer */ }
+      // Lister les tables du schéma pour trouver la bonne
+      const tablesRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/discover_schema_tables`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ p_schema_name: tenant }),
+      });
+      if (tablesRes.ok) {
+        const tables: string[] = await tablesRes.json();
+        console.log(`🗂️ Tables dans ${tenant}:`, tables);
+        // Chercher une table qui ressemble à "detail"
+        const detailTable = tables.find((t: string) => t.toLowerCase().includes('detail'));
+        console.log(`🔍 Table détail trouvée: ${detailTable}`);
+        if (detailTable) {
+          details = await readTableWhere(tenant, detailTable, 'nfact', numericId);
+          if (details.length === 0) details = await readTableWhere(tenant, detailTable, 'nbl', numericId);
+          console.log(`📦 ${details.length} lignes dans ${detailTable} pour nfact=${numericId}`);
+          // Normaliser les détails
+          details = details.map((d: any) => {
+            const dk = Object.keys(d);
+            const df = (...names: string[]) => {
+              for (const n of names) {
+                const k = dk.find(k => k.toLowerCase() === n.toLowerCase());
+                if (k !== undefined && d[k] !== null && d[k] !== undefined) return d[k];
+              }
+              return undefined;
+            };
+            return {
+              ...d,
+              narticle: df('narticle', 'article', 'code_article', 'ref'),
+              designation: df('designation', 'libelle', 'nom_article', 'description'),
+              qte: df('qte', 'quantite', 'qty'),
+              prix: df('prix', 'prix_unitaire', 'pu', 'prix_vente'),
+              tva: df('tva', 'taux_tva', 'taxe'),
+              total_ligne: df('total_ligne', 'montant_ligne', 'total', 'montant'),
+            };
+          });
         }
       }
-      console.log(`📦 [delivery-notes/${numericId}] ${details.length} lignes de détail`);
-      // Normaliser les détails aussi
-      details = details.map((d: any) => {
-        const dk = Object.keys(d);
-        const df = (...names: string[]) => {
-          for (const n of names) {
-            const k = dk.find(k => k.toLowerCase() === n.toLowerCase());
-            if (k !== undefined && d[k] !== null && d[k] !== undefined) return d[k];
-          }
-          return undefined;
-        };
-        return {
-          ...d,
-          narticle: df('narticle', 'article', 'code_article', 'ref'),
-          designation: df('designation', 'libelle', 'nom_article', 'description'),
-          qte: df('qte', 'quantite', 'qty', 'quantité'),
-          prix: df('prix', 'prix_unitaire', 'pu', 'prix_vente'),
-          tva: df('tva', 'taux_tva', 'taxe'),
-          total_ligne: df('total_ligne', 'montant_ligne', 'total', 'montant'),
-        };
-      });
     } catch (e) {
-      console.warn(`⚠️ [delivery-notes/${numericId}] Erreur chargement détails:`, e);
+      console.warn(`⚠️ Erreur chargement détails:`, e);
     }
 
     return NextResponse.json({ success: true, data: { ...normalized, details, detail_bl: details }, source: 'supabase_direct' });
