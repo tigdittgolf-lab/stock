@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readTable } from '@/lib/supabase-rpc';
+import { execSql } from '@/lib/supabase-rpc';
 
 const BACKEND_URL = process.env.BACKEND_URL;
 
@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
         signal: AbortSignal.timeout(8000)
       });
       if (res.ok) return NextResponse.json(await res.json());
+      console.warn(`[articles] Backend responded ${res.status}, falling back to Supabase direct`);
     } catch (e) {
       console.warn('[articles] Backend unavailable, using Supabase direct');
     }
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
   try {
     if (dbType !== 'supabase') return NextResponse.json({ success: true, data: [] });
 
-    const rows = await readTable(tenant, 'article', 'Narticle');
+    const rows = await execSql(`SELECT * FROM "${tenant}"."article" ORDER BY "Narticle"`);
     const data = rows.map((a: any) => ({
       narticle: a.Narticle || a.narticle,
       famille: a.famille || a.Famille,

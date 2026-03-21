@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readTable } from '@/lib/supabase-rpc';
+import { execSql } from '@/lib/supabase-rpc';
 
 const BACKEND_URL = process.env.BACKEND_URL;
 
@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
         signal: AbortSignal.timeout(8000)
       });
       if (res.ok) return NextResponse.json(await res.json());
+      console.warn(`[suppliers] Backend responded ${res.status}, falling back to Supabase direct`);
     } catch (e) {
       console.warn('[suppliers] Backend unavailable, using Supabase direct');
     }
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
   try {
     if (dbType !== 'supabase') return NextResponse.json({ success: true, data: [] });
 
-    const rows = await readTable(tenant, 'fournisseur', 'nfournisseur');
+    const rows = await execSql(`SELECT * FROM "${tenant}"."fournisseur" ORDER BY "nfournisseur"`);
     const data = rows.map((s: any) => ({
       nfournisseur: s.Nfournisseur || s.nfournisseur,
       nom_fournisseur: s.nom_fournisseur || s.Nom_fournisseur,
