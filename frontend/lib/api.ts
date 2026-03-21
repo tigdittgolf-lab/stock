@@ -55,27 +55,18 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
 
 // Fonction utilitaire pour les URLs API - PRODUCTION READY
 export const getApiUrl = (endpoint: string): string => {
-  // En développement, utiliser le backend sur le port 3005
+  // Toujours utiliser les routes Next.js /api/... qui proxient vers le backend
+  // Cela fonctionne en local (localhost:3000) ET en production (Vercel)
   if (typeof window !== 'undefined') {
-    // Vérifier si on est en développement (localhost)
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      const url = `http://localhost:3005/api/${endpoint}`;
-      console.log('🌐 API URL (Dev):', url);
-      return url;
-    }
-    
-    // En production, utiliser l'URL actuelle
     const url = `${window.location.origin}/api/${endpoint}`;
-    console.log('🌐 API URL (Prod):', url);
+    console.log('🌐 API URL:', url);
     return url;
   }
   
   // Fallback SSR
-  const url = process.env.NEXT_PUBLIC_API_URL 
+  return process.env.NEXT_PUBLIC_API_URL 
     ? `${process.env.NEXT_PUBLIC_API_URL}/${endpoint}`
-    : `http://localhost:3005/api/${endpoint}`;
-  console.log('🔄 Fallback SSR URL:', url);
-  return url;
+    : `/api/${endpoint}`;
 };
 
 // Fonction helper pour obtenir les headers par défaut avec X-Database-Type
