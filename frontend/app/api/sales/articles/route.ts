@@ -40,8 +40,14 @@ export async function GET(request: NextRequest) {
     console.log(`✅ [articles direct] ${data.length} for ${tenant}`);
     return NextResponse.json({ success: true, data, source: 'supabase_direct' });
   } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Erreur';
+    // Schéma inexistant → retourner tableau vide plutôt que 500
+    if (msg.includes('does not exist') || msg.includes('n\'existe pas') || msg.includes('HTTP 404') || msg.includes('HTTP 400') || msg.includes('HTTP 422')) {
+      console.warn(`⚠️ [articles] Schéma ${tenant} introuvable dans Supabase, retour tableau vide`);
+      return NextResponse.json({ success: true, data: [], source: 'empty_schema' });
+    }
     console.error('❌ articles direct error:', error);
-    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Erreur' }, { status: 500 });
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
 

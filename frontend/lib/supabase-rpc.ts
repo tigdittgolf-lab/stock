@@ -25,6 +25,7 @@ export async function readTable(schema: string, table: string): Promise<any[]> {
 
   if (!res.ok) {
     const err = await res.text();
+    // Inclure le status dans le message pour faciliter la détection côté appelant
     throw new Error(`readTable ${schema}.${table} HTTP ${res.status}: ${err}`);
   }
 
