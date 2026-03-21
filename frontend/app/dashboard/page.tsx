@@ -2770,7 +2770,22 @@ export default function Dashboard() {
                           fontWeight: 'bold'
                         }}
                       >
-                        ⚠️ Recouvrement / Impayés
+                        ⚠️ Recouvrement Clients
+                      </button>
+                      <button 
+                        onClick={() => router.push('/payments/overdue-suppliers')}
+                        style={{
+                          margin: '5px',
+                          padding: '12px 25px',
+                          backgroundColor: '#8e44ad',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        🏭 Dettes Fournisseurs
                       </button>
                       <button 
                         onClick={() => router.push('/payments/report')}
