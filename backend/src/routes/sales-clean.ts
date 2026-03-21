@@ -3317,4 +3317,209 @@ sales.post('/credit-notes', async (c) => {
   }
 });
 
+// =====================================================
+// AVOIRS / RETOURS CLIENTS
+// =====================================================
+
+// GET /sales/credit-notes — liste des avoirs du tenant
+sales.get('/credit-notes', async (c) => {
+  const tenant = c.req.header('X-Tenant') || '';
+  if (!tenant) return c.json({ success: false, error: 'Tenant requis' }, 400);
+
+  try {
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+
+    if (dbType === 'supabase') {
+      const { data, error } = await supabaseAdmin
+        .from('avoir')
+        .select('*')
+        .eq('tenant', tenant)
+        .order('date_avoir', { ascending: false });
+
+      if (error) return c.json({ success: false, error: error.message }, 500);
+      return c.json({ success: true, data: data || [] });
+
+    } else {
+      const result = await backendDatabaseService.executeQuery(
+        `SELECT * FROM avoir WHERE 1=1 ORDER BY date_avoir DESC, id DESC`,
+        []
+      );
+      if (!result.success) return c.json({ success: false, error: result.error }, 500);
+      return c.json({ success: true, data: result.data || [] });
+    }
+
+  } catch (error) {
+    console.error('❌ Error fetching avoirs:', error);
+    return c.json({ success: false, error: 'Erreur récupération avoirs' }, 500);
+  }
+});
+
+// GET /sales/credit-notes/:id — détail d'un avoir
+sales.get('/credit-notes/:id', async (c) => {
+  const tenant = c.req.header('X-Tenant') || '';
+  const id = parseInt(c.req.param('id'));
+  if (!tenant) return c.json({ success: false, error: 'Tenant requis' }, 400);
+
+  try {
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+
+    if (dbType === 'supabase') {
+      const { data: avoir, error: e1 } = await supabaseAdmin
+        .from('avoir')
+        .select('*')
+        .eq('id', id)
+        .eq('tenant', tenant)
+        .single();
+
+      if (e1 || !avoir) return c.json({ success: false, error: 'Avoir introuvable' }, 404);
+
+      const { data: details, error: e2 } = await supabaseAdmin
+        .from('detail_avoir')
+        .select('*')
+        .eq('avoir_id', id);
+
+      return c.json({ success: true, data: { ...avoir, details: details || [] } });
+
+    } else {
+      const r1 = await backendDatabaseService.executeQuery(
+        `SELECT * FROM avoir WHERE id = ?`, [id]
+      );
+      if (!r1.success || !r1.data?.[0]) return c.json({ success: false, error: 'Avoir introuvable' }, 404);
+
+      const r2 = await backendDatabaseService.executeQuery(
+        `SELECT * FROM detail_avoir WHERE avoir_id = ?`, [id]
+      );
+      return c.json({ success: true, data: { ...r1.data[0], details: r2.data || [] } });
+    }
+
+  } catch (error) {
+    console.error('❌ Error fetching avoir:', error);
+    return c.json({ success: false, error: 'Erreur récupération avoir' }, 500);
+  }
+});
+
+// POST /sales/credit-notes — créer un avoir + remettre stock + enregistrer crédit
+sales.post('/credit-notes', async (c) => {
+  const tenant = c.req.header('X-Tenant') || '';
+  if (!tenant) return c.json({ success: false, error: 'Tenant requis' }, 400);
+
+  try {
+    const body = await c.req.json();
+    const { nclient, document_type, document_ref, date_avoir, motif, lines } = body;
+
+    if (!nclient || !document_type || !document_ref || !lines?.length) {
+      return c.json({ success: false, error: 'Données manquantes' }, 400);
+    }
+
+    // Calculer les totaux
+    let montant_ht = 0;
+    let tva_total = 0;
+    for (const l of lines) {
+      const ht = l.qte * l.prix;
+      montant_ht += ht;
+      tva_total += ht * (l.tva / 100);
+    }
+    const montant_ttc = montant_ht + tva_total;
+
+    const dbType = backendDatabaseService.getActiveDatabaseType();
+    let avoirId: number;
+
+    if (dbType === 'supabase') {
+      // Insérer l'avoir
+      const { data: avoir, error: e1 } = await supabaseAdmin
+        .from('avoir')
+        .insert({
+          tenant,
+          nclient,
+          date_avoir: date_avoir || new Date().toISOString().split('T')[0],
+          document_type,
+          document_ref,
+          montant_ht,
+          tva: tva_total,
+          montant_ttc,
+          motif: motif || null
+        })
+        .select('id')
+        .single();
+
+      if (e1 || !avoir) return c.json({ success: false, error: e1?.message || 'Erreur insertion avoir' }, 500);
+      avoirId = avoir.id;
+
+      // Insérer les détails
+      const details = lines.map((l: any) => ({
+        avoir_id: avoirId,
+        narticle: l.narticle,
+        qte: l.qte,
+        prix: l.prix,
+        tva: l.tva,
+        total_ligne: l.qte * l.prix * (1 + l.tva / 100)
+      }));
+      await supabaseAdmin.from('detail_avoir').insert(details);
+
+      // Remettre le stock (table dans le schéma tenant via RPC)
+      const stockTable = document_type === 'bl' ? 'stock_bl' : 'stock_f';
+      for (const l of lines) {
+        await supabaseAdmin.rpc('exec_sql', {
+          sql: `UPDATE "${tenant}"."article" SET "${stockTable}" = COALESCE("${stockTable}", 0) + ${l.qte} WHERE "Narticle" = '${l.narticle}'`
+        });
+      }
+
+      // Enregistrer un crédit négatif dans payments
+      await supabaseAdmin.from('payments').insert({
+        tenant_id: tenant,
+        document_type: document_type === 'bl' ? 'delivery_note' : 'invoice',
+        document_id: document_ref,
+        payment_date: date_avoir || new Date().toISOString().split('T')[0],
+        amount: -montant_ttc,
+        payment_method: 'avoir',
+        notes: `Avoir N°${avoirId}`
+      });
+
+    } else {
+      // MySQL
+      const r1 = await backendDatabaseService.executeQuery(
+        `INSERT INTO avoir (nclient, date_avoir, document_type, document_ref, montant_ht, tva, montant_ttc, motif)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [nclient, date_avoir || new Date().toISOString().split('T')[0], document_type, document_ref, montant_ht, tva_total, montant_ttc, motif || null]
+      );
+      if (!r1.success) return c.json({ success: false, error: r1.error }, 500);
+      avoirId = r1.data?.insertId;
+
+      for (const l of lines) {
+        await backendDatabaseService.executeQuery(
+          `INSERT INTO detail_avoir (avoir_id, narticle, qte, prix, tva, total_ligne) VALUES (?, ?, ?, ?, ?, ?)`,
+          [avoirId, l.narticle, l.qte, l.prix, l.tva, l.qte * l.prix * (1 + l.tva / 100)]
+        );
+      }
+
+      // Remettre le stock
+      const stockCol = document_type === 'bl' ? 'stock_bl' : 'stock_f';
+      for (const l of lines) {
+        await backendDatabaseService.executeQuery(
+          `UPDATE article SET ${stockCol} = COALESCE(${stockCol}, 0) + ? WHERE Narticle = ?`,
+          [l.qte, l.narticle]
+        );
+      }
+
+      // Crédit négatif dans payments
+      await backendDatabaseService.executeQuery(
+        `INSERT INTO payments (tenant_id, document_type, document_id, payment_date, amount, payment_method, notes)
+         VALUES (?, ?, ?, ?, ?, 'avoir', ?)`,
+        [tenant, document_type === 'bl' ? 'delivery_note' : 'invoice', document_ref, date_avoir, -montant_ttc, `Avoir N°${avoirId}`]
+      );
+    }
+
+    console.log(`✅ Avoir N°${avoirId} créé pour client ${nclient}, document ${document_type} #${document_ref}`);
+    return c.json({
+      success: true,
+      message: `Avoir N°${avoirId} créé avec succès`,
+      data: { avoir_id: avoirId, montant_ht, tva: tva_total, montant_ttc }
+    });
+
+  } catch (error) {
+    console.error('❌ Error creating avoir:', error);
+    return c.json({ success: false, error: 'Erreur création avoir' }, 500);
+  }
+});
+
 export default sales;
