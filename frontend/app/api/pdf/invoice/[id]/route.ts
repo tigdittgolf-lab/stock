@@ -4,79 +4,47 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+  const tenant = request.headers.get('X-Tenant') || '2009_bu02';
+
+  const numericId = parseInt(id);
+  if (!id || id === 'undefined' || id === 'null' || isNaN(numericId) || numericId <= 0) {
+    return NextResponse.json({ success: false, error: `ID facture invalide: ${id}` }, { status: 400 });
+  }
+  const validId = String(numericId);
+
+  const backendUrl = process.env.BACKEND_URL
+    ? `${process.env.BACKEND_URL}/api`
+    : 'http://localhost:3005/api';
+
   try {
-    // Attendre la résolution de la Promise params
-    const { id } = await params;
-    const tenant = request.headers.get('X-Tenant') || '2009_bu02';
-    
-    console.log(`🔄 Frontend PDF API: Forwarding invoice PDF request for ID ${id}, tenant ${tenant}`);
-    
-    // Validation stricte de l'ID
-    const numericId = parseInt(id);
-    if (!id || id === 'undefined' || id === 'null' || isNaN(numericId) || numericId <= 0) {
-      console.error(`🚨 ERREUR: ID facture invalide reçu par le proxy: "${id}"`);
-      return NextResponse.json(
-        { success: false, error: `ID facture invalide: ${id}. Veuillez fournir un ID valide.` },
-        { status: 400 }
-      );
-    }
-    
-    const validId = String(numericId);
-    
-    // Utiliser BACKEND_URL pour accéder au backend
-    const backendUrl = `${process.env.BACKEND_URL || 'http://localhost:3005'}/api/pdf/invoice/` + validId;
-    
-    const response = await fetch(backendUrl, {
-      method: 'GET',
-      headers: {
-        'X-Tenant': tenant,
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
-      }
+    const response = await fetch(`${backendUrl}/pdf/invoice/${validId}`, {
+      headers: { 'X-Tenant': tenant, 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+      signal: AbortSignal.timeout(15000)
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Backend error:  Backend PDF error: ${response.status} - ${errorText}`);
-      
-      return NextResponse.json({
-        success: false,
-        error: `Backend PDF error: ${response.status} - ${errorText}`
-      }, { status: response.status });
+      console.warn(`[pdf/invoice] Backend ${response.status}, redirect to print page`);
+      return NextResponse.redirect(new URL(`/print/invoice/${validId}?tenant=${tenant}`, request.url));
     }
 
-    // Vérifier si c'est un PDF ou une erreur JSON
     const contentType = response.headers.get('content-type');
-    
     if (contentType?.includes('application/pdf')) {
-      // C'est un PDF, le transférer directement
       const pdfBuffer = await response.arrayBuffer();
-      
-      console.log(`✅ Frontend PDF API: Successfully forwarded PDF for invoice ${id}`);
-      
       return new NextResponse(pdfBuffer, {
         status: 200,
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `inline; filename="facture_${validId}.pdf"`,
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          'Cache-Control': 'no-cache',
         }
       });
-    } else {
-      // C'est probablement une erreur JSON
-      const errorData = await response.json();
-      console.error(`❌ Backend returned error:`, errorData);
-      
-      return NextResponse.json(errorData, { status: response.status });
     }
 
-  } catch (error) {
-    console.error('❌ Frontend PDF API error:', error);
-    return NextResponse.json({
-      success: false,
-      error: `Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
-    }, { status: 500 });
+    const errorData = await response.json();
+    return NextResponse.json(errorData, { status: response.status });
+  } catch {
+    console.warn(`[pdf/invoice] Backend inaccessible, redirect to /print/invoice/${validId}`);
+    return NextResponse.redirect(new URL(`/print/invoice/${validId}?tenant=${tenant}`, request.url));
   }
 }

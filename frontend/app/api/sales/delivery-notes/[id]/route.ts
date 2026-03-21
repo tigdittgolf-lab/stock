@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readTable, readTableById } from '@/lib/supabase-rpc';
+import { readTableById, readTableWhere } from '@/lib/supabase-rpc';
 
 const BACKEND_URL = process.env.BACKEND_URL;
 
@@ -58,19 +58,19 @@ export async function GET(
       montant_ttc: find('montant_ttc', 'total_ttc', 'mttc'),
     };
 
-    // Charger les détails via detail_bl
+    // Charger les détails via detail_bl — utiliser readTableWhere pour éviter de charger toute la table
     let details: any[] = [];
     try {
-      const detailRows = await readTable(tenant, 'detail_bl');
-      details = detailRows.filter((d: any) => {
-        const keys = Object.keys(d);
-        const nfactKey = keys.find(k => k.toLowerCase() === 'nfact');
-        const nblKey = keys.find(k => k.toLowerCase() === 'nbl');
-        return (nfactKey && d[nfactKey] == numericId) || (nblKey && d[nblKey] == numericId);
-      });
-      console.log(`📦 [detail_bl] ${details.length} lignes pour nfact=${numericId}`);
-      // Normaliser les détails
-      details = details.map((d: any) => {
+      // Essayer nfact d'abord, puis nbl
+      let detailRows = await readTableWhere(tenant, 'detail_bl', 'nfact', numericId);
+      if (detailRows.length === 0) {
+        detailRows = await readTableWhere(tenant, 'detail_bl', 'nbl', numericId);
+      }
+      console.log(`📦 [detail_bl] ${detailRows.length} lignes pour nfact=${numericId} dans ${tenant}`);
+      if (detailRows.length > 0) {
+        console.log(`🔑 [detail_bl] Colonnes:`, Object.keys(detailRows[0]));
+      }
+      details = detailRows.map((d: any) => {
         const dk = Object.keys(d);
         const df = (...names: string[]) => {
           for (const n of names) {

@@ -65,7 +65,10 @@ export async function readTableById(schema: string, table: string, idValue: numb
         }),
       });
       if (res.ok) {
-        const row = await res.json();
+        const result = await res.json();
+        // get_row_by_id retourne JSON — Supabase l'enveloppe dans [value]
+        let row = result;
+        if (Array.isArray(result) && result.length === 1) row = result[0];
         if (row && typeof row === 'object' && !Array.isArray(row)) return row;
       }
     } catch { /* continuer */ }
@@ -104,10 +107,29 @@ export async function readTableWhere(schema: string, table: string, column: stri
     });
     if (res.ok) {
       const result = await res.json();
-      if (Array.isArray(result)) return result;
+      // get_table_rows_where retourne JSON — Supabase l'enveloppe dans [value]
+      if (Array.isArray(result)) {
+        // Cas 1: tableau direct de lignes
+        if (result.length > 0 && typeof result[0] === 'object' && result[0] !== null && !Array.isArray(result[0])) {
+          return result;
+        }
+        // Cas 2: Supabase enveloppe le JSON dans un tableau à un élément
+        if (result.length === 1) {
+          const inner = result[0];
+          if (Array.isArray(inner)) return inner;
+          if (inner === null) return [];
+        }
+        if (result.length === 0) return [];
+        return result;
+      }
+      // Cas 3: retour direct d'un tableau JSON (pas enveloppé)
+      if (result && typeof result === 'object' && !Array.isArray(result)) return [result];
     }
-  } catch { /* fallback */ }
+  } catch (e) {
+    console.warn(`[readTableWhere] RPC failed for ${schema}.${table} WHERE ${column}=${value}:`, e);
+  }
   // Fallback: charger toute la table et filtrer
+  console.warn(`[readTableWhere] Fallback readTable pour ${schema}.${table}`);
   const rows = await readTable(schema, table);
   return rows.filter((r: any) => {
     const keys = Object.keys(r);
