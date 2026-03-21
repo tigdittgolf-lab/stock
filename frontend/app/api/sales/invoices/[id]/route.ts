@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readTable } from '@/lib/supabase-rpc';
+import { readTableById, readTableWhere } from '@/lib/supabase-rpc';
 
 const BACKEND_URL = process.env.BACKEND_URL;
+
+const schemaError = (msg: string) =>
+  msg.includes('does not exist') || msg.includes('HTTP 404') || msg.includes('HTTP 400') || msg.includes('HTTP 422');
 
 export async function GET(
   request: NextRequest,
@@ -16,7 +19,7 @@ export async function GET(
     return NextResponse.json({ success: false, error: `ID facture invalide: ${id}` }, { status: 400 });
   }
 
-  // 1. Backend
+  // 1. Backend (MySQL, PostgreSQL, ou Supabase via backend)
   if (BACKEND_URL) {
     try {
       const res = await fetch(`${BACKEND_URL}/api/sales/invoices/${numericId}`, {
@@ -24,29 +27,28 @@ export async function GET(
         signal: AbortSignal.timeout(8000)
       });
       if (res.ok) return NextResponse.json(await res.json());
+      console.warn(`[invoices/id] Backend ${res.status}, fallback Supabase`);
     } catch { console.warn('[invoices/id] Backend unavailable'); }
   }
 
-  // 2. Supabase direct
+  // 2. Supabase direct uniquement
   if (dbType !== 'supabase') {
-    return NextResponse.json({ success: false, error: 'Backend non disponible' }, { status: 503 });
+    return NextResponse.json({ success: false, error: 'Backend non disponible pour MySQL/PostgreSQL' }, { status: 503 });
   }
 
   try {
-    const rows = await readTable(tenant, 'facture');
-    const facture = rows.find((r: any) => r.nfact == numericId);
+    const facture = await readTableById(tenant, 'facture', numericId);
     if (!facture) return NextResponse.json({ success: false, error: `Facture ${numericId} introuvable` }, { status: 404 });
 
-    // Charger les détails
     let details: any[] = [];
     try {
-      const detailRows = await readTable(tenant, 'detail_fact');
-      details = detailRows.filter((d: any) => d.nfact == numericId);
+      details = await readTableWhere(tenant, 'detail_fact', 'nfact', numericId);
     } catch { /* pas de détails */ }
 
     return NextResponse.json({ success: true, data: { ...facture, detail_fact: details }, source: 'supabase_direct' });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Erreur';
+    if (schemaError(msg)) return NextResponse.json({ success: false, error: `Schéma ${tenant} introuvable` }, { status: 404 });
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }

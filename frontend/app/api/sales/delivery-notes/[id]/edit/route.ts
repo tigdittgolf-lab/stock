@@ -1,56 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://desktop-bhhs068.tail1d9c54.ts.net/api'
-  : 'http://localhost:3005/api';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3005';
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+  const tenant = request.headers.get('X-Tenant');
+  const dbType = request.headers.get('X-Database-Type') || 'supabase';
+
+  if (!tenant) {
+    return NextResponse.json({ success: false, error: 'Tenant header required' }, { status: 400 });
+  }
+
+  const body = await request.json();
+
   try {
-    // Next.js 15: params est maintenant une Promise
-    const resolvedParams = await params;
-    const tenant = request.headers.get('X-Tenant');
-    
-    if (!tenant) {
-      return NextResponse.json(
-        { success: false, error: 'Tenant header required' },
-        { status: 400 }
-      );
-    }
-
-    const body = await request.json();
-    console.log(`🔄 Frontend API: Updating BL ${resolvedParams.id} for tenant: ${tenant}`);
-
-    const response = await fetch(`${API_BASE_URL}/sales/delivery-notes/${resolvedParams.id}`, {
+    const res = await fetch(`${BACKEND_URL}/api/sales/delivery-notes/${id}`, {
       method: 'PUT',
       headers: {
         'X-Tenant': tenant,
+        'X-Database-Type': dbType,
         'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': 'true'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15000)
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Backend error:  Backend error ${response.status}: ${errorText}`);
-      return NextResponse.json(
-        { success: false, error: `Backend error: ${response.status}` },
-        { status: response.status }
-      );
+    if (!res.ok) {
+      const err = await res.text();
+      return NextResponse.json({ success: false, error: `Backend error: ${res.status}` }, { status: res.status });
     }
 
-    const data = await response.json();
-    console.log(`✅ Frontend API: BL ${resolvedParams.id} updated successfully`);
-    
-    return NextResponse.json(data);
+    return NextResponse.json(await res.json());
   } catch (error) {
-    console.error('❌ Frontend API error updating BL:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to update BL' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: 'Backend non disponible' }, { status: 503 });
   }
 }
