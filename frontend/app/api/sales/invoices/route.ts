@@ -7,11 +7,23 @@ const emptyOk = () => NextResponse.json({ success: true, data: [], source: 'empt
 const schemaError = (msg: string) =>
   msg.includes('does not exist') || msg.includes('HTTP 404') || msg.includes('HTTP 400') || msg.includes('HTTP 422');
 
+const normalizeInvoice = (r: any) => ({
+  nfact: r.nfact ?? r.Nfact ?? r.NFACT ?? r.id,
+  date_fact: r.date_fact ?? r.Date_fact,
+  nclient: r.nclient ?? r.Nclient ?? r.NCLIENT,
+  client_name: r.client_name ?? r.raison_sociale ?? r.nom,
+  montant_ht: r.montant_ht ?? r.Montant_ht,
+  tva: r.tva ?? r.TVA ?? r.Tva,
+  montant_ttc: r.montant_ttc ?? r.Montant_ttc ?? r.total_ttc,
+  timbre: r.timbre ?? r.Timbre,
+  statut: r.statut ?? r.Statut,
+  marge: r.marge ?? r.Marge,
+});
+
 export async function GET(request: NextRequest) {
   const tenant = request.headers.get('X-Tenant') || '2025_bu01';
   const dbType = request.headers.get('X-Database-Type') || 'supabase';
 
-  // 1. Essayer le backend si disponible
   if (BACKEND_URL) {
     try {
       const res = await fetch(`${BACKEND_URL}/api/sales/invoices`, {
@@ -25,23 +37,13 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // 2. Supabase direct
   if (dbType !== 'supabase') return emptyOk();
 
   try {
     const rows = await readTable(tenant, 'facture');
-    const data = rows.map((r: any) => ({
-      nfact: r.nfact,
-      date_fact: r.date_fact,
-      nclient: r.nclient,
-      montant_ht: r.montant_ht,
-      tva: r.tva,
-      montant_ttc: r.montant_ttc || r.total_ttc,
-      timbre: r.timbre,
-      statut: r.statut,
-    }));
-    console.log(`✅ [invoices direct] ${data.length} for ${tenant}`);
-    return NextResponse.json({ success: true, data, source: 'supabase_direct' });
+    const data = rows.map(normalizeInvoice);
+    console.log(`✅ [invoices direct] ${data.length} for ${tenant}, sample nfact: ${data[0]?.nfact}`);
+    return NextResponse.json({ success: true, data, count: data.length, source: 'supabase_direct' });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Erreur';
     if (schemaError(msg)) {

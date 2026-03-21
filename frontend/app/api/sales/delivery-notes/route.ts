@@ -30,20 +30,27 @@ export async function GET(request: NextRequest) {
 
   try {
     const rows = await readTable(tenant, 'bl');
-    const data = rows.map((r: any) => ({
-      nfact: r.nfact || r.nbl,
-      nbl: r.nbl || r.nfact,
-      date_fact: r.date_fact || r.date_bl,
-      date_bl: r.date_bl || r.date_fact,
-      nclient: r.nclient,
-      montant_ht: r.montant_ht,
-      tva: r.tva,
-      montant_ttc: r.montant_ttc || r.total_ttc,
-      timbre: r.timbre,
-      statut: r.statut,
-    }));
-    console.log(`✅ [delivery-notes direct] ${data.length} for ${tenant}`);
-    return NextResponse.json({ success: true, data, source: 'supabase_direct' });
+    // Normaliser les noms de colonnes (majuscules/minuscules selon l'ancienneté de la base)
+    const data = rows.map((r: any) => {
+      const nbl = r.nbl ?? r.Nbl ?? r.NBL ?? r.nfact ?? r.Nfact ?? r.NFACT ?? r.id;
+      const nfact = r.nfact ?? r.Nfact ?? r.NFACT ?? r.nbl ?? r.Nbl ?? r.id;
+      return {
+        nbl,
+        nfact,
+        date_fact: r.date_fact ?? r.Date_fact ?? r.date_bl ?? r.Date_bl,
+        date_bl: r.date_bl ?? r.Date_bl ?? r.date_fact ?? r.Date_fact,
+        nclient: r.nclient ?? r.Nclient ?? r.NCLIENT,
+        client_name: r.client_name ?? r.raison_sociale ?? r.nom,
+        montant_ht: r.montant_ht ?? r.Montant_ht,
+        tva: r.tva ?? r.TVA ?? r.Tva,
+        montant_ttc: r.montant_ttc ?? r.Montant_ttc ?? r.total_ttc,
+        timbre: r.timbre ?? r.Timbre,
+        statut: r.statut ?? r.Statut,
+        marge: r.marge ?? r.Marge,
+      };
+    });
+    console.log(`✅ [delivery-notes direct] ${data.length} for ${tenant}, sample nbl: ${data[0]?.nbl}`);
+    return NextResponse.json({ success: true, data, count: data.length, source: 'supabase_direct' });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Erreur';
     if (schemaError(msg)) {
