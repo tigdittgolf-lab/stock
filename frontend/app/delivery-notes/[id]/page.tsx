@@ -100,8 +100,8 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const dbConfig = localStorage.getItem('activeDbConfig');
       const dbType = dbConfig ? (JSON.parse(dbConfig).type || 'supabase') : 'supabase';
-      // Utiliser /detail/[id] pour éviter le conflit de routing Vercel avec la route liste
-      const response = await fetch(`/api/sales/delivery-notes/detail/${resolvedParams.id}`, {
+      // Utiliser ?id= (query param) au lieu de /[id] dynamique — les routes dynamiques ne se déploient pas sur Vercel
+      const response = await fetch(`/api/sales/delivery-notes?id=${resolvedParams.id}`, {
         headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType }
       });
       
