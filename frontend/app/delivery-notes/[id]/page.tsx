@@ -278,25 +278,9 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           </button>
           <button 
             onClick={() => {
-              const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
               const blId = deliveryNote.nfact || deliveryNote.nbl;
-              console.log('🖨️ Printing BL Complet with ID:', blId);
-              const url = `/api/pdf/delivery-note/${blId}`;
-              
-              fetch(url, {
-                headers: {
-                  'X-Tenant': tenant
-                }
-              })
-              .then(response => response.blob())
-              .then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                window.open(url, '_blank');
-              })
-              .catch(error => {
-                console.error('Erreur PDF:', error);
-                alert('Erreur lors de la génération du PDF');
-              });
+              const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
+              window.open(`/print/bl/${blId}?tenant=${encodeURIComponent(tenant)}&lang=fr`, '_blank');
             }}
             className={styles.primaryButton}
             style={{ marginLeft: '10px' }}
@@ -305,25 +289,9 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           </button>
           <button 
             onClick={() => {
-              const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
               const blId = deliveryNote.nfact || deliveryNote.nbl;
-              console.log('🖨️ Printing BL Réduit with ID:', blId);
-              const url = `/api/pdf/delivery-note-small/${blId}`;
-              
-              fetch(url, {
-                headers: {
-                  'X-Tenant': tenant
-                }
-              })
-              .then(response => response.blob())
-              .then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                window.open(url, '_blank');
-              })
-              .catch(error => {
-                console.error('Erreur PDF:', error);
-                alert('Erreur lors de la génération du PDF');
-              });
+              const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
+              window.open(`/print/bl/${blId}?tenant=${encodeURIComponent(tenant)}&lang=fr&mode=reduit`, '_blank');
             }}
             className={styles.primaryButton}
             style={{ marginLeft: '10px' }}
@@ -332,25 +300,9 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           </button>
           <button 
             onClick={() => {
-              const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
               const blId = deliveryNote.nfact || deliveryNote.nbl;
-              console.log('🖨️ Printing Ticket with ID:', blId);
-              const url = `/api/pdf/delivery-note-ticket/${blId}`;
-              
-              fetch(url, {
-                headers: {
-                  'X-Tenant': tenant
-                }
-              })
-              .then(response => response.blob())
-              .then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                window.open(url, '_blank');
-              })
-              .catch(error => {
-                console.error('Erreur PDF:', error);
-                alert('Erreur lors de la génération du PDF');
-              });
+              const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
+              window.open(`/print/bl/${blId}?tenant=${encodeURIComponent(tenant)}&lang=fr&mode=ticket`, '_blank');
             }}
             className={styles.primaryButton}
             style={{ marginLeft: '10px' }}
@@ -361,7 +313,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
             onClick={() => {
               const blId = deliveryNote.nfact || deliveryNote.nbl;
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-              window.open(`/print/bl/${blId}?tenant=${encodeURIComponent(tenant)}`, '_blank');
+              window.open(`/print/bl/${blId}?tenant=${encodeURIComponent(tenant)}&lang=bilingual`, '_blank');
             }} 
             className={styles.primaryButton}
             style={{ marginLeft: '10px' }}
