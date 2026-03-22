@@ -17,7 +17,7 @@ interface Client {
 }
 
 interface Article {
- ng;
+  narticle: string;
   designation: string;
   prix_vente: number;
   tva: number;
@@ -47,7 +47,11 @@ export default function CreateProforma() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [nextProformaNumber, setNextProformaNumber] = useState<number | null>(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
-  const [createdProforma, setCreatedProforma] = useState<{ id: number; number: number; clientName: string } | null>(null);
+  const [createdProforma, setCreatedProforma] = useState<{
+    id: number;
+    number: number;
+    clientName: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchClients();
@@ -57,18 +61,17 @@ export default function CreateProforma() {
 
   useEffect(() => {
     if (selectedClient) {
-      conm('tenant_info');
+      const tenantInfoStr = localStorage.getItem('tenant_info');
       let tenantInfo = null;
       try { if (tenantInfoStr) tenantInfo = JSON.parse(tenantInfoStr); } catch {}
       const tenant = tenantInfo?.schema || localStorage.getItem('selectedTenant') || '2009_bu02';
       const dbType = tenantInfo?.database_type || 'supabase';
-
       fetch(`/api/sales/clients/${selectedClient}/debt`, {
         headers: { 'x-tenant': tenant, 'x-database-type': dbType }
       })
         .then(res => res.json())
         .then(data => {
-       ata.data) setSelectedClientInfo(data.data);
+          if (data.success && data.data) setSelectedClientInfo(data.data);
           else setSelectedClientInfo(clients.find(c => c.nclient === selectedClient) || null);
         })
         .catch(() => setSelectedClientInfo(clients.find(c => c.nclient === selectedClient) || null));
@@ -92,9 +95,9 @@ export default function CreateProforma() {
   const getTenant = () => {
     const tenantInfoStr = localStorage.getItem('tenant_info');
     let tenantInfo = null;
-ntInfo = JSON.parse(tenantInfoStr); } catch {}
+    try { if (tenantInfoStr) tenantInfo = JSON.parse(tenantInfoStr); } catch {}
     const schema = tenantInfo?.schema || localStorage.getItem('selectedTenant') || '2025_bu01';
-    const = localStorage.getItem('activeDbConfig');
+    const dbConfig = localStorage.getItem('activeDbConfig');
     const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
     return { schema, dbType };
   };
@@ -181,7 +184,7 @@ ntInfo = JSON.parse(tenantInfoStr); } catch {}
   };
 
   const calculateTotals = () => {
-    const montantHTreduce((s, l) => s + l.total_ligne, 0);
+    const montantHT = lines.reduce((s, l) => s + l.total_ligne, 0);
     const totalTVA = lines.reduce((s, l) => s + (l.total_ligne * l.tva / 100), 0);
     return { montantHT, totalTVA, totalTTC: montantHT + totalTVA };
   };
@@ -193,20 +196,31 @@ ntInfo = JSON.parse(tenantInfoStr); } catch {}
 
     try {
       const { schema, dbType } = getTenant();
-
       const response = await fetch(`/api/sales/proforma`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Tenant': schema, 'X-Database-Type': dbType },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Tenant': schema,
+          'X-Database-Type': dbType
+        },
         body: JSON.stringify({
           Nclient: selectedClient,
           date_fact: dateProforma,
-          detail_proforma: lines.map(l => ({ Narticle: l.Narticle, Qte: l.Qte, prix: l.prix, tva: l.tva, pr_achat: 0 }))
+          detail_proforma: lines.map(l => ({
+            Narticle: l.Narticle,
+            Qte: l.Qte,
+            prix: l.prix,
+            tva: l.tva,
+            pr_achat: 0
+          }))
         }),
       });
 
       const responseText = await response.text();
       let data;
-      try { dsponseText); } catch {
+      try {
+        data = JSON.parse(responseText);
+      } catch {
         alert(`Erreur de parsing: ${responseText.substring(0, 100)}`);
         return;
       }
@@ -221,7 +235,7 @@ ntInfo = JSON.parse(tenantInfoStr); } catch {}
         resetCurrentLine();
         setShowPrintModal(true);
       } else {
-        alert('❌ Erreur: ' + data.error);
+        alert('Erreur: ' + data.error);
       }
     } catch (error) {
       console.error('Error creating proforma:', error);
@@ -236,16 +250,16 @@ ntInfo = JSON.parse(tenantInfoStr); } catch {}
       <header className={styles.header}>
         <div className={styles.title}>
           Créer une Facture Proforma
-Number && <span className={styles.blNumber}>N° {nextProformaNumber}</span>}
+          {nextProformaNumber && <span className={styles.blNumber}>N° {nextProformaNumber}</span>}
         </div>
         <button onClick={() => router.push('/proforma/list')} className={styles.backButton}>
-          ← Retour
+          Retour
         </button>
       </header>
 
       <main className={styles.form}>
         <form onSubmit={handleSubmit}>
-          {/* Section client */}
+
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>Informations Proforma</h2>
             <div className={styles.formGroup}>
@@ -261,7 +275,9 @@ Number && <span className={styles.blNumber}>N° {nextProformaNumber}</span>}
             </div>
 
             {selectedClientInfo && (
-              <div className={`${styles.clientInfoCard} ${selectedClientInfo.solde && selectedClientInfo.solde > 0 ? styles.warning : styles.success}`}>
+              <div className={`${styles.clientInfoCard} ${
+                selectedClientInfo.solde && selectedClientInfo.solde > 0 ? styles.warning : styles.success
+              }`}>
                 <div className={styles.clientInfoGrid}>
                   <div className={styles.clientInfoItem}>
                     <span className={styles.clientInfoLabel}>Raison Sociale</span>
@@ -273,35 +289,45 @@ Number && <span className={styles.blNumber}>N° {nextProformaNumber}</span>}
                   </div>
                   <div className={styles.clientInfoItem}>
                     <span className={styles.clientInfoLabel}>CA Total</span>
-                    <span className={styles.clientInfoValue} style={{ fontWeight: 'bold', fontSize: '1.1em' }}>
-        ctedClientInfo.chiffre_affaire ? `${selectedClientInfo.chiffre_affaire.toFixed(2)} DA` : '0.00 DA'}
+                    <span className={styles.clientInfoValue} style={{ fontWeight: 'bold' }}>
+                      {selectedClientInfo.chiffre_affaire
+                        ? `${selectedClientInfo.chiffre_affaire.toFixed(2)} DA`
+                        : '0.00 DA'}
                     </span>
                   </div>
                   <div className={styles.clientInfoItem}>
                     <span className={styles.clientInfoLabel}>Dette / Reste à Payer</span>
-                    <span className={styles.clientInfoValue} style={{ fontWeight: 'bold', fontSize: '1.1em' }}>
-                      {selectedClientInfo.solde ? `${selectedClientInfo.solde.toFixed(2)} DA` : '0.00 DA'}
+                    <span className={styles.clientInfoValue} style={{ fontWeight: 'bold' }}>
+                      {selectedClientInfo.solde
+                        ? `${selectedClientInfo.solde.toFixed(2)} DA`
+                        : '0.00 DA'}
                     </span>
                     <span className={styles.clientStatus}>
-                      {selectedClientInfo.solde && selectedClientInfo.solde > 0 ? '⚠️ Client endetté' : '✅ Aucune dette'}
+                      {selectedClientInfo.solde && selectedClientInfo.solde > 0
+                        ? 'Client endetté'
+                        : 'Aucune dette'}
                     </span>
                   </div>
                 </div>
                 {selectedClientInfo.adresse && (
                   <div style={{ marginTop: '12px', opacity: 0.9 }}>
                     <span className={styles.clientInfoLabel}>Adresse:</span> {selectedClientInfo.adresse}
-               </div>
+                  </div>
                 )}
               </div>
             )}
 
             <div className={styles.formGroup} style={{ marginTop: '20px' }}>
               <label>Date:</label>
-              <input type="date" value={dateProforma} onChange={(e) => setDateProforma(e.target.value)} required />
+              <input
+                type="date"
+                value={dateProforma}
+                onChange={(e) => setDateProforma(e.target.value)}
+                required
+              />
             </div>
           </div>
 
-          {/* Section articles */}
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>Ajouter des Articles</h2>
 
@@ -313,8 +339,10 @@ Number && <span className={styles.blNumber}>N° {nextProformaNumber}</span>}
                     <span className={styles.articleInfoValue}>{selectedArticleInfo.designation}</span>
                   </div>
                   <div className={styles.articleInfoItem}>
-                    <span className={styles.articleInfoLabel}>Prixe vente</span>
-                    <span className={styles.articleInfoValue}>{selectedArticleInfo.prix_vente.toFixed(2)} DA</span>
+                    <span className={styles.articleInfoLabel}>Prix de vente</span>
+                    <span className={styles.articleInfoValue}>
+                      {selectedArticleInfo.prix_vente.toFixed(2)} DA
+                    </span>
                   </div>
                   <div className={styles.articleInfoItem}>
                     <span className={styles.articleInfoLabel}>TVA</span>
@@ -338,39 +366,66 @@ Number && <span className={styles.blNumber}>N° {nextProformaNumber}</span>}
               </div>
               <div className={styles.formGroup}>
                 <label>Quantité:</label>
-                <input type="number" min="1" value={currentLine.Qte}
+                <input
+                  type="number"
+                  min="1"
+                  value={currentLine.Qte}
                   onChange={(e) => setCurrentLine({ ...currentLine, Qte: parseInt(e.target.value) || 1 })}
-                  onFocus={(e) => e.target.select()} />
+                  onFocus={(e) => e.target.select()}
+                />
               </div>
               <div className={styles.formGroup}>
                 <label>Prix Unitaire:</label>
-                <input type="number" step="0ntLine.prix}
+                <input
+                  type="number"
+                  step="0.01"
+                  lang="en"
+                  value={currentLine.prix}
                   onChange={(e) => setCurrentLine({ ...currentLine, prix: parseFloat(e.target.value) || 0 })}
-                  onFocus={(e) => e.target.select()} />
+                  onFocus={(e) => e.target.select()}
+                />
               </div>
               <div className={styles.formGroup}>
                 <label>TVA (%):</label>
-                <input type="number" step="0.01" lang="en" value={currentLine.tva}
+                <input
+                  type="number"
+                  step="0.01"
+                  lang="en"
+                  value={currentLine.tva}
                   onChange={(e) => setCurrentLine({ ...currentLine, tva: parseFloat(e.target.value) || 0 })}
-                  onFocus={(e) => e.target.select()} />
+                  onFocus={(e) => e.target.select()}
+                />
               </div>
               <button type="button" onClick={addLine} className={styles.addButton}>
-                {editingIndex !== null ? '✔ Modifier' : '+ Ajouter'}
+                {editingIndex !== null ? 'Modifier' : '+ Ajouter'}
               </button>
               {editingIndex !== null && (
-                <button type="button" onClick={resetCurrentLine}
-                  style={{ padding: '12px 24px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
-                  ✕ Annuler
+                <button
+                  type="button"
+                  onClick={resetCurrentLine}
+                  style={{
+                    padding: '12px 24px',
+                    background: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}
+                >
+                  Annuler
                 </button>
               )}
             </div>
           </div>
 
-          {/* Lignes */}
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>Lignes de Facture Proforma</h2>
             {lines.length === 0 ? (
-              <div className={styles.emptyState}>Aucune ligne ajoutée. Sélectionnez un article ci-dessus pour commencer.</div>
+              <div className={styles.emptyState}>
+                Aucune ligne ajoutée. Sélectionnez un article ci-dessus pour commencer.
+              </div>
             ) : (
               <>
                 <table className={styles.table}>
@@ -388,7 +443,7 @@ Number && <span className={styles.blNumber}>N° {nextProformaNumber}</span>}
                   <tbody>
                     {lines.map((line, index) => (
                       <tr key={index}>
-                        <rticle}</td>
+                        <td>{line.Narticle}</td>
                         <td>{line.designation}</td>
                         <td>{line.Qte}</td>
                         <td>{line.prix.toFixed(2)} DA</td>
@@ -396,17 +451,30 @@ Number && <span className={styles.blNumber}>N° {nextProformaNumber}</span>}
                         <td>{line.total_ligne.toFixed(2)} DA</td>
                         <td>
                           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                            <button type="bu.editButton}>✏️ Modifier</button>
-                            <button type="button" onClick={() => removeLine(index)} className={styles.deleteButton}>🗑 Supprimer</button>
+                            <button
+                              type="button"
+                              onClick={() => editLine(index)}
+                              className={styles.editButton}
+                            >
+                              Modifier
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeLine(index)}
+                              className={styles.deleteButton}
+                            >
+                              Supprimer
+                            </button>
                           </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+
                 <div className={styles.totals}>
                   <div className={styles.totalRow}>
-                    <>
+                    <span className={styles.totalLabel}>Montant HT:</span>
                     <span className={styles.totalValue}>{totals.montantHT.toFixed(2)} DA</span>
                   </div>
                   <div className={styles.totalRow}>
@@ -423,11 +491,22 @@ Number && <span className={styles.blNumber}>N° {nextProformaNumber}</span>}
           </div>
 
           <div className={styles.actions}>
-            <button type="button" onClick={() => router.push('/proforma/list')} className={styles.cancelButton}>Annuler</button>
-            <button type="submit" className={styles.submitButton} disabled={lines.length === 0 || !selectedClient}>
-              ✔ Créer la Facture Proforma
+            <button
+              type="button"
+              onClick={() => router.push('/proforma/list')}
+              className={styles.cancelButton}
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              className={styles.submitButton}
+              disabled={lines.length === 0 || !selectedClient}
+            >
+              Créer la Facture Proforma
             </button>
           </div>
+
         </form>
       </main>
 
