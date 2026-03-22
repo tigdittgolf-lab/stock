@@ -57,11 +57,29 @@ export default function PDFGeneratorPage() {
       if (companyJson?.success && companyJson.data?.length > 0) {
         companyData = companyJson.data[0];
       }
+
+      // Si client_name vide, charger depuis /api/sales/clients avec nclient
+      if (!blData.client_name && blData.nclient) {
+        try {
+          const clientRes = await fetch(`/api/sales/clients?code=${blData.nclient}`, {
+            headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType }
+          });
+          if (clientRes.ok) {
+            const clientJson = await clientRes.json();
+            const clients = clientJson.data || [];
+            const found = clients.find((c: any) =>
+              String(c.nclient || c.code || c.id) === String(blData.nclient)
+            );
+            if (found) {
+              blData.client_name = found.raison_sociale || found.nom || found.client_name || '';
+            }
+          }
+        } catch { /* client non critique */ }
+      }
     } catch (e: any) {
       setStatus(`❌ Erreur chargement: ${e.message}`);
       return;
-    }
-    // Préparer les données
+    }    // Préparer les données
     const company = {
       name: companyData?.nom_entreprise || 'VOTRE ENTREPRISE',
       address: companyData?.adresse || '',
@@ -76,8 +94,8 @@ export default function PDFGeneratorPage() {
       nfact: blData.nfact || blData.nbl || parseInt(id),
       date_fact: blData.date_fact || blData.date_bl || blData.date || '',
       client: {
-        raison_sociale: blData.client_name || blData.nclient || '',
-        adresse: blData.client?.adresse || '',
+        raison_sociale: blData.client_name || blData.raison_sociale || blData.nom || blData.nclient || '',
+        adresse: blData.client?.adresse || blData.adresse_client || '',
       },
       montant_ht: parseFloat(blData.montant_ht?.toString() || '0') || 0,
       tva: parseFloat(blData.tva?.toString() || '0') || 0,
@@ -104,7 +122,13 @@ export default function PDFGeneratorPage() {
     try {
       const { jsPDF } = await import('jspdf');
 
-      const fmt = (n: number) => (n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const fmt = (n: number) => {
+        // Utilise un espace normal (pas insécable) pour jsPDF
+        const s = (n || 0).toFixed(2);
+        const [int, dec] = s.split('.');
+        const intFormatted = int.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        return `${intFormatted},${dec}`;
+      };
       const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('fr-FR') : '';
       const fmtQty = (n: number) => (n % 1 === 0 ? n.toString() : n.toFixed(2));
 
