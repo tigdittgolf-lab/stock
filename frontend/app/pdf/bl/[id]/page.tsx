@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 
 // Génère et télécharge le PDF côté client avec jsPDF
@@ -10,9 +10,10 @@ export default function PDFGeneratorPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const id = params.id as string;
-  const mode = searchParams.get('mode') || 'complet'; // complet | reduit | ticket
+  const mode = searchParams.get('mode') || 'complet';
   const tenantParam = searchParams.get('tenant');
   const generated = useRef(false);
+  const [status, setStatus] = useState('⏳ Génération du PDF en cours...');
 
   useEffect(() => {
     if (generated.current) return;
@@ -32,7 +33,6 @@ export default function PDFGeneratorPage() {
     const dbConfig = localStorage.getItem('activeDbConfig');
     const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
 
-    // Charger les données du BL
     let blData: any = null;
     let companyData: any = null;
 
@@ -48,7 +48,7 @@ export default function PDFGeneratorPage() {
 
       const blJson = await blRes.json();
       if (!blJson.success) {
-        document.body.innerHTML = `<div style="padding:40px;color:red;font-family:sans-serif">❌ BL ${id} introuvable: ${blJson.error}</div>`;
+        setStatus(`❌ BL ${id} introuvable: ${blJson.error}`);
         return;
       }
       blData = blJson.data;
@@ -58,10 +58,9 @@ export default function PDFGeneratorPage() {
         companyData = companyJson.data[0];
       }
     } catch (e: any) {
-      document.body.innerHTML = `<div style="padding:40px;color:red;font-family:sans-serif">❌ Erreur: ${e.message}</div>`;
+      setStatus(`❌ Erreur chargement: ${e.message}`);
       return;
     }
-
     // Préparer les données
     const company = {
       name: companyData?.nom_entreprise || 'VOTRE ENTREPRISE',
@@ -100,14 +99,14 @@ export default function PDFGeneratorPage() {
     }
 
     // Importer jsPDF dynamiquement
-    const { jsPDF } = await import('jspdf');
-
-    const fmt = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('fr-FR') : '';
-    const fmtQty = (n: number) => n % 1 === 0 ? n.toString() : n.toFixed(2);
-
     let doc: any;
     let filename = '';
+    try {
+      const { jsPDF } = await import('jspdf');
+
+      const fmt = (n: number) => (n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('fr-FR') : '';
+      const fmtQty = (n: number) => (n % 1 === 0 ? n.toString() : n.toFixed(2));
 
     if (mode === 'ticket') {
       // ===== FORMAT TICKET (80mm) =====
@@ -289,16 +288,25 @@ export default function PDFGeneratorPage() {
       filename = `bl_${bl.nfact}.pdf`;
     }
 
-    // Ouvrir le PDF dans un nouvel onglet
-    doc.output('dataurlnewwindow');
-    // Fermer cette page après ouverture
-    setTimeout(() => window.close(), 500);
+      // Télécharger le PDF directement
+      doc.save(filename);
+      setStatus(`✅ PDF téléchargé: ${filename}`);
+    } catch (e: any) {
+      setStatus(`❌ Erreur génération PDF: ${(e as any).message}`);
+    }
   };
 
   return (
     <div style={{ padding: 40, textAlign: 'center', fontFamily: 'sans-serif' }}>
-      <div style={{ fontSize: 18, marginBottom: 16 }}>⏳ Génération du PDF en cours...</div>
-      <div style={{ color: '#666', fontSize: 14 }}>Le PDF s'ouvrira automatiquement.</div>
+      <div style={{ fontSize: 18, marginBottom: 16 }}>{status}</div>
+      {status.startsWith('✅') && (
+        <div style={{ color: '#666', fontSize: 14 }}>Vous pouvez fermer cet onglet.</div>
+      )}
+      {status.startsWith('❌') && (
+        <button onClick={() => window.history.back()} style={{ marginTop: 16, padding: '8px 20px', cursor: 'pointer' }}>
+          ← Retour
+        </button>
+      )}
     </div>
   );
 }
