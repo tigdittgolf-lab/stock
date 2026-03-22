@@ -35,9 +35,16 @@ function normalizeRow(r: any, mapping: Record<string, string[]>): Record<string,
     }
     return undefined;
   };
-  const result: Record<string, any> = { ...r };
+  // Construire un objet sans les clés originales à majuscules — évite les doublons JSON (NFact + nfact)
+  const result: Record<string, any> = {};
+  // Copier les clés originales en les normalisant en minuscules
+  for (const k of keys) {
+    result[k.toLowerCase()] = r[k];
+  }
+  // Appliquer le mapping explicite (écrase si nécessaire)
   for (const [target, candidates] of Object.entries(mapping)) {
-    result[target] = find(...candidates);
+    const val = find(...candidates);
+    if (val !== undefined) result[target] = val;
   }
   return result;
 }
