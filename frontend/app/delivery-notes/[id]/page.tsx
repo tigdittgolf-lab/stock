@@ -106,8 +106,8 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
       });
       
       if (response.status === 404) {
-        console.warn('⚠️ Route API 404, fallback Supabase direct côté client');
-        await fetchDeliveryNoteSupabaseDirect(resolvedParams.id, tenant);
+        console.warn('⚠️ /api/bl 404 - route non déployée');
+        setError('Route API non disponible. Vérifiez le déploiement Vercel.');
         return;
       }
 
