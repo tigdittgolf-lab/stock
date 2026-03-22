@@ -360,7 +360,8 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           <button 
             onClick={() => {
               const blId = deliveryNote.nfact || deliveryNote.nbl;
-              window.open(`/print/bl/${blId}`, '_blank');
+              const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
+              window.open(`/print/bl/${blId}?tenant=${encodeURIComponent(tenant)}`, '_blank');
             }} 
             className={styles.primaryButton}
             style={{ marginLeft: '10px' }}

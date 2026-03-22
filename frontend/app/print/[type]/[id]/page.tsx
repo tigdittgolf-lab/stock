@@ -63,6 +63,10 @@ export default function PrintPage() {
 
   const getTenant = () => {
     if (typeof window === 'undefined') return '2025_bu01';
+    // Priorité 1 : tenant dans l'URL (?tenant=...)
+    const urlTenant = searchParams.get('tenant');
+    if (urlTenant) return urlTenant;
+    // Priorité 2 : localStorage
     const ti = localStorage.getItem('tenant_info');
     if (ti) { try { return JSON.parse(ti).schema; } catch {} }
     return localStorage.getItem('selectedTenant') || '2025_bu01';
