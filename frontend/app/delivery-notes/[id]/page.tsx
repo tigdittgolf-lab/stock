@@ -280,7 +280,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
             onClick={() => {
               const blId = deliveryNote.nfact || deliveryNote.nbl;
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-              window.open(`/print/bl/${blId}?tenant=${encodeURIComponent(tenant)}&lang=fr`, '_blank');
+              window.open(`/pdf/bl/${blId}?tenant=${encodeURIComponent(tenant)}&mode=complet`, '_blank');
             }}
             className={styles.primaryButton}
             style={{ marginLeft: '10px' }}
@@ -291,7 +291,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
             onClick={() => {
               const blId = deliveryNote.nfact || deliveryNote.nbl;
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-              window.open(`/print/bl/${blId}?tenant=${encodeURIComponent(tenant)}&lang=fr&mode=reduit`, '_blank');
+              window.open(`/pdf/bl/${blId}?tenant=${encodeURIComponent(tenant)}&mode=reduit`, '_blank');
             }}
             className={styles.primaryButton}
             style={{ marginLeft: '10px' }}
@@ -302,7 +302,7 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
             onClick={() => {
               const blId = deliveryNote.nfact || deliveryNote.nbl;
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-              window.open(`/print/bl/${blId}?tenant=${encodeURIComponent(tenant)}&lang=fr&mode=ticket`, '_blank');
+              window.open(`/pdf/bl/${blId}?tenant=${encodeURIComponent(tenant)}&mode=ticket`, '_blank');
             }}
             className={styles.primaryButton}
             style={{ marginLeft: '10px' }}
