@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -139,7 +139,7 @@ export default function CreateDeliveryNote() {
       // Récupérer le tenant depuis localStorage
       const tenantInfo = localStorage.getItem('tenant_info');
       if (!tenantInfo) {
-        console.warn('âš ï¸ No tenant info found, skipping next BL number fetch');
+        console.warn('⚠️ No tenant info found, skipping next BL number fetch');
         return;
       }
       
@@ -150,7 +150,7 @@ export default function CreateDeliveryNote() {
       const dbConfig = localStorage.getItem('activeDbConfig');
       const dbType = dbConfig ? JSON.parse(dbConfig).type : 'mysql';
       
-      console.log('ðŸ”¢ Fetching next BL number with:', { tenantId, dbType });
+      console.log('📢 Fetching next BL number with:', { tenantId, dbType });
       
       const response = await fetch(`/api/sales/delivery-notes/next-number`, {
         headers: {
@@ -162,17 +162,17 @@ export default function CreateDeliveryNote() {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error(`âŒ Failed to fetch next BL number: ${response.status}`, errorData);
+        console.error(`❌ Failed to fetch next BL number: ${response.status}`, errorData);
         return;
       }
       
       const data = await response.json();
       if (data.success) {
         setNextBLNumber(data.data.next_number);
-        console.log('âœ… Next BL number:', data.data.next_number);
+        console.log('✅ Next BL number:', data.data.next_number);
       }
     } catch (error) {
-      console.error('âŒ Error fetching next BL number:', error);
+      console.error('❌ Error fetching next BL number:', error);
     }
   };
 
@@ -181,7 +181,7 @@ export default function CreateDeliveryNote() {
       // Récupérer le tenant depuis localStorage
       const tenantInfo = localStorage.getItem('tenant_info');
       if (!tenantInfo) {
-        console.warn('âš ï¸ No tenant info found');
+        console.warn('⚠️ No tenant info found');
         return;
       }
       
@@ -192,7 +192,7 @@ export default function CreateDeliveryNote() {
       const dbConfig = localStorage.getItem('activeDbConfig');
       const dbType = dbConfig ? JSON.parse(dbConfig).type : 'mysql';
       
-      console.log('ðŸ‘¥ Fetching clients for tenant:', tenantId, 'dbType:', dbType);
+      console.log('👥 Fetching clients for tenant:', tenantId, 'dbType:', dbType);
       
       const response = await fetch(`/api/sales/clients`, {
         headers: {
@@ -201,15 +201,15 @@ export default function CreateDeliveryNote() {
         }
       });
       const data = await response.json();
-      console.log('ðŸ‘¥ Clients data:', data);
+      console.log('👥 Clients data:', data);
       if (data.success) {
         setClients(data.data);
-        console.log('âœ… Clients loaded:', data.data.length);
+        console.log('✅ Clients loaded:', data.data.length);
       } else {
-        console.error('âŒ Failed to load clients:', data.error);
+        console.error('❌ Failed to load clients:', data.error);
       }
     } catch (error) {
-      console.error('âŒ Error fetching clients:', error);
+      console.error('❌ Error fetching clients:', error);
     }
   };
 
@@ -218,7 +218,7 @@ export default function CreateDeliveryNote() {
       // Récupérer le tenant depuis localStorage
       const tenantInfo = localStorage.getItem('tenant_info');
       if (!tenantInfo) {
-        console.warn('âš ï¸ No tenant info found');
+        console.warn('⚠️ No tenant info found');
         return;
       }
       
@@ -229,7 +229,7 @@ export default function CreateDeliveryNote() {
       const dbConfig = localStorage.getItem('activeDbConfig');
       const dbType = dbConfig ? JSON.parse(dbConfig).type : 'mysql';
       
-      console.log('ðŸ“¦ Fetching articles for tenant:', tenantId, 'dbType:', dbType);
+      console.log('📦 Fetching articles for tenant:', tenantId, 'dbType:', dbType);
       
       const response = await fetch(`/api/sales/articles`, {
         headers: {
@@ -238,15 +238,15 @@ export default function CreateDeliveryNote() {
         }
       });
       const data = await response.json();
-      console.log('ðŸ“¦ Articles data:', data);
+      console.log('📦 Articles data:', data);
       if (data.success) {
         setArticles(data.data);
-        console.log('âœ… Articles loaded:', data.data.length);
+        console.log('✅ Articles loaded:', data.data.length);
       } else {
-        console.error('âŒ Failed to load articles:', data.error);
+        console.error('❌ Failed to load articles:', data.error);
       }
     } catch (error) {
-      console.error('âŒ Error fetching articles:', error);
+      console.error('❌ Error fetching articles:', error);
     }
   };
 
@@ -257,7 +257,7 @@ export default function CreateDeliveryNote() {
     if (article) {
       // Si on est en mode édition et que l'article n'a pas changé, ne pas écraser les valeurs
       if (editingIndex !== null && currentLine.Narticle === articleId) {
-        console.log('âš ï¸ Same article in edit mode, keeping current values');
+        console.log('⚠️ Same article in edit mode, keeping current values');
         return;
       }
       
@@ -392,7 +392,7 @@ export default function CreateDeliveryNote() {
       const dbConfig = localStorage.getItem('activeDbConfig');
       const databaseType = dbConfig ? JSON.parse(dbConfig).type : 'mysql';
       
-      console.log('ðŸ“¤ Submitting BL with:', {
+      console.log('📤 Submitting BL with:', {
         tenant: tenantSchema,
         client: selectedClient,
         lines: lines.length,
@@ -449,22 +449,22 @@ export default function CreateDeliveryNote() {
             
             const paymentData = await paymentResponse.json();
             if (!paymentData.success) {
-              console.error('âŒ Erreur lors de l\'enregistrement du paiement:', paymentData.error);
+              console.error('❌ Erreur lors de l\'enregistrement du paiement:', paymentData.error);
             } else {
-              console.log('âœ… Paiement enregistré avec succès');
+              console.log('✅ Paiement enregistré avec succès');
             }
           } catch (paymentError) {
-            console.error('âŒ Erreur lors de l\'enregistrement du paiement:', paymentError);
+            console.error('❌ Erreur lors de l\'enregistrement du paiement:', paymentError);
           }
         }
         
-        const message = `âœ… ${data.data.message || 'Bon de livraison créé avec succès!'}\n\n` +
+        const message = `✅ ${data.data.message || 'Bon de livraison créé avec succès!'}\n\n` +
                        `ðŸ“‹ Numéro: ${blNumber}\n` +
-                       `ðŸ‘¤ Client: ${selectedClient}\n` +
+                       `👤 Client: ${selectedClient}\n` +
                        `ðŸ“… Date: ${dateBL}\n` +
-                       `ðŸ’° Total HT: ${data.data.montant_ht?.toFixed(2)} DA\n` +
-                       `ðŸ’° Total TTC: ${totalTTC.toFixed(2)} DA\n` +
-                       `ðŸ“¦ Articles: ${lines.length} ligne(s)`;
+                       `💰 Total HT: ${data.data.montant_ht?.toFixed(2)} DA\n` +
+                       `💰 Total TTC: ${totalTTC.toFixed(2)} DA\n` +
+                       `📦 Articles: ${lines.length} ligne(s)`;
         
         // Préparer les données pour le modal d'impression
         const clientName = clients.find(c => c.nclient === selectedClient)?.raison_sociale || selectedClient;
@@ -488,7 +488,7 @@ export default function CreateDeliveryNote() {
         // Afficher le modal d'impression
         setShowPrintModal(true);
       } else {
-        alert('âŒ Erreur: ' + data.error);
+        alert('❌ Erreur: ' + data.error);
       }
     } catch (error) {
       console.error('Error creating delivery note:', error);
@@ -506,7 +506,7 @@ export default function CreateDeliveryNote() {
           {nextBLNumber && <span className={styles.blNumber}>N° {nextBLNumber}</span>}
         </div>
         <button onClick={() => router.push('/delivery-notes/list')} className={styles.backButton}>
-          â† Retour
+          ← Retour
         </button>
       </header>
 
@@ -575,8 +575,8 @@ export default function CreateDeliveryNote() {
                     </span>
                     <span className={styles.clientStatus}>
                       {selectedClientInfo.solde && selectedClientInfo.solde > 0 
-                        ? 'âš ï¸ Client endetté' 
-                        : 'âœ… Aucune dette'}
+                        ? '⚠️ Client endetté' 
+                        : '✅ Aucune dette'}
                     </span>
                   </div>
                 </div>
@@ -617,8 +617,8 @@ export default function CreateDeliveryNote() {
                       selectedArticleInfo.stock_bl > 100 ? styles.high :
                       selectedArticleInfo.stock_bl > 20 ? styles.medium : styles.low
                     }`}>
-                      {selectedArticleInfo.stock_bl > 100 ? 'âœ“ Stock élevé' :
-                       selectedArticleInfo.stock_bl > 20 ? 'âš  Stock moyen' : 'âš ï¸ Stock faible'}
+                      {selectedArticleInfo.stock_bl > 100 ? '✔ Stock élevé' :
+                       selectedArticleInfo.stock_bl > 20 ? 'âš  Stock moyen' : '⚠️ Stock faible'}
                     </span>
                   </div>
                   <div className={styles.articleInfoItem}>
@@ -682,7 +682,7 @@ export default function CreateDeliveryNote() {
               </div>
 
               <button type="button" onClick={addLine} className={styles.addButton}>
-                {editingIndex !== null ? 'âœ“ Modifier' : '+ Ajouter'}
+                {editingIndex !== null ? '✔ Modifier' : '+ Ajouter'}
               </button>
               
               {editingIndex !== null && (
@@ -701,7 +701,7 @@ export default function CreateDeliveryNote() {
                     transition: 'all 0.2s'
                   }}
                 >
-                  âœ• Annuler
+                  ✕ Annuler
                 </button>
               )}
             </div>
@@ -753,14 +753,14 @@ export default function CreateDeliveryNote() {
                                 transition: 'all 0.2s'
                               }}
                             >
-                              âœï¸ Modifier
+                              ✏️ Modifier
                             </button>
                             <button
                               type="button"
                               onClick={() => removeLine(index)}
                               className={styles.deleteButton}
                             >
-                              ðŸ—‘ Supprimer
+                              🗑 Supprimer
                             </button>
                           </div>
                         </td>
@@ -789,7 +789,7 @@ export default function CreateDeliveryNote() {
 
           {/* Section Paiement */}
           <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>ðŸ’° Paiement</h2>
+            <h2 className={styles.sectionTitle}>💰 Paiement</h2>
             
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
@@ -874,7 +874,7 @@ export default function CreateDeliveryNote() {
                 borderRadius: '8px',
                 marginTop: '12px'
               }}>
-                <strong>âš ï¸ Reste à payer: {(totals.totalTTC - paymentAmount).toFixed(2)} DA</strong>
+                <strong>⚠️ Reste à payer: {(totals.totalTTC - paymentAmount).toFixed(2)} DA</strong>
               </div>
             )}
           </div>
@@ -892,7 +892,7 @@ export default function CreateDeliveryNote() {
               className={styles.submitButton}
               disabled={lines.length === 0 || !selectedClient}
             >
-              âœ“ Créer le Bon de Livraison
+              ✔ Créer le Bon de Livraison
             </button>
           </div>
         </form>
