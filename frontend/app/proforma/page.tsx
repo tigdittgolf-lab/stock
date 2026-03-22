@@ -3,15 +3,21 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PrintOptions from '../../components/PrintOptions';
-import styles from '../page.module.css';
+import styles from '../delivery-notes/delivery-notes.module.css';
 
 interface Client {
   nclient: string;
   raison_sociale: string;
+  adresse?: string;
+  telephone?: string;
+  solde?: number;
+  chiffre_affaire?: number;
+  c_affaire_fact?: number;
+  c_affaire_bl?: number;
 }
 
 interface Article {
-  narticle: string;
+ ng;
   designation: string;
   prix_vente: number;
   tva: number;
@@ -31,24 +37,17 @@ interface ProformaLine {
 export default function CreateProforma() {
   const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
-  const [articles, setArticles] = useState<Article[]>([]);
+  const [ar<Article[]>([]);
   const [selectedClient, setSelectedClient] = useState('');
+  const [selectedClientInfo, setSelectedClientInfo] = useState<Client | null>(null);
+  const [selectedArticleInfo, setSelectedArticleInfo] = useState<Article | null>(null);
   const [dateProforma, setDateProforma] = useState(new Date().toISOString().split('T')[0]);
   const [lines, setLines] = useState<ProformaLine[]>([]);
-  const [currentLine, setCurrentLine] = useState({
-    Narticle: '',
-    Qte: 1,
-    prix: 0,
-    tva: 0
-  });
+  const [currentLine, setCurrentLine] = useState({ Narticle: '', Qte: 1, prix: 0, tva: 0 });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [nextProformaNumber, setNextProformaNumber] = useState<number | null>(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
-  const [createdProforma, setCreatedProforma] = useState<{
-    id: number;
-    number: number;
-    clientName: string;
-  } | null>(null);
+  const [createdProforma, setCreatedProforma] = useState<{ id: number; number: number; clientName: string } | null>(null);
 
   useEffect(() => {
     fetchClients();
@@ -56,78 +55,86 @@ export default function CreateProforma() {
     fetchNextProformaNumber();
   }, []);
 
+  useEffect(() => {
+    if (selectedClient) {
+      conm('tenant_info');
+      let tenantInfo = null;
+      try { if (tenantInfoStr) tenantInfo = JSON.parse(tenantInfoStr); } catch {}
+      const tenant = tenantInfo?.schema || localStorage.getItem('selectedTenant') || '2009_bu02';
+      const dbType = tenantInfo?.database_type || 'supabase';
+
+      fetch(`/api/sales/clients/${selectedClient}/debt`, {
+        headers: { 'x-tenant': tenant, 'x-database-type': dbType }
+      })
+        .then(res => res.json())
+        .then(data => {
+       ata.data) setSelectedClientInfo(data.data);
+          else setSelectedClientInfo(clients.find(c => c.nclient === selectedClient) || null);
+        })
+        .catch(() => setSelectedClientInfo(clients.find(c => c.nclient === selectedClient) || null));
+    } else {
+      setSelectedClientInfo(null);
+    }
+  }, [selectedClient, clients]);
+
+  useEffect(() => {
+    if (currentLine.Narticle) {
+      const article = articles.find(a => a.narticle === currentLine.Narticle);
+      setSelectedArticleInfo(article || null);
+      if (article) {
+        setCurrentLine(prev => ({ ...prev, prix: article.prix_vente, tva: article.tva }));
+      }
+    } else {
+      setSelectedArticleInfo(null);
+    }
+  }, [currentLine.Narticle, articles]);
+
+  const getTenant = () => {
+    const tenantInfoStr = localStorage.getItem('tenant_info');
+    let tenantInfo = null;
+ntInfo = JSON.parse(tenantInfoStr); } catch {}
+    const schema = tenantInfo?.schema || localStorage.getItem('selectedTenant') || '2025_bu01';
+    const = localStorage.getItem('activeDbConfig');
+    const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+    return { schema, dbType };
+  };
+
   const fetchNextProformaNumber = async () => {
     try {
-      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`/api/sales/proforma/next-number`, {
-        headers: {
-          'X-Tenant': tenant
-        }
+      const { schema, dbType } = getTenant();
+      const res = await fetch(`/api/sales/proforma/next-number`, {
+        headers: { 'X-Tenant': schema, 'X-Database-Type': dbType }
       });
-      const data = await response.json();
-      if (data.success) {
-        setNextProformaNumber(data.data.next_number);
-        console.log('Next proforma number:', data.data.next_number);
-      }
-    } catch (error) {
-      console.error('Error fetching next proforma number:', error);
-    }
+      const data = await res.json();
+      if (data.success) setNextProformaNumber(data.data.next_number);
+    } catch {}
   };
 
   const fetchClients = async () => {
     try {
-      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`/api/sales/clients`, {
-        headers: {
-          'X-Tenant': tenant
-        }
+      const { schema, dbType } = getTenant();
+      const res = await fetch(`/api/sales/clients`, {
+        headers: { 'X-Tenant': schema, 'X-Database-Type': dbType }
       });
-      const data = await response.json();
-      console.log('Clients data:', data);
-      if (data.success) {
-        setClients(data.data);
-        console.log('Clients loaded:', data.data.length);
-      }
-    } catch (error) {
-      console.error('Error fetching clients:', error);
-    }
+      const data = await res.json();
+      if (data.success) setClients(data.data);
+    } catch {}
   };
 
   const fetchArticles = async () => {
     try {
-      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`/api/articles`, {
-        headers: {
-          'X-Tenant': tenant
-        }
+      const { schema, dbType } = getTenant();
+      const res = await fetch(`/api/sales/articles`, {
+        headers: { 'X-Tenant': schema, 'X-Database-Type': dbType }
       });
-      const data = await response.json();
-      console.log('Articles data:', data);
-      if (data.success) {
-        setArticles(data.data);
-        console.log('Articles loaded:', data.data.length);
-      }
-    } catch (error) {
-      console.error('Error fetching articles:', error);
-    }
+      const data = await res.json();
+      if (data.success) setArticles(data.data);
+    } catch {}
   };
 
   const handleArticleChange = (articleId: string) => {
-    const article = articles.find(a => a.narticle === articleId);
-    if (article) {
-      // Si on est en mode édition et que l'article n'a pas changé, ne pas écraser les valeurs
-      if (editingIndex !== null && currentLine.Narticle === articleId) {
-        console.log('⚠️ Same article in edit mode, keeping current values');
-        return;
-      }
-      
-      setCurrentLine({
-        ...currentLine,
-        Narticle: articleId,
-        prix: parseFloat(article.prix_vente.toString()) || 0,
-        tva: parseFloat(article.tva.toString()) || 0
-      });
-    }
+    if (editingIndex !== null && currentLine.Narticle === articleId) return;
+    setCurrentLine(prev => ({ ...prev, Narticle: articleId }));
   };
 
   const addLine = () => {
@@ -135,153 +142,83 @@ export default function CreateProforma() {
       alert('Veuillez sélectionner un article et une quantité valide');
       return;
     }
-
     const article = articles.find(a => a.narticle === currentLine.Narticle);
     if (!article) return;
 
-    const totalLigne = currentLine.Qte * currentLine.prix;
     const newLine: ProformaLine = {
       Narticle: currentLine.Narticle,
       designation: article.designation,
       Qte: currentLine.Qte,
       prix: parseFloat(currentLine.prix.toString()) || 0,
       tva: parseFloat(currentLine.tva.toString()) || 0,
-      total_ligne: totalLigne
+      total_ligne: currentLine.Qte * currentLine.prix
     };
 
     if (editingIndex !== null) {
-      const updatedLines = [...lines];
-      updatedLines[editingIndex] = newLine;
-      setLines(updatedLines);
+      const updated = [...lines];
+      updated[editingIndex] = newLine;
+      setLines(updated);
     } else {
       setLines([...lines, newLine]);
     }
-    
     resetCurrentLine();
   };
 
   const removeLine = (index: number) => {
     setLines(lines.filter((_, i) => i !== index));
-    if (editingIndex === index) {
-      setEditingIndex(null);
-      resetCurrentLine();
-    }
+    if (editingIndex === index) resetCurrentLine();
   };
 
   const editLine = (index: number) => {
-    const lineToEdit = lines[index];
-    setCurrentLine({
-      Narticle: lineToEdit.Narticle,
-      Qte: lineToEdit.Qte,
-      prix: parseFloat(lineToEdit.prix.toString()) || 0,
-      tva: parseFloat(lineToEdit.tva.toString()) || 0
-    });
+    const l = lines[index];
+    setCurrentLine({ Narticle: l.Narticle, Qte: l.Qte, prix: l.prix, tva: l.tva });
     setEditingIndex(index);
   };
 
   const resetCurrentLine = () => {
-    setCurrentLine({
-      Narticle: '',
-      Qte: 1,
-      prix: 0,
-      tva: 0
-    });
+    setCurrentLine({ Narticle: '', Qte: 1, prix: 0, tva: 0 });
     setEditingIndex(null);
   };
 
-  const cancelEdit = () => {
-    resetCurrentLine();
-  };
-
   const calculateTotals = () => {
-    const montantHT = lines.reduce((sum, line) => sum + parseFloat(line.total_ligne.toString()), 0);
-    const totalTVA = lines.reduce((sum, line) => sum + (parseFloat(line.total_ligne.toString()) * parseFloat(line.tva.toString()) / 100), 0);
-    const totalTTC = montantHT + totalTVA;
-
-    return { montantHT, totalTVA, totalTTC };
+    const montantHTreduce((s, l) => s + l.total_ligne, 0);
+    const totalTVA = lines.reduce((s, l) => s + (l.total_ligne * l.tva / 100), 0);
+    return { montantHT, totalTVA, totalTTC: montantHT + totalTVA };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!selectedClient) {
-      alert('Veuillez sélectionner un client');
-      return;
-    }
-
-    if (lines.length === 0) {
-      alert('Veuillez ajouter au moins une ligne');
-      return;
-    }
+    if (!selectedClient) { alert('Veuillez sélectionner un client'); return; }
+    if (lines.length === 0) { alert('Veuillez ajouter au moins une ligne'); return; }
 
     try {
-      console.log('🚀 Sending proforma request...');
-      
-      const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
+      const { schema, dbType } = getTenant();
+
       const response = await fetch(`/api/sales/proforma`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Tenant': tenant
-        },
+        headers: { 'Content-Type': 'application/json', 'X-Tenant': schema, 'X-Database-Type': dbType },
         body: JSON.stringify({
           Nclient: selectedClient,
           date_fact: dateProforma,
-          detail_proforma: lines.map(line => ({
-            Narticle: line.Narticle,
-            Qte: line.Qte,
-            prix: line.prix,
-            tva: line.tva,
-            pr_achat: 0
-          }))
+          detail_proforma: lines.map(l => ({ Narticle: l.Narticle, Qte: l.Qte, prix: l.prix, tva: l.tva, pr_achat: 0 }))
         }),
       });
 
-      console.log('📡 Response status:', response.status);
-      console.log('📡 Response headers:', response.headers);
-      
-      // Lire la réponse comme texte d'abord pour voir ce qu'on reçoit
       const responseText = await response.text();
-      console.log('📡 Raw response text:', responseText);
-      
-      // Essayer de parser le JSON
       let data;
-      try {
-        data = JSON.parse(responseText);
-        console.log('✅ JSON parsed successfully:', data);
-      } catch (parseError) {
-        console.error('❌ JSON parse error:', parseError);
-        console.error('❌ Response text that failed to parse:', responseText);
-        alert(`Erreur de parsing JSON: ${parseError instanceof Error ? parseError.message : 'Erreur inconnue'}\nRéponse reçue: ${responseText.substring(0, 100)}...`);
+      try { dsponseText); } catch {
+        alert(`Erreur de parsing: ${responseText.substring(0, 100)}`);
         return;
       }
 
       if (data.success) {
-        const proformaNumber = data.data.nfprof;
-        const message = `✅ ${data.data.message || 'Facture proforma créée avec succès!'}\n\n` +
-                       `📋 Numéro: ${proformaNumber}\n` +
-                       `👤 Client: ${selectedClient}\n` +
-                       `📅 Date: ${dateProforma}\n` +
-                       `💰 Total HT: ${data.data.montant_ht?.toFixed(2)} DA\n` +
-                       `💰 Total TTC: ${data.data.total_ttc?.toFixed(2)} DA\n` +
-                       `📦 Articles: ${lines.length} ligne(s)`;
-        
-        // Préparer les données pour le modal d'impression
+        const proformaNumber = data.data.nfprof || data.data.id;
         const clientName = clients.find(c => c.nclient === selectedClient)?.raison_sociale || selectedClient;
-        
-        setCreatedProforma({
-          id: proformaNumber,
-          number: proformaNumber,
-          clientName: clientName
-        });
-        
-        // Réinitialiser le formulaire
+        setCreatedProforma({ id: proformaNumber, number: proformaNumber, clientName });
         setSelectedClient('');
         setDateProforma(new Date().toISOString().split('T')[0]);
         setLines([]);
         resetCurrentLine();
-        
-        // Afficher le modal d'impression
         setShowPrintModal(true);
       } else {
         alert('❌ Erreur: ' + data.error);
@@ -295,185 +232,212 @@ export default function CreateProforma() {
   const totals = calculateTotals();
 
   return (
-    <div className={styles.page}>
+    <div className={styles.container}>
       <header className={styles.header}>
-        <h1>Créer une Facture Proforma {nextProformaNumber && `N° ${nextProformaNumber}`}</h1>
-        <button onClick={() => router.push('/proforma/list')}>Retour</button>
+        <div className={styles.title}>
+          Créer une Facture Proforma
+Number && <span className={styles.blNumber}>N° {nextProformaNumber}</span>}
+        </div>
+        <button onClick={() => router.push('/proforma/list')} className={styles.backButton}>
+          ← Retour
+        </button>
       </header>
 
-      <main className={styles.main}>
+      <main className={styles.form}>
         <form onSubmit={handleSubmit}>
-          <div className={styles.formSection}>
-            <h2>Informations Facture Proforma</h2>
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label>Client:</label>
-                <select
-                  value={selectedClient}
-                  onChange={(e) => setSelectedClient(e.target.value)}
-                  required
-                >
-                  <option value="">Sélectionner un client</option>
-                  {clients.map((client, index) => (
-                    <option key={`${client.nclient}-${index}`} value={client.nclient}>
-                      {client.nclient} - {client.raison_sociale}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          {/* Section client */}
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>Informations Proforma</h2>
+            <div className={styles.formGroup}>
+              <label>Client:</label>
+              <select value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)} required>
+                <option value="">Sélectionner un client</option>
+                {clients.map((client, i) => (
+                  <option key={`${client.nclient}-${i}`} value={client.nclient}>
+                    {client.nclient} - {client.raison_sociale}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              <div className={styles.formGroup}>
-                <label>Date:</label>
-                <input
-                  type="date"
-                  value={dateProforma}
-                  onChange={(e) => setDateProforma(e.target.value)}
-                  required
-                />
+            {selectedClientInfo && (
+              <div className={`${styles.clientInfoCard} ${selectedClientInfo.solde && selectedClientInfo.solde > 0 ? styles.warning : styles.success}`}>
+                <div className={styles.clientInfoGrid}>
+                  <div className={styles.clientInfoItem}>
+                    <span className={styles.clientInfoLabel}>Raison Sociale</span>
+                    <span className={styles.clientInfoValue}>{selectedClientInfo.raison_sociale}</span>
+                  </div>
+                  <div className={styles.clientInfoItem}>
+                    <span className={styles.clientInfoLabel}>Téléphone</span>
+                    <span className={styles.clientInfoValue}>{selectedClientInfo.telephone || 'N/A'}</span>
+                  </div>
+                  <div className={styles.clientInfoItem}>
+                    <span className={styles.clientInfoLabel}>CA Total</span>
+                    <span className={styles.clientInfoValue} style={{ fontWeight: 'bold', fontSize: '1.1em' }}>
+        ctedClientInfo.chiffre_affaire ? `${selectedClientInfo.chiffre_affaire.toFixed(2)} DA` : '0.00 DA'}
+                    </span>
+                  </div>
+                  <div className={styles.clientInfoItem}>
+                    <span className={styles.clientInfoLabel}>Dette / Reste à Payer</span>
+                    <span className={styles.clientInfoValue} style={{ fontWeight: 'bold', fontSize: '1.1em' }}>
+                      {selectedClientInfo.solde ? `${selectedClientInfo.solde.toFixed(2)} DA` : '0.00 DA'}
+                    </span>
+                    <span className={styles.clientStatus}>
+                      {selectedClientInfo.solde && selectedClientInfo.solde > 0 ? '⚠️ Client endetté' : '✅ Aucune dette'}
+                    </span>
+                  </div>
+                </div>
+                {selectedClientInfo.adresse && (
+                  <div style={{ marginTop: '12px', opacity: 0.9 }}>
+                    <span className={styles.clientInfoLabel}>Adresse:</span> {selectedClientInfo.adresse}
+               </div>
+                )}
               </div>
+            )}
+
+            <div className={styles.formGroup} style={{ marginTop: '20px' }}>
+              <label>Date:</label>
+              <input type="date" value={dateProforma} onChange={(e) => setDateProforma(e.target.value)} required />
             </div>
           </div>
 
-          <div className={styles.formSection}>
-            <h2>Ajouter des Articles</h2>
+          {/* Section articles */}
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>Ajouter des Articles</h2>
+
+            {selectedArticleInfo && (
+              <div className={styles.articleInfoCard}>
+                <div className={styles.articleInfoGrid}>
+                  <div className={styles.articleInfoItem}>
+                    <span className={styles.articleInfoLabel}>Désignation</span>
+                    <span className={styles.articleInfoValue}>{selectedArticleInfo.designation}</span>
+                  </div>
+                  <div className={styles.articleInfoItem}>
+                    <span className={styles.articleInfoLabel}>Prixe vente</span>
+                    <span className={styles.articleInfoValue}>{selectedArticleInfo.prix_vente.toFixed(2)} DA</span>
+                  </div>
+                  <div className={styles.articleInfoItem}>
+                    <span className={styles.articleInfoLabel}>TVA</span>
+                    <span className={styles.articleInfoValue}>{selectedArticleInfo.tva}%</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label>Article:</label>
-                <select
-                  value={currentLine.Narticle}
-                  onChange={(e) => handleArticleChange(e.target.value)}
-                >
+                <select value={currentLine.Narticle} onChange={(e) => handleArticleChange(e.target.value)}>
                   <option value="">Sélectionner un article</option>
-                  {articles.map(article => (
-                    <option key={article.narticle} value={article.narticle}>
-                      {article.narticle} - {article.designation} (Prix: {parseFloat(article.prix_vente.toString()).toFixed(2)} DA)
+                  {articles.map(a => (
+                    <option key={a.narticle} value={a.narticle}>
+                      {a.narticle} - {a.designation}
                     </option>
                   ))}
                 </select>
               </div>
-
               <div className={styles.formGroup}>
                 <label>Quantité:</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={currentLine.Qte}
+                <input type="number" min="1" value={currentLine.Qte}
                   onChange={(e) => setCurrentLine({ ...currentLine, Qte: parseInt(e.target.value) || 1 })}
-                  onFocus={(e) => e.target.select()}
-                />
+                  onFocus={(e) => e.target.select()} />
               </div>
-
               <div className={styles.formGroup}>
                 <label>Prix Unitaire:</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={currentLine.prix}
+                <input type="number" step="0ntLine.prix}
                   onChange={(e) => setCurrentLine({ ...currentLine, prix: parseFloat(e.target.value) || 0 })}
-                />
+                  onFocus={(e) => e.target.select()} />
               </div>
-
               <div className={styles.formGroup}>
                 <label>TVA (%):</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={currentLine.tva}
+                <input type="number" step="0.01" lang="en" value={currentLine.tva}
                   onChange={(e) => setCurrentLine({ ...currentLine, tva: parseFloat(e.target.value) || 0 })}
-                />
+                  onFocus={(e) => e.target.select()} />
               </div>
-
-              <button type="button" onClick={addLine} className={styles.primaryButton}>
-                {editingIndex !== null ? 'Modifier' : 'Ajouter'}
+              <button type="button" onClick={addLine} className={styles.addButton}>
+                {editingIndex !== null ? '✔ Modifier' : '+ Ajouter'}
               </button>
               {editingIndex !== null && (
-                <button type="button" onClick={cancelEdit} className={styles.secondaryButton}>
-                  Annuler
+                <button type="button" onClick={resetCurrentLine}
+                  style={{ padding: '12px 24px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
+                  ✕ Annuler
                 </button>
               )}
             </div>
           </div>
 
-          <div className={styles.tableContainer}>
-            <h2>Lignes de Facture Proforma</h2>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Article</th>
-                  <th>Désignation</th>
-                  <th>Quantité</th>
-                  <th>Prix Unit.</th>
-                  <th>TVA (%)</th>
-                  <th>Total</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line, index) => (
-                  <tr key={index}>
-                    <td>{line.Narticle}</td>
-                    <td>{line.designation}</td>
-                    <td>{line.Qte}</td>
-                    <td>{parseFloat(line.prix.toString()).toFixed(2)} DA</td>
-                    <td>{parseFloat(line.tva.toString()).toFixed(0)}%</td>
-                    <td>{parseFloat(line.total_ligne.toString()).toFixed(2)} DA</td>
-                    <td>
-                      <button
-                        type="button"
-                        onClick={() => editLine(index)}
-                        className={styles.editButton}
-                        style={{ marginRight: '10px' }}
-                      >
-                        Modifier
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeLine(index)}
-                        className={styles.deleteButton}
-                      >
-                        Supprimer
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Lignes */}
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>Lignes de Facture Proforma</h2>
+            {lines.length === 0 ? (
+              <div className={styles.emptyState}>Aucune ligne ajoutée. Sélectionnez un article ci-dessus pour commencer.</div>
+            ) : (
+              <>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Article</th>
+                      <th>Désignation</th>
+                      <th>Quantité</th>
+                      <th>Prix Unit.</th>
+                      <th>TVA (%)</th>
+                      <th>Total</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.map((line, index) => (
+                      <tr key={index}>
+                        <rticle}</td>
+                        <td>{line.designation}</td>
+                        <td>{line.Qte}</td>
+                        <td>{line.prix.toFixed(2)} DA</td>
+                        <td>{line.tva.toFixed(0)}%</td>
+                        <td>{line.total_ligne.toFixed(2)} DA</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                            <button type="bu.editButton}>✏️ Modifier</button>
+                            <button type="button" onClick={() => removeLine(index)} className={styles.deleteButton}>🗑 Supprimer</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className={styles.totals}>
+                  <div className={styles.totalRow}>
+                    <>
+                    <span className={styles.totalValue}>{totals.montantHT.toFixed(2)} DA</span>
+                  </div>
+                  <div className={styles.totalRow}>
+                    <span className={styles.totalLabel}>TVA:</span>
+                    <span className={styles.totalValue}>{totals.totalTVA.toFixed(2)} DA</span>
+                  </div>
+                  <div className={styles.totalRow}>
+                    <span className={styles.totalLabel}>Total TTC:</span>
+                    <span className={styles.totalValue}>{totals.totalTTC.toFixed(2)} DA</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
-          <div className={styles.totalsSection}>
-            <div className={styles.totalRow}>
-              <span>Montant HT:</span>
-              <span>{totals.montantHT.toFixed(2)} DA</span>
-            </div>
-            <div className={styles.totalRow}>
-              <span>TVA:</span>
-              <span>{totals.totalTVA.toFixed(2)} DA</span>
-            </div>
-            <div className={styles.totalRow}>
-              <strong>Total TTC:</strong>
-              <strong>{totals.totalTTC.toFixed(2)} DA</strong>
-            </div>
-          </div>
-
-          <div className={styles.formActions}>
-            <button type="submit" className={styles.primaryButton}>
-              Créer la Facture Proforma
-            </button>
-            <button type="button" onClick={() => router.push('/proforma/list')} className={styles.secondaryButton}>
-              Annuler
+          <div className={styles.actions}>
+            <button type="button" onClick={() => router.push('/proforma/list')} className={styles.cancelButton}>Annuler</button>
+            <button type="submit" className={styles.submitButton} disabled={lines.length === 0 || !selectedClient}>
+              ✔ Créer la Facture Proforma
             </button>
           </div>
         </form>
       </main>
-      
-      {/* Modal d'impression après création */}
+
       {showPrintModal && createdProforma && (
         <PrintOptions
           documentType="proforma"
           documentId={createdProforma.id}
           documentNumber={createdProforma.number}
           clientName={createdProforma.clientName}
-          clientId={createdProforma.clientId || selectedClient}
+          clientId={selectedClient}
           isModal={true}
           onClose={() => {
             setShowPrintModal(false);
