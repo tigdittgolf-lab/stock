@@ -143,3 +143,140 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+async function supabaseInsert(schema: string, table: string, body: object | object[]) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Accept-Profile': schema,
+      'Content-Profile': schema,
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`Supabase insert ${table} HTTP ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
+async function supabaseRpc(fn: string, params: object) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(params),
+  });
+  return res;
+}
+
+export async function POST(request: NextRequest) {
+  const tenant = request.headers.get('X-Tenant') || '';
+  const dbType = request.headers.get('X-Database-Type') || 'supabase';
+  const body = await request.json();
+
+  // Essayer le backend d'abord
+  if (BACKEND_URL) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/sales/invoices`, {
+        method: 'POST',
+        headers: {
+          'X-Tenant': tenant,
+          'X-Database-Type': dbType,
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (res.ok) return NextResponse.json(await res.json());
+      console.warn(`[invoices POST] Backend ${res.status}, fallback Supabase direct`);
+    } catch {
+      console.warn('[invoices POST] Backend unavailable, using Supabase direct');
+    }
+  }
+
+  // Fallback Supabase direct
+  try {
+    if (dbType !== 'supabase') {
+      return NextResponse.json({ success: false, error: 'Backend requis pour MySQL/PostgreSQL' }, { status: 503 });
+    }
+    if (!tenant) {
+      return NextResponse.json({ success: false, error: 'Tenant requis' }, { status: 400 });
+    }
+
+    const { Nclient, date_fact, detail_fact } = body;
+    if (!Nclient || !detail_fact?.length) {
+      return NextResponse.json({ success: false, error: 'Client et lignes requis' }, { status: 400 });
+    }
+
+    // Calculer les totaux
+    let montant_ht = 0, tva_total = 0;
+    for (const l of detail_fact) {
+      const ht = l.Qte * l.prix;
+      montant_ht += ht;
+      tva_total += ht * (l.tva / 100);
+    }
+    const total_ttc = montant_ht + tva_total;
+
+    // Insérer la facture
+    const [facture] = await supabaseInsert(tenant, 'facture', {
+      Nclient,
+      date_fact: date_fact || new Date().toISOString().split('T')[0],
+      montant_ht,
+      tva: tva_total,
+      montant_ttc: total_ttc,
+    });
+
+    if (!facture) {
+      return NextResponse.json({ success: false, error: 'Erreur insertion facture' }, { status: 500 });
+    }
+
+    const nfact = facture.Nfact || facture.nfact || facture.id;
+
+    // Insérer les lignes de détail
+    const details = detail_fact.map((l: any) => ({
+      Nfact: nfact,
+      Narticle: l.Narticle,
+      Qte: l.Qte,
+      prix: l.prix,
+      tva: l.tva,
+      pr_achat: l.pr_achat || 0,
+      total_ligne: l.Qte * l.prix,
+    }));
+    await supabaseInsert(tenant, 'detail_fact', details);
+
+    // Décrémenter le stock_f pour chaque article
+    for (const l of detail_fact) {
+      await supabaseRpc('exec_sql', {
+        sql: `UPDATE "${tenant}"."article" SET "stock_f" = COALESCE("stock_f", 0) - ${l.Qte} WHERE "Narticle" = '${l.Narticle}'`
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Facture N°${nfact} créée avec succès`,
+      data: {
+        nfact,
+        montant_ht,
+        tva: tva_total,
+        total_ttc,
+        message: `Facture N°${nfact} créée avec succès`,
+      },
+    });
+
+  } catch (error) {
+    console.error('❌ invoices POST error:', error);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Erreur' },
+      { status: 500 }
+    );
+  }
+}
