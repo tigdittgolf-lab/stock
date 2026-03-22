@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readTable } from '@/lib/supabase-rpc';
+import { readTable, readTableById, readTableWhere } from '@/lib/supabase-rpc';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -70,22 +70,17 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      // Charger BL header
-      let blRows: any[] = [];
-      try { blRows = await supabaseGet(tenant, 'bl', 'nfact', numericId, 1); } catch { /* */ }
-      if (blRows.length === 0) {
-        try { blRows = await supabaseGet(tenant, 'bl', 'nbl', numericId, 1); } catch { /* */ }
-      }
-      const bl = blRows[0] ?? null;
+      // Utilise readTableById (RPC SECURITY DEFINER) — fonctionne sur tous les schémas
+      const bl = await readTableById(tenant, 'bl', numericId);
       if (!bl) {
         return NextResponse.json({ success: false, error: `BL ${numericId} introuvable` }, { status: 404 });
       }
 
-      // Charger detail_bl — essayer nfact puis Nfact (vieilles bases avec majuscules)
+      // Charger detail_bl via readTableWhere — essaie nfact puis nbl
       let detailRows: any[] = [];
-      for (const col of ['nfact', 'Nfact', 'nbl', 'Nbl']) {
+      for (const col of ['nfact', 'nbl']) {
         try {
-          detailRows = await supabaseGet(tenant, 'detail_bl', col, numericId);
+          detailRows = await readTableWhere(tenant, 'detail_bl', col, numericId);
           if (detailRows.length > 0) break;
         } catch { /* essayer suivant */ }
       }
@@ -106,7 +101,7 @@ export async function GET(request: NextRequest) {
         tva: ['tva', 'taux_tva', 'taxe'], total_ligne: ['total_ligne', 'montant_ligne', 'total', 'montant'],
       }));
 
-      return NextResponse.json({ success: true, data: { ...normalized, details, detail_bl: details }, source: 'supabase_direct' });
+      return NextResponse.json({ success: true, data: { ...normalized, details, detail_bl: details }, source: 'supabase_rpc' });
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Erreur';
       console.error(`❌ [delivery-notes?id=${numericId}]`, msg);
