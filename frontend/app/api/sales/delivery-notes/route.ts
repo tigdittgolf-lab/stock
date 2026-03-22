@@ -253,9 +253,8 @@ export async function POST(request: NextRequest) {
         signal: AbortSignal.timeout(15000)
       });
       if (res.ok) return NextResponse.json(await res.json());
-      const err = await res.text();
-      // Only fallback on network errors, not on explicit backend errors
-      return NextResponse.json({ success: false, error: `Backend error: ${res.status} - ${err}` }, { status: res.status });
+      // Backend returned an error — fall through to Supabase fallback
+      console.warn(`[delivery-notes POST] Backend returned ${res.status}, falling back to Supabase`);
     } catch (e) {
       console.warn('[delivery-notes POST] Backend unavailable, trying Supabase direct');
     }
@@ -272,66 +271,79 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Données manquantes: Nclient et detail_bl requis' }, { status: 400 });
     }
 
-    // Get next BL number
-    let nextNum = 1;
-    for (const col of ['nbl', 'nfact']) {
-      const maxRes = await fetch(`${SUPABASE_URL}/rest/v1/bl?select=${col}&order=${col}.desc&limit=1`, {
-        headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`, 'Accept-Profile': tenant, 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(5000),
-      });
-      if (maxRes.ok) {
-        const rows = await maxRes.json();
-        if (Array.isArray(rows) && rows.length > 0 && rows[0][col] != null) {
-          nextNum = parseInt(rows[0][col]) + 1;
-          break;
-        }
-      }
-    }
+    const dateVal = date_fact || new Date().toISOString().split('T')[0];
 
     // Calculate totals
     const montant_ht = detail_bl.reduce((sum: number, l: any) => sum + (l.Qte * l.prix), 0);
     const tva_total = detail_bl.reduce((sum: number, l: any) => sum + (l.Qte * l.prix * (l.tva || 0) / 100), 0);
     const montant_ttc = montant_ht + tva_total;
 
-    // Insert BL header
-    const blRow = { nbl: nextNum, nfact: nextNum, Nclient, date_fact: date_fact || new Date().toISOString().split('T')[0], montant_ht, tva: tva_total, montant_ttc };
-    const blRes = await fetch(`${SUPABASE_URL}/rest/v1/bl`, {
+    // Get next BL number via readTable
+    const blRows = await readTable(tenant, 'bl');
+    let nextNum = 1;
+    if (blRows.length > 0) {
+      const keys = Object.keys(blRows[0]);
+      const colName = keys.find(k => k.toLowerCase() === 'nfact') ||
+                      keys.find(k => k.toLowerCase() === 'nbl') ||
+                      keys.find(k => k.toLowerCase() === 'id');
+      if (colName) {
+        const maxNum = blRows.reduce((max: number, r: any) => {
+          const val = parseInt(r[colName]);
+          return isNaN(val) ? max : Math.max(max, val);
+        }, 0);
+        nextNum = maxNum + 1;
+      }
+    }
+
+    // Insert BL header via RPC insert_bl_simple
+    const blRpc = await fetch(`${SUPABASE_URL}/rest/v1/rpc/insert_bl_simple`, {
       method: 'POST',
       headers: {
-        'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-        'Accept-Profile': tenant, 'Content-Profile': tenant,
-        'Content-Type': 'application/json', 'Prefer': 'return=representation'
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(blRow),
-      signal: AbortSignal.timeout(8000),
+      body: JSON.stringify({
+        p_tenant: tenant,
+        p_nfact: nextNum,
+        p_nclient: Nclient,
+        p_date_fact: dateVal,
+        p_montant_ht: montant_ht,
+        p_tva: tva_total,
+      }),
+      signal: AbortSignal.timeout(10000),
     });
 
-    if (!blRes.ok) {
-      const err = await blRes.text();
+    if (!blRpc.ok) {
+      const err = await blRpc.text();
       return NextResponse.json({ success: false, error: `Erreur création BL: ${err}` }, { status: 500 });
     }
 
-    // Insert detail lines
-    const detailRows = detail_bl.map((l: any) => ({
-      nbl: nextNum, nfact: nextNum, Narticle: l.Narticle, Qte: l.Qte,
-      prix: l.prix, tva: l.tva || 0, facturer: l.facturer ?? false,
-      total_ligne: l.Qte * l.prix
-    }));
-
-    const detailRes = await fetch(`${SUPABASE_URL}/rest/v1/detail_bl`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-        'Accept-Profile': tenant, 'Content-Profile': tenant,
-        'Content-Type': 'application/json', 'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify(detailRows),
-      signal: AbortSignal.timeout(8000),
-    });
-
-    if (!detailRes.ok) {
-      const err = await detailRes.text();
-      console.warn(`[delivery-notes POST] detail_bl insert warning: ${err}`);
+    // Insert detail lines via RPC insert_detail_bl_simple
+    for (const l of detail_bl) {
+      const total_ligne = l.Qte * l.prix;
+      const detailRpc = await fetch(`${SUPABASE_URL}/rest/v1/rpc/insert_detail_bl_simple`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          p_tenant: tenant,
+          p_nfact: nextNum,
+          p_narticle: l.Narticle,
+          p_qte: l.Qte,
+          p_prix: l.prix,
+          p_tva: l.tva || 0,
+          p_total_ligne: total_ligne,
+        }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!detailRpc.ok) {
+        const err = await detailRpc.text();
+        console.warn(`[delivery-notes POST] detail insert warning for ${l.Narticle}: ${err}`);
+      }
     }
 
     return NextResponse.json({

@@ -25,7 +25,7 @@ export async function GET(
           signal: AbortSignal.timeout(4000)
         });
         if (response.ok) return NextResponse.json(await response.json());
-        // Backend responded with error — fall through to Supabase
+        // Backend returned error — fall through to Supabase
       } catch { /* network error — fall through to Supabase */ }
     }
 

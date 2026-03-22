@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readTable } from '@/lib/supabase-rpc';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const BACKEND_URL = process.env.BACKEND_URL;
 
 export async function GET(request: NextRequest) {
@@ -16,61 +15,37 @@ export async function GET(request: NextRequest) {
         signal: AbortSignal.timeout(4000)
       });
       if (res.ok) return NextResponse.json(await res.json());
-    } catch { /* fallback */ }
+      // Backend returned error — fall through to Supabase
+    } catch { /* network error — fall through to Supabase */ }
   }
 
-  // 2. Supabase direct — get max(nbl) or max(nfact) from bl table
   if (dbType !== 'supabase') {
     return NextResponse.json({ success: false, error: 'Backend non disponible' }, { status: 503 });
   }
 
   try {
-    // Fetch first row to discover actual column names
-    const schemaRes = await fetch(`${SUPABASE_URL}/rest/v1/bl?select=*&limit=1`, {
-      headers: {
-        'apikey': SUPABASE_SERVICE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-        'Accept-Profile': tenant,
-        'Accept': 'application/json',
-      },
-      signal: AbortSignal.timeout(6000),
-    });
+    const rows = await readTable(tenant, 'bl');
 
-    if (schemaRes.ok) {
-      const sample = await schemaRes.json();
-      if (Array.isArray(sample) && sample.length > 0) {
-        const keys = Object.keys(sample[0]);
-        // Find the actual column name (case-insensitive)
-        const colName = keys.find(k => k.toLowerCase() === 'nbl') ||
-                        keys.find(k => k.toLowerCase() === 'nfact') ||
-                        keys.find(k => k.toLowerCase() === 'id');
-
-        if (colName) {
-          const maxRes = await fetch(`${SUPABASE_URL}/rest/v1/bl?select=${colName}&order=${colName}.desc&limit=1`, {
-            headers: {
-              'apikey': SUPABASE_SERVICE_KEY,
-              'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-              'Accept-Profile': tenant,
-              'Accept': 'application/json',
-            },
-            signal: AbortSignal.timeout(6000),
-          });
-
-          if (maxRes.ok) {
-            const rows = await maxRes.json();
-            if (Array.isArray(rows) && rows.length > 0) {
-              const maxNum = parseInt(rows[0][colName]);
-              if (!isNaN(maxNum)) {
-                return NextResponse.json({ success: true, data: { next_number: maxNum + 1 } });
-              }
-            }
-          }
-        }
-      }
+    if (!rows || rows.length === 0) {
+      return NextResponse.json({ success: true, data: { next_number: 1 } });
     }
 
-    // Fallback: table empty or columns not found
-    return NextResponse.json({ success: true, data: { next_number: 1 } });
+    // Find the actual column name (case-insensitive)
+    const keys = Object.keys(rows[0]);
+    const colName = keys.find(k => k.toLowerCase() === 'nbl') ||
+                    keys.find(k => k.toLowerCase() === 'nfact') ||
+                    keys.find(k => k.toLowerCase() === 'id');
+
+    if (!colName) {
+      return NextResponse.json({ success: true, data: { next_number: rows.length + 1 } });
+    }
+
+    const maxNum = rows.reduce((max: number, r: any) => {
+      const val = parseInt(r[colName]);
+      return isNaN(val) ? max : Math.max(max, val);
+    }, 0);
+
+    return NextResponse.json({ success: true, data: { next_number: maxNum + 1 } });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Erreur';
     console.error('❌ [next-number]', msg);
