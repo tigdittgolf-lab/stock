@@ -100,14 +100,14 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
       const dbConfig = localStorage.getItem('activeDbConfig');
       const dbType = dbConfig ? (JSON.parse(dbConfig).type || 'supabase') : 'supabase';
-      // Route /api/bl — fonctionne sur Vercel (pas de route dynamique [id])
-      const response = await fetch(`/api/bl?id=${resolvedParams.id}&tenant=${encodeURIComponent(tenant)}`, {
+      // Utilise la route liste avec ?id= — évite le problème de route dynamique [id] sur Vercel
+      const response = await fetch(`/api/sales/delivery-notes?id=${resolvedParams.id}`, {
         headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType }
       });
       
       if (response.status === 404) {
-        console.warn('⚠️ /api/bl 404 - route non déployée');
-        setError('Route API non disponible. Vérifiez le déploiement Vercel.');
+        console.warn('⚠️ Route API 404');
+        setError('Bon de livraison non trouvé.');
         return;
       }
 
