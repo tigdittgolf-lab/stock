@@ -84,6 +84,23 @@ export async function GET(request: NextRequest) {
           if (detailRows.length > 0) break;
         } catch { /* essayer suivant */ }
       }
+      // Si toujours vide, fallback: charger toute la table et filtrer (gère les colonnes avec majuscules)
+      if (detailRows.length === 0) {
+        try {
+          const allDetails = await readTable(tenant, 'detail_bl');
+          detailRows = allDetails.filter((d: any) => {
+            const keys = Object.keys(d);
+            for (const candidate of ['nfact', 'nbl', 'NFact', 'Nfact', 'NBL', 'Nbl']) {
+              const k = keys.find(k => k.toLowerCase() === candidate.toLowerCase());
+              if (k && Number(d[k]) === numericId) return true;
+            }
+            return false;
+          });
+          console.log(`🔄 [BL ${numericId}] fallback readTable detail_bl: ${detailRows.length} lignes`);
+        } catch (e) {
+          console.warn(`⚠️ [BL ${numericId}] detail_bl fallback failed:`, e);
+        }
+      }
       console.log(`✅ [BL ${numericId}] ${detailRows.length} détails dans ${tenant}`);
 
       const normalized = normalizeRow(bl, {
