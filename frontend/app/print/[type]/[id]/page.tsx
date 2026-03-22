@@ -98,6 +98,29 @@ export default function PrintPage() {
 
       const raw = data.data;
       // Normaliser selon le type
+      const items = (raw.detail_fact || raw.detail_bl || raw.details || []).map((it: any) => {
+          const qty = parseFloat(it.qte || it.qty || 0);
+          const prix = parseFloat(it.prix || it.prix_unitaire || 0);
+          const storedTotal = parseFloat(it.total_ligne || it.total || 0);
+          return {
+            ref: it.article?.narticle || it.narticle || it.ref || '',
+            designation: it.article?.designation || it.designation || '',
+            qty,
+            prix,
+            tva: parseFloat(it.tva || 0),
+            total: storedTotal || (qty * prix), // recalculate if stored total is 0
+          };
+        });
+
+        // Recalculate totals from lines if stored values are missing/zero
+        const calcHT = items.reduce((s: number, it: any) => s + (it.qty * it.prix), 0);
+        const calcTVA = items.reduce((s: number, it: any) => s + (it.qty * it.prix * it.tva / 100), 0);
+        const calcTTC = calcHT + calcTVA;
+
+        const montant_ht = parseFloat(raw.montant_ht || 0) || calcHT;
+        const montant_tva = parseFloat(raw.tva || raw.montant_tva || 0) || calcTVA;
+        const montant_ttc = parseFloat(raw.montant_ttc || raw.total_ttc || 0) || calcTTC;
+
       const normalized: DocData = {
         id: raw.nfact || raw.nbl || raw.id || parseInt(id),
         date: raw.date_fact || raw.date_bl || raw.date || '',
@@ -108,17 +131,10 @@ export default function PrintPage() {
           rc: raw.client?.rc || '',
         },
         company: raw.company || raw.entreprise || undefined,
-        items: (raw.detail_fact || raw.detail_bl || raw.details || []).map((it: any) => ({
-          ref: it.article?.narticle || it.narticle || it.ref || '',
-          designation: it.article?.designation || it.designation || '',
-          qty: parseFloat(it.qte || it.qty || 0),
-          prix: parseFloat(it.prix || it.prix_unitaire || 0),
-          tva: parseFloat(it.tva || 0),
-          total: parseFloat(it.total_ligne || it.total || 0),
-        })),
-        montant_ht: parseFloat(raw.montant_ht || 0),
-        montant_tva: parseFloat(raw.tva || raw.montant_tva || 0),
-        montant_ttc: parseFloat(raw.montant_ttc || raw.total_ttc || 0),
+        items,
+        montant_ht,
+        montant_tva,
+        montant_ttc,
         timbre: parseFloat(raw.timbre || 0),
       };
 
