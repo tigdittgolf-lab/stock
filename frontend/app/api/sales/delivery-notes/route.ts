@@ -243,6 +243,7 @@ export async function POST(request: NextRequest) {
   const dbType = request.headers.get('X-Database-Type') || 'supabase';
   const body = await request.json();
 
+  // 1. Try backend
   if (BACKEND_URL) {
     try {
       const res = await fetch(`${BACKEND_URL}/api/sales/delivery-notes`, {
@@ -253,10 +254,98 @@ export async function POST(request: NextRequest) {
       });
       if (res.ok) return NextResponse.json(await res.json());
       const err = await res.text();
+      // Only fallback on network errors, not on explicit backend errors
       return NextResponse.json({ success: false, error: `Backend error: ${res.status} - ${err}` }, { status: res.status });
     } catch (e) {
-      console.warn('[delivery-notes POST] Backend unavailable');
+      console.warn('[delivery-notes POST] Backend unavailable, trying Supabase direct');
     }
   }
-  return NextResponse.json({ success: false, error: 'Backend non disponible pour la création' }, { status: 503 });
+
+  // 2. Supabase direct fallback
+  if (dbType !== 'supabase') {
+    return NextResponse.json({ success: false, error: 'Backend non disponible pour la création' }, { status: 503 });
+  }
+
+  try {
+    const { Nclient, date_fact, detail_bl } = body;
+    if (!Nclient || !detail_bl || !Array.isArray(detail_bl) || detail_bl.length === 0) {
+      return NextResponse.json({ success: false, error: 'Données manquantes: Nclient et detail_bl requis' }, { status: 400 });
+    }
+
+    // Get next BL number
+    let nextNum = 1;
+    for (const col of ['nbl', 'nfact']) {
+      const maxRes = await fetch(`${SUPABASE_URL}/rest/v1/bl?select=${col}&order=${col}.desc&limit=1`, {
+        headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`, 'Accept-Profile': tenant, 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (maxRes.ok) {
+        const rows = await maxRes.json();
+        if (Array.isArray(rows) && rows.length > 0 && rows[0][col] != null) {
+          nextNum = parseInt(rows[0][col]) + 1;
+          break;
+        }
+      }
+    }
+
+    // Calculate totals
+    const montant_ht = detail_bl.reduce((sum: number, l: any) => sum + (l.Qte * l.prix), 0);
+    const tva_total = detail_bl.reduce((sum: number, l: any) => sum + (l.Qte * l.prix * (l.tva || 0) / 100), 0);
+    const montant_ttc = montant_ht + tva_total;
+
+    // Insert BL header
+    const blRow = { nbl: nextNum, nfact: nextNum, Nclient, date_fact: date_fact || new Date().toISOString().split('T')[0], montant_ht, tva: tva_total, montant_ttc };
+    const blRes = await fetch(`${SUPABASE_URL}/rest/v1/bl`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Accept-Profile': tenant, 'Content-Profile': tenant,
+        'Content-Type': 'application/json', 'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(blRow),
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!blRes.ok) {
+      const err = await blRes.text();
+      return NextResponse.json({ success: false, error: `Erreur création BL: ${err}` }, { status: 500 });
+    }
+
+    // Insert detail lines
+    const detailRows = detail_bl.map((l: any) => ({
+      nbl: nextNum, nfact: nextNum, Narticle: l.Narticle, Qte: l.Qte,
+      prix: l.prix, tva: l.tva || 0, facturer: l.facturer ?? false,
+      total_ligne: l.Qte * l.prix
+    }));
+
+    const detailRes = await fetch(`${SUPABASE_URL}/rest/v1/detail_bl`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Accept-Profile': tenant, 'Content-Profile': tenant,
+        'Content-Type': 'application/json', 'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(detailRows),
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!detailRes.ok) {
+      const err = await detailRes.text();
+      console.warn(`[delivery-notes POST] detail_bl insert warning: ${err}`);
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        nbl: nextNum, nfact: nextNum,
+        message: 'Bon de livraison créé avec succès',
+        montant_ht, tva: tva_total, total_ttc: montant_ttc
+      },
+      source: 'supabase_direct'
+    });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Erreur';
+    console.error('❌ [delivery-notes POST]', msg);
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+  }
 }
