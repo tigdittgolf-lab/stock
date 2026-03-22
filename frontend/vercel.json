@@ -6,7 +6,7 @@
     "NEXT_PUBLIC_API_URL": "https://midi-charm-harvard-performed.trycloudflare.com/api"
   },
   "functions": {
-    "app/api/**/*.js": {
+    "app/api/**/*.ts": {
       "maxDuration": 30
     }
   },
