@@ -58,7 +58,7 @@ export default function CreateDeliveryNote() {
     clientName: string;
   } | null>(null);
   
-  // Ã‰tats pour le paiement
+  // États pour le paiement
   const [paymentType, setPaymentType] = useState<'total' | 'partial'>('total');
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
@@ -70,10 +70,10 @@ export default function CreateDeliveryNote() {
     fetchNextBLNumber();
   }, []);
 
-  // Mettre Ã  jour les infos client quand sÃ©lectionnÃ©
+  // Mettre à jour les infos client quand sélectionné
   useEffect(() => {
     if (selectedClient) {
-      // RÃ©cupÃ©rer les infos tenant depuis localStorage
+      // Récupérer les infos tenant depuis localStorage
       const tenantInfoStr = localStorage.getItem('tenant_info');
       let tenantInfo = null;
       
@@ -89,7 +89,7 @@ export default function CreateDeliveryNote() {
       const tenant = tenantInfo?.schema || localStorage.getItem('selectedTenant') || '2009_bu02';
       const dbType = tenantInfo?.database_type || 'supabase';
       
-      // Appeler l'endpoint pour rÃ©cupÃ©rer les infos avec dette
+      // Appeler l'endpoint pour récupérer les infos avec dette
       fetch(`/api/sales/clients/${selectedClient}/debt`, {
         headers: {
           'x-tenant': tenant,
@@ -101,14 +101,14 @@ export default function CreateDeliveryNote() {
           if (data.success && data.data) {
             setSelectedClientInfo(data.data);
           } else {
-            // Fallback: utiliser les donnÃ©es de base sans dette
+            // Fallback: utiliser les données de base sans dette
             const client = clients.find(c => c.nclient === selectedClient);
             setSelectedClientInfo(client || null);
           }
         })
         .catch(err => {
           console.error('Error fetching client debt:', err);
-          // Fallback: utiliser les donnÃ©es de base sans dette
+          // Fallback: utiliser les données de base sans dette
           const client = clients.find(c => c.nclient === selectedClient);
           setSelectedClientInfo(client || null);
         });
@@ -117,7 +117,7 @@ export default function CreateDeliveryNote() {
     }
   }, [selectedClient, clients]);
 
-  // Mettre Ã  jour les infos article quand sÃ©lectionnÃ©
+  // Mettre à jour les infos article quand sélectionné
   useEffect(() => {
     if (currentLine.Narticle) {
       const article = articles.find(a => a.narticle === currentLine.Narticle);
@@ -136,7 +136,7 @@ export default function CreateDeliveryNote() {
 
   const fetchNextBLNumber = async () => {
     try {
-      // RÃ©cupÃ©rer le tenant depuis localStorage
+      // Récupérer le tenant depuis localStorage
       const tenantInfo = localStorage.getItem('tenant_info');
       if (!tenantInfo) {
         console.warn('âš ï¸ No tenant info found, skipping next BL number fetch');
@@ -146,7 +146,7 @@ export default function CreateDeliveryNote() {
       const tenant = JSON.parse(tenantInfo);
       const tenantId = tenant.schema || '2025_bu01';
       
-      // RÃ©cupÃ©rer la config DB
+      // Récupérer la config DB
       const dbConfig = localStorage.getItem('activeDbConfig');
       const dbType = dbConfig ? JSON.parse(dbConfig).type : 'mysql';
       
@@ -178,7 +178,7 @@ export default function CreateDeliveryNote() {
 
   const fetchClients = async () => {
     try {
-      // RÃ©cupÃ©rer le tenant depuis localStorage
+      // Récupérer le tenant depuis localStorage
       const tenantInfo = localStorage.getItem('tenant_info');
       if (!tenantInfo) {
         console.warn('âš ï¸ No tenant info found');
@@ -188,7 +188,7 @@ export default function CreateDeliveryNote() {
       const tenant = JSON.parse(tenantInfo);
       const tenantId = tenant.schema || '2025_bu01';
       
-      // RÃ©cupÃ©rer la config DB
+      // Récupérer la config DB
       const dbConfig = localStorage.getItem('activeDbConfig');
       const dbType = dbConfig ? JSON.parse(dbConfig).type : 'mysql';
       
@@ -215,7 +215,7 @@ export default function CreateDeliveryNote() {
 
   const fetchArticles = async () => {
     try {
-      // RÃ©cupÃ©rer le tenant depuis localStorage
+      // Récupérer le tenant depuis localStorage
       const tenantInfo = localStorage.getItem('tenant_info');
       if (!tenantInfo) {
         console.warn('âš ï¸ No tenant info found');
@@ -225,7 +225,7 @@ export default function CreateDeliveryNote() {
       const tenant = JSON.parse(tenantInfo);
       const tenantId = tenant.schema || '2025_bu01';
       
-      // RÃ©cupÃ©rer la config DB
+      // Récupérer la config DB
       const dbConfig = localStorage.getItem('activeDbConfig');
       const dbType = dbConfig ? JSON.parse(dbConfig).type : 'mysql';
       
@@ -255,7 +255,7 @@ export default function CreateDeliveryNote() {
     const article = articles.find(a => a.narticle === articleId);
     console.log('Article found:', article);
     if (article) {
-      // Si on est en mode Ã©dition et que l'article n'a pas changÃ©, ne pas Ã©craser les valeurs
+      // Si on est en mode édition et que l'article n'a pas changé, ne pas écraser les valeurs
       if (editingIndex !== null && currentLine.Narticle === articleId) {
         console.log('âš ï¸ Same article in edit mode, keeping current values');
         return;
@@ -276,7 +276,7 @@ export default function CreateDeliveryNote() {
     console.log('addLine called, currentLine:', currentLine);
     
     if (!currentLine.Narticle || currentLine.Qte <= 0) {
-      alert('Veuillez sÃ©lectionner un article et une quantitÃ© valide');
+      alert('Veuillez sélectionner un article et une quantité valide');
       return;
     }
 
@@ -286,7 +286,7 @@ export default function CreateDeliveryNote() {
     const article = articles.find(a => a.narticle === currentLine.Narticle);
     if (!article) {
       console.log('Article not found:', currentLine.Narticle);
-      alert('Article non trouvÃ©!');
+      alert('Article non trouvé!');
       return;
     }
 
@@ -325,7 +325,7 @@ export default function CreateDeliveryNote() {
 
   const removeLine = (index: number) => {
     setLines(lines.filter((_, i) => i !== index));
-    // Si on supprime la ligne en cours de modification, annuler l'Ã©dition
+    // Si on supprime la ligne en cours de modification, annuler l'édition
     if (editingIndex === index) {
       setEditingIndex(null);
       resetCurrentLine();
@@ -369,7 +369,7 @@ export default function CreateDeliveryNote() {
     e.preventDefault();
 
     if (!selectedClient) {
-      alert('Veuillez sÃ©lectionner un client');
+      alert('Veuillez sélectionner un client');
       return;
     }
 
@@ -425,7 +425,7 @@ export default function CreateDeliveryNote() {
         const blNumber = data.data.nbl || data.data.nfact;
         const totalTTC = data.data.total_ttc || 0;
         
-        // Enregistrer le paiement si un montant est spÃ©cifiÃ©
+        // Enregistrer le paiement si un montant est spécifié
         if (paymentType === 'total' || (paymentType === 'partial' && paymentAmount > 0)) {
           const amountToPay = paymentType === 'total' ? totalTTC : paymentAmount;
           
@@ -451,22 +451,22 @@ export default function CreateDeliveryNote() {
             if (!paymentData.success) {
               console.error('âŒ Erreur lors de l\'enregistrement du paiement:', paymentData.error);
             } else {
-              console.log('âœ… Paiement enregistrÃ© avec succÃ¨s');
+              console.log('âœ… Paiement enregistré avec succès');
             }
           } catch (paymentError) {
             console.error('âŒ Erreur lors de l\'enregistrement du paiement:', paymentError);
           }
         }
         
-        const message = `âœ… ${data.data.message || 'Bon de livraison crÃ©Ã© avec succÃ¨s!'}\n\n` +
-                       `ðŸ“‹ NumÃ©ro: ${blNumber}\n` +
+        const message = `âœ… ${data.data.message || 'Bon de livraison créé avec succès!'}\n\n` +
+                       `ðŸ“‹ Numéro: ${blNumber}\n` +
                        `ðŸ‘¤ Client: ${selectedClient}\n` +
                        `ðŸ“… Date: ${dateBL}\n` +
                        `ðŸ’° Total HT: ${data.data.montant_ht?.toFixed(2)} DA\n` +
                        `ðŸ’° Total TTC: ${totalTTC.toFixed(2)} DA\n` +
                        `ðŸ“¦ Articles: ${lines.length} ligne(s)`;
         
-        // PrÃ©parer les donnÃ©es pour le modal d'impression
+        // Préparer les données pour le modal d'impression
         const clientName = clients.find(c => c.nclient === selectedClient)?.raison_sociale || selectedClient;
         
         setCreatedBL({
@@ -475,7 +475,7 @@ export default function CreateDeliveryNote() {
           clientName: clientName
         });
         
-        // RÃ©initialiser le formulaire
+        // Réinitialiser le formulaire
         setSelectedClient('');
         setDateBL(new Date().toISOString().split('T')[0]);
         setLines([]);
@@ -492,7 +492,7 @@ export default function CreateDeliveryNote() {
       }
     } catch (error) {
       console.error('Error creating delivery note:', error);
-      alert('Erreur lors de la crÃ©ation du bon de livraison');
+      alert('Erreur lors de la création du bon de livraison');
     }
   };
 
@@ -502,8 +502,8 @@ export default function CreateDeliveryNote() {
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.title}>
-          CrÃ©er un Bon de Livraison 
-          {nextBLNumber && <span className={styles.blNumber}>NÂ° {nextBLNumber}</span>}
+          Créer un Bon de Livraison 
+          {nextBLNumber && <span className={styles.blNumber}>N° {nextBLNumber}</span>}
         </div>
         <button onClick={() => router.push('/delivery-notes/list')} className={styles.backButton}>
           â† Retour
@@ -521,7 +521,7 @@ export default function CreateDeliveryNote() {
                 onChange={(e) => setSelectedClient(e.target.value)}
                 required
               >
-                <option value="">SÃ©lectionner un client</option>
+                <option value="">Sélectionner un client</option>
                 {clients.map((client, index) => (
                   <option key={`${client.nclient}-${index}`} value={client.nclient}>
                     {client.nclient} - {client.raison_sociale}
@@ -543,7 +543,7 @@ export default function CreateDeliveryNote() {
                     <span className={styles.clientInfoValue}>{selectedClientInfo.raison_sociale}</span>
                   </div>
                   <div className={styles.clientInfoItem}>
-                    <span className={styles.clientInfoLabel}>TÃ©lÃ©phone</span>
+                    <span className={styles.clientInfoLabel}>Téléphone</span>
                     <span className={styles.clientInfoValue}>{selectedClientInfo.telephone || 'N/A'}</span>
                   </div>
                   <div className={styles.clientInfoItem}>
@@ -565,7 +565,7 @@ export default function CreateDeliveryNote() {
                     </span>
                   </div>
                   <div className={styles.clientInfoItem}>
-                    <span className={styles.clientInfoLabel}>Dette / Reste Ã  Payer</span>
+                    <span className={styles.clientInfoLabel}>Dette / Reste à Payer</span>
                     <span className={styles.clientInfoValue} style={{ 
                       color: selectedClientInfo.solde && selectedClientInfo.solde > 0 ? '#dc3545' : '#28a745',
                       fontWeight: 'bold',
@@ -575,7 +575,7 @@ export default function CreateDeliveryNote() {
                     </span>
                     <span className={styles.clientStatus}>
                       {selectedClientInfo.solde && selectedClientInfo.solde > 0 
-                        ? 'âš ï¸ Client endettÃ©' 
+                        ? 'âš ï¸ Client endetté' 
                         : 'âœ… Aucune dette'}
                     </span>
                   </div>
@@ -607,7 +607,7 @@ export default function CreateDeliveryNote() {
               <div className={styles.articleInfoCard}>
                 <div className={styles.articleInfoGrid}>
                   <div className={styles.articleInfoItem}>
-                    <span className={styles.articleInfoLabel}>DÃ©signation</span>
+                    <span className={styles.articleInfoLabel}>Désignation</span>
                     <span className={styles.articleInfoValue}>{selectedArticleInfo.designation}</span>
                   </div>
                   <div className={styles.articleInfoItem}>
@@ -617,7 +617,7 @@ export default function CreateDeliveryNote() {
                       selectedArticleInfo.stock_bl > 100 ? styles.high :
                       selectedArticleInfo.stock_bl > 20 ? styles.medium : styles.low
                     }`}>
-                      {selectedArticleInfo.stock_bl > 100 ? 'âœ“ Stock Ã©levÃ©' :
+                      {selectedArticleInfo.stock_bl > 100 ? 'âœ“ Stock élevé' :
                        selectedArticleInfo.stock_bl > 20 ? 'âš  Stock moyen' : 'âš ï¸ Stock faible'}
                     </span>
                   </div>
@@ -636,7 +636,7 @@ export default function CreateDeliveryNote() {
                   value={currentLine.Narticle}
                   onChange={(e) => handleArticleChange(e.target.value)}
                 >
-                  <option value="">SÃ©lectionner un article</option>
+                  <option value="">Sélectionner un article</option>
                   {articles.map(article => (
                     <option key={article.narticle} value={article.narticle}>
                       {article.narticle} - {article.designation}
@@ -646,7 +646,7 @@ export default function CreateDeliveryNote() {
               </div>
 
               <div className={styles.formGroup}>
-                <label>QuantitÃ©:</label>
+                <label>Quantité:</label>
                 <input
                   type="number"
                   min="1"
@@ -711,7 +711,7 @@ export default function CreateDeliveryNote() {
             <h2 className={styles.sectionTitle}>Lignes du Bon de Livraison</h2>
             {lines.length === 0 ? (
               <div className={styles.emptyState}>
-                Aucune ligne ajoutÃ©e. SÃ©lectionnez un article ci-dessus pour commencer.
+                Aucune ligne ajoutée. Sélectionnez un article ci-dessus pour commencer.
               </div>
             ) : (
               <>
@@ -719,8 +719,8 @@ export default function CreateDeliveryNote() {
                   <thead>
                     <tr>
                       <th>Article</th>
-                      <th>DÃ©signation</th>
-                      <th>QuantitÃ©</th>
+                      <th>Désignation</th>
+                      <th>Quantité</th>
                       <th>Prix Unit.</th>
                       <th>TVA (%)</th>
                       <th>Total</th>
@@ -811,7 +811,7 @@ export default function CreateDeliveryNote() {
 
               {paymentType === 'partial' && (
                 <div className={styles.formGroup}>
-                  <label>Montant versÃ© (DA):</label>
+                  <label>Montant versé (DA):</label>
                   <input
                     type="number"
                     step="0.01"
@@ -830,13 +830,13 @@ export default function CreateDeliveryNote() {
               )}
 
               <div className={styles.formGroup}>
-                <label>MÃ©thode de paiement:</label>
+                <label>Méthode de paiement:</label>
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                 >
-                  <option value="cash">EspÃ¨ces</option>
-                  <option value="check">ChÃ¨que</option>
+                  <option value="cash">Espèces</option>
+                  <option value="check">Chèque</option>
                   <option value="bank_transfer">Virement bancaire</option>
                   <option value="credit_card">Carte bancaire</option>
                   <option value="other">Autre</option>
@@ -851,7 +851,7 @@ export default function CreateDeliveryNote() {
                   <textarea
                     value={paymentNotes}
                     onChange={(e) => setPaymentNotes(e.target.value)}
-                    placeholder="Ex: Premier versement, reste Ã  payer..."
+                    placeholder="Ex: Premier versement, reste à payer..."
                     rows={2}
                     style={{
                       width: '100%',
@@ -874,7 +874,7 @@ export default function CreateDeliveryNote() {
                 borderRadius: '8px',
                 marginTop: '12px'
               }}>
-                <strong>âš ï¸ Reste Ã  payer: {(totals.totalTTC - paymentAmount).toFixed(2)} DA</strong>
+                <strong>âš ï¸ Reste à payer: {(totals.totalTTC - paymentAmount).toFixed(2)} DA</strong>
               </div>
             )}
           </div>
@@ -892,13 +892,13 @@ export default function CreateDeliveryNote() {
               className={styles.submitButton}
               disabled={lines.length === 0 || !selectedClient}
             >
-              âœ“ CrÃ©er le Bon de Livraison
+              âœ“ Créer le Bon de Livraison
             </button>
           </div>
         </form>
       </main>
       
-      {/* Modal d'impression aprÃ¨s crÃ©ation */}
+      {/* Modal d'impression après création */}
       {showPrintModal && createdBL && (
         <PrintOptions
           documentType="bl"
