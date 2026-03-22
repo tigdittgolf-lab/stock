@@ -239,8 +239,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const tenant = request.headers.get('X-Tenant') || '2025_bu01';
-  const dbType = request.headers.get('X-Database-Type') || 'supabase';
+  const tenant = request.headers.get('X-Tenant') || request.headers.get('x-tenant') || '2025_bu01';
+  const dbType = request.headers.get('X-Database-Type') || request.headers.get('x-database-type') || 'supabase';
   const body = await request.json();
 
   // 1. Try backend

@@ -25,29 +25,46 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Try nbl column first, then nfact
-    for (const col of ['nbl', 'nfact']) {
-      const url = `${SUPABASE_URL}/rest/v1/bl?select=${col}&order=${col}.desc&limit=1`;
-      const res = await fetch(url, {
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Accept-Profile': tenant,
-          'Accept': 'application/json',
-        },
-        signal: AbortSignal.timeout(6000),
-      });
+    // Fetch first row to discover actual column names
+    const schemaRes = await fetch(`${SUPABASE_URL}/rest/v1/bl?select=*&limit=1`, {
+      headers: {
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Accept-Profile': tenant,
+        'Accept': 'application/json',
+      },
+      signal: AbortSignal.timeout(6000),
+    });
 
-      if (!res.ok) continue;
+    if (schemaRes.ok) {
+      const sample = await schemaRes.json();
+      if (Array.isArray(sample) && sample.length > 0) {
+        const keys = Object.keys(sample[0]);
+        // Find the actual column name (case-insensitive)
+        const colName = keys.find(k => k.toLowerCase() === 'nbl') ||
+                        keys.find(k => k.toLowerCase() === 'nfact') ||
+                        keys.find(k => k.toLowerCase() === 'id');
 
-      const rows = await res.json();
-      if (Array.isArray(rows) && rows.length > 0 && rows[0][col] != null) {
-        const maxNum = parseInt(rows[0][col]);
-        if (!isNaN(maxNum)) {
-          return NextResponse.json({
-            success: true,
-            data: { next_number: maxNum + 1 }
+        if (colName) {
+          const maxRes = await fetch(`${SUPABASE_URL}/rest/v1/bl?select=${colName}&order=${colName}.desc&limit=1`, {
+            headers: {
+              'apikey': SUPABASE_SERVICE_KEY,
+              'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+              'Accept-Profile': tenant,
+              'Accept': 'application/json',
+            },
+            signal: AbortSignal.timeout(6000),
           });
+
+          if (maxRes.ok) {
+            const rows = await maxRes.json();
+            if (Array.isArray(rows) && rows.length > 0) {
+              const maxNum = parseInt(rows[0][colName]);
+              if (!isNaN(maxNum)) {
+                return NextResponse.json({ success: true, data: { next_number: maxNum + 1 } });
+              }
+            }
+          }
         }
       }
     }
