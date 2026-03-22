@@ -358,7 +358,10 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
             🎫 Ticket
           </button>
           <button 
-            onClick={() => window.print()} 
+            onClick={() => {
+              const blId = deliveryNote.nfact || deliveryNote.nbl;
+              window.open(`/print/bl/${blId}`, '_blank');
+            }} 
             className={styles.primaryButton}
             style={{ marginLeft: '10px' }}
           >
