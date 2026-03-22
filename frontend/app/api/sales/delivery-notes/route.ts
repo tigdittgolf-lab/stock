@@ -118,12 +118,55 @@ export async function GET(request: NextRequest) {
         montant_ht: ['montant_ht', 'mht', 'total_ht'], tva: ['tva', 'montant_tva', 'taxe'],
         montant_ttc: ['montant_ttc', 'total_ttc', 'mttc'],
       });
-      const details = detailRows.map((d: any) => normalizeRow(d, {
+      let details = detailRows.map((d: any) => normalizeRow(d, {
         narticle: ['narticle', 'article', 'code_article', 'ref'],
         designation: ['designation', 'libelle', 'nom_article', 'description'],
         qte: ['qte', 'quantite', 'qty'], prix: ['prix', 'prix_unitaire', 'pu', 'prix_vente'],
         tva: ['tva', 'taux_tva', 'taxe'], total_ligne: ['total_ligne', 'montant_ligne', 'total', 'montant'],
       }));
+
+      // Si désignations manquantes, charger depuis table article
+      const missingDesig = details.filter((d: any) => !d.designation && d.narticle);
+      if (missingDesig.length > 0) {
+        try {
+          const codes = [...new Set(missingDesig.map((d: any) => String(d.narticle)))];
+          const artRows = await readTable(tenant, 'article');
+          const artMap: Record<string, string> = {};
+          artRows.forEach((a: any) => {
+            const keys = Object.keys(a);
+            const findVal = (...names: string[]) => { for (const n of names) { const k = keys.find(k => k.toLowerCase() === n.toLowerCase()); if (k && a[k]) return a[k]; } return ''; };
+            const code = String(findVal('narticle', 'code_article', 'ref') || '').trim();
+            const desig = findVal('designation', 'libelle', 'nom_article', 'description');
+            if (code) artMap[code] = desig;
+          });
+          details = details.map((d: any) => ({
+            ...d,
+            designation: d.designation || artMap[String(d.narticle).trim()] || '',
+          }));
+          console.log(`✅ [BL ${numericId}] désignations enrichies depuis article`);
+        } catch (e) {
+          console.warn(`⚠️ [BL ${numericId}] enrichissement désignations échoué:`, e);
+        }
+      }
+
+      // Si client_name manquant, charger depuis table client
+      if (!normalized.client_name && normalized.nclient) {
+        try {
+          const clientRows = await readTable(tenant, 'client');
+          const found = clientRows.find((c: any) => {
+            const keys = Object.keys(c);
+            const k = keys.find(k => k.toLowerCase() === 'nclient');
+            return k && String(c[k]) === String(normalized.nclient);
+          });
+          if (found) {
+            const keys = Object.keys(found);
+            const findVal = (...names: string[]) => { for (const n of names) { const k = keys.find(k => k.toLowerCase() === n.toLowerCase()); if (k && found[k]) return found[k]; } return ''; };
+            normalized.client_name = findVal('raison_sociale', 'nom', 'client_name', 'libelle');
+          }
+        } catch (e) {
+          console.warn(`⚠️ [BL ${numericId}] chargement client échoué:`, e);
+        }
+      }
 
       return NextResponse.json({ success: true, data: { ...normalized, details, detail_bl: details }, source: 'supabase_rpc' });
     } catch (error) {
