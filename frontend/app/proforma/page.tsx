@@ -37,7 +37,7 @@ interface ProformaLine {
 export default function CreateProforma() {
   const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
-  const [ar<Article[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
   const [selectedClient, setSelectedClient] = useState('');
   const [selectedClientInfo, setSelectedClientInfo] = useState<Client | null>(null);
   const [selectedArticleInfo, setSelectedArticleInfo] = useState<Article | null>(null);
