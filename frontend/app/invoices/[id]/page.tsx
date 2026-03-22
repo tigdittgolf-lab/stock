@@ -72,9 +72,12 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
       }
       
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`/api/sales/invoices/${resolvedParams.id}`, {
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? (JSON.parse(dbConfig).type || 'supabase') : 'supabase';
+      const response = await fetch(`/api/sales/invoices?id=${resolvedParams.id}`, {
         headers: {
-          'X-Tenant': tenant
+          'X-Tenant': tenant,
+          'X-Database-Type': dbType
         }
       });
       
@@ -250,28 +253,14 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
             ↩️ Retour / Avoir
           </button>
           <button 
-            onClick={async () => {
+            onClick={() => {
               const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-              try {
-                const response = await fetch(`/api/pdf/invoice/${invoice.nfact}`, {
-                  headers: { 'X-Tenant': tenant }
-                });
-                if (response.ok) {
-                  const blob = await response.blob();
-                  const url = window.URL.createObjectURL(blob);
-                  window.open(url, '_blank');
-                  window.URL.revokeObjectURL(url);
-                } else {
-                  alert('Erreur lors de la génération du PDF');
-                }
-              } catch {
-                alert('Erreur lors de la génération du PDF');
-              }
+              window.open(`/pdf/invoice/${invoice.nfact}?tenant=${encodeURIComponent(tenant)}`, '_blank');
             }} 
             className={styles.primaryButton}
             style={{ marginLeft: '10px' }}
           >
-            🖨️ Imprimer
+            📄 Facture PDF
           </button>
         </div>
       </header>

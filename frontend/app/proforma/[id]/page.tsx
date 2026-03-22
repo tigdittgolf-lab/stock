@@ -198,9 +198,12 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
       console.log('✅ Valid proforma ID:', numericId);
       
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      const response = await fetch(`/api/sales/proforma/${numericId}`, {
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? (JSON.parse(dbConfig).type || 'supabase') : 'supabase';
+      const response = await fetch(`/api/sales/proforma?id=${numericId}`, {
         headers: {
-          'X-Tenant': tenant
+          'X-Tenant': tenant,
+          'X-Database-Type': dbType
         }
       });
       
@@ -281,43 +284,15 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
             Retour à la liste
           </button>
           <button 
-            onClick={async () => {
-              try {
-                // Utiliser l'ID numérique validé
-                const numericId = parseInt(resolvedParams.id);
-                if (isNaN(numericId) || numericId <= 0 || !Number.isInteger(parseFloat(resolvedParams.id))) {
-                  alert('Erreur: ID du proforma invalide pour la génération PDF');
-                  return;
-                }
-                
-                const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-                console.log('🖨️ Generating PDF for proforma ID:', numericId);
-                
-                const response = await fetch(`/api/pdf/proforma/${numericId}`, {
-                  headers: {
-                    'X-Tenant': tenant
-                  }
-                });
-                
-                if (response.ok) {
-                  const blob = await response.blob();
-                  const url = window.URL.createObjectURL(blob);
-                  window.open(url, '_blank');
-                  console.log('✅ PDF generated successfully for proforma:', numericId);
-                } else {
-                  const errorData = await response.json().catch(() => ({}));
-                  console.error('❌ PDF generation failed:', response.status, errorData);
-                  alert(`Erreur lors de la génération du PDF: ${errorData.error || response.statusText}`);
-                }
-              } catch (error) {
-                console.error('Error generating PDF:', error);
-                alert('Erreur lors de la génération du PDF');
-              }
+            onClick={() => {
+              const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
+              const pfId = proforma.nfact || proforma.nfprof;
+              window.open(`/pdf/proforma/${pfId}?tenant=${encodeURIComponent(tenant)}`, '_blank');
             }} 
             className={styles.primaryButton}
             style={{ marginLeft: '10px' }}
           >
-            🖨️ Imprimer PDF
+            📄 Proforma PDF
           </button>
         </div>
       </header>
