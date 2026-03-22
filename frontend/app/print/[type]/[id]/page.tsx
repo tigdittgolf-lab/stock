@@ -81,8 +81,8 @@ export default function PrintPage() {
       const headers = { 'X-Tenant': tenant, 'X-Database-Type': dbType };
 
       let apiUrl = '';
-      if (type === 'bl') apiUrl = `/api/sales/delivery-notes/${id}`;
-      else if (type === 'invoice') apiUrl = `/api/sales/invoices/${id}`;
+      if (type === 'bl') apiUrl = `/api/sales/delivery-notes?id=${id}`;
+      else if (type === 'invoice') apiUrl = `/api/sales/invoices?id=${id}`;
       else if (type === 'proforma') apiUrl = `/api/sales/proforma/${id}`;
       else if (type === 'avoir') apiUrl = `/api/sales/credit-notes/${id}`;
       else { setError('Type de document inconnu'); setLoading(false); return; }
