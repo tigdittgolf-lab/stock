@@ -147,34 +147,19 @@ export async function GET(request: NextRequest) {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-async function supabaseInsert(schema: string, table: string, body: object | object[]) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-    method: 'POST',
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Accept-Profile': schema,
-      'Content-Profile': schema,
-      Prefer: 'return=representation',
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`Supabase insert ${table} HTTP ${res.status}: ${await res.text()}`);
-  return res.json();
-}
-
-async function supabaseRpc(fn: string, params: object) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+async function execSql(sql: string): Promise<any> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
     method: 'POST',
     headers: {
       apikey: SUPABASE_KEY,
       Authorization: `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(params),
+    body: JSON.stringify({ sql }),
   });
-  return res;
+  const text = await res.text();
+  if (!res.ok) throw new Error(`exec_sql HTTP ${res.status}: ${text}`);
+  try { return JSON.parse(text); } catch { return null; }
 }
 
 export async function POST(request: NextRequest) {
@@ -225,51 +210,61 @@ export async function POST(request: NextRequest) {
       tva_total += ht * (l.tva / 100);
     }
     const total_ttc = montant_ht + tva_total;
+    const dateVal = date_fact || new Date().toISOString().split('T')[0];
 
-    // Insérer la facture
-    const [facture] = await supabaseInsert(tenant, 'facture', {
-      Nclient,
-      date_fact: date_fact || new Date().toISOString().split('T')[0],
-      montant_ht,
-      tva: tva_total,
-      montant_ttc: total_ttc,
-    });
+    // Insérer la facture via exec_sql et récupérer le numéro généré
+    const insertResult = await execSql(
+      `INSERT INTO "${tenant}"."facture" ("Nclient", "date_fact", "montant_ht", "tva", "montant_ttc")
+       VALUES ('${Nclient}', '${dateVal}', ${montant_ht}, ${tva_total}, ${total_ttc})
+       RETURNING "Nfact"`
+    );
 
-    if (!facture) {
-      return NextResponse.json({ success: false, error: 'Erreur insertion facture' }, { status: 500 });
+    const nfact = Array.isArray(insertResult) && insertResult[0]
+      ? (insertResult[0].Nfact || insertResult[0].nfact)
+      : null;
+
+    if (!nfact) {
+      // Fallback: récupérer le dernier numéro inséré
+      const lastRow = await execSql(
+        `SELECT MAX("Nfact") as nfact FROM "${tenant}"."facture" WHERE "Nclient" = '${Nclient}' AND "date_fact" = '${dateVal}'`
+      );
+      const fallbackNfact = Array.isArray(lastRow) && lastRow[0] ? lastRow[0].nfact : null;
+      if (!fallbackNfact) {
+        return NextResponse.json({ success: false, error: 'Impossible de récupérer le numéro de facture' }, { status: 500 });
+      }
+      // Insérer les lignes avec le numéro fallback
+      for (const l of detail_fact) {
+        const totalLigne = l.Qte * l.prix;
+        await execSql(
+          `INSERT INTO "${tenant}"."detail_fact" ("Nfact", "Narticle", "Qte", "prix", "tva", "pr_achat", "total_ligne")
+           VALUES (${fallbackNfact}, '${l.Narticle}', ${l.Qte}, ${l.prix}, ${l.tva}, ${l.pr_achat || 0}, ${totalLigne})`
+        );
+        await execSql(
+          `UPDATE "${tenant}"."article" SET "stock_f" = COALESCE("stock_f", 0) - ${l.Qte} WHERE "Narticle" = '${l.Narticle}'`
+        );
+      }
+      return NextResponse.json({
+        success: true,
+        data: { nfact: fallbackNfact, montant_ht, tva: tva_total, total_ttc, message: `Facture N°${fallbackNfact} créée avec succès` },
+      });
     }
 
-    const nfact = facture.Nfact || facture.nfact || facture.id;
-
     // Insérer les lignes de détail
-    const details = detail_fact.map((l: any) => ({
-      Nfact: nfact,
-      Narticle: l.Narticle,
-      Qte: l.Qte,
-      prix: l.prix,
-      tva: l.tva,
-      pr_achat: l.pr_achat || 0,
-      total_ligne: l.Qte * l.prix,
-    }));
-    await supabaseInsert(tenant, 'detail_fact', details);
-
-    // Décrémenter le stock_f pour chaque article
     for (const l of detail_fact) {
-      await supabaseRpc('exec_sql', {
-        sql: `UPDATE "${tenant}"."article" SET "stock_f" = COALESCE("stock_f", 0) - ${l.Qte} WHERE "Narticle" = '${l.Narticle}'`
-      });
+      const totalLigne = l.Qte * l.prix;
+      await execSql(
+        `INSERT INTO "${tenant}"."detail_fact" ("Nfact", "Narticle", "Qte", "prix", "tva", "pr_achat", "total_ligne")
+         VALUES (${nfact}, '${l.Narticle}', ${l.Qte}, ${l.prix}, ${l.tva}, ${l.pr_achat || 0}, ${totalLigne})`
+      );
+      // Décrémenter le stock_f
+      await execSql(
+        `UPDATE "${tenant}"."article" SET "stock_f" = COALESCE("stock_f", 0) - ${l.Qte} WHERE "Narticle" = '${l.Narticle}'`
+      );
     }
 
     return NextResponse.json({
       success: true,
-      message: `Facture N°${nfact} créée avec succès`,
-      data: {
-        nfact,
-        montant_ht,
-        tva: tva_total,
-        total_ttc,
-        message: `Facture N°${nfact} créée avec succès`,
-      },
+      data: { nfact, montant_ht, tva: tva_total, total_ttc, message: `Facture N°${nfact} créée avec succès` },
     });
 
   } catch (error) {
