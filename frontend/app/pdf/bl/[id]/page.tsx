@@ -58,20 +58,19 @@ export default function PDFGeneratorPage() {
         companyData = companyJson.data[0];
       }
 
-      // Si client_name vide, charger depuis /api/sales/clients avec nclient
+      // Si client_name vide, charger depuis Supabase directement avec nclient
       if (!blData.client_name && blData.nclient) {
         try {
-          const clientRes = await fetch(`/api/sales/clients?code=${blData.nclient}`, {
-            headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType }
-          });
+          const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co';
+          const SUPA_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+          const clientRes = await fetch(
+            `${SUPA_URL}/rest/v1/client?Nclient=eq.${blData.nclient}&select=Raison_sociale,raison_sociale,nom&limit=1`,
+            { headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`, 'Accept-Profile': tenant } }
+          );
           if (clientRes.ok) {
-            const clientJson = await clientRes.json();
-            const clients = clientJson.data || [];
-            const found = clients.find((c: any) =>
-              String(c.nclient || c.code || c.id) === String(blData.nclient)
-            );
-            if (found) {
-              blData.client_name = found.raison_sociale || found.nom || found.client_name || '';
+            const rows = await clientRes.json();
+            if (rows?.[0]) {
+              blData.client_name = rows[0].Raison_sociale || rows[0].raison_sociale || rows[0].nom || '';
             }
           }
         } catch { /* client non critique */ }
