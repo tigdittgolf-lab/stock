@@ -234,10 +234,22 @@ export async function POST(request: NextRequest) {
       p_tva: tva_total,
     });
 
-    // insert_fact_safe retourne TABLE(nfact INTEGER) → Supabase renvoie [{nfact: N}]
-    const nfact = Array.isArray(result) && result[0]
-      ? (result[0].nfact || result[0].Nfact || result[0].NFact)
-      : null;
+    // insert_fact_safe retourne soit [{nfact: N}] soit une string "Facture N créée..."
+    // On extrait le nfact depuis la réponse, ou on utilise nextNfact qu'on a calculé
+    let nfact: number | null = null;
+
+    if (Array.isArray(result) && result[0]) {
+      nfact = result[0].nfact || result[0].Nfact || result[0].NFact || null;
+    }
+
+    // Fallback: parser depuis la string de retour "Facture N créée..."
+    if (!nfact && typeof result === 'string') {
+      const match = result.match(/Facture\s+(\d+)/i);
+      if (match) nfact = parseInt(match[1]);
+    }
+
+    // Fallback final: utiliser le numéro qu'on a passé à la RPC
+    if (!nfact) nfact = nextNfact;
 
     if (!nfact) {
       return NextResponse.json({ success: false, error: `Impossible de récupérer le numéro de facture. Réponse: ${JSON.stringify(result)}` }, { status: 500 });
