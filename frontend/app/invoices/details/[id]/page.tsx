@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 
-interface InvoiceDetail {
+interface Detail {
   narticle: string;
   designation: string;
   qte: number;
@@ -12,538 +12,251 @@ interface InvoiceDetail {
   total_ligne: number;
 }
 
+interface Company {
+  name: string; address?: string; commune?: string; wilaya?: string;
+  phone?: string; email?: string; nif?: string; rc?: string; art?: string; nis?: string;
+  activite?: string;
+}
+
 interface InvoiceData {
   nfact: number;
   date_fact: string;
+  nclient: string;
   client_name: string;
-  client_address: string;
-  client_nif: string;
-  client_rc: string;
+  client: { raison_sociale?: string; adresse?: string; telephone?: string; nif?: string; rc?: string; art?: string };
   montant_ht: number;
   tva: number;
   montant_ttc: number;
-  timbre: number;
-  autre_taxe: number;
-  details: InvoiceDetail[];
+  timbre?: number;
+  details: Detail[];
+  company?: Company;
 }
+
+const fmt = (n: number) => (n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' DA';
+const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('fr-FR') : '';
+const fv = (obj: any, ...keys: string[]) => {
+  if (!obj) return '';
+  const objKeys = Object.keys(obj);
+  for (const k of keys) {
+    const found = objKeys.find(ok => ok.toLowerCase() === k.toLowerCase());
+    if (found && obj[found]) return obj[found];
+  }
+  return '';
+};
 
 export default function InvoiceDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
-  
-  const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
+
+  const [invoice, setInvoice] = useState<InvoiceData | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tenant, setTenant] = useState<string>('');
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    // Détecter si on est sur mobile
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   useEffect(() => {
     const tenantInfo = localStorage.getItem('tenant_info');
-    if (!tenantInfo) {
-      router.push('/login');
-      return;
-    }
-
+    if (!tenantInfo) { router.push('/login'); return; }
     try {
-      const tenant = JSON.parse(tenantInfo);
-      setTenant(tenant.schema);
-      loadInvoiceDetails(tenant.schema, id);
-    } catch (error) {
-      console.error('Error parsing tenant info:', error);
-      router.push('/login');
-    }
-  }, [router, id]);
+      const t = JSON.parse(tenantInfo);
+      load(t.schema, id);
+    } catch { router.push('/login'); }
+  }, [id]);
 
-  const loadInvoiceDetails = async (tenantSchema: string, factId: string) => {
+  const load = async (tenant: string, factId: string) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+      const headers = { 'X-Tenant': tenant, 'X-Database-Type': dbType };
 
-      console.log(`🔍 Loading invoice details for ID: ${factId}, Tenant: ${tenantSchema}`);
+      const [invRes, compRes] = await Promise.all([
+        fetch(`/api/sales/invoices/${factId}`, { headers }),
+        fetch('/api/settings/activities', { headers }),
+      ]);
 
-      // Utiliser l'endpoint backend via le proxy frontend pour éviter CORS
-      const response = await fetch(`/api/sales/invoices/${factId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Tenant': tenantSchema
-        }
+      if (!invRes.ok) throw new Error(`HTTP ${invRes.status}`);
+      const invData = await invRes.json();
+      if (!invData.success) throw new Error(invData.error || 'Erreur');
+
+      const raw = invData.data;
+      const details: Detail[] = (raw.details || raw.detail_fact || []).map((d: any) => ({
+        narticle: fv(d, 'narticle', 'Narticle') || '',
+        designation: fv(d, 'designation', 'Designation') || '',
+        qte: parseFloat(fv(d, 'qte', 'Qte') || 0),
+        prix: parseFloat(fv(d, 'prix', 'Prix', 'prix_unitaire') || 0),
+        tva: parseFloat(fv(d, 'tva', 'TVA') || 0),
+        total_ligne: parseFloat(fv(d, 'total_ligne', 'Total_ligne') || 0) || (parseFloat(fv(d,'qte','Qte')||0) * parseFloat(fv(d,'prix','Prix')||0)),
+      }));
+
+      setInvoice({
+        nfact: raw.nfact || parseInt(factId),
+        date_fact: raw.date_fact || '',
+        nclient: raw.nclient || '',
+        client_name: raw.client_name || raw.client?.raison_sociale || raw.nclient || '',
+        client: raw.client || {},
+        montant_ht: parseFloat(raw.montant_ht || 0),
+        tva: parseFloat(raw.tva || raw.montant_tva || 0),
+        montant_ttc: parseFloat(raw.montant_ttc || raw.total_ttc || 0) || (parseFloat(raw.montant_ht||0) + parseFloat(raw.tva||0)),
+        timbre: parseFloat(raw.timbre || 0),
+        details,
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      // Company info
+      try {
+        const compData = await compRes.json();
+        const c = compData.success && compData.data?.length > 0 ? compData.data[0] : {};
+        setCompany({
+          name: fv(c,'nom_entreprise','name') || '',
+          address: fv(c,'adresse','address') || '',
+          commune: fv(c,'commune') || '',
+          wilaya: fv(c,'wilaya') || '',
+          phone: fv(c,'telephone','tel_fixe','phone') || '',
+          email: fv(c,'email','e_mail') || '',
+          nif: fv(c,'nif','ident_fiscal') || '',
+          rc: fv(c,'rc','nrc') || '',
+          art: fv(c,'nart','art') || '',
+          nis: fv(c,'nis') || '',
+          activite: fv(c,'activite','sous_domaine','domaine_activite') || '',
+        });
+      } catch {}
 
-      const result = await response.json();
-      
-      if (result.success && result.data) {
-        // Adapter les données backend au format attendu
-        const adaptedData = {
-          nfact: result.data.nfact,
-          date_fact: result.data.date_fact,
-          client_name: result.data.client_name || 'Client',
-          client_address: result.data.client_address || '',
-          client_nif: result.data.client_nif || '',
-          client_rc: result.data.client_rc || '',
-          montant_ht: result.data.montant_ht || 0,
-          tva: result.data.tva || 0,
-          montant_ttc: result.data.total_ttc || result.data.montant_ttc || (result.data.montant_ht + result.data.tva),
-          timbre: result.data.timbre || 0,
-          autre_taxe: result.data.autre_taxe || 0,
-          details: (result.data.details || result.data.detail_fact || []).map((detail: any) => ({
-            narticle: detail.narticle || detail.Narticle || detail.narticle,
-            designation: detail.designation || detail.Designation || '',
-            qte: parseFloat(detail.qte || detail.Qte || 0),
-            prix: parseFloat(detail.prix || detail.Prix || 0),
-            tva: parseFloat(detail.tva || detail.TVA || 0),
-            total_ligne: parseFloat(detail.total_ligne || detail.Total_ligne || (detail.qte * detail.prix) || 0)
-          }))
-        };
-        
-        setInvoiceData(adaptedData);
-        console.log('✅ Invoice details loaded successfully from backend');
-      } else {
-        throw new Error(result.error || 'Failed to load invoice details');
-      }
-    } catch (error) {
-      console.error('❌ Error loading invoice details:', error);
-      setError(error instanceof Error ? error.message : 'Unknown error');
+    } catch (e: any) {
+      setError(e.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR');
+  const openPrint = () => {
+    const tenant = localStorage.getItem('selectedTenant') || '';
+    window.open(`/print/invoice/${id}?tenant=${encodeURIComponent(tenant)}&lang=bilingual`, '_blank');
   };
 
-  const formatAmount = (amount: number) => {
-    return amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' DA';
-  };
-
-  const openPDFPreview = (factId: string, type: 'invoice') => {
-    console.log(`🔍 PDF Preview - ID: ${factId}, Type: ${type}`);
-    
-    const numericId = parseInt(factId);
-    if (!factId || isNaN(numericId) || numericId <= 0) {
-      console.error(`🚨 Invalid Invoice ID: ${factId}`);
-      alert(`Erreur: ID Facture invalide: ${factId}`);
-      return;
-    }
-
-    const urls = {
-      invoice: `/api/pdf/invoice/${factId}`
-    };
-
-    const pdfUrl = urls[type];
-    console.log(`📄 Opening PDF URL: ${pdfUrl}`);
-    
-    // Solution SIMPLE: Ouvrir directement l'URL dans un nouvel onglet
-    window.open(pdfUrl, '_blank');
-  };
-
-  const handlePrintPDF = () => {
-    openPDFPreview(id, 'invoice');
-  };
-
-  if (loading) {
-    return (
-      <div style={{ 
-        padding: isMobile ? '10px' : '20px',
-        background: isMobile ? '#f5f5f5' : 'white',
-        minHeight: '100vh'
-      }}>
-        <div style={{
-          background: 'white',
-          padding: '40px',
-          borderRadius: '10px',
-          textAlign: 'center',
-          boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.1)' : 'none'
-        }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '4px solid #f3f3f3',
-            borderTop: '4px solid #28a745',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 20px'
-          }}></div>
-          <p>Chargement des détails de la facture...</p>
-        </div>
+  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>⏳ Chargement...</div>;
+  if (error) return (
+    <div style={{ padding: 20 }}>
+      <div style={{ background: '#f8d7da', color: '#721c24', padding: 20, borderRadius: 8 }}>
+        ❌ {error}
+        <button onClick={() => router.back()} style={{ marginLeft: 16, padding: '6px 14px', background: '#dc3545', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>← Retour</button>
       </div>
-    );
-  }
+    </div>
+  );
+  if (!invoice) return null;
 
-  if (error) {
-    return (
-      <div style={{ 
-        padding: isMobile ? '10px' : '20px',
-        background: isMobile ? '#f5f5f5' : 'white',
-        minHeight: '100vh'
-      }}>
-        <div style={{
-          background: '#f8d7da',
-          color: '#721c24',
-          padding: '20px',
-          borderRadius: '8px',
-          textAlign: 'center'
-        }}>
-          <h3>❌ Erreur</h3>
-          <p>{error}</p>
-          <button 
-            onClick={() => router.back()}
-            style={{
-              marginTop: '15px',
-              padding: '10px 20px',
-              backgroundColor: '#dc3545',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer'
-            }}
-          >
-            ← Retour
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!invoiceData) {
-    return (
-      <div style={{ 
-        padding: isMobile ? '10px' : '20px',
-        background: isMobile ? '#f5f5f5' : 'white',
-        minHeight: '100vh'
-      }}>
-        <div style={{
-          background: 'white',
-          padding: '40px',
-          borderRadius: '10px',
-          textAlign: 'center'
-        }}>
-          <h3>🧾 Facture non trouvée</h3>
-          <button 
-            onClick={() => router.back()}
-            style={{
-              marginTop: '15px',
-              padding: '10px 20px',
-              backgroundColor: '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer'
-            }}
-          >
-            ← Retour
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const clientObj = invoice.client || {};
 
   return (
-    <div style={{ 
-      padding: isMobile ? '10px' : '20px',
-      background: isMobile ? '#f5f5f5' : 'white',
-      minHeight: '100vh',
-      maxWidth: isMobile ? '100%' : '1000px',
-      margin: '0 auto'
-    }}>
-      {/* En-tête */}
-      <div style={{
-        background: 'white',
-        padding: isMobile ? '15px' : '20px',
-        borderRadius: '10px',
-        marginBottom: '20px',
-        boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.1)' : '0 2px 4px rgba(0,0,0,0.1)'
-      }}>
-        <div style={{
-          display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          justifyContent: 'space-between',
-          alignItems: isMobile ? 'stretch' : 'center',
-          marginBottom: '15px'
-        }}>
-          <h1 style={{ 
-            margin: 0, 
-            fontSize: isMobile ? '20px' : '24px',
-            color: '#28a745'
-          }}>
-            🧾 Détails Facture {invoiceData.nfact}
-          </h1>
-          <button
-            onClick={() => router.back()}
-            style={{
-              marginTop: isMobile ? '10px' : '0',
-              padding: '8px 16px',
-              backgroundColor: '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer'
-            }}
-          >
-            ← Retour
-          </button>
+    <div style={{ padding: '16px', background: 'var(--background)', minHeight: '100vh', maxWidth: 900, margin: '0 auto' }}>
+
+      {/* Toolbar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+        <h1 style={{ margin: 0, fontSize: 20, color: 'var(--text-primary)' }}>🧾 Facture N° {invoice.nfact}</h1>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => router.back()} style={{ padding: '8px 16px', background: 'var(--background-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, cursor: 'pointer' }}>← Retour</button>
+          <button onClick={openPrint} style={{ padding: '8px 16px', background: 'linear-gradient(135deg,#28a745,#20c997)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700 }}>🖨️ Imprimer</button>
+        </div>
+      </div>
+
+      {/* En-tête : Entreprise | Facture | Client */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 16, background: 'var(--card-background)', border: '1px solid var(--border-color)', borderRadius: 12, padding: 20, marginBottom: 16 }}>
+
+        {/* Entreprise (vendeur) */}
+        <div style={{ fontSize: 12, lineHeight: 1.8, color: 'var(--text-primary)' }}>
+          <div style={{ fontWeight: 800, fontSize: 14, textTransform: 'uppercase', marginBottom: 4 }}>{company?.name || '—'}</div>
+          {company?.activite && <div style={{ fontStyle: 'italic', color: 'var(--text-tertiary)', fontSize: 11 }}>{company.activite}</div>}
+          {company?.address && <div>{company.address}{company.commune ? ', '+company.commune : ''}{company.wilaya ? ' - '+company.wilaya : ''}</div>}
+          {company?.phone && <div>Tél: {company.phone}</div>}
+          {company?.email && <div>{company.email}</div>}
+          <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--border-color)' }}>
+            {company?.nif && <div><strong>NIF:</strong> {company.nif}</div>}
+            {company?.rc && <div><strong>RC:</strong> {company.rc}</div>}
+            {company?.art && <div><strong>Art:</strong> {company.art}</div>}
+            {company?.nis && <div><strong>NIS:</strong> {company.nis}</div>}
+          </div>
         </div>
 
-        {/* Informations générales */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-          gap: '15px'
-        }}>
-          <div>
-            <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>👤 Client</h3>
-            <p style={{ margin: '5px 0', fontSize: '16px', fontWeight: 'bold' }}>
-              {invoiceData.client_name}
-            </p>
-            {invoiceData.client_address && (
-              <p style={{ margin: '5px 0', color: '#666' }}>
-                📍 {invoiceData.client_address}
-              </p>
-            )}
-            {invoiceData.client_nif && (
-              <p style={{ margin: '5px 0', color: '#666' }}>
-                🏢 NIF: {invoiceData.client_nif}
-              </p>
-            )}
-            {invoiceData.client_rc && (
-              <p style={{ margin: '5px 0', color: '#666' }}>
-                📋 RC: {invoiceData.client_rc}
-              </p>
-            )}
+        {/* Titre + N° + Date */}
+        <div style={{ textAlign: 'center', minWidth: 140, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 2, color: '#28a745' }}>FACTURE</div>
+          <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-primary)', lineHeight: 2 }}>
+            <div><strong>N°</strong> {invoice.nfact}</div>
+            <div><strong>Date:</strong> {fmtDate(invoice.date_fact)}</div>
           </div>
-          
-          <div>
-            <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>📅 Informations</h3>
-            <p style={{ margin: '5px 0' }}>
-              <strong>Date:</strong> {formatDate(invoiceData.date_fact)}
-            </p>
-            <p style={{ margin: '5px 0' }}>
-              <strong>N° Facture:</strong> {invoiceData.nfact}
-            </p>
+        </div>
+
+        {/* Client (acheteur) */}
+        <div style={{ fontSize: 12, lineHeight: 1.8, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 4 }}>CLIENT / ACHETEUR</div>
+          <div style={{ border: '1px solid var(--border-color)', borderRadius: 6, padding: '8px 10px' }}>
+            <div style={{ fontWeight: 800, fontSize: 13, textTransform: 'uppercase' }}>{invoice.client_name || invoice.nclient}</div>
+            {fv(clientObj,'adresse','address') && <div>{fv(clientObj,'adresse','address')}</div>}
+            {fv(clientObj,'telephone','tel','phone') && <div>Tél: {fv(clientObj,'telephone','tel','phone')}</div>}
+            <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid var(--border-color)' }}>
+              {fv(clientObj,'nif','ident_fiscal') && <div><strong>NIF:</strong> {fv(clientObj,'nif','ident_fiscal')}</div>}
+              {fv(clientObj,'rc','nrc') && <div><strong>RC:</strong> {fv(clientObj,'rc','nrc')}</div>}
+              {fv(clientObj,'art','nart') && <div><strong>Art:</strong> {fv(clientObj,'art','nart')}</div>}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Articles */}
-      <div style={{
-        background: 'white',
-        padding: isMobile ? '15px' : '20px',
-        borderRadius: '10px',
-        marginBottom: '20px',
-        boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.1)' : '0 2px 4px rgba(0,0,0,0.1)'
-      }}>
-        <h3 style={{ margin: '0 0 15px 0', color: '#333' }}>📦 Articles</h3>
-        
-        {invoiceData.details && invoiceData.details.length > 0 ? (
-          <div>
-            {invoiceData.details.map((article, index) => (
-              <div 
-                key={index}
-                style={{
-                  background: '#f8f9fa',
-                  padding: '15px',
-                  borderRadius: '8px',
-                  marginBottom: '10px',
-                  border: '1px solid #dee2e6'
-                }}
-              >
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  marginBottom: '8px'
-                }}>
-                  <div style={{ flex: 1 }}>
-                    <h4 style={{ 
-                      margin: '0 0 5px 0', 
-                      fontSize: '16px',
-                      color: '#28a745'
-                    }}>
-                      {article.designation}
-                    </h4>
-                    <p style={{ 
-                      margin: 0, 
-                      fontSize: '12px', 
-                      color: '#666' 
-                    }}>
-                      Code: {article.narticle}
-                    </p>
-                  </div>
-                  <div style={{ 
-                    textAlign: 'right',
-                    minWidth: '100px'
-                  }}>
-                    <p style={{ 
-                      margin: 0, 
-                      fontSize: '16px', 
-                      fontWeight: 'bold',
-                      color: '#28a745'
-                    }}>
-                      {formatAmount(article.total_ligne)}
-                    </p>
-                  </div>
-                </div>
-                
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr',
-                  gap: '10px',
-                  fontSize: '14px'
-                }}>
-                  <div>
-                    <strong>Quantité:</strong><br />
-                    {article.qte}
-                  </div>
-                  <div>
-                    <strong>Prix unitaire:</strong><br />
-                    {formatAmount(article.prix)}
-                  </div>
-                  <div>
-                    <strong>TVA:</strong><br />
-                    {article.tva}%
-                  </div>
-                  <div>
-                    <strong>Total ligne:</strong><br />
-                    {formatAmount(article.total_ligne)}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p style={{ color: '#666', fontStyle: 'italic' }}>
-            Aucun détail d'article disponible
-          </p>
-        )}
+      {/* Tableau articles */}
+      <div style={{ background: 'var(--card-background)', border: '1px solid var(--border-color)', borderRadius: 12, padding: 20, marginBottom: 16, overflowX: 'auto' }}>
+        <h3 style={{ margin: '0 0 12px 0', color: 'var(--text-primary)', fontSize: 14 }}>📦 Articles facturés</h3>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <thead>
+            <tr style={{ background: '#1a1a2e', color: 'white' }}>
+              {['Réf','Désignation','Qté','P.U. HT','TVA','Total HT'].map((h,i) => (
+                <th key={i} style={{ padding: '8px 10px', textAlign: i >= 2 ? 'right' : 'left', fontWeight: 700 }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {invoice.details.length > 0 ? invoice.details.map((d, i) => (
+              <tr key={i} style={{ background: i%2===0?'transparent':'var(--background-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+                <td style={{ padding: '7px 10px', color: 'var(--text-tertiary)' }}>{d.narticle}</td>
+                <td style={{ padding: '7px 10px', fontWeight: 500, color: 'var(--text-primary)' }}>{d.designation}</td>
+                <td style={{ padding: '7px 10px', textAlign: 'right', color: 'var(--text-primary)' }}>{d.qte}</td>
+                <td style={{ padding: '7px 10px', textAlign: 'right', color: 'var(--text-primary)' }}>{(d.prix||0).toLocaleString('fr-FR',{minimumFractionDigits:2})}</td>
+                <td style={{ padding: '7px 10px', textAlign: 'right', color: 'var(--text-primary)' }}>{d.tva}%</td>
+                <td style={{ padding: '7px 10px', textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>{(d.total_ligne||0).toLocaleString('fr-FR',{minimumFractionDigits:2})}</td>
+              </tr>
+            )) : (
+              <tr><td colSpan={6} style={{ padding: 20, textAlign: 'center', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Aucun détail disponible</td></tr>
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* Totaux */}
-      <div style={{
-        background: 'white',
-        padding: isMobile ? '15px' : '20px',
-        borderRadius: '10px',
-        marginBottom: '20px',
-        boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.1)' : '0 2px 4px rgba(0,0,0,0.1)'
-      }}>
-        <h3 style={{ margin: '0 0 15px 0', color: '#333' }}>💰 Totaux</h3>
-        
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '10px',
-          fontSize: '16px'
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            padding: '8px 0',
-            borderBottom: '1px solid #dee2e6'
-          }}>
-            <span>Montant HT:</span>
-            <strong>{formatAmount(invoiceData.montant_ht)}</strong>
-          </div>
-          
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            padding: '8px 0',
-            borderBottom: '1px solid #dee2e6'
-          }}>
-            <span>TVA:</span>
-            <strong>{formatAmount(invoiceData.tva)}</strong>
-          </div>
-          
-          {invoiceData.timbre > 0 && (
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              padding: '8px 0',
-              borderBottom: '1px solid #dee2e6'
-            }}>
-              <span>Timbre:</span>
-              <strong>{formatAmount(invoiceData.timbre)}</strong>
-            </div>
-          )}
-          
-          {invoiceData.autre_taxe > 0 && (
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              padding: '8px 0',
-              borderBottom: '1px solid #dee2e6'
-            }}>
-              <span>Autre taxe:</span>
-              <strong>{formatAmount(invoiceData.autre_taxe)}</strong>
-            </div>
-          )}
-        </div>
-        
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          padding: '15px 0 0 0',
-          fontSize: '18px',
-          fontWeight: 'bold',
-          color: '#28a745',
-          borderTop: '2px solid #28a745',
-          marginTop: '10px'
-        }}>
-          <span>Total TTC:</span>
-          <span>{formatAmount(invoiceData.montant_ttc)}</span>
+      <div style={{ background: 'var(--card-background)', border: '1px solid var(--border-color)', borderRadius: 12, padding: 20, marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <table style={{ fontSize: 13, minWidth: 280 }}>
+            <tbody>
+              {[
+                { label: 'Montant HT', val: invoice.montant_ht },
+                { label: 'TVA', val: invoice.tva },
+                ...(invoice.timbre ? [{ label: 'Timbre fiscal', val: invoice.timbre }] : []),
+              ].map((r,i) => (
+                <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                  <td style={{ padding: '5px 12px', color: 'var(--text-secondary)' }}>{r.label}</td>
+                  <td style={{ padding: '5px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>{fmt(r.val)}</td>
+                </tr>
+              ))}
+              <tr style={{ background: '#1a1a2e', color: 'white' }}>
+                <td style={{ padding: '10px 12px', fontWeight: 700, fontSize: 14 }}>NET À PAYER TTC</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 800, fontSize: 14 }}>{fmt(invoice.montant_ttc)}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Actions d'impression */}
-      <div style={{
-        background: 'white',
-        padding: isMobile ? '15px' : '20px',
-        borderRadius: '10px',
-        boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.1)' : '0 2px 4px rgba(0,0,0,0.1)'
-      }}>
-        <h3 style={{ margin: '0 0 15px 0', color: '#333' }}>🖨️ Impression</h3>
-        
-        <button
-          onClick={handlePrintPDF}
-          style={{
-            width: '100%',
-            padding: '15px 20px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '16px',
-            fontWeight: 'bold'
-          }}
-        >
-          📄 Imprimer Facture PDF
-        </button>
-      </div>
-
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
+      {/* Bouton impression */}
+      <button onClick={openPrint} style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg,#28a745,#20c997)', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 15, fontWeight: 700 }}>
+        🖨️ Imprimer la Facture (Bilingue FR/AR)
+      </button>
     </div>
   );
 }
