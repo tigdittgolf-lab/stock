@@ -348,3 +348,236 @@ select:focus {
 [data-theme="dark"] [style*="color: #856404"] {
   color: var(--warning-color) !important;
 }
+
+/* ============================================================
+   DARK MODE — COMPREHENSIVE INLINE STYLE OVERRIDES
+   Covers all hardcoded colors used across pages
+   ============================================================ */
+
+/* ── Backgrounds: white / #fff / #ffffff ── */
+[data-theme="dark"] [style*="background: white"],
+[data-theme="dark"] [style*="background:white"],
+[data-theme="dark"] [style*="background-color: white"],
+[data-theme="dark"] [style*="backgroundColor: white"],
+[data-theme="dark"] [style*="background: #fff"],
+[data-theme="dark"] [style*="background:#fff"],
+[data-theme="dark"] [style*="background-color: #fff"],
+[data-theme="dark"] [style*="backgroundColor: #fff"],
+[data-theme="dark"] [style*="background: #ffffff"],
+[data-theme="dark"] [style*="background:#ffffff"],
+[data-theme="dark"] [style*="background-color: #ffffff"],
+[data-theme="dark"] [style*="backgroundColor: #ffffff"] {
+  background-color: var(--card-background) !important;
+  background: var(--card-background) !important;
+}
+
+/* ── Backgrounds: light grey #f8f9fa / #f1f3f4 / #f5f5f5 ── */
+[data-theme="dark"] [style*="background: #f8f9fa"],
+[data-theme="dark"] [style*="background:#f8f9fa"],
+[data-theme="dark"] [style*="backgroundColor: #f8f9fa"],
+[data-theme="dark"] [style*="background: #f1f3f4"],
+[data-theme="dark"] [style*="backgroundColor: #f1f3f4"],
+[data-theme="dark"] [style*="background: #f5f5f5"],
+[data-theme="dark"] [style*="backgroundColor: #f5f5f5"],
+[data-theme="dark"] [style*="background: #fafafa"],
+[data-theme="dark"] [style*="backgroundColor: #fafafa"],
+[data-theme="dark"] [style*="background: #f0f0f0"],
+[data-theme="dark"] [style*="backgroundColor: #f0f0f0"] {
+  background-color: var(--background-secondary) !important;
+  background: var(--background-secondary) !important;
+}
+
+/* ── Backgrounds: medium grey ── */
+[data-theme="dark"] [style*="background: #e9ecef"],
+[data-theme="dark"] [style*="backgroundColor: #e9ecef"],
+[data-theme="dark"] [style*="background: #dee2e6"],
+[data-theme="dark"] [style*="backgroundColor: #dee2e6"],
+[data-theme="dark"] [style*="background: #ced4da"],
+[data-theme="dark"] [style*="backgroundColor: #ced4da"] {
+  background-color: var(--background-tertiary) !important;
+  background: var(--background-tertiary) !important;
+}
+
+/* ── Text: dark / near-black ── */
+[data-theme="dark"] [style*="color: #212529"],
+[data-theme="dark"] [style*="color:#212529"],
+[data-theme="dark"] [style*="color: #1a1a1a"],
+[data-theme="dark"] [style*="color:#1a1a1a"],
+[data-theme="dark"] [style*="color: #333"],
+[data-theme="dark"] [style*="color:#333"],
+[data-theme="dark"] [style*="color: #333333"],
+[data-theme="dark"] [style*="color:#333333"],
+[data-theme="dark"] [style*="color: #000"],
+[data-theme="dark"] [style*="color:#000"],
+[data-theme="dark"] [style*="color: #000000"],
+[data-theme="dark"] [style*="color:#000000"],
+[data-theme="dark"] [style*="color: black"],
+[data-theme="dark"] [style*="color:black"] {
+  color: var(--text-primary) !important;
+}
+
+/* ── Text: medium grey ── */
+[data-theme="dark"] [style*="color: #495057"],
+[data-theme="dark"] [style*="color:#495057"],
+[data-theme="dark"] [style*="color: #4a5568"],
+[data-theme="dark"] [style*="color:#4a5568"],
+[data-theme="dark"] [style*="color: #555"],
+[data-theme="dark"] [style*="color:#555"],
+[data-theme="dark"] [style*="color: #444"],
+[data-theme="dark"] [style*="color:#444"] {
+  color: var(--text-secondary) !important;
+}
+
+/* ── Text: light grey / muted ── */
+[data-theme="dark"] [style*="color: #6c757d"],
+[data-theme="dark"] [style*="color:#6c757d"],
+[data-theme="dark"] [style*="color: #666"],
+[data-theme="dark"] [style*="color:#666"],
+[data-theme="dark"] [style*="color: #777"],
+[data-theme="dark"] [style*="color:#777"],
+[data-theme="dark"] [style*="color: #888"],
+[data-theme="dark"] [style*="color:#888"],
+[data-theme="dark"] [style*="color: #999"],
+[data-theme="dark"] [style*="color:#999"],
+[data-theme="dark"] [style*="color: #aaa"],
+[data-theme="dark"] [style*="color:#aaa"],
+[data-theme="dark"] [style*="color: #adb5bd"],
+[data-theme="dark"] [style*="color:#adb5bd"] {
+  color: var(--text-tertiary) !important;
+}
+
+/* ── Borders ── */
+[data-theme="dark"] [style*="border: 1px solid #dee2e6"],
+[data-theme="dark"] [style*="border:1px solid #dee2e6"],
+[data-theme="dark"] [style*="border: 1px solid #e0e0e0"],
+[data-theme="dark"] [style*="border: 1px solid #e9ecef"],
+[data-theme="dark"] [style*="border: 1px solid #ddd"],
+[data-theme="dark"] [style*="border:1px solid #ddd"],
+[data-theme="dark"] [style*="border: 2px dashed #dee2e6"],
+[data-theme="dark"] [style*="border: 2px solid #dee2e6"] {
+  border-color: var(--border-color) !important;
+}
+
+/* ── Inputs & selects ── */
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background-color: var(--background-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--text-tertiary) !important;
+}
+
+/* ── Tables ── */
+[data-theme="dark"] table {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] th {
+  background-color: var(--background-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] td {
+  border-color: var(--border-color) !important;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] tr:hover td {
+  background-color: var(--card-background-hover) !important;
+}
+
+/* ── Cards with hardcoded white box-shadow ── */
+[data-theme="dark"] [style*="boxShadow: 0 2px 4px rgba(0,0,0,0.1)"],
+[data-theme="dark"] [style*="boxShadow: 0 2px 8px rgba(0,0,0,0.08)"],
+[data-theme="dark"] [style*="box-shadow: 0 2px 4px rgba(0,0,0,0.1)"] {
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* ── Specific page patterns ── */
+
+/* Warning/alert boxes */
+[data-theme="dark"] [style*="background: #fff3cd"],
+[data-theme="dark"] [style*="backgroundColor: #fff3cd"] {
+  background-color: var(--warning-bg) !important;
+  background: var(--warning-bg) !important;
+}
+[data-theme="dark"] [style*="border: 1px solid #ffc107"],
+[data-theme="dark"] [style*="border-color: #ffc107"] {
+  border-color: var(--warning-border) !important;
+}
+
+/* Success boxes */
+[data-theme="dark"] [style*="background: #d4edda"],
+[data-theme="dark"] [style*="backgroundColor: #d4edda"],
+[data-theme="dark"] [style*="background: #e8f5e9"],
+[data-theme="dark"] [style*="backgroundColor: #e8f5e9"] {
+  background-color: var(--success-bg) !important;
+  background: var(--success-bg) !important;
+}
+
+/* Error boxes */
+[data-theme="dark"] [style*="background: #f8d7da"],
+[data-theme="dark"] [style*="backgroundColor: #f8d7da"],
+[data-theme="dark"] [style*="background: #ffebee"],
+[data-theme="dark"] [style*="backgroundColor: #ffebee"] {
+  background-color: var(--error-bg) !important;
+  background: var(--error-bg) !important;
+}
+
+/* Info boxes */
+[data-theme="dark"] [style*="background: #cce5ff"],
+[data-theme="dark"] [style*="backgroundColor: #cce5ff"],
+[data-theme="dark"] [style*="background: #e3f2fd"],
+[data-theme="dark"] [style*="backgroundColor: #e3f2fd"] {
+  background-color: var(--info-bg) !important;
+  background: var(--info-bg) !important;
+}
+
+/* ── Dashboard sales section cards (white cards with hardcoded colors) ── */
+[data-theme="dark"] [style*="background: #e8f0fe"],
+[data-theme="dark"] [style*="backgroundColor: #e8f0fe"],
+[data-theme="dark"] [style*="background: #e6f4ea"],
+[data-theme="dark"] [style*="backgroundColor: #e6f4ea"],
+[data-theme="dark"] [style*="background: #e0f7fa"],
+[data-theme="dark"] [style*="backgroundColor: #e0f7fa"],
+[data-theme="dark"] [style*="background: #fdecea"],
+[data-theme="dark"] [style*="backgroundColor: #fdecea"] {
+  background-color: var(--card-background) !important;
+  background: var(--card-background) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* ── Modals / overlays ── */
+[data-theme="dark"] [style*="background: rgba(0, 0, 0, 0.5)"],
+[data-theme="dark"] [style*="background:rgba(0,0,0,0.5)"] {
+  background: var(--overlay-background) !important;
+}
+
+/* ── Pagination / footer bars ── */
+[data-theme="dark"] [style*="background: #f8f9fa"][style*="borderRadius"] {
+  background-color: var(--background-secondary) !important;
+  background: var(--background-secondary) !important;
+}
+
+/* ── Strong / bold text that inherits wrong color ── */
+[data-theme="dark"] strong {
+  color: inherit;
+}
+
+/* ── Small text ── */
+[data-theme="dark"] small {
+  color: var(--text-tertiary);
+}
+
+/* ── HR separators ── */
+[data-theme="dark"] hr,
+[data-theme="dark"] [style*="borderTop: 1px solid #dee2e6"],
+[data-theme="dark"] [style*="border-top: 1px solid #dee2e6"] {
+  border-color: var(--border-color) !important;
+}

@@ -2669,55 +2669,55 @@ export default function Dashboard() {
                   <div style={{ marginBottom: '2rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
                       <div style={{ width: '4px', height: '24px', background: 'linear-gradient(180deg,#667eea,#764ba2)', borderRadius: '2px' }} />
-                      <span style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: '#6c757d' }}>Documents commerciaux</span>
+                      <span style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-tertiary)' }}>Documents commerciaux</span>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
 
                       {/* BL */}
-                      <div style={{ background: 'white', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 12px rgba(0,119,255,0.10)', border: '1px solid #e8f0fe', position: 'relative', overflow: 'hidden' }}>
+                      <div style={{ background: 'var(--card-background)', borderRadius: '14px', padding: '1.25rem', boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
                         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg,#0077ff,#00c6ff)' }} />
                         <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📦</div>
-                        <div style={{ fontWeight: 700, fontSize: '1rem', color: '#212529', marginBottom: '0.25rem' }}>Bons de Livraison</div>
-                        <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '1rem' }}>Créer et gérer les BL</div>
+                        <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Bons de Livraison</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '1rem' }}>Créer et gérer les BL</div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button onClick={() => router.push('/delivery-notes')} style={{ flex: 1, padding: '8px', background: 'linear-gradient(135deg,#0077ff,#00c6ff)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>➕ Nouveau</button>
-                          <button onClick={() => router.push('/delivery-notes/list')} style={{ flex: 1, padding: '8px', background: '#f1f3f4', color: '#495057', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>📋 Liste</button>
+                          <button onClick={() => router.push('/delivery-notes/list')} style={{ flex: 1, padding: '8px', background: 'var(--background-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>📋 Liste</button>
                         </div>
                       </div>
 
                       {/* Factures */}
-                      <div style={{ background: 'white', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 12px rgba(40,167,69,0.10)', border: '1px solid #e6f4ea', position: 'relative', overflow: 'hidden' }}>
+                      <div style={{ background: 'var(--card-background)', borderRadius: '14px', padding: '1.25rem', boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
                         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg,#28a745,#20c997)' }} />
                         <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🧾</div>
-                        <div style={{ fontWeight: 700, fontSize: '1rem', color: '#212529', marginBottom: '0.25rem' }}>Factures</div>
-                        <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '1rem' }}>Facturation clients</div>
+                        <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Factures</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '1rem' }}>Facturation clients</div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button onClick={() => router.push('/invoices')} style={{ flex: 1, padding: '8px', background: 'linear-gradient(135deg,#28a745,#20c997)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>➕ Nouvelle</button>
-                          <button onClick={() => router.push('/invoices/list')} style={{ flex: 1, padding: '8px', background: '#f1f3f4', color: '#495057', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>🧾 Liste</button>
+                          <button onClick={() => router.push('/invoices/list')} style={{ flex: 1, padding: '8px', background: 'var(--background-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>🧾 Liste</button>
                         </div>
                       </div>
 
                       {/* Proforma */}
-                      <div style={{ background: 'white', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 12px rgba(23,162,184,0.10)', border: '1px solid #e0f7fa', position: 'relative', overflow: 'hidden' }}>
+                      <div style={{ background: 'var(--card-background)', borderRadius: '14px', padding: '1.25rem', boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
                         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg,#17a2b8,#00bcd4)' }} />
                         <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📝</div>
-                        <div style={{ fontWeight: 700, fontSize: '1rem', color: '#212529', marginBottom: '0.25rem' }}>Proforma / Devis</div>
-                        <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '1rem' }}>Devis et offres commerciales</div>
+                        <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Proforma / Devis</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '1rem' }}>Devis et offres commerciales</div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button onClick={() => router.push('/proforma')} style={{ flex: 1, padding: '8px', background: 'linear-gradient(135deg,#17a2b8,#00bcd4)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>➕ Nouveau</button>
-                          <button onClick={() => router.push('/proforma/list')} style={{ flex: 1, padding: '8px', background: '#f1f3f4', color: '#495057', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>📋 Liste</button>
+                          <button onClick={() => router.push('/proforma/list')} style={{ flex: 1, padding: '8px', background: 'var(--background-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>📋 Liste</button>
                         </div>
                       </div>
 
                       {/* Avoirs */}
-                      <div style={{ background: 'white', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 12px rgba(231,76,60,0.10)', border: '1px solid #fdecea', position: 'relative', overflow: 'hidden' }}>
+                      <div style={{ background: 'var(--card-background)', borderRadius: '14px', padding: '1.25rem', boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
                         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg,#e74c3c,#ff6b6b)' }} />
                         <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>↩️</div>
-                        <div style={{ fontWeight: 700, fontSize: '1rem', color: '#212529', marginBottom: '0.25rem' }}>Retours / Avoirs</div>
-                        <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '1rem' }}>Gestion des retours clients</div>
+                        <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Retours / Avoirs</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '1rem' }}>Gestion des retours clients</div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button onClick={() => router.push('/returns/new')} style={{ flex: 1, padding: '8px', background: 'linear-gradient(135deg,#e74c3c,#ff6b6b)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>➕ Nouveau</button>
-                          <button onClick={() => router.push('/returns/list')} style={{ flex: 1, padding: '8px', background: '#f1f3f4', color: '#495057', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>📋 Liste</button>
+                          <button onClick={() => router.push('/returns/list')} style={{ flex: 1, padding: '8px', background: 'var(--background-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>📋 Liste</button>
                         </div>
                       </div>
 
@@ -2728,7 +2728,7 @@ export default function Dashboard() {
                   <div style={{ marginBottom: '2rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
                       <div style={{ width: '4px', height: '24px', background: 'linear-gradient(180deg,#e67e22,#f39c12)', borderRadius: '2px' }} />
-                      <span style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: '#6c757d' }}>Paiements & Recouvrement</span>
+                      <span style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-tertiary)' }}>Paiements & Recouvrement</span>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
 
@@ -2760,7 +2760,7 @@ export default function Dashboard() {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
                       <div style={{ width: '4px', height: '24px', background: 'linear-gradient(180deg,#ffc107,#ff9800)', borderRadius: '2px' }} />
-                      <span style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: '#6c757d' }}>Analyse & Rapports</span>
+                      <span style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-tertiary)' }}>Analyse & Rapports</span>
                     </div>
                     <button onClick={() => router.push('/sales-report')} style={{ width: '100%', background: 'linear-gradient(135deg,#ffc107 0%,#ff9800 100%)', color: '#212529', border: 'none', borderRadius: '14px', padding: '1.5rem 2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1.5rem', boxShadow: '0 6px 20px rgba(255,193,7,0.35)', transition: 'transform .2s, box-shadow .2s' }}
                       onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 10px 30px rgba(255,193,7,0.45)'; }}
