@@ -42,13 +42,34 @@ export async function GET(
       return NextResponse.json({ success: false, error: `Facture ${numericId} introuvable` }, { status: 404 });
     }
 
-    // Details
+    // Details — try multiple table and column name variants
     let detailRows: any[] = [];
     for (const tbl of ['detail_fact', 'detail_facture']) {
-      for (const col of ['nfact', 'NFact']) {
-        try { detailRows = await readTableWhere(tenant, tbl, col, numericId); if (detailRows.length > 0) break; } catch {}
+      for (const col of ['nfact', 'NFact', 'Nfact', 'nbl', 'id_fact']) {
+        try {
+          detailRows = await readTableWhere(tenant, tbl, col, numericId);
+          if (detailRows.length > 0) break;
+        } catch {}
       }
       if (detailRows.length > 0) break;
+    }
+
+    // Fallback: load full table and filter (handles any column casing)
+    if (detailRows.length === 0) {
+      for (const tbl of ['detail_fact', 'detail_facture']) {
+        try {
+          const allRows = await readTable(tenant, tbl);
+          const filtered = allRows.filter((r: any) => {
+            const keys = Object.keys(r);
+            for (const candidate of ['nfact', 'nbl', 'id_fact']) {
+              const k = keys.find(k => k.toLowerCase() === candidate);
+              if (k && Number(r[k]) === numericId) return true;
+            }
+            return false;
+          });
+          if (filtered.length > 0) { detailRows = filtered; break; }
+        } catch {}
+      }
     }
 
     const keys = Object.keys(fact);

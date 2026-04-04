@@ -103,13 +103,13 @@ export default function InvoiceDetailsPage() {
           montant_ttc: result.data.total_ttc || result.data.montant_ttc || (result.data.montant_ht + result.data.tva),
           timbre: result.data.timbre || 0,
           autre_taxe: result.data.autre_taxe || 0,
-          details: (result.data.details || []).map((detail: any) => ({
-            narticle: detail.narticle,
-            designation: detail.designation,
-            qte: detail.qte,
-            prix: detail.prix,
-            tva: detail.tva,
-            total_ligne: detail.total_ligne
+          details: (result.data.details || result.data.detail_fact || []).map((detail: any) => ({
+            narticle: detail.narticle || detail.Narticle || detail.narticle,
+            designation: detail.designation || detail.Designation || '',
+            qte: parseFloat(detail.qte || detail.Qte || 0),
+            prix: parseFloat(detail.prix || detail.Prix || 0),
+            tva: parseFloat(detail.tva || detail.TVA || 0),
+            total_ligne: parseFloat(detail.total_ligne || detail.Total_ligne || (detail.qte * detail.prix) || 0)
           }))
         };
         

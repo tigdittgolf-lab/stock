@@ -89,7 +89,10 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
       const data = await response.json();
       
       if (data.success) {
-        setInvoice(data.data);
+        const raw = data.data;
+        // Normalize details — API returns detail_fact or details
+        raw.details = raw.details || raw.detail_fact || [];
+        setInvoice(raw);
       } else {
         setError(data.error || 'Erreur lors du chargement');
       }
@@ -329,8 +332,8 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
                   </tr>
                 </thead>
                 <tbody>
-                  {invoice.details && invoice.details.length > 0 ? (
-                    invoice.details.map((detail, index) => (
+                  {(invoice.details && invoice.details.length > 0) || ((invoice as any).detail_fact && (invoice as any).detail_fact.length > 0) ? (
+                    ((invoice.details || (invoice as any).detail_fact) as InvoiceDetail[]).map((detail, index) => (
                       <tr key={index}>
                         <td>{detail.narticle}</td>
                         <td>{detail.designation}</td>
