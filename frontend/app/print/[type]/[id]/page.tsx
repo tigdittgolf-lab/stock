@@ -50,6 +50,58 @@ interface DocData {
 const fmt = (n: number) => (n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 });
 const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('fr-FR') : '';
 
+// ── Montant en lettres (Français) ──────────────────────────────────────────
+function numberToWordsFr(n: number): string {
+  if (!n || n <= 0) return 'Zéro Dinar';
+  const u = ['','un','deux','trois','quatre','cinq','six','sept','huit','neuf',
+    'dix','onze','douze','treize','quatorze','quinze','seize','dix-sept','dix-huit','dix-neuf'];
+  const t = ['','','vingt','trente','quarante','cinquante','soixante','soixante','quatre-vingt','quatre-vingt'];
+  function h(x: number): string {
+    if (x === 0) return '';
+    if (x < 20) return u[x];
+    if (x < 100) {
+      const d = Math.floor(x/10), r = x%10;
+      if (d === 7 || d === 9) return t[d-1] + '-' + u[10+r];
+      return t[d] + (r ? (r===1 && d<8 ? ' et un' : '-'+u[r]) : (d===8?'s':''));
+    }
+    const c = Math.floor(x/100), r = x%100;
+    return (c>1?u[c]+' ':'')+'cent'+(r?(' '+h(r)):(c>1?'s':''));
+  }
+  const i = Math.floor(n), d = Math.round((n-i)*100);
+  let r = '';
+  if (i >= 1000000) r += h(Math.floor(i/1000000))+' million'+(Math.floor(i/1000000)>1?'s':'')+' ';
+  if (i >= 1000) { const k=Math.floor((i%1000000)/1000); r += k===1?'mille ':k>1?h(k)+' mille ':''; }
+  r += h(i%1000);
+  r = r.trim()+' Dinar'+(i>1?'s':'');
+  if (d > 0) r += ' et '+h(d)+' Centime'+(d>1?'s':'');
+  return r.charAt(0).toUpperCase()+r.slice(1);
+}
+
+// ── Montant en lettres (Arabe) ─────────────────────────────────────────────
+function numberToWordsAr(n: number): string {
+  if (!n || n <= 0) return 'صفر دينار';
+  const u = ['','واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة',
+    'عشرة','أحد عشر','اثنا عشر','ثلاثة عشر','أربعة عشر','خمسة عشر','ستة عشر',
+    'سبعة عشر','ثمانية عشر','تسعة عشر'];
+  const t = ['','','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'];
+  function h(x: number): string {
+    if (x === 0) return '';
+    if (x < 20) return u[x];
+    if (x < 100) { const d=Math.floor(x/10),r=x%10; return t[d]+(r?' و'+u[r]:''); }
+    const c=Math.floor(x/100),r=x%100;
+    const cents=['','مئة','مئتان','ثلاثمئة','أربعمئة','خمسمئة','ستمئة','سبعمئة','ثمانمئة','تسعمئة'];
+    return cents[c]+(r?' و'+h(r):'');
+  }
+  const i = Math.floor(n), d = Math.round((n-i)*100);
+  let r = '';
+  if (i >= 1000000) r += h(Math.floor(i/1000000))+' مليون ';
+  if (i >= 1000) { const k=Math.floor((i%1000000)/1000); r += k===1?'ألف ':k===2?'ألفان ':k>2?h(k)+' آلاف ':''; }
+  r += h(i%1000);
+  r = r.trim()+' دينار';
+  if (d > 0) r += ' و'+h(d)+' سنتيم';
+  return r;
+}
+
 export default function PrintPage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -300,6 +352,24 @@ export default function PrintPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Montant en lettres */}
+          {doc.montant_ttc > 0 && (
+            <div style={{ margin: '20px 0', padding: '12px 16px', border: '1px solid #333', borderRadius: 6, background: '#fafafa' }}>
+              {showFr && (
+                <div style={{ fontSize: 12, color: '#555', marginBottom: showAr ? 6 : 0 }}>
+                  <span style={{ fontStyle: 'italic' }}>Arrêté la présente facture à la somme de : </span>
+                  <strong style={{ color: '#1a1a2e' }}>{numberToWordsFr(doc.montant_ttc)}</strong>
+                </div>
+              )}
+              {showAr && (
+                <div style={{ direction: 'rtl', fontFamily: 'Tahoma', fontSize: 13, color: '#1a1a2e' }}>
+                  <span style={{ color: '#555', fontWeight: 400 }}>{AR.arrete_somme} : </span>
+                  <strong>{numberToWordsAr(doc.montant_ttc)}</strong>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Signatures */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, marginTop: 40, paddingTop: 20, borderTop: '1px solid #ddd' }}>
