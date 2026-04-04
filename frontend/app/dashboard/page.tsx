@@ -2662,198 +2662,118 @@ export default function Dashboard() {
                 <div className={styles.sectionHeader}>
                   <h2>💰 Gestion des Ventes</h2>
                 </div>
-                <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
-                  <h3>Module Ventes</h3>
-                  <p>Factures, bons de livraison, devis</p>
-                  <div style={{ marginTop: '20px' }}>
-                    <div style={{ marginBottom: '15px' }}>
-                      <button 
-                        onClick={() => router.push('/delivery-notes')}
-                        style={{
-                          margin: '5px',
-                          padding: '12px 25px',
-                          backgroundColor: '#007bff',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '5px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        ➕ Nouveau BL
-                      </button>
-                      <button 
-                        onClick={() => router.push('/delivery-notes/list')}
-                        style={{
-                          margin: '5px',
-                          padding: '12px 25px',
-                          backgroundColor: '#6c757d',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '5px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        📋 Liste BL
-                      </button>
+
+                <div style={{ padding: '2rem' }}>
+
+                  {/* ── DOCUMENTS ── */}
+                  <div style={{ marginBottom: '2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
+                      <div style={{ width: '4px', height: '24px', background: 'linear-gradient(180deg,#667eea,#764ba2)', borderRadius: '2px' }} />
+                      <span style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: '#6c757d' }}>Documents commerciaux</span>
                     </div>
-                    <div>
-                      <button 
-                        onClick={() => router.push('/invoices')}
-                        style={{
-                          margin: '5px',
-                          padding: '12px 25px',
-                          backgroundColor: '#28a745',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '5px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        ➕ Nouvelle Facture
-                      </button>
-                      <button 
-                        onClick={() => router.push('/invoices/list')}
-                        style={{
-                          margin: '5px',
-                          padding: '12px 25px',
-                          backgroundColor: '#6c757d',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '5px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        🧾 Liste Factures
-                      </button>
-                    </div>
-                    <div style={{ marginTop: '15px' }}>
-                      <button 
-                        onClick={() => router.push('/proforma')}
-                        style={{
-                          margin: '5px',
-                          padding: '12px 25px',
-                          backgroundColor: '#17a2b8',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '5px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        ➕ Nouvelle Proforma
-                      </button>
-                      <button 
-                        onClick={() => router.push('/proforma/list')}
-                        style={{
-                          margin: '5px',
-                          padding: '12px 25px',
-                          backgroundColor: '#6c757d',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '5px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        📋 Liste Proforma
-                      </button>
-                    </div>
-                    <div style={{ marginTop: '15px' }}>
-                      <button 
-                        onClick={() => router.push('/payments/overdue')}
-                        style={{
-                          margin: '5px',
-                          padding: '12px 25px',
-                          backgroundColor: '#e67e22',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '5px',
-                          cursor: 'pointer',
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        ⚠️ Recouvrement Clients
-                      </button>
-                      <button 
-                        onClick={() => router.push('/payments/overdue-suppliers')}
-                        style={{
-                          margin: '5px',
-                          padding: '12px 25px',
-                          backgroundColor: '#8e44ad',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '5px',
-                          cursor: 'pointer',
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        🏭 Dettes Fournisseurs
-                      </button>
-                      <button 
-                        onClick={() => router.push('/payments/report')}
-                        style={{
-                          margin: '5px',
-                          padding: '12px 25px',
-                          backgroundColor: '#6c757d',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '5px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        📊 Rapport Paiements
-                      </button>
-                    </div>
-                    <div style={{ marginTop: '15px' }}>
-                      <button 
-                        onClick={() => router.push('/returns/new')}
-                        style={{
-                          margin: '5px',
-                          padding: '12px 25px',
-                          backgroundColor: '#e74c3c',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '5px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        ↩️ Nouveau Retour / Avoir
-                      </button>
-                      <button 
-                        onClick={() => router.push('/returns/list')}
-                        style={{
-                          margin: '5px',
-                          padding: '12px 25px',
-                          backgroundColor: '#6c757d',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '5px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        📋 Liste Avoirs
-                      </button>
-                    </div>
-                    <div style={{ marginTop: '20px', borderTop: '1px solid #dee2e6', paddingTop: '20px' }}>
-                      <button 
-                        onClick={() => router.push('/sales-report')}
-                        style={{
-                          margin: '5px',
-                          padding: '15px 30px',
-                          backgroundColor: '#ffc107',
-                          color: '#212529',
-                          border: 'none',
-                          borderRadius: '5px',
-                          cursor: 'pointer',
-                          fontWeight: 'bold',
-                          fontSize: '16px'
-                        }}
-                      >
-                        📊 Rapport des Ventes
-                      </button>
-                      <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '5px' }}>
-                        BL + Factures avec filtres et calcul de marge
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+
+                      {/* BL */}
+                      <div style={{ background: 'white', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 12px rgba(0,119,255,0.10)', border: '1px solid #e8f0fe', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg,#0077ff,#00c6ff)' }} />
+                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📦</div>
+                        <div style={{ fontWeight: 700, fontSize: '1rem', color: '#212529', marginBottom: '0.25rem' }}>Bons de Livraison</div>
+                        <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '1rem' }}>Créer et gérer les BL</div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => router.push('/delivery-notes')} style={{ flex: 1, padding: '8px', background: 'linear-gradient(135deg,#0077ff,#00c6ff)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>➕ Nouveau</button>
+                          <button onClick={() => router.push('/delivery-notes/list')} style={{ flex: 1, padding: '8px', background: '#f1f3f4', color: '#495057', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>📋 Liste</button>
+                        </div>
                       </div>
+
+                      {/* Factures */}
+                      <div style={{ background: 'white', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 12px rgba(40,167,69,0.10)', border: '1px solid #e6f4ea', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg,#28a745,#20c997)' }} />
+                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🧾</div>
+                        <div style={{ fontWeight: 700, fontSize: '1rem', color: '#212529', marginBottom: '0.25rem' }}>Factures</div>
+                        <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '1rem' }}>Facturation clients</div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => router.push('/invoices')} style={{ flex: 1, padding: '8px', background: 'linear-gradient(135deg,#28a745,#20c997)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>➕ Nouvelle</button>
+                          <button onClick={() => router.push('/invoices/list')} style={{ flex: 1, padding: '8px', background: '#f1f3f4', color: '#495057', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>🧾 Liste</button>
+                        </div>
+                      </div>
+
+                      {/* Proforma */}
+                      <div style={{ background: 'white', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 12px rgba(23,162,184,0.10)', border: '1px solid #e0f7fa', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg,#17a2b8,#00bcd4)' }} />
+                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📝</div>
+                        <div style={{ fontWeight: 700, fontSize: '1rem', color: '#212529', marginBottom: '0.25rem' }}>Proforma / Devis</div>
+                        <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '1rem' }}>Devis et offres commerciales</div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => router.push('/proforma')} style={{ flex: 1, padding: '8px', background: 'linear-gradient(135deg,#17a2b8,#00bcd4)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>➕ Nouveau</button>
+                          <button onClick={() => router.push('/proforma/list')} style={{ flex: 1, padding: '8px', background: '#f1f3f4', color: '#495057', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>📋 Liste</button>
+                        </div>
+                      </div>
+
+                      {/* Avoirs */}
+                      <div style={{ background: 'white', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 12px rgba(231,76,60,0.10)', border: '1px solid #fdecea', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg,#e74c3c,#ff6b6b)' }} />
+                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>↩️</div>
+                        <div style={{ fontWeight: 700, fontSize: '1rem', color: '#212529', marginBottom: '0.25rem' }}>Retours / Avoirs</div>
+                        <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '1rem' }}>Gestion des retours clients</div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => router.push('/returns/new')} style={{ flex: 1, padding: '8px', background: 'linear-gradient(135deg,#e74c3c,#ff6b6b)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>➕ Nouveau</button>
+                          <button onClick={() => router.push('/returns/list')} style={{ flex: 1, padding: '8px', background: '#f1f3f4', color: '#495057', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}>📋 Liste</button>
+                        </div>
+                      </div>
+
                     </div>
                   </div>
+
+                  {/* ── PAIEMENTS & RECOUVREMENT ── */}
+                  <div style={{ marginBottom: '2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
+                      <div style={{ width: '4px', height: '24px', background: 'linear-gradient(180deg,#e67e22,#f39c12)', borderRadius: '2px' }} />
+                      <span style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: '#6c757d' }}>Paiements & Recouvrement</span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+
+                      <button onClick={() => router.push('/payments/overdue')} style={{ background: 'linear-gradient(135deg,#e67e22,#f39c12)', color: 'white', border: 'none', borderRadius: '14px', padding: '1.25rem', cursor: 'pointer', textAlign: 'left', boxShadow: '0 4px 15px rgba(230,126,34,0.3)', transition: 'transform .2s' }}
+                        onMouseEnter={e => (e.currentTarget.style.transform='translateY(-3px)')} onMouseLeave={e => (e.currentTarget.style.transform='translateY(0)')}>
+                        <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>⚠️</div>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Recouvrement Clients</div>
+                        <div style={{ fontSize: '11px', opacity: 0.85, marginTop: '4px' }}>Créances & impayés</div>
+                      </button>
+
+                      <button onClick={() => router.push('/payments/overdue-suppliers')} style={{ background: 'linear-gradient(135deg,#8e44ad,#9b59b6)', color: 'white', border: 'none', borderRadius: '14px', padding: '1.25rem', cursor: 'pointer', textAlign: 'left', boxShadow: '0 4px 15px rgba(142,68,173,0.3)', transition: 'transform .2s' }}
+                        onMouseEnter={e => (e.currentTarget.style.transform='translateY(-3px)')} onMouseLeave={e => (e.currentTarget.style.transform='translateY(0)')}>
+                        <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>🏭</div>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Dettes Fournisseurs</div>
+                        <div style={{ fontSize: '11px', opacity: 0.85, marginTop: '4px' }}>Suivi des dettes achats</div>
+                      </button>
+
+                      <button onClick={() => router.push('/payments/report')} style={{ background: 'linear-gradient(135deg,#6c757d,#495057)', color: 'white', border: 'none', borderRadius: '14px', padding: '1.25rem', cursor: 'pointer', textAlign: 'left', boxShadow: '0 4px 15px rgba(108,117,125,0.3)', transition: 'transform .2s' }}
+                        onMouseEnter={e => (e.currentTarget.style.transform='translateY(-3px)')} onMouseLeave={e => (e.currentTarget.style.transform='translateY(0)')}>
+                        <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>📊</div>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Rapport Paiements</div>
+                        <div style={{ fontSize: '11px', opacity: 0.85, marginTop: '4px' }}>Historique & statistiques</div>
+                      </button>
+
+                    </div>
+                  </div>
+
+                  {/* ── RAPPORT DES VENTES ── */}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
+                      <div style={{ width: '4px', height: '24px', background: 'linear-gradient(180deg,#ffc107,#ff9800)', borderRadius: '2px' }} />
+                      <span style={{ fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: '#6c757d' }}>Analyse & Rapports</span>
+                    </div>
+                    <button onClick={() => router.push('/sales-report')} style={{ width: '100%', background: 'linear-gradient(135deg,#ffc107 0%,#ff9800 100%)', color: '#212529', border: 'none', borderRadius: '14px', padding: '1.5rem 2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1.5rem', boxShadow: '0 6px 20px rgba(255,193,7,0.35)', transition: 'transform .2s, box-shadow .2s' }}
+                      onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 10px 30px rgba(255,193,7,0.45)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 6px 20px rgba(255,193,7,0.35)'; }}>
+                      <div style={{ fontSize: '2.5rem' }}>📊</div>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>Rapport des Ventes</div>
+                        <div style={{ fontSize: '13px', opacity: 0.75, marginTop: '2px' }}>BL + Factures avec filtres et calcul de marge</div>
+                      </div>
+                      <div style={{ marginLeft: 'auto', fontSize: '1.5rem', opacity: 0.6 }}>→</div>
+                    </button>
+                  </div>
+
                 </div>
               </div>
             )}
