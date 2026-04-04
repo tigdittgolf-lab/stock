@@ -87,8 +87,8 @@ export async function GET(request: NextRequest) {
         } catch { /* non critique */ }
       }
 
-      // Enrichir client_name si manquant
-      if (!normalized.client_name && normalized.nclient) {
+      // Enrichir les données client complètes (adresse, RC, NIF, téléphone)
+      if (normalized.nclient) {
         try {
           const clientRows = await readTable(tenant, 'client');
           const found = clientRows.find((c: any) => {
@@ -98,8 +98,16 @@ export async function GET(request: NextRequest) {
           });
           if (found) {
             const keys = Object.keys(found);
-            const findVal = (...names: string[]) => { for (const n of names) { const k = keys.find(k => k.toLowerCase() === n.toLowerCase()); if (k && found[k]) return found[k]; } return ''; };
-            normalized.client_name = findVal('raison_sociale', 'nom', 'client_name');
+            const fv = (...names: string[]) => { for (const n of names) { const k = keys.find(k => k.toLowerCase() === n.toLowerCase()); if (k && found[k]) return found[k]; } return ''; };
+            normalized.client_name = normalized.client_name || fv('raison_sociale', 'nom', 'client_name');
+            normalized.client = {
+              raison_sociale: fv('raison_sociale', 'nom'),
+              adresse: fv('adresse', 'address'),
+              telephone: fv('telephone', 'tel', 'phone'),
+              nif: fv('nif', 'ident_fiscal'),
+              rc: fv('rc', 'nrc'),
+              art: fv('art', 'nart'),
+            };
           }
         } catch { /* non critique */ }
       }

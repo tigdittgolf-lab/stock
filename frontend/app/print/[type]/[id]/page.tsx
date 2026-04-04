@@ -1,54 +1,52 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 
-// Traductions arabes
+// ── Traductions arabes ─────────────────────────────────────────────────────
 const AR: Record<string, string> = {
-  facture: 'فاتورة',
-  bon_livraison: 'وصل التسليم',
-  proforma: 'فاتورة مبدئية',
-  avoir: 'إشعار دائن',
-  designation: 'التسمية',
-  quantite: 'الكمية',
-  prix_unitaire: 'سعر الوحدة',
-  tva: 'الرسم على القيمة المضافة',
-  total: 'المجموع',
-  reference: 'المرجع',
-  montant_ht: 'المبلغ بدون رسم',
-  montant_tva: 'مبلغ الرسم',
-  montant_ttc: 'المبلغ الإجمالي',
-  timbre: 'طابع مالي',
-  net_a_payer: 'صافي المبلغ الواجب دفعه',
-  client: 'الزبون',
-  fournisseur: 'المورد',
-  date: 'التاريخ',
-  numero: 'الرقم',
-  adresse: 'العنوان',
-  telephone: 'الهاتف',
-  nif: 'رقم التعريف الجبائي',
-  rc: 'السجل التجاري',
-  art: 'رقم المادة',
-  signature_livreur: 'توقيع المسلِّم',
-  signature_client: 'توقيع الزبون',
+  facture: 'فاتورة', bon_livraison: 'وصل التسليم', proforma: 'فاتورة مبدئية', avoir: 'إشعار دائن',
+  designation: 'التسمية', quantite: 'الكمية', prix_unitaire: 'سعر الوحدة',
+  tva: 'الرسم على القيمة المضافة', total: 'المجموع', reference: 'المرجع',
+  montant_ht: 'المبلغ بدون رسم', montant_tva: 'مبلغ الرسم', montant_ttc: 'المبلغ الإجمالي',
+  timbre: 'طابع مالي', client: 'الزبون', date: 'التاريخ', numero: 'الرقم',
+  adresse: 'العنوان', telephone: 'الهاتف', nif: 'رقم التعريف الجبائي',
+  rc: 'السجل التجاري', art: 'رقم المادة الجبائية',
+  signature_livreur: 'توقيع المسلِّم', signature_client: 'توقيع وختم الزبون',
   note_bl: 'هذا الوصل لا يُعدّ فاتورة',
   arrete_somme: 'حُرِّر هذا المستند بمبلغ',
+  vendeur: 'البائع', acheteur: 'المشتري',
 };
 
+// ── Interfaces ─────────────────────────────────────────────────────────────
+interface Company {
+  name: string; address?: string; commune?: string; wilaya?: string;
+  phone?: string; fax?: string; email?: string;
+  nif?: string; rc?: string; art?: string; nis?: string;
+  activite?: string;
+}
+interface Client {
+  code: string; name: string; address?: string;
+  phone?: string; nif?: string; rc?: string; art?: string;
+}
 interface DocData {
-  id: number;
-  date: string;
-  client?: { name: string; address?: string; nif?: string; rc?: string };
-  company?: { name: string; address?: string; phone?: string; nif?: string; rc?: string; art?: string };
+  id: number; date: string;
+  client: Client; company: Company;
   items: Array<{ ref: string; designation: string; qty: number; prix: number; tva: number; total: number }>;
-  montant_ht: number;
-  montant_tva: number;
-  montant_ttc: number;
-  timbre?: number;
+  montant_ht: number; montant_tva: number; montant_ttc: number; timbre?: number;
 }
 
+// ── Helpers ────────────────────────────────────────────────────────────────
 const fmt = (n: number) => (n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 });
 const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('fr-FR') : '';
+const findKey = (obj: any, ...names: string[]) => {
+  const keys = Object.keys(obj);
+  for (const n of names) {
+    const k = keys.find(k => k.toLowerCase() === n.toLowerCase());
+    if (k !== undefined && obj[k] !== null && obj[k] !== undefined && obj[k] !== '') return obj[k];
+  }
+  return '';
+};
 
 // ── Montant en lettres (Français) ──────────────────────────────────────────
 function numberToWordsFr(n: number): string {
@@ -61,8 +59,8 @@ function numberToWordsFr(n: number): string {
     if (x < 20) return u[x];
     if (x < 100) {
       const d = Math.floor(x/10), r = x%10;
-      if (d === 7 || d === 9) return t[d-1] + '-' + u[10+r];
-      return t[d] + (r ? (r===1 && d<8 ? ' et un' : '-'+u[r]) : (d===8?'s':''));
+      if (d === 7 || d === 9) return t[d-1]+'-'+u[10+r];
+      return t[d]+(r?(r===1&&d<8?' et un':'-'+u[r]):(d===8?'s':''));
     }
     const c = Math.floor(x/100), r = x%100;
     return (c>1?u[c]+' ':'')+'cent'+(r?(' '+h(r)):(c>1?'s':''));
@@ -102,12 +100,13 @@ function numberToWordsAr(n: number): string {
   return r;
 }
 
+// ── Composant principal ────────────────────────────────────────────────────
 export default function PrintPage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const type = params.type as string; // bl | invoice | proforma | avoir
+  const type = params.type as string;
   const id = params.id as string;
-  const lang = searchParams.get('lang') || 'bilingual'; // fr | ar | bilingual
+  const lang = searchParams.get('lang') || 'bilingual';
 
   const [doc, setDoc] = useState<DocData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -115,18 +114,14 @@ export default function PrintPage() {
 
   const getTenant = () => {
     if (typeof window === 'undefined') return '2025_bu01';
-    // Priorité 1 : tenant dans l'URL (?tenant=...)
     const urlTenant = searchParams.get('tenant');
     if (urlTenant) return urlTenant;
-    // Priorité 2 : localStorage
     const ti = localStorage.getItem('tenant_info');
     if (ti) { try { return JSON.parse(ti).schema; } catch {} }
     return localStorage.getItem('selectedTenant') || '2025_bu01';
   };
 
-  useEffect(() => {
-    fetchDoc();
-  }, [type, id]);
+  useEffect(() => { fetchDoc(); }, [type, id]);
 
   const fetchDoc = async () => {
     setLoading(true);
@@ -136,57 +131,88 @@ export default function PrintPage() {
       const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
       const headers = { 'X-Tenant': tenant, 'X-Database-Type': dbType };
 
+      // 1. Charger le document
       let apiUrl = '';
       if (type === 'bl') apiUrl = `/api/sales/delivery-notes?id=${id}`;
       else if (type === 'invoice') apiUrl = `/api/sales/invoices?id=${id}`;
       else if (type === 'proforma') apiUrl = `/api/sales/proforma/${id}`;
       else if (type === 'avoir') apiUrl = `/api/sales/credit-notes/${id}`;
-      else { setError('Type de document inconnu'); setLoading(false); return; }
+      else { setError('Type inconnu'); setLoading(false); return; }
 
-      const res = await fetch(apiUrl, { headers });
-      const data = await res.json();
+      const [docRes, companyRes] = await Promise.all([
+        fetch(apiUrl, { headers }),
+        fetch('/api/settings/activities', { headers }),
+      ]);
 
-      if (!data.success) { setError(data.error || 'Erreur chargement'); setLoading(false); return; }
+      const docData = await docRes.json();
+      if (!docData.success) { setError(docData.error || 'Erreur'); setLoading(false); return; }
 
-      const raw = data.data;
-      // Normaliser selon le type
+      const raw = docData.data;
+      const nclient = raw.nclient || raw.Nclient || '';
+
+      // 2. Charger les données complètes du client
+      let clientFull: any = {};
+      try {
+        const clientRes = await fetch(`/api/sales/clients/${nclient}/debt`, { headers });
+        const clientData = await clientRes.json();
+        if (clientData.success && clientData.data) clientFull = clientData.data;
+      } catch {}
+
+      // 3. Données entreprise
+      let company: Company = { name: '' };
+      try {
+        const compData = await companyRes.json();
+        const c = compData.success ? compData.data : {};
+        company = {
+          name: findKey(c,'nom_entreprise','name') || '',
+          address: findKey(c,'adresse','address') || '',
+          commune: findKey(c,'commune') || '',
+          wilaya: findKey(c,'wilaya') || '',
+          phone: findKey(c,'telephone','tel_fixe','phone') || '',
+          fax: findKey(c,'fax') || '',
+          email: findKey(c,'email','e_mail') || '',
+          nif: findKey(c,'nif','ident_fiscal') || '',
+          rc: findKey(c,'rc','nrc') || '',
+          art: findKey(c,'nart','art') || '',
+          nis: findKey(c,'nis') || '',
+          activite: findKey(c,'activite','sous_domaine','domaine_activite') || '',
+        };
+      } catch {}
+
+      // 4. Normaliser les lignes
       const items = (raw.detail_fact || raw.detail_bl || raw.details || []).map((it: any) => {
-          const qty = parseFloat(it.qte || it.qty || 0);
-          const prix = parseFloat(it.prix || it.prix_unitaire || 0);
-          const storedTotal = parseFloat(it.total_ligne || it.total || 0);
-          return {
-            ref: it.article?.narticle || it.narticle || it.ref || '',
-            designation: it.article?.designation || it.designation || '',
-            qty,
-            prix,
-            tva: parseFloat(it.tva || 0),
-            total: storedTotal || (qty * prix), // recalculate if stored total is 0
-          };
-        });
+        const qty = parseFloat(it.qte || it.qty || 0);
+        const prix = parseFloat(it.prix || it.prix_unitaire || 0);
+        const storedTotal = parseFloat(it.total_ligne || it.total || 0);
+        return {
+          ref: it.article?.narticle || it.narticle || it.ref || '',
+          designation: it.article?.designation || it.designation || '',
+          qty, prix,
+          tva: parseFloat(it.tva || 0),
+          total: storedTotal || (qty * prix),
+        };
+      });
 
-        // Recalculate totals from lines if stored values are missing/zero
-        const calcHT = items.reduce((s: number, it: any) => s + (it.qty * it.prix), 0);
-        const calcTVA = items.reduce((s: number, it: any) => s + (it.qty * it.prix * it.tva / 100), 0);
-        const calcTTC = calcHT + calcTVA;
-
-        const montant_ht = parseFloat(raw.montant_ht || 0) || calcHT;
-        const montant_tva = parseFloat(raw.tva || raw.montant_tva || 0) || calcTVA;
-        const montant_ttc = parseFloat(raw.montant_ttc || raw.total_ttc || 0) || calcTTC;
+      const calcHT = items.reduce((s: number, it: any) => s + (it.qty * it.prix), 0);
+      const calcTVA = items.reduce((s: number, it: any) => s + (it.qty * it.prix * it.tva / 100), 0);
 
       const normalized: DocData = {
         id: raw.nfact || raw.nbl || raw.id || parseInt(id),
         date: raw.date_fact || raw.date_bl || raw.date || '',
+        company,
         client: {
-          name: raw.client?.raison_sociale || raw.client?.nom || raw.nclient || '',
-          address: raw.client?.adresse || '',
-          nif: raw.client?.nif || '',
-          rc: raw.client?.rc || '',
+          code: nclient,
+          name: clientFull.raison_sociale || raw.client_name || raw.client?.raison_sociale || nclient,
+          address: clientFull.adresse || raw.client?.adresse || '',
+          phone: clientFull.telephone || raw.client?.telephone || '',
+          nif: clientFull.nif || raw.client?.nif || '',
+          rc: clientFull.rc || clientFull.nrc || raw.client?.rc || '',
+          art: clientFull.art || clientFull.nart || raw.client?.art || '',
         },
-        company: raw.company || raw.entreprise || undefined,
         items,
-        montant_ht,
-        montant_tva,
-        montant_ttc,
+        montant_ht: parseFloat(raw.montant_ht || 0) || calcHT,
+        montant_tva: parseFloat(raw.tva || raw.montant_tva || 0) || calcTVA,
+        montant_ttc: parseFloat(raw.montant_ttc || raw.total_ttc || 0) || (calcHT + calcTVA),
         timbre: parseFloat(raw.timbre || 0),
       };
 
@@ -214,181 +240,190 @@ export default function PrintPage() {
   if (error) return <div style={{ padding: 40, color: 'red', fontFamily: 'sans-serif' }}>❌ {error}</div>;
   if (!doc) return null;
 
+  // ── Bloc info entreprise ──
+  const CompanyBlock = ({ align }: { align: 'left' | 'right' }) => (
+    <div style={{ fontSize: 11, lineHeight: 1.9, textAlign: align }}>
+      <div style={{ fontWeight: 800, fontSize: 13, textTransform: 'uppercase', marginBottom: 2 }}>{doc.company.name}</div>
+      {doc.company.activite && <div style={{ fontStyle: 'italic', color: '#555', fontSize: 10 }}>{doc.company.activite}</div>}
+      {doc.company.address && <div>{doc.company.address}{doc.company.commune ? ', '+doc.company.commune : ''}{doc.company.wilaya ? ' - '+doc.company.wilaya : ''}</div>}
+      {doc.company.phone && <div>Tél: {doc.company.phone}{doc.company.fax ? ' / Fax: '+doc.company.fax : ''}</div>}
+      {doc.company.email && <div>Email: {doc.company.email}</div>}
+      <div style={{ marginTop: 4, borderTop: '1px solid #ccc', paddingTop: 4 }}>
+        {doc.company.nif && <div><strong>NIF:</strong> {doc.company.nif}</div>}
+        {doc.company.rc && <div><strong>RC:</strong> {doc.company.rc}</div>}
+        {doc.company.art && <div><strong>Art:</strong> {doc.company.art}</div>}
+        {doc.company.nis && <div><strong>NIS:</strong> {doc.company.nis}</div>}
+      </div>
+    </div>
+  );
+
+  // ── Bloc info client ──
+  const ClientBlock = ({ align }: { align: 'left' | 'right' }) => (
+    <div style={{ fontSize: 11, lineHeight: 1.9, textAlign: align }}>
+      <div style={{ fontWeight: 800, fontSize: 13, textTransform: 'uppercase', marginBottom: 2 }}>{doc.client.name}</div>
+      {doc.client.address && <div>{doc.client.address}</div>}
+      {doc.client.phone && <div>Tél: {doc.client.phone}</div>}
+      <div style={{ marginTop: 4, borderTop: '1px solid #ccc', paddingTop: 4 }}>
+        {doc.client.nif && <div><strong>NIF:</strong> {doc.client.nif}</div>}
+        {doc.client.rc && <div><strong>RC:</strong> {doc.client.rc}</div>}
+        {doc.client.art && <div><strong>Art:</strong> {doc.client.art}</div>}
+      </div>
+    </div>
+  );
+
   return (
     <>
-      {/* Barre d'outils (masquée à l'impression) */}
+      {/* Barre d'outils */}
       <div className="no-print" style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        background: '#1a1a2e', color: 'white', padding: '10px 20px',
-        display: 'flex', gap: 12, alignItems: 'center', fontFamily: 'sans-serif'
+        background: '#1a1a2e', color: 'white', padding: '8px 20px',
+        display: 'flex', gap: 10, alignItems: 'center', fontFamily: 'sans-serif', fontSize: 13
       }}>
-        <span style={{ fontWeight: 700, fontSize: 15 }}>🖨️ Impression</span>
-        <span style={{ color: '#aaa', fontSize: 13 }}>{title.fr} #{doc.id}</span>
+        <span style={{ fontWeight: 700 }}>🖨️ {title.fr} #{doc.id}</span>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <a href={`?lang=fr`} style={{ padding: '6px 14px', background: lang === 'fr' ? '#3498db' : '#444', color: 'white', borderRadius: 6, textDecoration: 'none', fontSize: 13 }}>🇫🇷 Français</a>
-          <a href={`?lang=ar`} style={{ padding: '6px 14px', background: lang === 'ar' ? '#3498db' : '#444', color: 'white', borderRadius: 6, textDecoration: 'none', fontSize: 13 }}>🇩🇿 عربي</a>
-          <a href={`?lang=bilingual`} style={{ padding: '6px 14px', background: lang === 'bilingual' ? '#3498db' : '#444', color: 'white', borderRadius: 6, textDecoration: 'none', fontSize: 13 }}>🔀 Bilingue</a>
-          <button onClick={() => window.print()} style={{ padding: '6px 18px', background: '#27ae60', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>🖨️ Imprimer</button>
-          <button onClick={() => window.history.back()} style={{ padding: '6px 14px', background: '#555', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>← Retour</button>
+          <a href="?lang=fr" style={{ padding: '5px 12px', background: lang==='fr'?'#3498db':'#444', color: 'white', borderRadius: 5, textDecoration: 'none' }}>🇫🇷 Français</a>
+          <a href="?lang=ar" style={{ padding: '5px 12px', background: lang==='ar'?'#3498db':'#444', color: 'white', borderRadius: 5, textDecoration: 'none' }}>🇩🇿 عربي</a>
+          <a href="?lang=bilingual" style={{ padding: '5px 12px', background: lang==='bilingual'?'#3498db':'#444', color: 'white', borderRadius: 5, textDecoration: 'none' }}>🔀 Bilingue</a>
+          <button onClick={() => window.print()} style={{ padding: '5px 16px', background: '#27ae60', color: 'white', border: 'none', borderRadius: 5, cursor: 'pointer', fontWeight: 700 }}>🖨️ Imprimer</button>
+          <button onClick={() => window.history.back()} style={{ padding: '5px 12px', background: '#555', color: 'white', border: 'none', borderRadius: 5, cursor: 'pointer' }}>← Retour</button>
         </div>
       </div>
 
-      {/* Document imprimable */}
-      <div style={{ paddingTop: 60, fontFamily: 'Arial, Tahoma, sans-serif', background: '#f5f5f5', minHeight: '100vh' }}>
-        <div style={{ maxWidth: 800, margin: '0 auto', background: 'white', padding: '30px 40px', boxShadow: '0 2px 20px rgba(0,0,0,0.1)' }}>
+      <div style={{ paddingTop: 56, fontFamily: 'Arial, Tahoma, sans-serif', background: '#eee', minHeight: '100vh' }}>
+        <div style={{ maxWidth: 820, margin: '0 auto', background: 'white', padding: '28px 36px', boxShadow: '0 2px 20px rgba(0,0,0,0.15)' }}>
 
-          {/* Titre bilingue */}
-          <div style={{ textAlign: 'center', marginBottom: 24, borderBottom: '3px double #333', paddingBottom: 16 }}>
-            {showFr && <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: 2 }}>{title.fr}</div>}
-            {showAr && <div style={{ fontSize: 22, fontWeight: 700, direction: 'rtl', fontFamily: 'Tahoma, Arial', color: '#1a1a2e', marginTop: showFr ? 4 : 0 }}>{title.ar}</div>}
-          </div>
+          {/* ── EN-TÊTE : Entreprise gauche | Titre centre | N°/Date droite ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 16, marginBottom: 20, paddingBottom: 16, borderBottom: '3px double #1a1a2e' }}>
+            {/* Entreprise */}
+            <CompanyBlock align="left" />
 
-          {/* Infos doc + client */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
-            {/* Entreprise (gauche) */}
-            <div style={{ fontSize: 12, lineHeight: 1.8 }}>
-              {doc.company && <>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{doc.company.name}</div>
-                {doc.company.address && <div>{doc.company.address}</div>}
-                {doc.company.phone && <div>Tél: {doc.company.phone}</div>}
-                {doc.company.nif && <div>NIF: {doc.company.nif}</div>}
-                {doc.company.rc && <div>RC: {doc.company.rc}</div>}
-                {doc.company.art && <div>Art: {doc.company.art}</div>}
-              </>}
+            {/* Titre document */}
+            <div style={{ textAlign: 'center', minWidth: 160 }}>
+              {showFr && <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: 2, color: '#1a1a2e' }}>{title.fr}</div>}
+              {showAr && <div style={{ fontSize: 18, fontWeight: 800, direction: 'rtl', fontFamily: 'Tahoma', color: '#1a1a2e', marginTop: showFr ? 4 : 0 }}>{title.ar}</div>}
+              <div style={{ marginTop: 12, fontSize: 11, color: '#333' }}>
+                <div><strong>N°</strong> {doc.id}</div>
+                {showAr && <div style={{ direction: 'rtl', fontFamily: 'Tahoma', fontSize: 11 }}>{AR.numero} : {doc.id}</div>}
+                <div style={{ marginTop: 4 }}><strong>Date:</strong> {fmtDate(doc.date)}</div>
+                {showAr && <div style={{ direction: 'rtl', fontFamily: 'Tahoma', fontSize: 11 }}>{AR.date} : {fmtDate(doc.date)}</div>}
+              </div>
             </div>
 
-            {/* Client + N° doc (droite) */}
-            <div style={{ fontSize: 12, lineHeight: 1.8, textAlign: 'right' }}>
-              <div style={{ fontWeight: 700 }}>
-                {showFr && 'N°: '}{showAr && <span style={{ direction: 'rtl', fontFamily: 'Tahoma' }}> :{AR.numero}</span>}
-                <span style={{ fontSize: 16, fontWeight: 700 }}>{doc.id}</span>
+            {/* Client */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#888', marginBottom: 4, textAlign: 'right' }}>
+                {showFr && 'CLIENT / ACHETEUR'}
+                {showAr && <span style={{ direction: 'rtl', fontFamily: 'Tahoma', display: 'block' }}>{AR.acheteur}</span>}
               </div>
-              <div>
-                {showFr && `Date: ${fmtDate(doc.date)}`}
-                {showAr && <span style={{ direction: 'rtl', fontFamily: 'Tahoma', display: 'block' }}>{fmtDate(doc.date)} :{AR.date}</span>}
+              <div style={{ border: '1px solid #1a1a2e', borderRadius: 4, padding: '8px 10px' }}>
+                <ClientBlock align="right" />
               </div>
-              {doc.client && <>
-                <div style={{ marginTop: 8, fontWeight: 700 }}>
-                  {showFr && 'Client: '}{showAr && <span style={{ direction: 'rtl', fontFamily: 'Tahoma' }}> :{AR.client}</span>}
-                </div>
-                <div style={{ fontWeight: 600 }}>{doc.client.name}</div>
-                {doc.client.address && <div style={{ color: '#555' }}>{doc.client.address}</div>}
-                {doc.client.nif && <div>NIF: {doc.client.nif}</div>}
-                {doc.client.rc && <div>RC: {doc.client.rc}</div>}
-              </>}
             </div>
           </div>
 
-          {/* Tableau articles */}
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, marginBottom: 20 }}>
+          {/* ── TABLEAU ARTICLES ── */}
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, marginBottom: 16 }}>
             <thead>
               <tr style={{ background: '#1a1a2e', color: 'white' }}>
-                <th style={{ padding: '8px 10px', textAlign: 'left', width: '8%' }}>
-                  {showFr && 'Réf'}{showAr && <span style={{ direction: 'rtl', fontFamily: 'Tahoma', display: 'block', fontSize: 11 }}>{AR.reference}</span>}
-                </th>
-                <th style={{ padding: '8px 10px', textAlign: 'left', width: '35%' }}>
-                  {showFr && 'Désignation'}{showAr && <span style={{ direction: 'rtl', fontFamily: 'Tahoma', display: 'block', fontSize: 11 }}>{AR.designation}</span>}
-                </th>
-                <th style={{ padding: '8px 10px', textAlign: 'center', width: '10%' }}>
-                  {showFr && 'Qté'}{showAr && <span style={{ direction: 'rtl', fontFamily: 'Tahoma', display: 'block', fontSize: 11 }}>{AR.quantite}</span>}
-                </th>
-                <th style={{ padding: '8px 10px', textAlign: 'right', width: '15%' }}>
-                  {showFr && 'P.U.'}{showAr && <span style={{ direction: 'rtl', fontFamily: 'Tahoma', display: 'block', fontSize: 11 }}>{AR.prix_unitaire}</span>}
-                </th>
-                <th style={{ padding: '8px 10px', textAlign: 'center', width: '10%' }}>
-                  {showFr && 'TVA'}{showAr && <span style={{ direction: 'rtl', fontFamily: 'Tahoma', display: 'block', fontSize: 11 }}>{AR.tva}</span>}
-                </th>
-                <th style={{ padding: '8px 10px', textAlign: 'right', width: '15%' }}>
-                  {showFr && 'Total'}{showAr && <span style={{ direction: 'rtl', fontFamily: 'Tahoma', display: 'block', fontSize: 11 }}>{AR.total}</span>}
-                </th>
+                {[
+                  { fr: 'Réf', ar: AR.reference, w: '8%', align: 'left' as const },
+                  { fr: 'Désignation', ar: AR.designation, w: '36%', align: 'left' as const },
+                  { fr: 'Qté', ar: AR.quantite, w: '8%', align: 'center' as const },
+                  { fr: 'P.U. HT', ar: AR.prix_unitaire, w: '14%', align: 'right' as const },
+                  { fr: 'TVA', ar: AR.tva, w: '10%', align: 'center' as const },
+                  { fr: 'Montant HT', ar: AR.total, w: '14%', align: 'right' as const },
+                ].map((col, i) => (
+                  <th key={i} style={{ padding: '7px 8px', textAlign: col.align, width: col.w, fontWeight: 700 }}>
+                    {showFr && <div>{col.fr}</div>}
+                    {showAr && <div style={{ direction: 'rtl', fontFamily: 'Tahoma', fontSize: 10, opacity: 0.9 }}>{col.ar}</div>}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {doc.items.map((item, i) => (
-                <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f8f9fa', borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: '7px 10px', color: '#555' }}>{item.ref}</td>
-                  <td style={{ padding: '7px 10px', fontWeight: 500 }}>{item.designation}</td>
-                  <td style={{ padding: '7px 10px', textAlign: 'center' }}>{item.qty}</td>
-                  <td style={{ padding: '7px 10px', textAlign: 'right' }}>{fmt(item.prix)}</td>
-                  <td style={{ padding: '7px 10px', textAlign: 'center' }}>{item.tva}%</td>
-                  <td style={{ padding: '7px 10px', textAlign: 'right', fontWeight: 600 }}>{fmt(item.total)}</td>
+                <tr key={i} style={{ background: i%2===0?'white':'#f8f9fa', borderBottom: '1px solid #e8e8e8' }}>
+                  <td style={{ padding: '6px 8px', color: '#555', fontSize: 10 }}>{item.ref}</td>
+                  <td style={{ padding: '6px 8px', fontWeight: 500 }}>{item.designation}</td>
+                  <td style={{ padding: '6px 8px', textAlign: 'center' }}>{item.qty}</td>
+                  <td style={{ padding: '6px 8px', textAlign: 'right' }}>{fmt(item.prix)}</td>
+                  <td style={{ padding: '6px 8px', textAlign: 'center' }}>{item.tva}%</td>
+                  <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600 }}>{fmt(item.total)}</td>
+                </tr>
+              ))}
+              {/* Lignes vides pour remplir */}
+              {doc.items.length < 5 && Array.from({ length: 5 - doc.items.length }).map((_, i) => (
+                <tr key={`empty-${i}`} style={{ borderBottom: '1px solid #e8e8e8' }}>
+                  {[0,1,2,3,4,5].map(j => <td key={j} style={{ padding: '6px 8px', height: 22 }}>&nbsp;</td>)}
                 </tr>
               ))}
             </tbody>
           </table>
 
-          {/* Totaux */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-            <table style={{ fontSize: 12, minWidth: 280 }}>
+          {/* ── TOTAUX ── */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+            <table style={{ fontSize: 11, minWidth: 300, border: '1px solid #ddd' }}>
               <tbody>
-                <tr>
-                  <td style={{ padding: '4px 12px', color: '#555' }}>
-                    {showFr && 'Montant HT'}
-                    {showAr && <span style={{ direction: 'rtl', fontFamily: 'Tahoma', marginRight: 8 }}>{AR.montant_ht}</span>}
-                  </td>
-                  <td style={{ padding: '4px 12px', textAlign: 'right', fontWeight: 600 }}>{fmt(doc.montant_ht)} DA</td>
-                </tr>
-                <tr>
-                  <td style={{ padding: '4px 12px', color: '#555' }}>
-                    {showFr && 'TVA'}
-                    {showAr && <span style={{ direction: 'rtl', fontFamily: 'Tahoma', marginRight: 8 }}>{AR.montant_tva}</span>}
-                  </td>
-                  <td style={{ padding: '4px 12px', textAlign: 'right', fontWeight: 600 }}>{fmt(doc.montant_tva)} DA</td>
-                </tr>
-                {(doc.timbre || 0) > 0 && <tr>
-                  <td style={{ padding: '4px 12px', color: '#555' }}>
-                    {showFr && 'Timbre'}
-                    {showAr && <span style={{ direction: 'rtl', fontFamily: 'Tahoma', marginRight: 8 }}>{AR.timbre}</span>}
-                  </td>
-                  <td style={{ padding: '4px 12px', textAlign: 'right' }}>{fmt(doc.timbre || 0)} DA</td>
-                </tr>}
+                {[
+                  { fr: 'Montant HT', ar: AR.montant_ht, val: doc.montant_ht, bold: false },
+                  { fr: 'TVA', ar: AR.montant_tva, val: doc.montant_tva, bold: false },
+                  ...(doc.timbre ? [{ fr: 'Timbre fiscal', ar: AR.timbre, val: doc.timbre, bold: false }] : []),
+                ].map((row, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
+                    <td style={{ padding: '5px 12px', color: '#555' }}>
+                      {showFr && row.fr}
+                      {showAr && <span style={{ direction: 'rtl', fontFamily: 'Tahoma', display: 'block' }}>{row.ar}</span>}
+                    </td>
+                    <td style={{ padding: '5px 12px', textAlign: 'right', fontWeight: 600, minWidth: 100 }}>{fmt(row.val)} DA</td>
+                  </tr>
+                ))}
                 <tr style={{ background: '#1a1a2e', color: 'white' }}>
-                  <td style={{ padding: '8px 12px', fontWeight: 700, fontSize: 14 }}>
-                    {showFr && 'TOTAL TTC'}
-                    {showAr && <span style={{ direction: 'rtl', fontFamily: 'Tahoma', marginRight: 8, fontSize: 13 }}>{AR.montant_ttc}</span>}
+                  <td style={{ padding: '8px 12px', fontWeight: 700, fontSize: 13 }}>
+                    {showFr && 'NET À PAYER TTC'}
+                    {showAr && <span style={{ direction: 'rtl', fontFamily: 'Tahoma', display: 'block', fontSize: 12 }}>{AR.montant_ttc}</span>}
                   </td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, fontSize: 14 }}>{fmt(doc.montant_ttc)} DA</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 800, fontSize: 13 }}>{fmt(doc.montant_ttc)} DA</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          {/* Montant en lettres */}
+          {/* ── MONTANT EN LETTRES ── */}
           {doc.montant_ttc > 0 && (
-            <div style={{ margin: '20px 0', padding: '12px 16px', border: '1px solid #333', borderRadius: 6, background: '#fafafa' }}>
+            <div style={{ border: '1px solid #1a1a2e', borderRadius: 4, padding: '10px 14px', marginBottom: 20, background: '#f9f9f9' }}>
               {showFr && (
-                <div style={{ fontSize: 12, color: '#555', marginBottom: showAr ? 6 : 0 }}>
-                  <span style={{ fontStyle: 'italic' }}>Arrêté la présente facture à la somme de : </span>
+                <div style={{ fontSize: 11, marginBottom: showAr ? 6 : 0 }}>
+                  <span style={{ color: '#555' }}>Arrêté la présente facture à la somme de : </span>
                   <strong style={{ color: '#1a1a2e' }}>{numberToWordsFr(doc.montant_ttc)}</strong>
                 </div>
               )}
               {showAr && (
-                <div style={{ direction: 'rtl', fontFamily: 'Tahoma', fontSize: 13, color: '#1a1a2e' }}>
-                  <span style={{ color: '#555', fontWeight: 400 }}>{AR.arrete_somme} : </span>
+                <div style={{ direction: 'rtl', fontFamily: 'Tahoma', fontSize: 12, color: '#1a1a2e' }}>
+                  <span style={{ color: '#555' }}>{AR.arrete_somme} : </span>
                   <strong>{numberToWordsAr(doc.montant_ttc)}</strong>
                 </div>
               )}
             </div>
           )}
 
-          {/* Signatures */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, marginTop: 40, paddingTop: 20, borderTop: '1px solid #ddd' }}>
-            <div style={{ textAlign: 'center', fontSize: 12 }}>
-              {showFr && <div>Signature Livreur</div>}
-              {showAr && <div style={{ direction: 'rtl', fontFamily: 'Tahoma' }}>{AR.signature_livreur}</div>}
-              <div style={{ marginTop: 40, borderTop: '1px solid #333', paddingTop: 4, color: '#999' }}>_______________</div>
+          {/* ── SIGNATURES ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, marginTop: 24, paddingTop: 16, borderTop: '1px solid #ddd' }}>
+            <div style={{ textAlign: 'center', fontSize: 11 }}>
+              {showFr && <div style={{ fontWeight: 600 }}>Signature et Cachet Vendeur</div>}
+              {showAr && <div style={{ direction: 'rtl', fontFamily: 'Tahoma', fontWeight: 600 }}>{AR.signature_livreur}</div>}
+              <div style={{ marginTop: 50, borderTop: '1px solid #555' }}></div>
             </div>
-            <div style={{ textAlign: 'center', fontSize: 12 }}>
-              {showFr && <div>Signature et Cachet Client</div>}
-              {showAr && <div style={{ direction: 'rtl', fontFamily: 'Tahoma' }}>{AR.signature_client}</div>}
-              <div style={{ marginTop: 40, borderTop: '1px solid #333', paddingTop: 4, color: '#999' }}>_______________</div>
+            <div style={{ textAlign: 'center', fontSize: 11 }}>
+              {showFr && <div style={{ fontWeight: 600 }}>Signature et Cachet Client</div>}
+              {showAr && <div style={{ direction: 'rtl', fontFamily: 'Tahoma', fontWeight: 600 }}>{AR.signature_client}</div>}
+              <div style={{ marginTop: 50, borderTop: '1px solid #555' }}></div>
             </div>
           </div>
 
           {type === 'bl' && (
-            <div style={{ marginTop: 16, fontSize: 11, color: '#888', fontStyle: 'italic', textAlign: 'center' }}>
-              {showFr && 'Note: Ce bon de livraison ne constitue pas une facture.'}
-              {showAr && <div style={{ direction: 'rtl', fontFamily: 'Tahoma', marginTop: 4 }}>{AR.note_bl}</div>}
+            <div style={{ marginTop: 14, fontSize: 10, color: '#888', fontStyle: 'italic', textAlign: 'center' }}>
+              {showFr && 'Ce bon de livraison ne constitue pas une facture.'}
+              {showAr && <div style={{ direction: 'rtl', fontFamily: 'Tahoma', marginTop: 2 }}>{AR.note_bl}</div>}
             </div>
           )}
         </div>
@@ -398,8 +433,9 @@ export default function PrintPage() {
         @media print {
           .no-print { display: none !important; }
           body { margin: 0; padding: 0; background: white; }
-          div[style*="paddingTop: 60"] { padding-top: 0 !important; background: white !important; }
+          div[style*="paddingTop: 56"] { padding-top: 0 !important; background: white !important; }
           div[style*="boxShadow"] { box-shadow: none !important; }
+          div[style*="background: #eee"] { background: white !important; }
         }
       `}</style>
     </>
