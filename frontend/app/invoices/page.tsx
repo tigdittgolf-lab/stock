@@ -509,7 +509,7 @@ export default function CreateInvoice() {
               </div>
             )}
             {paymentType === 'partial' && paymentAmount > 0 && paymentAmount < totals.totalTTC && (
-              <div style={{ padding: '12px', background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '8px', marginTop: '12px' }}>
+              <div style={{ padding: '12px', background: 'var(--warning-bg)', border: '1px solid var(--warning-border)', borderRadius: '8px', marginTop: '12px', color: 'var(--warning-text)' }}>
                 <strong>⚠️ Reste à payer: {(totals.totalTTC - paymentAmount).toFixed(2)} DA</strong>
               </div>
             )}

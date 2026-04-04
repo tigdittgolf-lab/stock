@@ -212,8 +212,22 @@ export async function POST(request: NextRequest) {
     const dateVal = date_fact || new Date().toISOString().split('T')[0];
 
     // Insérer la facture via insert_fact_safe (retourne le nfact généré)
+    // La RPC attend p_nfact — on calcule le prochain numéro via readTable
+    const factRows = await readTable(tenant, 'fact').catch(() => []);
+    let nextNfact = 1;
+    if (factRows.length > 0) {
+      const keys = Object.keys(factRows[0]);
+      const col = keys.find(k => k.toLowerCase() === 'nfact') || keys.find(k => k.toLowerCase() === 'id');
+      if (col) {
+        nextNfact = factRows.reduce((max: number, r: any) => {
+          const v = parseInt(r[col]); return isNaN(v) ? max : Math.max(max, v);
+        }, 0) + 1;
+      }
+    }
+
     const result = await callRpc('insert_fact_safe', {
       p_tenant: tenant,
+      p_nfact: nextNfact,
       p_nclient: Nclient,
       p_date_fact: dateVal,
       p_montant_ht: montant_ht,
