@@ -1,74 +1,123 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readTableById, readTableWhere } from '@/lib/supabase-rpc';
+import { readTable, readTableById, readTableWhere } from '@/lib/supabase-rpc';
 
 const BACKEND_URL = process.env.BACKEND_URL;
-
-const schemaError = (msg: string) =>
-  msg.includes('does not exist') || msg.includes('HTTP 404') || msg.includes('HTTP 400') || msg.includes('HTTP 422');
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const tenant = request.headers.get('X-Tenant') || '2025_bu01';
-  const dbType = request.headers.get('X-Database-Type') || 'supabase';
+  const tenant = request.headers.get('X-Tenant') || request.headers.get('x-tenant') || '2025_bu01';
+  const dbType = request.headers.get('X-Database-Type') || request.headers.get('x-database-type') || 'supabase';
 
   const numericId = parseInt(id);
   if (!id || isNaN(numericId) || numericId <= 0) {
     return NextResponse.json({ success: false, error: `ID facture invalide: ${id}` }, { status: 400 });
   }
 
-  // 1. Backend (MySQL, PostgreSQL, ou Supabase via backend)
+  // 1. Backend — fallback on any error
   if (BACKEND_URL) {
     try {
       const res = await fetch(`${BACKEND_URL}/api/sales/invoices/${numericId}`, {
-        headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType, 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
-        signal: AbortSignal.timeout(8000)
+        headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType, 'ngrok-skip-browser-warning': 'true' },
+        signal: AbortSignal.timeout(4000)
       });
       if (res.ok) return NextResponse.json(await res.json());
-      console.warn(`[invoices/id] Backend ${res.status}, fallback Supabase`);
-    } catch { console.warn('[invoices/id] Backend unavailable'); }
+      // Backend error — fall through to Supabase
+    } catch { /* network error — fall through */ }
   }
 
-  // 2. Supabase direct uniquement
   if (dbType !== 'supabase') {
-    return NextResponse.json({ success: false, error: 'Backend non disponible pour MySQL/PostgreSQL' }, { status: 503 });
+    return NextResponse.json({ success: false, error: 'Backend non disponible' }, { status: 503 });
   }
 
   try {
-    const facture = await readTableById(tenant, 'facture', numericId);
-    if (!facture) return NextResponse.json({ success: false, error: `Facture ${numericId} introuvable` }, { status: 404 });
+    // Try facture then fact (same as ?id= route)
+    let fact: any = null;
+    for (const tbl of ['facture', 'fact']) {
+      try { fact = await readTableById(tenant, tbl, numericId); if (fact) break; } catch { /* try next */ }
+    }
+    if (!fact) {
+      return NextResponse.json({ success: false, error: `Facture ${numericId} introuvable` }, { status: 404 });
+    }
 
-    // Normaliser les colonnes
-    const keys = Object.keys(facture);
-    const find = (...names: string[]) => {
+    // Details
+    let detailRows: any[] = [];
+    for (const tbl of ['detail_fact', 'detail_facture']) {
+      for (const col of ['nfact', 'NFact']) {
+        try { detailRows = await readTableWhere(tenant, tbl, col, numericId); if (detailRows.length > 0) break; } catch {}
+      }
+      if (detailRows.length > 0) break;
+    }
+
+    const keys = Object.keys(fact);
+    const fv = (...names: string[]) => {
       for (const n of names) {
         const k = keys.find(k => k.toLowerCase() === n.toLowerCase());
-        if (k !== undefined && facture[k] !== null && facture[k] !== undefined) return facture[k];
+        if (k !== undefined && fact[k] !== null && fact[k] !== undefined) return fact[k];
       }
       return undefined;
     };
-    const normalized = {
-      ...facture,
-      nfact: find('nfact', 'id'),
-      nclient: find('nclient', 'ncli', 'code_client'),
-      client_name: find('client_name', 'raison_sociale', 'nom', 'client'),
-      date_fact: find('date_fact', 'date'),
-      montant_ht: find('montant_ht', 'mht', 'total_ht'),
-      tva: find('tva', 'montant_tva'),
-      montant_ttc: find('montant_ttc', 'total_ttc', 'mttc'),
+
+    const normalized: any = {
+      ...fact,
+      nfact: fv('nfact', 'id'),
+      nclient: fv('nclient', 'ncli', 'code_client'),
+      client_name: fv('client_name', 'raison_sociale', 'nom', 'client'),
+      date_fact: fv('date_fact', 'date'),
+      montant_ht: fv('montant_ht', 'mht', 'total_ht'),
+      tva: fv('tva', 'montant_tva'),
+      montant_ttc: fv('montant_ttc', 'total_ttc', 'mttc'),
+      timbre: fv('timbre') || 0,
     };
 
-    let details: any[] = [];
-    try {
-      details = await readTableWhere(tenant, 'detail_fact', 'nfact', numericId);
-    } catch { /* pas de détails */ }
+    // Enrich client data
+    if (normalized.nclient) {
+      try {
+        const clientRows = await readTable(tenant, 'client');
+        const found = clientRows.find((c: any) => {
+          const ck = Object.keys(c).find(k => k.toLowerCase() === 'nclient');
+          return ck && String(c[ck]) === String(normalized.nclient);
+        });
+        if (found) {
+          const ck = Object.keys(found);
+          const cv = (...names: string[]) => { for (const n of names) { const k = ck.find(k => k.toLowerCase() === n.toLowerCase()); if (k && found[k]) return found[k]; } return ''; };
+          normalized.client_name = normalized.client_name || cv('raison_sociale', 'nom');
+          normalized.client = {
+            raison_sociale: cv('raison_sociale', 'nom'),
+            adresse: cv('adresse', 'address'),
+            telephone: cv('telephone', 'tel', 'phone'),
+            nif: cv('nif', 'ident_fiscal'),
+            rc: cv('rc', 'nrc'),
+            art: cv('art', 'nart'),
+          };
+        }
+      } catch { /* non critique */ }
+    }
 
-    return NextResponse.json({ success: true, data: { ...normalized, details, detail_fact: details }, source: 'supabase_direct' });
+    const details = detailRows.map((d: any) => {
+      const dk = Object.keys(d);
+      const dv = (...names: string[]) => { for (const n of names) { const k = dk.find(k => k.toLowerCase() === n.toLowerCase()); if (k !== undefined && d[k] !== null && d[k] !== undefined) return d[k]; } return undefined; };
+      return {
+        ...d,
+        narticle: dv('narticle', 'article', 'ref'),
+        designation: dv('designation', 'libelle', 'nom_article'),
+        qte: dv('qte', 'quantite', 'qty'),
+        prix: dv('prix', 'prix_unitaire', 'pu'),
+        tva: dv('tva', 'taux_tva'),
+        total_ligne: dv('total_ligne', 'montant_ligne', 'total'),
+      };
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: { ...normalized, details, detail_fact: details },
+      source: 'supabase_rpc'
+    });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Erreur';
-    if (schemaError(msg)) return NextResponse.json({ success: false, error: `Schéma ${tenant} introuvable` }, { status: 404 });
+    console.error(`❌ [invoices/${numericId}]`, msg);
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
