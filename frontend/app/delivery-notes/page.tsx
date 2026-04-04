@@ -612,7 +612,7 @@ export default function CreateDeliveryNote() {
                   </div>
                   <div className={styles.articleInfoItem}>
                     <span className={styles.articleInfoLabel}>Stock BL Disponible</span>
-                    <span className={styles.articleInfoValue}>{selectedArticleInfo.stock_bl}</span>
+                    <span className={styles.articleInfoValue}>{selectedArticleInfo.stock_bl ?? 0}</span>
                     <span className={`${styles.stockBadge} ${
                       selectedArticleInfo.stock_bl > 100 ? styles.high :
                       selectedArticleInfo.stock_bl > 20 ? styles.medium : styles.low
@@ -623,7 +623,7 @@ export default function CreateDeliveryNote() {
                   </div>
                   <div className={styles.articleInfoItem}>
                     <span className={styles.articleInfoLabel}>Stock Final</span>
-                    <span className={styles.articleInfoValue}>{selectedArticleInfo.stock_f}</span>
+                    <span className={styles.articleInfoValue}>{selectedArticleInfo.stock_f ?? 0}</span>
                   </div>
                 </div>
               </div>

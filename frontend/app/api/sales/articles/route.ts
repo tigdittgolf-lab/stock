@@ -24,19 +24,28 @@ export async function GET(request: NextRequest) {
     if (dbType !== 'supabase') return NextResponse.json({ success: true, data: [] });
 
     const rows = await readTable(tenant, 'article');
-    const data = rows.map((a: any) => ({
-      narticle: a.Narticle || a.narticle,
-      famille: a.famille || a.Famille,
-      designation: a.designation || a.Designation,
-      nfournisseur: a.Nfournisseur || a.nfournisseur,
-      prix_unitaire: a.prix_unitaire || a.Prix_unitaire,
-      marge: a.marge || a.Marge,
-      tva: a.TVA || a.tva,
-      prix_vente: a.prix_vente || a.Prix_vente,
-      seuil: a.seuil || a.Seuil,
-      stock_f: a.stock_f || a.Stock_f,
-      stock_bl: a.stock_bl || a.Stock_bl
-    }));
+    const data = rows.map((a: any) => {
+      const findVal = (...keys: string[]) => {
+        for (const k of keys) {
+          const found = Object.keys(a).find(ak => ak.toLowerCase() === k.toLowerCase());
+          if (found !== undefined && a[found] !== null && a[found] !== undefined) return a[found];
+        }
+        return undefined;
+      };
+      return {
+        narticle: findVal('narticle'),
+        famille: findVal('famille'),
+        designation: findVal('designation'),
+        nfournisseur: findVal('nfournisseur'),
+        prix_unitaire: findVal('prix_unitaire'),
+        marge: findVal('marge'),
+        tva: findVal('tva'),
+        prix_vente: findVal('prix_vente'),
+        seuil: findVal('seuil') ?? 0,
+        stock_f: findVal('stock_f') ?? 0,
+        stock_bl: findVal('stock_bl') ?? 0,
+      };
+    });
     console.log(`✅ [articles direct] ${data.length} for ${tenant}`);
     return NextResponse.json({ success: true, data, source: 'supabase_direct' });
   } catch (error) {

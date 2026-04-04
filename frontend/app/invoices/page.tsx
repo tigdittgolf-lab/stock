@@ -350,9 +350,9 @@ export default function CreateInvoice() {
                   </div>
                   <div className={styles.articleInfoItem}>
                     <span className={styles.articleInfoLabel}>Stock Facture Disponible</span>
-                    <span className={styles.articleInfoValue}>{selectedArticleInfo.stock_f}</span>
+                    <span className={styles.articleInfoValue}>{selectedArticleInfo.stock_f ?? 0}</span>
                     <span className={`${styles.stockBadge} ${selectedArticleInfo.stock_f > 100 ? styles.high : selectedArticleInfo.stock_f > 20 ? styles.medium : styles.low}`}>
-                      {selectedArticleInfo.stock_f > 100 ? '✓ Stock élevé' : selectedArticleInfo.stock_f > 20 ? '⚠ Stock moyen' : '⚠️ Stock faible'}
+                      {selectedArticleInfo.stock_f > 100 ? '✔ Stock élevé' : selectedArticleInfo.stock_f > 20 ? '⚠ Stock moyen' : '⚠️ Stock faible'}
                     </span>
                   </div>
                   <div className={styles.articleInfoItem}>
