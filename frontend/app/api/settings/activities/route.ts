@@ -48,12 +48,17 @@ export async function GET(request: NextRequest) {
         id: find('id'),
         nom_entreprise: find('nom_entreprise', 'nom', 'raison_sociale', 'name'),
         adresse: find('adresse', 'address'),
-        telephone: find('telephone', 'tel', 'phone', 'tel1', 'tel2', 'gsm', 'mobile', 'fax', 'Telephone', 'Tel', 'TEL', 'TELEPHONE', 'Fax', 'FAX'),
+        commune: find('commune'),
+        wilaya: find('wilaya'),
+        telephone: find('telephone', 'tel', 'tel_fixe', 'phone', 'tel1', 'tel2', 'gsm', 'mobile'),
+        fax: find('fax', 'Fax', 'FAX'),
         email: find('email', 'mail', 'e_mail', 'E_mail', 'courriel', 'email1'),
-        rc: find('rc', 'registre_commerce'),
-        nif: find('nif'),
+        rc: find('rc', 'nrc', 'registre_commerce'),
+        nif: find('nif', 'ident_fiscal'),
         nis: find('nis'),
-        art: find('art'),
+        art: find('art', 'nart'),
+        activite: find('activite', 'sous_domaine', 'domaine_activite'),
+        slogan: find('slogan'),
       };
     });
     return NextResponse.json({ success: true, data });

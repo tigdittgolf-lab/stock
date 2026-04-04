@@ -162,7 +162,8 @@ export default function PrintPage() {
       let company: Company = { name: '' };
       try {
         const compData = await companyRes.json();
-        const c = compData.success ? compData.data : {};
+        const arr = compData.success && Array.isArray(compData.data) ? compData.data : [];
+        const c = arr.length > 0 ? arr[0] : (compData.success && !Array.isArray(compData.data) ? compData.data : {});
         company = {
           name: findKey(c,'nom_entreprise','name') || '',
           address: findKey(c,'adresse','address') || '',
@@ -173,7 +174,7 @@ export default function PrintPage() {
           email: findKey(c,'email','e_mail') || '',
           nif: findKey(c,'nif','ident_fiscal') || '',
           rc: findKey(c,'rc','nrc') || '',
-          art: findKey(c,'nart','art') || '',
+          art: findKey(c,'art','nart') || '',
           nis: findKey(c,'nis') || '',
           activite: findKey(c,'activite','sous_domaine','domaine_activite') || '',
         };
