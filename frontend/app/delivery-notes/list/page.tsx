@@ -243,6 +243,8 @@ export default function DeliveryNotesList() {
           return status === 'paid';
         } else if (paymentStatus === 'partially_paid') {
           return status === 'partially_paid';
+        } else if (paymentStatus === 'unpaid') {
+          return status === 'unpaid' || status === undefined;
         }
         return true;
       });
@@ -253,18 +255,13 @@ export default function DeliveryNotesList() {
       original: deliveryNotes.length,
       filtered: filtered.length,
       searchTerm,
-      isNumericSearch: /^\d+$/.test(searchTerm.trim()),
       selectedClient,
-      dateFrom,
-      dateTo,
-      minAmount,
-      maxAmount,
       paymentStatus,
       statusesLoaded: Object.keys(paymentStatuses).length
     });
 
     setFilteredDeliveryNotes(filtered);
-  }, [deliveryNotes, searchTerm, selectedClient, dateFrom, dateTo, minAmount, maxAmount]); // RETIRER paymentStatus des dépendances!
+  }, [deliveryNotes, searchTerm, selectedClient, dateFrom, dateTo, minAmount, maxAmount, paymentStatus, paymentStatuses]);
 
   // Fonction pour calculer les totaux
   const calculateTotals = () => {
@@ -296,98 +293,13 @@ export default function DeliveryNotesList() {
     setCurrentPage(1); // Réinitialiser à la page 1 quand les filtres changent
   }, [applyFilters]);
   
-  // Charger TOUS les statuts quand le filtre par statut de paiement est activé
+  // Charger les statuts de paiement dès que les BLs sont disponibles
   useEffect(() => {
-    console.log(`🔍 Payment filter useEffect triggered - paymentStatus: ${paymentStatus}`);
-    
-    // Ne charger que si on active un filtre de paiement (pas "all")
-    if (paymentStatus === 'all') {
-      console.log('✅ Payment status is "all", using normal filter');
-      // Appliquer les filtres normaux sans filtre de paiement
-      applyFilters();
-      return;
-    }
-    
-    if (deliveryNotes.length === 0) {
-      console.log('⚠️ No delivery notes to filter');
-      return;
-    }
-    
-    const tenantInfo = localStorage.getItem('tenant_info');
+    if (deliveryNotes.length === 0 || !tenant) return;
     const dbConfig = localStorage.getItem('activeDbConfig');
-    
-    if (!tenantInfo || !dbConfig) {
-      console.error('❌ Missing tenant info or db config');
-      return;
-    }
-    
-    const tenant = JSON.parse(tenantInfo);
-    const dbType = JSON.parse(dbConfig).type;
-    
-    console.log(`🔍 Payment status filter activated: ${paymentStatus}, fetching from backend...`);
-    
-    // Appeler la nouvelle API backend qui filtre côté serveur
-    fetch(`/api/sales/delivery-notes-by-payment-status?status=${paymentStatus}`, {
-      headers: {
-        'X-Tenant': tenant.schema,
-        'X-Database-Type': dbType
-      }
-    })
-    .then(response => response.json())
-    .then(result => {
-      if (!result.success) {
-        console.error('❌ Error from backend:', result.error);
-        return;
-      }
-      
-      console.log(`✅ Received ${result.count} BLs with status ${paymentStatus} from backend`);
-      
-      // Appliquer les autres filtres sur les résultats
-      let filtered = result.data || [];
-      
-      // Appliquer tous les autres filtres
-      if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase().trim();
-        filtered = filtered.filter(bl => {
-          if (/^\d+$/.test(searchTerm.trim())) {
-            const blNumber = String(bl.nfact || bl.nbl || '').trim();
-            return blNumber === searchTerm.trim();
-          } else {
-            const clientMatch = bl.client_name?.toLowerCase().includes(searchLower);
-            const clientCodeMatch = bl.nclient?.toLowerCase().includes(searchLower);
-            return clientMatch || clientCodeMatch;
-          }
-        });
-      }
-      
-      if (selectedClient) {
-        filtered = filtered.filter(bl => bl.client_name === selectedClient);
-      }
-      
-      if (dateFrom) {
-        filtered = filtered.filter(bl => new Date(bl.date_fact) >= new Date(dateFrom));
-      }
-      if (dateTo) {
-        filtered = filtered.filter(bl => new Date(bl.date_fact) <= new Date(dateTo));
-      }
-      
-      if (minAmount) {
-        filtered = filtered.filter(bl => (bl.montant_ttc || (bl.montant_ht + bl.tva)) >= parseFloat(minAmount));
-      }
-      if (maxAmount) {
-        filtered = filtered.filter(bl => (bl.montant_ttc || (bl.montant_ht + bl.tva)) <= parseFloat(maxAmount));
-      }
-      
-      console.log(`✅ Final filtered results: ${filtered.length} BLs`);
-      setFilteredDeliveryNotes(filtered);
-    })
-    .catch(error => {
-      console.error('❌ Error fetching filtered delivery notes:', error);
-    });
-  }, [paymentStatus]); // ⚠️ UNIQUEMENT quand paymentStatus change
-  
-  // Calculer la pagination
-  
+    const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
+    loadPaymentStatusesInBackground(deliveryNotes, tenant);
+  }, [deliveryNotes, tenant]);
   // Calculer la pagination
   const totalPages = Math.ceil(filteredDeliveryNotes.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
