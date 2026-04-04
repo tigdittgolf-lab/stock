@@ -363,38 +363,12 @@ export default function DeliveryNotesList() {
   const MobileView = () => (
     <div style={{ padding: '10px' }}>
       {paginatedDeliveryNotes.map((bl, index) => {
-        // DEBUG: Logs détaillés pour diagnostiquer le problème
-        console.log(`🔍 MOBILE BL ${index} RAW DATA:`, {
-          bl: bl,
-          nfact: bl.nfact,
-          nbl: bl.nbl,
-          id: (bl as any).id,
-          nfact_type: typeof bl.nfact,
-          nbl_type: typeof bl.nbl,
-          id_type: typeof (bl as any).id
-        });
+        const validId = bl.nbl || (bl as any).id || bl.nfact;
+        const uniqueKey = `${validId}-${(bl as any).date_bl || ''}-${bl.nclient || ''}-${index}`;
         
-        // Récupération de l'ID réel du BL - CORRECTION MAJEURE
-        let validId = bl.nbl || bl.id || bl.nfact;
-        
-        // Créer une clé unique combinant plusieurs champs pour éviter les doublons
-        const uniqueKey = `${validId}-${bl.date_bl || ''}-${bl.nclient || ''}-${index}`;
-        
-        console.log(`🔍 MOBILE BL ${index} VALID ID:`, {
-          validId: validId,
-          validId_type: typeof validId
-        });
-        
-        // Validation simple mais correcte
-        if (!validId || isNaN(validId) || validId <= 0) {
-          console.error(`🚨 CRITICAL: No valid ID found for BL:`, bl);
-          return null; // Ne pas afficher ce BL s'il n'a pas d'ID valide
-        }
+        if (!validId || isNaN(validId) || validId <= 0) return null;
 
-        // ID d'affichage
         const displayId = validId;
-
-        console.log(`🎯 BL ${index}: Using ID ${validId} for display ${displayId}`);
 
         return (
           <div 
@@ -755,38 +729,13 @@ export default function DeliveryNotesList() {
         </thead>
         <tbody>
           {paginatedDeliveryNotes.map((bl, index) => {
-            // DEBUG: Logs détaillés pour diagnostiquer le problème
-            console.log(`🔍 DESKTOP BL ${index} RAW DATA:`, {
-              bl: bl,
-              nfact: bl.nfact,
-              nbl: bl.nbl,
-              id: (bl as any).id,
-              nfact_type: typeof bl.nfact,
-              nbl_type: typeof bl.nbl,
-              id_type: typeof (bl as any).id
-            });
+            // Récupération de l'ID réel du BL
+            const validId = bl.nbl || (bl as any).id || bl.nfact;
+            const uniqueKey = `${validId}-${(bl as any).date_bl || ''}-${bl.nclient || ''}-${index}`;
             
-            // Récupération de l'ID réel du BL - CORRECTION MAJEURE
-            let validId = bl.nbl || bl.id || bl.nfact;
-            
-            // Créer une clé unique combinant plusieurs champs pour éviter les doublons
-            const uniqueKey = `${validId}-${bl.date_bl || ''}-${bl.nclient || ''}-${index}`;
-            
-            console.log(`🔍 DESKTOP BL ${index} VALID ID:`, {
-              validId: validId,
-              validId_type: typeof validId
-            });
-            
-            // Validation simple mais correcte
-            if (!validId || isNaN(validId) || validId <= 0) {
-              console.error(`🚨 CRITICAL: No valid ID found for BL:`, bl);
-              return null; // Ne pas afficher ce BL s'il n'a pas d'ID valide
-            }
+            if (!validId || isNaN(validId) || validId <= 0) return null;
 
-            // ID d'affichage
             const displayId = validId;
-
-            console.log(`🎯 Desktop BL ${index}: Using REAL ID ${validId} for display ${displayId}`);
 
             return (
               <tr 
