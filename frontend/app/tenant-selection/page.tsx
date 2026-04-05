@@ -62,11 +62,41 @@ export default function TenantSelection() {
       
       console.log('📊 Base de données active:', dbType);
 
-      // CORRECTION: Pour Supabase, utiliser discover_tenant_schemas pour avoir la liste à jour
+      // Priorité 1: utiliser business_units (registre officiel) — inclut les schémas enregistrés
       if (dbType === 'supabase') {
         try {
-          console.log('🔍 Découverte des schémas Supabase en temps réel...');
+          const response = await fetch('/api/admin/business-units');
+          const data = await response.json();
           
+          if (data.success && data.data && data.data.length > 0) {
+            let buData = data.data;
+            
+            // Filtrer selon les permissions si non-admin
+            if (userInfo.role !== 'admin') {
+              buData = buData.filter((bu: any) => userBusinessUnits.includes(bu.schema_name));
+            }
+
+            // Trier par année décroissante
+            buData.sort((a: any, b: any) => (b.year || 0) - (a.year || 0));
+
+            const buList = buData.map((bu: any) => ({
+              id: bu.schema_name,
+              name: bu.nom_entreprise
+                ? `${bu.nom_entreprise} — ${bu.schema_name}`
+                : `BU ${bu.bu_code || ''} (${bu.year || bu.schema_name})`,
+              description: `Schéma: ${bu.schema_name} | Année: ${bu.year || '?'}`
+            }));
+
+            console.log('🏢 BU disponibles depuis registre:', buList.map((b: any) => b.id));
+            setBusinessUnits(buList);
+            return;
+          }
+        } catch (error) {
+          console.warn('⚠️ Erreur chargement business_units, fallback découverte:', error);
+        }
+
+        // Fallback: discover_tenant_schemas
+        try {
           const response = await fetch('/api/admin/discover-supabase-schemas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -75,37 +105,14 @@ export default function TenantSelection() {
               key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6Z29kcmpnbGJwemtya3Nucm9pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTY0ODA0MywiZXhwIjoyMDgxMjI0MDQzfQ.QXWudNf09Ly0BwZHac2vweYkr-ea_iufIVzcP98zZFU'
             })
           });
-
           const data = await response.json();
-          
           if (data.success && data.databases) {
             const allSchemas = [...data.databases.tenant, ...data.databases.other].map((db: any) => db.name);
-            console.log('✅ Schémas découverts dans Supabase:', allSchemas);
-            
-            // CORRECTION CRITIQUE: Si admin, montrer TOUS les schémas
-            let filteredSchemas;
-            if (userInfo.role === 'admin') {
-              console.log('👨‍💼 Utilisateur ADMIN: accès à TOUS les schémas');
-              filteredSchemas = allSchemas;
-            } else {
-              // Filtrer selon les permissions utilisateur
-              filteredSchemas = allSchemas.filter((schema: string) => userBusinessUnits.includes(schema));
-              console.log('✅ Schémas autorisés pour l\'utilisateur:', filteredSchemas);
-            }
-            
+            let filteredSchemas = userInfo.role === 'admin' ? allSchemas : allSchemas.filter((s: string) => userBusinessUnits.includes(s));
             const buList = filteredSchemas.map((schema: string) => {
               const parts = schema.split('_');
-              const year = parts[0];
-              const buCode = parts[1];
-              
-              return {
-                id: schema,
-                name: `Business Unit ${buCode.replace('bu', '')} (${year})`,
-                description: `Schéma: ${schema}`
-              };
+              return { id: schema, name: `BU ${parts[1]?.replace('bu','').toUpperCase()} (${parts[0]})`, description: `Schéma: ${schema}` };
             });
-
-            console.log('🏢 BU disponibles:', buList);
             setBusinessUnits(buList);
             return;
           }
