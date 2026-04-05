@@ -11,6 +11,39 @@ function getSupabase() {
   );
 }
 
+async function getActiviteForSchema(schema: string): Promise<any> {
+  try {
+    const rows = await readTable(schema, 'activite');
+    if (!rows || rows.length === 0) return null;
+    const r = rows[0];
+    const keys = Object.keys(r);
+    const fv = (...names: string[]) => {
+      for (const n of names) {
+        const k = keys.find(k => k.toLowerCase() === n.toLowerCase());
+        if (k !== undefined && r[k] !== null && r[k] !== undefined && String(r[k]).trim() !== '') return r[k];
+      }
+      return '';
+    };
+    return {
+      nom_entreprise: fv('nom_entreprise', 'raison_sociale', 'nom'),
+      adresse: fv('adresse', 'address'),
+      commune: fv('commune'),
+      wilaya: fv('wilaya'),
+      telephone: fv('telephone', 'tel_fixe', 'tel', 'phone'),
+      tel_port: fv('tel_port', 'gsm', 'mobile'),
+      email: fv('email', 'e_mail', 'mail'),
+      nif: fv('nif', 'ident_fiscal'),
+      rc: fv('rc', 'nrc'),
+      nart: fv('nart', 'art'),
+      nis: fv('nis'),
+      activite: fv('activite', 'sous_domaine', 'domaine_activite'),
+      slogan: fv('slogan'),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const sb = getSupabase();
@@ -38,75 +71,45 @@ export async function GET(request: NextRequest) {
             const rows = await readTable(schema, 'activite');
             if (rows.length > 0) activiteData = rows[0];
           } catch {}
-          const fv = (...keys: string[]) => { for (const k of keys) { const found = Object.keys(activiteData).find(ak => ak.toLowerCase() === k.toLowerCase()); if (found && activiteData[found]) return activiteData[found]; } return ''; };
-          const year = parseInt(schema.split('_')[0]) || new Date().getFullYear();
+          const fv = (...keys: string[]) => { for (const k of keys) { const found = Object.keys(activiteData).find(ak => ak.toLowerCase() === k.toLowerCase()); if (found && activiteData[found]) return activiteData[found]; } return ''; };          const year = parseInt(schema.split('_')[0]) || new Date().getFullYear();
+          const act = await getActiviteForSchema(schema);
           unregisteredBUs.push({
             schema_name: schema,
             bu_code: schema.split('_')[1]?.toUpperCase() || '',
             year,
-            nom_entreprise: fv('nom_entreprise', 'nom') || schema,
-            adresse: fv('adresse'), commune: fv('commune'), wilaya: fv('wilaya'),
-            telephone: fv('telephone', 'tel_fixe'), tel_port: fv('tel_port'),
-            email: fv('email', 'e_mail'),
-            nif: fv('nif', 'ident_fiscal'), rc: fv('rc', 'nrc'), nart: fv('nart', 'art'),
-            activite: fv('activite', 'sous_domaine'), slogan: fv('slogan'),
+            nom_entreprise: act?.nom_entreprise || schema,
+            adresse: act?.adresse || '', commune: act?.commune || '', wilaya: act?.wilaya || '',
+            telephone: act?.telephone || '', tel_port: act?.tel_port || '',
+            email: act?.email || '',
+            nif: act?.nif || '', rc: act?.rc || '', nart: act?.nart || '', nis: act?.nis || '',
+            activite: act?.activite || '', slogan: act?.slogan || '',
             active: true, created_at: null,
-            _unregistered: true, // flag to show "Add to registry" button
+            _unregistered: true,
           });
         }
       }
     } catch { /* discover is optional */ }
 
-    const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co';
-    const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
     const enrichedBUs = await Promise.all(
       (businessUnits || []).map(async (bu: any) => {
-        try {
-          // Read activite table directly via REST — handles any column casing
-          const res = await fetch(`${SUPA_URL}/rest/v1/activite?select=*&limit=1`, {
-            headers: {
-              'apikey': SUPA_KEY,
-              'Authorization': `Bearer ${SUPA_KEY}`,
-              'Accept-Profile': bu.schema_name,
-              'Accept': 'application/json',
-            },
-            signal: AbortSignal.timeout(5000),
-          });
-
-          if (!res.ok) return bu;
-          const rows = await res.json();
-          if (!Array.isArray(rows) || rows.length === 0) return bu;
-
-          const r = rows[0];
-          const keys = Object.keys(r);
-          const fv = (...names: string[]) => {
-            for (const n of names) {
-              const k = keys.find(k => k.toLowerCase() === n.toLowerCase());
-              if (k !== undefined && r[k] !== null && r[k] !== undefined && r[k] !== '') return r[k];
-            }
-            return '';
-          };
-
-          return {
-            ...bu,
-            nom_entreprise: fv('nom_entreprise', 'nom') || bu.nom_entreprise || '',
-            adresse: fv('adresse', 'address') || bu.adresse || '',
-            commune: fv('commune') || bu.commune || '',
-            wilaya: fv('wilaya') || bu.wilaya || '',
-            telephone: fv('telephone', 'tel_fixe', 'tel', 'phone') || bu.telephone || '',
-            tel_port: fv('tel_port', 'gsm', 'mobile') || bu.tel_port || '',
-            email: fv('email', 'e_mail', 'mail') || bu.email || '',
-            nif: fv('nif', 'ident_fiscal') || bu.nif || '',
-            rc: fv('rc', 'nrc') || bu.rc || '',
-            nart: fv('nart', 'art') || bu.nart || '',
-            nis: fv('nis') || bu.nis || '',
-            activite: fv('activite', 'sous_domaine', 'domaine_activite') || bu.activite || '',
-            slogan: fv('slogan') || bu.slogan || '',
-          };
-        } catch {
-          return bu;
-        }
+        const activite = await getActiviteForSchema(bu.schema_name);
+        if (!activite) return bu;
+        return {
+          ...bu,
+          nom_entreprise: activite.nom_entreprise || bu.nom_entreprise || '',
+          adresse: activite.adresse || bu.adresse || '',
+          commune: activite.commune || bu.commune || '',
+          wilaya: activite.wilaya || bu.wilaya || '',
+          telephone: activite.telephone || bu.telephone || '',
+          tel_port: activite.tel_port || bu.tel_port || '',
+          email: activite.email || bu.email || '',
+          nif: activite.nif || bu.nif || '',
+          rc: activite.rc || bu.rc || '',
+          nart: activite.nart || bu.nart || '',
+          nis: activite.nis || bu.nis || '',
+          activite: activite.activite || bu.activite || '',
+          slogan: activite.slogan || bu.slogan || '',
+        };
       })
     );
 
