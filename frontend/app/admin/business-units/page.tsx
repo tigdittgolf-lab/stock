@@ -836,12 +836,47 @@ export default function BusinessUnitsPage() {
                         <div>
                           <h3 style={{ margin: '0 0 5px 0', color: '#667eea', fontSize: '20px' }}>
                             🏢 {bu.nom_entreprise}
+                            {(bu as any)._unregistered && (
+                              <span style={{ marginLeft: 8, fontSize: 11, background: '#fff3cd', color: '#856404', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>
+                                ⚠️ Non enregistré
+                              </span>
+                            )}
                           </h3>
                           <div style={{ fontSize: '14px', color: '#6c757d' }}>
                             Schéma: <strong>{bu.schema_name}</strong> | Année: <strong>{bu.year}</strong>
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: '10px' }}>
+                          {(bu as any)._unregistered ? (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch('/api/admin/business-units', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      schema_name: bu.schema_name,
+                                      bu_code: bu.bu_code,
+                                      year: bu.year,
+                                      nom_entreprise: bu.nom_entreprise,
+                                      active: true,
+                                    })
+                                  });
+                                  const result = await res.json();
+                                  if (result.success) {
+                                    showMessage(`✅ ${bu.schema_name} enregistré avec succès`);
+                                    fetchBusinessUnits();
+                                  } else {
+                                    showMessage(result.error || 'Erreur', true);
+                                  }
+                                } catch { showMessage('Erreur réseau', true); }
+                              }}
+                              style={{ padding: '6px 12px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}
+                            >
+                              ➕ Enregistrer
+                            </button>
+                          ) : (
+                            <>
                           <button
                             onClick={() => setEditingBU(bu)}
                             style={{
@@ -871,6 +906,8 @@ export default function BusinessUnitsPage() {
                           >
                             🗑️ Supprimer
                           </button>
+                            </>
+                          )}
                         </div>
                       </div>
                       

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { readTable } from '@/lib/supabase-rpc';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,24 +23,58 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
+    const registeredSchemas = new Set((businessUnits || []).map((bu: any) => bu.schema_name));
+
+    // Also discover schemas that exist in Supabase but are not registered
+    let unregisteredBUs: any[] = [];
+    try {
+      const { data: schemas } = await sb.rpc('discover_tenant_schemas', {});
+      const schemaList: string[] = Array.isArray(schemas) ? schemas : JSON.parse(schemas || '[]');
+      for (const schema of schemaList) {
+        if (!registeredSchemas.has(schema) && /^\d{4}_bu\d{2}$/.test(schema)) {
+          // Try to get activite data for this schema
+          let activiteData: any = {};
+          try {
+            const rows = await readTable(schema, 'activite');
+            if (rows.length > 0) activiteData = rows[0];
+          } catch {}
+          const fv = (...keys: string[]) => { for (const k of keys) { const found = Object.keys(activiteData).find(ak => ak.toLowerCase() === k.toLowerCase()); if (found && activiteData[found]) return activiteData[found]; } return ''; };
+          const year = parseInt(schema.split('_')[0]) || new Date().getFullYear();
+          unregisteredBUs.push({
+            schema_name: schema,
+            bu_code: schema.split('_')[1]?.toUpperCase() || '',
+            year,
+            nom_entreprise: fv('nom_entreprise', 'nom') || schema,
+            adresse: fv('adresse'), commune: fv('commune'), wilaya: fv('wilaya'),
+            telephone: fv('telephone', 'tel_fixe'), tel_port: fv('tel_port'),
+            email: fv('email', 'e_mail'),
+            nif: fv('nif', 'ident_fiscal'), rc: fv('rc', 'nrc'), nart: fv('nart', 'art'),
+            activite: fv('activite', 'sous_domaine'), slogan: fv('slogan'),
+            active: true, created_at: null,
+            _unregistered: true, // flag to show "Add to registry" button
+          });
+        }
+      }
+    } catch { /* discover is optional */ }
+
     const enrichedBUs = await Promise.all(
-      (businessUnits || []).map(async (bu) => {
+      (businessUnits || []).map(async (bu: any) => {
         try {
           const { data: activiteData } = await sb.rpc('get_tenant_activite', { p_tenant: bu.schema_name });
           return {
             ...bu,
             nom_entreprise: activiteData?.nom_entreprise || bu.nom_entreprise || '',
-            adresse: activiteData?.adresse || '',
-            commune: activiteData?.commune || '',
-            wilaya: activiteData?.wilaya || '',
-            telephone: activiteData?.telephone || activiteData?.tel_fixe || '',
-            tel_port: activiteData?.tel_port || '',
-            email: activiteData?.email || activiteData?.e_mail || '',
-            nif: activiteData?.nif || '',
-            rc: activiteData?.rc || activiteData?.nrc || '',
-            nart: activiteData?.nart || '',
-            activite: activiteData?.activite || activiteData?.sous_domaine || '',
-            slogan: activiteData?.slogan || ''
+            adresse: activiteData?.adresse || bu.adresse || '',
+            commune: activiteData?.commune || bu.commune || '',
+            wilaya: activiteData?.wilaya || bu.wilaya || '',
+            telephone: activiteData?.telephone || activiteData?.tel_fixe || bu.telephone || '',
+            tel_port: activiteData?.tel_port || bu.tel_port || '',
+            email: activiteData?.email || activiteData?.e_mail || bu.email || '',
+            nif: activiteData?.nif || bu.nif || '',
+            rc: activiteData?.rc || activiteData?.nrc || bu.rc || '',
+            nart: activiteData?.nart || bu.nart || '',
+            activite: activiteData?.activite || activiteData?.sous_domaine || bu.activite || '',
+            slogan: activiteData?.slogan || bu.slogan || ''
           };
         } catch {
           return bu;
@@ -47,7 +82,10 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    return NextResponse.json({ success: true, data: enrichedBUs || [] });
+    return NextResponse.json({
+      success: true,
+      data: [...enrichedBUs, ...unregisteredBUs]
+    });
   } catch (error) {
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Erreur' }, { status: 500 });
   }
