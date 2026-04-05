@@ -57,24 +57,52 @@ export async function GET(request: NextRequest) {
       }
     } catch { /* discover is optional */ }
 
+    const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co';
+    const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
     const enrichedBUs = await Promise.all(
       (businessUnits || []).map(async (bu: any) => {
         try {
-          const { data: activiteData } = await sb.rpc('get_tenant_activite', { p_tenant: bu.schema_name });
+          // Read activite table directly via REST — handles any column casing
+          const res = await fetch(`${SUPA_URL}/rest/v1/activite?select=*&limit=1`, {
+            headers: {
+              'apikey': SUPA_KEY,
+              'Authorization': `Bearer ${SUPA_KEY}`,
+              'Accept-Profile': bu.schema_name,
+              'Accept': 'application/json',
+            },
+            signal: AbortSignal.timeout(5000),
+          });
+
+          if (!res.ok) return bu;
+          const rows = await res.json();
+          if (!Array.isArray(rows) || rows.length === 0) return bu;
+
+          const r = rows[0];
+          const keys = Object.keys(r);
+          const fv = (...names: string[]) => {
+            for (const n of names) {
+              const k = keys.find(k => k.toLowerCase() === n.toLowerCase());
+              if (k !== undefined && r[k] !== null && r[k] !== undefined && r[k] !== '') return r[k];
+            }
+            return '';
+          };
+
           return {
             ...bu,
-            nom_entreprise: activiteData?.nom_entreprise || bu.nom_entreprise || '',
-            adresse: activiteData?.adresse || bu.adresse || '',
-            commune: activiteData?.commune || bu.commune || '',
-            wilaya: activiteData?.wilaya || bu.wilaya || '',
-            telephone: activiteData?.telephone || activiteData?.tel_fixe || bu.telephone || '',
-            tel_port: activiteData?.tel_port || bu.tel_port || '',
-            email: activiteData?.email || activiteData?.e_mail || bu.email || '',
-            nif: activiteData?.nif || bu.nif || '',
-            rc: activiteData?.rc || activiteData?.nrc || bu.rc || '',
-            nart: activiteData?.nart || bu.nart || '',
-            activite: activiteData?.activite || activiteData?.sous_domaine || bu.activite || '',
-            slogan: activiteData?.slogan || bu.slogan || ''
+            nom_entreprise: fv('nom_entreprise', 'nom') || bu.nom_entreprise || '',
+            adresse: fv('adresse', 'address') || bu.adresse || '',
+            commune: fv('commune') || bu.commune || '',
+            wilaya: fv('wilaya') || bu.wilaya || '',
+            telephone: fv('telephone', 'tel_fixe', 'tel', 'phone') || bu.telephone || '',
+            tel_port: fv('tel_port', 'gsm', 'mobile') || bu.tel_port || '',
+            email: fv('email', 'e_mail', 'mail') || bu.email || '',
+            nif: fv('nif', 'ident_fiscal') || bu.nif || '',
+            rc: fv('rc', 'nrc') || bu.rc || '',
+            nart: fv('nart', 'art') || bu.nart || '',
+            nis: fv('nis') || bu.nis || '',
+            activite: fv('activite', 'sous_domaine', 'domaine_activite') || bu.activite || '',
+            slogan: fv('slogan') || bu.slogan || '',
           };
         } catch {
           return bu;
