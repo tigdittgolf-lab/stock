@@ -91,7 +91,7 @@ export default function UsersPage() {
   const fetchBusinessUnits = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(getApiUrl('admin/business-units'), {
+      const response = await fetch('/api/admin/business-units', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

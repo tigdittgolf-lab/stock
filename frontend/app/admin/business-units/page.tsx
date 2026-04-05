@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { getApiUrl } from '@/lib/api';
@@ -86,7 +86,7 @@ export default function BusinessUnitsPage() {
         return;
       }
       
-      const response = await fetch(`getApiUrl('admin/business-units')`, {
+      const response = await fetch('/api/admin/business-units', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -115,7 +115,7 @@ export default function BusinessUnitsPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`getApiUrl('admin/business-units')`, {
+      const response = await fetch('/api/admin/business-units', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -168,7 +168,7 @@ export default function BusinessUnitsPage() {
       console.log('🔍 Mise à jour BU frontend:', editingBU);
       
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`getApiUrl('admin/business-units')`, {
+      const response = await fetch('/api/admin/business-units', {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -204,7 +204,7 @@ export default function BusinessUnitsPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`getApiUrl('admin/business-units/${schema}')`, {
+      const response = await fetch(`/api/admin/business-units/${schema}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

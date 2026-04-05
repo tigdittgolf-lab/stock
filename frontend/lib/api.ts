@@ -54,19 +54,14 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
 };
 
 // Fonction utilitaire pour les URLs API - PRODUCTION READY
+// Retourne toujours une URL relative /api/... pour éviter les problèmes avec le fetch interceptor
 export const getApiUrl = (endpoint: string): string => {
-  // Toujours utiliser les routes Next.js /api/... qui proxient vers le backend
-  // Cela fonctionne en local (localhost:3000) ET en production (Vercel)
+  const clean = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  const final = clean.startsWith('api/') ? clean.slice(4) : clean;
   if (typeof window !== 'undefined') {
-    const url = `${window.location.origin}/api/${endpoint}`;
-    console.log('🌐 API URL:', url);
-    return url;
+    console.log('🌐 API URL:', `${window.location.origin}/api/${final}`);
   }
-  
-  // Fallback SSR
-  return process.env.NEXT_PUBLIC_API_URL 
-    ? `${process.env.NEXT_PUBLIC_API_URL}/${endpoint}`
-    : `/api/${endpoint}`;
+  return `/api/${final}`;
 };
 
 // Fonction helper pour obtenir les headers par défaut avec X-Database-Type
