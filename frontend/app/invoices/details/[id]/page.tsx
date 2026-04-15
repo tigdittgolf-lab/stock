@@ -32,7 +32,7 @@ interface InvoiceData {
   company?: Company;
 }
 
-const fmt = (n: number) => (n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' DA';
+const fmt = (n: number) => (Math.round((n || 0) * 100) / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' DA';
 const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('fr-FR') : '';
 const fv = (obj: any, ...keys: string[]) => {
   if (!obj) return '';
