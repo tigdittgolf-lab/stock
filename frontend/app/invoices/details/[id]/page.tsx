@@ -136,7 +136,7 @@ export default function InvoiceDetailsPage() {
   if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>⏳ Chargement...</div>;
   if (error) return (
     <div style={{ padding: 20 }}>
-      <div style={{ background: '#f8d7da', color: '#721c24', padding: 20, borderRadius: 8 }}>
+      <div style={{ background: 'var(--error-bg)', color: 'var(--error-text)', padding: 20, borderRadius: 8 }}>
         ❌ {error}
         <button onClick={() => router.back()} style={{ marginLeft: 16, padding: '6px 14px', background: '#dc3545', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>← Retour</button>
       </div>
@@ -178,7 +178,7 @@ export default function InvoiceDetailsPage() {
 
         {/* Titre + N° + Date */}
         <div style={{ textAlign: 'center', minWidth: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 2, color: '#28a745' }}>FACTURE</div>
+          <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 2, color: 'var(--success-color)' }}>FACTURE</div>
           <div style={{ marginTop: 12, fontSize: 14, color: 'var(--text-primary)', lineHeight: 2.2 }}>
             <div><strong>N°</strong> {invoice.nfact}</div>
             <div><strong>Date:</strong> {fmtDate(invoice.date_fact)}</div>
@@ -188,7 +188,7 @@ export default function InvoiceDetailsPage() {
         {/* Client (acheteur) */}
         <div style={{ fontSize: 13, lineHeight: 1.9, color: 'var(--text-primary)' }}>
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 6 }}>CLIENT / ACHETEUR</div>
-          <div style={{ border: '1px solid var(--border-color)', borderRadius: 6, padding: '10px 12px' }}>
+          <div style={{ border: '1px solid var(--border-color)', borderRadius: 6, padding: '10px 12px', background: 'var(--background-secondary)' }}>
             <div style={{ fontWeight: 800, fontSize: 14, textTransform: 'uppercase' }}>{invoice.client_name || invoice.nclient}</div>
             {fv(clientObj,'adresse','address') && <div>{fv(clientObj,'adresse','address')}</div>}
             {fv(clientObj,'telephone','tel','phone') && <div>Tél: {fv(clientObj,'telephone','tel','phone')}</div>}
@@ -206,7 +206,7 @@ export default function InvoiceDetailsPage() {
         <h3 style={{ margin: '0 0 14px 0', color: 'var(--text-primary)', fontSize: 16 }}>📦 Articles facturés</h3>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
           <thead>
-            <tr style={{ background: '#1a1a2e', color: 'white' }}>
+            <tr style={{ background: 'var(--primary-color)', color: 'white' }}>
               {['Réf','Désignation','Qté','P.U. HT','TVA','Total HT'].map((h,i) => (
                 <th key={i} style={{ padding: '10px 12px', textAlign: i >= 2 ? 'right' : 'left', fontWeight: 700, fontSize: 13 }}>{h}</th>
               ))}
@@ -242,7 +242,7 @@ export default function InvoiceDetailsPage() {
               <span style={{ fontWeight: 600, fontSize: '16px', color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{fmt(r.val)}</span>
             </div>
           ))}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: '#1a1a2e' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: 'var(--primary-color)' }}>
             <span style={{ color: 'white', fontWeight: 700, fontSize: '16px' }}>NET À PAYER TTC</span>
             <span style={{ color: 'white', fontWeight: 800, fontSize: '20px', fontVariantNumeric: 'tabular-nums' }}>{fmt(invoice.montant_ttc)}</span>
           </div>
