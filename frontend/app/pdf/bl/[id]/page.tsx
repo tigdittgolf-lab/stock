@@ -167,42 +167,82 @@ export default function PDFGeneratorPage() {
 
       if (mode === 'ticket') {
         // ===== FORMAT TICKET 80mm =====
-        doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [80, 220] });
-        let y = 10;
-        doc.setFontSize(10); doc.setFont('helvetica', 'bold');
-        doc.text(company.name.substring(0, 30), 40, y, { align: 'center' }); y += 5;
-        doc.setFontSize(8); doc.setFont('helvetica', 'normal');
-        if (company.phone) { doc.text(company.phone, 40, y, { align: 'center' }); y += 4; }
-        y += 3;
+        // Largeur utile: 80mm - 2*4mm marges = 72mm
+        // Colonnes: Désignation(0-42) | Qté(43-52) | P.U.(53-63) | Total(64-72)
+        const W = 80;   // largeur page
+        const ML = 4;   // marge gauche
+        const MR = 4;   // marge droite
+        const UW = W - ML - MR; // 72mm utile
+        const colQte   = ML + 43;
+        const colPU    = ML + 54;
+        const colTotal = W - MR; // aligné à droite
+
+        // Hauteur dynamique selon nb lignes
+        const nbLines = bl.detail_bl.length;
+        const pageH = Math.max(150, 60 + nbLines * 5 + 40);
+        doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [W, pageH] });
+
+        let y = 6;
+        // En-tête entreprise
+        doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+        const nomLines = doc.splitTextToSize(company.name, UW);
+        doc.text(nomLines, W/2, y, { align: 'center' }); y += nomLines.length * 4 + 1;
+        doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+        if (company.address) {
+          const adrLines = doc.splitTextToSize(company.address, UW);
+          doc.text(adrLines, W/2, y, { align: 'center' }); y += adrLines.length * 3.5;
+        }
+        if (company.phone) { doc.text(company.phone, W/2, y, { align: 'center' }); y += 3.5; }
+        y += 2;
+
+        // Séparateur
+        doc.setLineWidth(0.3); doc.line(ML, y, W-MR, y); y += 3;
+
+        // Infos BL
         doc.setFontSize(8); doc.setFont('helvetica', 'bold');
-        doc.text(`Bon N: ${bl.nfact}`, 40, y, { align: 'center' }); y += 4;
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Date: ${fmtDate(bl.date_fact)}`, 40, y, { align: 'center' }); y += 4;
-        doc.text(`Client: ${bl.client.raison_sociale.substring(0, 25)}`, 40, y, { align: 'center' }); y += 6;
-        doc.line(5, y, 75, y); y += 4;
-        doc.setFontSize(7); doc.setFont('helvetica', 'bold');
-        doc.text('Designation', 5, y);
-        doc.text('Qte', 46, y, { align: 'right' });
-        doc.text('P.U.', 60, y, { align: 'right' });
-        doc.text('Total', 75, y, { align: 'right' });
-        y += 3; doc.line(5, y, 75, y); y += 3;
+        doc.text(`BL N° ${bl.nfact}`, W/2, y, { align: 'center' }); y += 4;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
+        doc.text(`Date: ${fmtDate(bl.date_fact)}`, W/2, y, { align: 'center' }); y += 3.5;
+        const clientName = bl.client.raison_sociale.substring(0, 28);
+        doc.text(`Client: ${clientName}`, W/2, y, { align: 'center' }); y += 3.5;
+        y += 2;
+
+        // En-tête colonnes
+        doc.line(ML, y, W-MR, y); y += 3;
+        doc.setFontSize(6); doc.setFont('helvetica', 'bold');
+        doc.text('Désignation', ML, y);
+        doc.text('Qté', colQte, y, { align: 'right' });
+        doc.text('P.U.', colPU, y, { align: 'right' });
+        doc.text('Total', colTotal, y, { align: 'right' });
+        y += 2; doc.line(ML, y, W-MR, y); y += 3;
+
+        // Lignes articles
         doc.setFont('helvetica', 'normal'); doc.setFontSize(6);
         bl.detail_bl.forEach((item: any) => {
-          doc.text((item.designation || item.narticle).substring(0, 24), 5, y);
-          doc.text(fmtQty(item.qte), 46, y, { align: 'right' });
-          if (item.prix) doc.text(fmt(item.prix), 60, y, { align: 'right' });
-          if (item.total_ligne) doc.text(fmt(item.total_ligne), 75, y, { align: 'right' });
+          const desig = (item.designation || item.narticle || '').substring(0, 22);
+          doc.text(desig, ML, y);
+          doc.text(fmtQty(item.qte), colQte, y, { align: 'right' });
+          if (item.prix) doc.text(fmt(item.prix), colPU, y, { align: 'right' });
+          if (item.total_ligne) doc.text(fmt(item.total_ligne), colTotal, y, { align: 'right' });
           y += 4;
         });
-        y += 2; doc.line(5, y, 75, y); y += 4;
+
+        // Totaux
+        y += 1; doc.line(ML, y, W-MR, y); y += 3;
         doc.setFontSize(7); doc.setFont('helvetica', 'normal');
-        if (bl.montant_ht > 0) { doc.text('HT:', 30, y); doc.text(fmt(bl.montant_ht), 75, y, { align: 'right' }); y += 4; }
-        if (bl.tva > 0) { doc.text('TVA:', 30, y); doc.text(fmt(bl.tva), 75, y, { align: 'right' }); y += 4; }
+        if (bl.montant_ht > 0 && bl.tva > 0) {
+          doc.text('HT:', ML+20, y); doc.text(fmt(bl.montant_ht)+' DA', colTotal, y, { align: 'right' }); y += 3.5;
+          doc.text('TVA:', ML+20, y); doc.text(fmt(bl.tva)+' DA', colTotal, y, { align: 'right' }); y += 3.5;
+        }
         doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
-        doc.text('TOTAL TTC:', 20, y); doc.text(fmt(bl.montant_ttc), 75, y, { align: 'right' }); y += 8;
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
-        doc.text('Merci de votre visite', 40, y, { align: 'center' });
-        filename = `ticket_${bl.nfact}.pdf`;
+        doc.text('TOTAL TTC:', ML+10, y); doc.text(fmt(bl.montant_ttc)+' DA', colTotal, y, { align: 'right' }); y += 6;
+
+        // Pied
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(6);
+        doc.text('Merci de votre visite', W/2, y, { align: 'center' }); y += 3.5;
+        doc.text('Ce bon ne constitue pas une facture', W/2, y, { align: 'center' });
+
+        filename = `ticket_bl_${bl.nfact}.pdf`;
 
       } else if (mode === 'reduit') {
         // ===== FORMAT RÉDUIT A4 =====
