@@ -122,14 +122,35 @@ export async function GET(
       const dv = (...names: string[]) => { for (const n of names) { const k = dk.find(k => k.toLowerCase() === n.toLowerCase()); if (k !== undefined && d[k] !== null && d[k] !== undefined) return d[k]; } return undefined; };
       return {
         ...d,
-        narticle: dv('narticle', 'article', 'ref'),
-        designation: dv('designation', 'libelle', 'nom_article'),
-        qte: dv('qte', 'quantite', 'qty'),
-        prix: dv('prix', 'prix_unitaire', 'pu'),
-        tva: dv('tva', 'taux_tva'),
-        total_ligne: dv('total_ligne', 'montant_ligne', 'total'),
+        narticle: dv('narticle', 'article', 'ref', 'Narticle'),
+        designation: dv('designation', 'libelle', 'nom_article', 'Designation'),
+        qte: dv('qte', 'quantite', 'qty', 'Qte'),
+        prix: dv('prix', 'prix_unitaire', 'pu', 'Prix'),
+        tva: dv('tva', 'taux_tva', 'TVA'),
+        total_ligne: dv('total_ligne', 'montant_ligne', 'total', 'Total_ligne'),
       };
     });
+
+    // Enrich designations from article table if missing
+    const missingDesig = details.filter((d: any) => !d.designation && d.narticle);
+    if (missingDesig.length > 0) {
+      try {
+        const artRows = await readTable(tenant, 'article');
+        const artMap: Record<string, string> = {};
+        artRows.forEach((a: any) => {
+          const ak = Object.keys(a);
+          const av = (...names: string[]) => { for (const n of names) { const k = ak.find(k => k.toLowerCase() === n.toLowerCase()); if (k && a[k]) return a[k]; } return ''; };
+          const code = String(av('narticle', 'Narticle', 'code_article') || '').trim();
+          const desig = av('designation', 'Designation', 'libelle', 'nom_article');
+          if (code) artMap[code] = desig;
+        });
+        details.forEach((d: any) => {
+          if (!d.designation && d.narticle) {
+            d.designation = artMap[String(d.narticle).trim()] || '';
+          }
+        });
+      } catch { /* non critique */ }
+    }
 
     return NextResponse.json({
       success: true,
