@@ -564,7 +564,7 @@ export default function InvoicesList() {
               }}
             >
               <td style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 'bold', color: 'var(--primary-color)' }}>
-                Facture {fact.nfact}
+                {fact.nfact}
               </td>
               <td style={{ padding: '6px 12px', fontSize: '13px' }}>
                 <div style={{ lineHeight: '1.3' }}>

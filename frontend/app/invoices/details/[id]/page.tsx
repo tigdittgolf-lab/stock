@@ -147,28 +147,28 @@ export default function InvoiceDetailsPage() {
   const clientObj = invoice.client || {};
 
   return (
-    <div style={{ padding: '16px', background: 'var(--background)', minHeight: '100vh', maxWidth: 900, margin: '0 auto' }}>
+    <div style={{ padding: '20px', background: 'var(--background)', minHeight: '100vh', maxWidth: 960, margin: '0 auto' }}>
 
       {/* Toolbar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-        <h1 style={{ margin: 0, fontSize: 20, color: 'var(--text-primary)' }}>🧾 Facture N° {invoice.nfact}</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 8 }}>
+        <h1 style={{ margin: 0, fontSize: 24, color: 'var(--text-primary)', fontWeight: 700 }}>🧾 Facture N° {invoice.nfact}</h1>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => router.back()} style={{ padding: '8px 16px', background: 'var(--background-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, cursor: 'pointer' }}>← Retour</button>
-          <button onClick={openPrint} style={{ padding: '8px 16px', background: 'linear-gradient(135deg,#28a745,#20c997)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700 }}>🖨️ Imprimer</button>
+          <button onClick={() => router.back()} style={{ padding: '10px 18px', background: 'var(--background-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>← Retour</button>
+          <button onClick={openPrint} style={{ padding: '10px 18px', background: 'linear-gradient(135deg,#28a745,#20c997)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 14 }}>🖨️ Imprimer</button>
         </div>
       </div>
 
       {/* En-tête : Entreprise | Facture | Client */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 16, background: 'var(--card-background)', border: '1px solid var(--border-color)', borderRadius: 12, padding: 20, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 20, background: 'var(--card-background)', border: '1px solid var(--border-color)', borderRadius: 12, padding: 24, marginBottom: 20 }}>
 
         {/* Entreprise (vendeur) */}
-        <div style={{ fontSize: 12, lineHeight: 1.8, color: 'var(--text-primary)' }}>
-          <div style={{ fontWeight: 800, fontSize: 14, textTransform: 'uppercase', marginBottom: 4 }}>{company?.name || '—'}</div>
-          {company?.activite && <div style={{ fontStyle: 'italic', color: 'var(--text-tertiary)', fontSize: 11 }}>{company.activite}</div>}
+        <div style={{ fontSize: 13, lineHeight: 1.9, color: 'var(--text-primary)' }}>
+          <div style={{ fontWeight: 800, fontSize: 15, textTransform: 'uppercase', marginBottom: 6 }}>{company?.name || '—'}</div>
+          {company?.activite && <div style={{ fontStyle: 'italic', color: 'var(--text-tertiary)', fontSize: 12 }}>{company.activite}</div>}
           {company?.address && <div>{company.address}{company.commune ? ', '+company.commune : ''}{company.wilaya ? ' - '+company.wilaya : ''}</div>}
           {company?.phone && <div>Tél: {company.phone}</div>}
           {company?.email && <div>{company.email}</div>}
-          <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--border-color)' }}>
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border-color)' }}>
             {company?.nif && <div><strong>NIF:</strong> {company.nif}</div>}
             {company?.rc && <div><strong>RC:</strong> {company.rc}</div>}
             {company?.art && <div><strong>Art:</strong> {company.art}</div>}
@@ -177,22 +177,22 @@ export default function InvoiceDetailsPage() {
         </div>
 
         {/* Titre + N° + Date */}
-        <div style={{ textAlign: 'center', minWidth: 140, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 2, color: '#28a745' }}>FACTURE</div>
-          <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-primary)', lineHeight: 2 }}>
+        <div style={{ textAlign: 'center', minWidth: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 2, color: '#28a745' }}>FACTURE</div>
+          <div style={{ marginTop: 12, fontSize: 14, color: 'var(--text-primary)', lineHeight: 2.2 }}>
             <div><strong>N°</strong> {invoice.nfact}</div>
             <div><strong>Date:</strong> {fmtDate(invoice.date_fact)}</div>
           </div>
         </div>
 
         {/* Client (acheteur) */}
-        <div style={{ fontSize: 12, lineHeight: 1.8, color: 'var(--text-primary)' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 4 }}>CLIENT / ACHETEUR</div>
-          <div style={{ border: '1px solid var(--border-color)', borderRadius: 6, padding: '8px 10px' }}>
-            <div style={{ fontWeight: 800, fontSize: 13, textTransform: 'uppercase' }}>{invoice.client_name || invoice.nclient}</div>
+        <div style={{ fontSize: 13, lineHeight: 1.9, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 6 }}>CLIENT / ACHETEUR</div>
+          <div style={{ border: '1px solid var(--border-color)', borderRadius: 6, padding: '10px 12px' }}>
+            <div style={{ fontWeight: 800, fontSize: 14, textTransform: 'uppercase' }}>{invoice.client_name || invoice.nclient}</div>
             {fv(clientObj,'adresse','address') && <div>{fv(clientObj,'adresse','address')}</div>}
             {fv(clientObj,'telephone','tel','phone') && <div>Tél: {fv(clientObj,'telephone','tel','phone')}</div>}
-            <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--border-color)' }}>
               {fv(clientObj,'nif','ident_fiscal') && <div><strong>NIF:</strong> {fv(clientObj,'nif','ident_fiscal')}</div>}
               {fv(clientObj,'rc','nrc') && <div><strong>RC:</strong> {fv(clientObj,'rc','nrc')}</div>}
               {fv(clientObj,'art','nart') && <div><strong>Art:</strong> {fv(clientObj,'art','nart')}</div>}
@@ -202,59 +202,55 @@ export default function InvoiceDetailsPage() {
       </div>
 
       {/* Tableau articles */}
-      <div style={{ background: 'var(--card-background)', border: '1px solid var(--border-color)', borderRadius: 12, padding: 20, marginBottom: 16, overflowX: 'auto' }}>
-        <h3 style={{ margin: '0 0 12px 0', color: 'var(--text-primary)', fontSize: 14 }}>📦 Articles facturés</h3>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+      <div style={{ background: 'var(--card-background)', border: '1px solid var(--border-color)', borderRadius: 12, padding: 20, marginBottom: 20, overflowX: 'auto' }}>
+        <h3 style={{ margin: '0 0 14px 0', color: 'var(--text-primary)', fontSize: 16 }}>📦 Articles facturés</h3>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
           <thead>
             <tr style={{ background: '#1a1a2e', color: 'white' }}>
               {['Réf','Désignation','Qté','P.U. HT','TVA','Total HT'].map((h,i) => (
-                <th key={i} style={{ padding: '8px 10px', textAlign: i >= 2 ? 'right' : 'left', fontWeight: 700 }}>{h}</th>
+                <th key={i} style={{ padding: '10px 12px', textAlign: i >= 2 ? 'right' : 'left', fontWeight: 700, fontSize: 13 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {invoice.details.length > 0 ? invoice.details.map((d, i) => (
               <tr key={i} style={{ background: i%2===0?'transparent':'var(--background-secondary)', borderBottom: '1px solid var(--border-color)' }}>
-                <td style={{ padding: '7px 10px', color: 'var(--text-tertiary)' }}>{d.narticle}</td>
-                <td style={{ padding: '7px 10px', fontWeight: 500, color: 'var(--text-primary)' }}>{d.designation}</td>
-                <td style={{ padding: '7px 10px', textAlign: 'right', color: 'var(--text-primary)' }}>{d.qte}</td>
-                <td style={{ padding: '7px 10px', textAlign: 'right', color: 'var(--text-primary)' }}>{(d.prix||0).toLocaleString('fr-FR',{minimumFractionDigits:2})}</td>
-                <td style={{ padding: '7px 10px', textAlign: 'right', color: 'var(--text-primary)' }}>{d.tva}%</td>
-                <td style={{ padding: '7px 10px', textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>{(d.total_ligne||0).toLocaleString('fr-FR',{minimumFractionDigits:2})}</td>
+                <td style={{ padding: '10px 12px', color: 'var(--text-tertiary)', fontSize: 13 }}>{d.narticle}</td>
+                <td style={{ padding: '10px 12px', fontWeight: 500, color: 'var(--text-primary)' }}>{d.designation}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--text-primary)' }}>{d.qte}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--text-primary)' }}>{(d.prix||0).toLocaleString('fr-FR',{minimumFractionDigits:2})}</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--text-primary)' }}>{d.tva}%</td>
+                <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>{(d.total_ligne||0).toLocaleString('fr-FR',{minimumFractionDigits:2})}</td>
               </tr>
             )) : (
-              <tr><td colSpan={6} style={{ padding: 20, textAlign: 'center', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Aucun détail disponible</td></tr>
+              <tr><td colSpan={6} style={{ padding: 24, textAlign: 'center', color: 'var(--text-tertiary)', fontStyle: 'italic', fontSize: 14 }}>Aucun détail disponible</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
       {/* Totaux */}
-      <div style={{ background: 'var(--card-background)', border: '1px solid var(--border-color)', borderRadius: 12, padding: 20, marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <table style={{ fontSize: 13, minWidth: 280 }}>
-            <tbody>
-              {[
-                { label: 'Montant HT', val: invoice.montant_ht },
-                { label: 'TVA', val: invoice.tva },
-                ...(invoice.timbre ? [{ label: 'Timbre fiscal', val: invoice.timbre }] : []),
-              ].map((r,i) => (
-                <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <td style={{ padding: '5px 12px', color: 'var(--text-secondary)' }}>{r.label}</td>
-                  <td style={{ padding: '5px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>{fmt(r.val)}</td>
-                </tr>
-              ))}
-              <tr style={{ background: '#1a1a2e', color: 'white' }}>
-                <td style={{ padding: '10px 12px', fontWeight: 700, fontSize: 14 }}>NET À PAYER TTC</td>
-                <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 800, fontSize: 14 }}>{fmt(invoice.montant_ttc)}</td>
-              </tr>
-            </tbody>
-          </table>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+        <div style={{ minWidth: '340px', background: 'var(--card-background)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+          {[
+            { label: 'Montant HT', val: invoice.montant_ht },
+            { label: 'TVA', val: invoice.tva },
+            ...(invoice.timbre ? [{ label: 'Timbre fiscal', val: invoice.timbre }] : []),
+          ].map((r,i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 20px', borderBottom: '1px solid var(--border-color)' }}>
+              <span style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>{r.label}</span>
+              <span style={{ fontWeight: 600, fontSize: '16px', color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{fmt(r.val)}</span>
+            </div>
+          ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: '#1a1a2e' }}>
+            <span style={{ color: 'white', fontWeight: 700, fontSize: '16px' }}>NET À PAYER TTC</span>
+            <span style={{ color: 'white', fontWeight: 800, fontSize: '20px', fontVariantNumeric: 'tabular-nums' }}>{fmt(invoice.montant_ttc)}</span>
+          </div>
         </div>
       </div>
 
       {/* Bouton impression */}
-      <button onClick={openPrint} style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg,#28a745,#20c997)', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 15, fontWeight: 700 }}>
+      <button onClick={openPrint} style={{ width: '100%', padding: '16px', background: 'linear-gradient(135deg,#28a745,#20c997)', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>
         🖨️ Imprimer la Facture (Bilingue FR/AR)
       </button>
     </div>
