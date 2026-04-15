@@ -51,6 +51,72 @@ interface LabelSize {
 
 const LABEL_SIZES: LabelSize[] = [
   {
+    id: 'xxsmall',
+    name: '25mm x 15mm (Micro)',
+    width: 25,
+    height: 15,
+    padding: 1,
+    fontSize: {
+      code: 7,
+      designation: 5,
+      family: 4,
+      priceHT: 7,
+      priceTTC: 8,
+      label: 4,
+      currency: 4
+    },
+    barcode: {
+      width: 90,
+      height: 2,
+      jsWidth: 0.5,
+      jsHeight: 10
+    }
+  },
+  {
+    id: 'xsmall',
+    name: '30mm x 20mm (Très petite)',
+    width: 30,
+    height: 20,
+    padding: 1.5,
+    fontSize: {
+      code: 9,
+      designation: 6,
+      family: 5,
+      priceHT: 9,
+      priceTTC: 10,
+      label: 5,
+      currency: 5
+    },
+    barcode: {
+      width: 85,
+      height: 3,
+      jsWidth: 0.6,
+      jsHeight: 14
+    }
+  },
+  {
+    id: 'mini',
+    name: '40mm x 20mm (Mini)',
+    width: 40,
+    height: 20,
+    padding: 1.5,
+    fontSize: {
+      code: 10,
+      designation: 7,
+      family: 5,
+      priceHT: 10,
+      priceTTC: 11,
+      label: 6,
+      currency: 5
+    },
+    barcode: {
+      width: 80,
+      height: 3,
+      jsWidth: 0.7,
+      jsHeight: 14
+    }
+  },
+  {
     id: 'small',
     name: '50mm x 30mm (Petite)',
     width: 50,
