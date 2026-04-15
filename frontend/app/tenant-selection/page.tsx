@@ -79,13 +79,18 @@ export default function TenantSelection() {
             // Trier par année décroissante
             buData.sort((a: any, b: any) => (b.year || 0) - (a.year || 0));
 
-            const buList = buData.map((bu: any) => ({
-              id: bu.schema_name,
-              name: bu.nom_entreprise
-                ? `${bu.nom_entreprise} — ${bu.schema_name}`
-                : `BU ${bu.bu_code || ''} (${bu.year || bu.schema_name})`,
-              description: `Schéma: ${bu.schema_name} | Année: ${bu.year || '?'}`
-            }));
+            const buList = buData.map((bu: any) => {
+              const year = bu.year || bu.schema_name?.split('_')[0] || '?';
+              const buCode = bu.bu_code || bu.schema_name?.split('_')[1]?.toUpperCase() || '';
+              const nom = bu.nom_entreprise || '';
+              return {
+                id: bu.schema_name,
+                name: nom
+                  ? `${nom} (${year} · ${buCode})`
+                  : `${buCode} — ${year}`,
+                description: bu.schema_name,
+              };
+            });
 
             console.log('🏢 BU disponibles depuis registre:', buList.map((b: any) => b.id));
             setBusinessUnits(buList);
@@ -111,7 +116,9 @@ export default function TenantSelection() {
             let filteredSchemas = userInfo.role === 'admin' ? allSchemas : allSchemas.filter((s: string) => userBusinessUnits.includes(s));
             const buList = filteredSchemas.map((schema: string) => {
               const parts = schema.split('_');
-              return { id: schema, name: `BU ${parts[1]?.replace('bu','').toUpperCase()} (${parts[0]})`, description: `Schéma: ${schema}` };
+              const year = parts[0];
+              const buCode = parts[1]?.replace('bu','').toUpperCase() || '';
+              return { id: schema, name: `BU ${buCode} (${year})`, description: schema };
             });
             setBusinessUnits(buList);
             return;
@@ -146,10 +153,13 @@ export default function TenantSelection() {
         console.log('✅ BU filtrées:', filteredBUs);
 
         const buList = filteredBUs.map((exercise: any) => {
+          const year = exercise.year || exercise.schema_name?.split('_')[0] || '?';
+          const buCode = exercise.bu_code || exercise.schema_name?.split('_')[1]?.toUpperCase() || '';
+          const nom = exercise.nom_entreprise || '';
           return {
             id: exercise.schema_name,
-            name: `Business Unit ${exercise.bu_code} (${exercise.year})`,
-            description: `${exercise.nom_entreprise} - ${exercise.schema_name}`
+            name: nom ? `${nom} (${year} · ${buCode})` : `${buCode} — ${year}`,
+            description: exercise.schema_name,
           };
         });
 
@@ -444,7 +454,7 @@ export default function TenantSelection() {
             <option value="">Sélectionner une unité d'affaires</option>
             {businessUnits.map((bu, index) => (
               <option key={`${bu.id}-${index}`} value={bu.id}>
-                {bu.name} - {bu.description}
+                {bu.name}
               </option>
             ))}
           </select>
