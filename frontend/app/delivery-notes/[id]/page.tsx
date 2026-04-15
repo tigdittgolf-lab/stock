@@ -410,34 +410,38 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           </div>
 
           {/* Totaux */}
-          <div className={styles.totalsSection}>
-            <div className={styles.totalsGrid}>
-              <div className={styles.totalRow}>
-                <span>Montant HT :</span>
-                <span>{parseFloat(deliveryNote.montant_ht?.toString() || '0').toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</span>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px', marginBottom: '24px' }}>
+            <div style={{ minWidth: '320px', background: 'var(--background-secondary)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+              {/* HT */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid var(--border-color)' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Montant HT</span>
+                <span style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+                  {parseFloat(deliveryNote.montant_ht?.toString() || '0').toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA
+                </span>
               </div>
-              <div className={styles.totalRow}>
-                <span>TVA :</span>
-                <span>{parseFloat(deliveryNote.tva?.toString() || '0').toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA</span>
+              {/* TVA */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid var(--border-color)' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>TVA</span>
+                <span style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+                  {parseFloat(deliveryNote.tva?.toString() || '0').toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA
+                </span>
               </div>
-              <div className={styles.totalRow}>
-                <strong>Total TTC :</strong>
-                <strong>
+              {/* Total TTC */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: '#1a1a2e' }}>
+                <span style={{ color: 'white', fontWeight: 700, fontSize: '15px' }}>NET À PAYER TTC</span>
+                <span style={{ color: 'white', fontWeight: 800, fontSize: '18px', fontVariantNumeric: 'tabular-nums' }}>
                   {(() => {
-                    // Calcul automatique du Total TTC si non défini
                     let totalTTC = deliveryNote.montant_ttc;
                     if (totalTTC === undefined || totalTTC === null || isNaN(totalTTC)) {
-                      // Convertir en nombres pour éviter la concaténation de chaînes
                       const montantHT = parseFloat(deliveryNote.montant_ht?.toString() || '0') || 0;
                       const tva = parseFloat(deliveryNote.tva?.toString() || '0') || 0;
                       totalTTC = montantHT + tva;
                     } else {
-                      // S'assurer que totalTTC est un nombre
                       totalTTC = parseFloat(totalTTC.toString()) || 0;
                     }
                     return totalTTC.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                   })()} DA
-                </strong>
+                </span>
               </div>
             </div>
           </div>
