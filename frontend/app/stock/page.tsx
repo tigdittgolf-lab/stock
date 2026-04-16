@@ -111,16 +111,22 @@ export default function StockManagement() {
       setLoading(true);
       setError(null);
 
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
       const headers = {
         'Content-Type': 'application/json',
-        'X-Tenant': tenant.schema
+        'X-Tenant': tenant.schema,
+        'X-Database-Type': dbType
       };
 
-      // Charger les données en parallèle
-      await Promise.all([
-        fetchStockOverview(headers),
-        fetchStockAlerts(headers)
-      ]);
+      // Charger les articles d'abord, puis calculer les stats
+      const artRes = await fetch('/api/sales/articles', { headers });
+      const artData = await artRes.json();
+      const arts = artData.success ? (artData.data || []) : [];
+
+      // Calculer overview et alertes depuis les articles réels
+      computeStockFromArticles(arts);
+      computeAlertsFromArticles(arts);
 
     } catch (err) {
       console.error('Error loading stock data:', err);
@@ -131,138 +137,90 @@ export default function StockManagement() {
   };
 
   const fetchStockOverview = async (headers: any) => {
-    try {
-      console.log('🔄 Fetching stock overview...');
-      const response = await fetch(getApiUrl('purchases/stock/overview'), { headers });
-      const data = await response.json();
-      
-      console.log('📊 Stock overview response:', data);
-      
-      if (data.success && data.data) {
-        setStockOverview(data.data);
-        console.log('✅ Stock overview loaded:', data.source);
-      } else {
-        console.warn('Stock overview not loaded:', data.error);
-        // Utiliser des données de fallback
-        setStockOverview({
-          overview: {
-            total_articles: 2,
-            articles_in_stock: 2,
-            articles_low_stock: 0,
-            articles_zero_stock: 0,
-            stock_health_percentage: 100
-          },
-          stock_quantities: {
-            total_stock_bl: 352,
-            total_stock_f: 843,
-            total_combined: 1195
-          },
-          stock_value: {
-            total_cost_value: 1409500,
-            total_sale_value: 2114250,
-            potential_margin: 704750,
-            margin_percentage: 50.00,
-            average_cost_per_article: 704750,
-            average_sale_per_article: 1057125
-          },
-          stock_value_by_type: {
-            bl_cost_value: 563200,
-            bl_sale_value: 844800,
-            bl_margin: 281600,
-            bl_margin_percentage: 50.00,
-            f_cost_value: 846300,
-            f_sale_value: 1269450,
-            f_margin: 423150,
-            f_margin_percentage: 50.00
-          }
-        });
-      }
-    } catch (err) {
-      console.error('Error fetching stock overview:', err);
-      // Utiliser des données de fallback en cas d'erreur
-      setStockOverview({
-        overview: {
-          total_articles: 2,
-          articles_in_stock: 2,
-          articles_low_stock: 0,
-          articles_zero_stock: 0,
-          stock_health_percentage: 100
-        },
-        stock_quantities: {
-          total_stock_bl: 352,
-          total_stock_f: 843,
-          total_combined: 1195
-        },
-        stock_value: {
-          total_cost_value: 1409500,
-          total_sale_value: 2114250,
-          potential_margin: 704750,
-          margin_percentage: 50.00,
-          average_cost_per_article: 704750,
-          average_sale_per_article: 1057125
-        },
-        stock_value_by_type: {
-          bl_cost_value: 563200,
-          bl_sale_value: 844800,
-          bl_margin: 281600,
-          bl_margin_percentage: 50.00,
-          f_cost_value: 846300,
-          f_sale_value: 1269450,
-          f_margin: 423150,
-          f_margin_percentage: 50.00
-        }
-      });
+    // Kept for potential backend API use in future
+  };
+
+  const computeStockFromArticles = (arts: any[]) => {
+    const total = arts.length;
+    let inStock = 0, lowStock = 0, zeroStock = 0;
+    let totalStockBL = 0, totalStockF = 0;
+    let totalCostBL = 0, totalSaleBL = 0;
+    let totalCostF = 0, totalSaleF = 0;
+
+    for (const a of arts) {
+      const sbl = parseFloat(a.stock_bl ?? 0);
+      const sf = parseFloat(a.stock_f ?? 0);
+      const seuil = parseFloat(a.seuil ?? 0);
+      const pu = parseFloat(a.prix_unitaire ?? 0);
+      const pv = parseFloat(a.prix_vente ?? 0);
+      const combined = sbl + sf;
+
+      totalStockBL += sbl;
+      totalStockF += sf;
+      totalCostBL += sbl * pu;
+      totalSaleBL += sbl * pv;
+      totalCostF += sf * pu;
+      totalSaleF += sf * pv;
+
+      if (combined === 0) zeroStock++;
+      else if (seuil > 0 && combined <= seuil) lowStock++;
+      else inStock++;
     }
+
+    const totalCost = totalCostBL + totalCostF;
+    const totalSale = totalSaleBL + totalSaleF;
+    const margin = totalSale - totalCost;
+    const marginPct = totalSale > 0 ? Math.round((margin / totalSale) * 100) : 0;
+
+    setStockOverview({
+      overview: {
+        total_articles: total,
+        articles_in_stock: inStock,
+        articles_low_stock: lowStock,
+        articles_zero_stock: zeroStock,
+        stock_health_percentage: total > 0 ? Math.round(((total - zeroStock) / total) * 100) : 0
+      },
+      stock_quantities: {
+        total_stock_bl: Math.round(totalStockBL),
+        total_stock_f: Math.round(totalStockF),
+        total_combined: Math.round(totalStockBL + totalStockF)
+      },
+      stock_value: {
+        total_cost_value: Math.round(totalCost),
+        total_sale_value: Math.round(totalSale),
+        potential_margin: Math.round(margin),
+        margin_percentage: marginPct,
+        average_cost_per_article: total > 0 ? Math.round(totalCost / total) : 0,
+        average_sale_per_article: total > 0 ? Math.round(totalSale / total) : 0
+      },
+      stock_value_by_type: {
+        bl_cost_value: Math.round(totalCostBL),
+        bl_sale_value: Math.round(totalSaleBL),
+        bl_margin: Math.round(totalSaleBL - totalCostBL),
+        bl_margin_percentage: totalSaleBL > 0 ? Math.round(((totalSaleBL - totalCostBL) / totalSaleBL) * 100) : 0,
+        f_cost_value: Math.round(totalCostF),
+        f_sale_value: Math.round(totalSaleF),
+        f_margin: Math.round(totalSaleF - totalCostF),
+        f_margin_percentage: totalSaleF > 0 ? Math.round(((totalSaleF - totalCostF) / totalSaleF) * 100) : 0
+      }
+    });
   };
 
   const fetchStockAlerts = async (headers: any) => {
-    try {
-      console.log('🔄 Fetching stock alerts...');
-      const response = await fetch(getApiUrl('purchases/stock/alerts'), { headers });
-      const data = await response.json();
-      
-      console.log('⚠️ Stock alerts response:', data);
-      
-      if (data.success && data.data) {
-        setStockAlerts(data.data);
-        console.log('✅ Stock alerts loaded:', data.source);
-      } else {
-        console.warn('Stock alerts not loaded:', data.error);
-        // Utiliser des données de fallback
-        setStockAlerts({
-          rupture: [],
-          faible: [],
-          surstock: [
-            {
-              narticle: '1000',
-              designation: 'Gillet jaune',
-              famille: 'Habillement',
-              nfournisseur: 'FOURNISSEUR 1',
-              stock_total: 360,
-              seuil: 20
-            }
-          ],
-          counts: {
-            rupture: 0,
-            faible: 0,
-            surstock: 1
-          }
-        });
-      }
-    } catch (err) {
-      console.error('Error fetching stock alerts:', err);
-      // Utiliser des données de fallback en cas d'erreur
-      setStockAlerts({
-        rupture: [],
-        faible: [],
-        surstock: [],
-        counts: {
-          rupture: 0,
-          faible: 0,
-          surstock: 0
-        }
-      });
+    // Kept for potential backend API use in future
+  };
+
+  const computeAlertsFromArticles = (arts: any[]) => {
+    const rupture: any[] = [], faible: any[] = [], surstock: any[] = [];
+    for (const a of arts) {
+      const combined = (parseFloat(a.stock_bl ?? 0)) + (parseFloat(a.stock_f ?? 0));
+      const seuil = parseFloat(a.seuil ?? 0);
+      const item = { narticle: a.narticle, designation: a.designation, famille: a.famille, nfournisseur: a.nfournisseur, stock_total: combined, seuil };
+      if (combined === 0) rupture.push(item);
+      else if (seuil > 0 && combined <= seuil) faible.push(item);
+      else if (seuil > 0 && combined > seuil * 5) surstock.push(item);
     }
+    setStockAlerts({ rupture, faible, surstock, counts: { rupture: rupture.length, faible: faible.length, surstock: surstock.length } });
   };
 
   const handleBackToDashboard = () => {
