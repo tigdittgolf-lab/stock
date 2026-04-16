@@ -366,7 +366,7 @@ export default function SettingsPage() {
         </nav>
       </header>
 
-      <main className={styles.main} style={{ paddingTop: '40px' }}>
+      <main className={styles.main} style={{ paddingTop: '160px' }}>
         {/* Messages */}
         {message && (
           <div style={{
