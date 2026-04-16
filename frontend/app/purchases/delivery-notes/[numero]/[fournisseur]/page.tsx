@@ -153,9 +153,9 @@ export default function PurchaseBLDetailPage({ params }: PageProps) {
   const reste = Math.max(0, ttc - totalPaid);
   const paymentStatus = totalPaid >= ttc - 0.01 ? 'paid' : totalPaid > 0 ? 'partial' : 'unpaid';
   const statusConfig = {
-    paid:    { label: '✅ Réglé',      color: '#155724', bg: 'var(--success-bg)', border: 'var(--success-border)' },
-    partial: { label: '⚠️ Partiel',    color: '#856404', bg: 'var(--warning-bg)', border: 'var(--warning-border)' },
-    unpaid:  { label: '❌ Non réglé',  color: '#721c24', bg: 'var(--error-bg)',   border: 'var(--error-border)' },
+    paid:    { label: '✅ Réglé',      color: 'var(--success-text)', bg: 'var(--success-bg)', border: 'var(--success-border)' },
+    partial: { label: '⚠️ Partiel',    color: 'var(--warning-text)', bg: 'var(--warning-bg)', border: 'var(--warning-border)' },
+    unpaid:  { label: '❌ Non réglé',  color: 'var(--error-text)',   bg: 'var(--error-bg)',   border: 'var(--error-border)' },
   }[paymentStatus];
 
   const caTotal = (supplier?.caf || 0) + (supplier?.cabl || 0);
@@ -222,8 +222,8 @@ export default function PurchaseBLDetailPage({ params }: PageProps) {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                   {[
-                    { label: 'CA Factures', val: supplier?.caf || 0, color: '#28a745' },
-                    { label: 'CA BL Achat', val: supplier?.cabl || 0, color: '#17a2b8' },
+                    { label: 'CA Factures', val: supplier?.caf || 0, color: 'var(--success-color)' },
+                    { label: 'CA BL Achat', val: supplier?.cabl || 0, color: 'var(--info-color)' },
                     { label: 'CA Total', val: caTotal, color: 'var(--primary-color)', bold: true },
                   ].map((item, i) => (
                     <div key={i} style={{ textAlign: 'center', padding: '8px 4px', background: 'var(--card-background)', borderRadius: 8 }}>
@@ -244,8 +244,8 @@ export default function PurchaseBLDetailPage({ params }: PageProps) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                   {[
                     { label: 'Total BL', val: ttc, color: 'var(--text-primary)' },
-                    { label: 'Payé', val: totalPaid, color: '#28a745' },
-                    { label: 'Reste', val: reste, color: reste > 0 ? '#dc3545' : '#28a745' },
+                    { label: 'Payé', val: totalPaid, color: 'var(--success-color)' },
+                    { label: 'Reste', val: reste, color: reste > 0 ? 'var(--error-color)' : 'var(--success-color)' },
                   ].map((item, i) => (
                     <div key={i} style={{ textAlign: 'center', padding: '8px 4px', background: 'var(--card-background)', borderRadius: 8 }}>
                       <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4 }}>{item.label}</div>
@@ -347,31 +347,3 @@ export default function PurchaseBLDetailPage({ params }: PageProps) {
     </div>
   );
 }
-
-
-interface PurchaseBLDetail {
-  nbl_achat: number;
-  nfournisseur: string;
-  numero_bl_fournisseur: string;
-  supplier_name: string;
-  supplier_address: string;
-  supplier_phone: string;
-  date_bl: string;
-  montant_ht: number;
-  tva: number;
-  total_ttc: number;
-  created_at: string;
-  details: Array<{
-    narticle: string;
-    designation: string;
-    qte: number;
-    prix: number;
-    tva: number;
-    total_ligne: number;
-  }>;
-}
-
-interface PageProps {
-  params: Promise<{ numero: string; fournisseur: string }>;
-}
-
