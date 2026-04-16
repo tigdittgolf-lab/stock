@@ -48,6 +48,11 @@ export async function POST(request: NextRequest) {
           (u.active === true || u.active === 1 || u.active === null || u.active === undefined)
         );
         if (match) foundUser = match;
+        // Debug: show what hash is stored vs what we computed
+        debugInfo.storedHash = byUsername[0]?.password_hash?.substring(0, 10) + '...';
+        debugInfo.computedHash = password_hash.substring(0, 10) + '...';
+        debugInfo.hashMatch = byUsername[0]?.password_hash === password_hash;
+        debugInfo.activeValue = byUsername[0]?.active;
       }
 
       // Try by email if not found
