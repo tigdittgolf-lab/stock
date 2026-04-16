@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
           const k = keys.find(k => k.toLowerCase() === 'famille');
           if (k && a[k]) families.add(String(a[k]).trim());
         });
-        const data = [...families].sort().map(f => ({ id: f, nom: f, code: f }));
+        const data = [...families].sort().map(f => ({ id: f, nom: f, famille: f, code: f }));
         return NextResponse.json({ success: true, data, source: 'article_families' });
       } catch { /* fall through */ }
     }
@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
       return {
         id: fv('id', 'code_famille', 'code') || nom,
         nom,
+        famille: nom,  // keep 'famille' field for backward compatibility with settings page
         code: fv('code_famille', 'code', 'id') || nom,
       };
     }).filter(d => d.nom);
