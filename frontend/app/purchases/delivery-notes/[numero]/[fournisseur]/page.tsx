@@ -49,13 +49,36 @@ export default function PurchaseBLDetailPage({ params }: PageProps) {
   const fetchBL = async () => {
     try {
       const tenant = localStorage.getItem('selectedTenant') || '2009_bu02';
+      const dbConfig = localStorage.getItem('activeDbConfig');
+      const dbType = dbConfig ? JSON.parse(dbConfig).type : 'supabase';
       const response = await fetch(
         getApiUrl(`purchases/delivery-notes/${encodeURIComponent(numero)}/${encodeURIComponent(fournisseur)}`),
-        { headers: { 'X-Tenant': tenant } }
+        { headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType } }
       );
       const data = await response.json();
       if (data.success) {
-        setBl(data.data);
+        const bl = data.data;
+        // If supplier_name is missing or same as code, fetch from suppliers list
+        if (!bl.supplier_name || bl.supplier_name === bl.nfournisseur) {
+          try {
+            const suppRes = await fetch('/api/sales/suppliers', {
+              headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType }
+            });
+            const suppData = await suppRes.json();
+            if (suppData.success && suppData.data) {
+              const found = suppData.data.find((s: any) =>
+                String(s.nfournisseur || s.Nfournisseur || '').trim().toLowerCase() ===
+                String(bl.nfournisseur || '').trim().toLowerCase()
+              );
+              if (found) {
+                bl.supplier_name = found.nom_fournisseur || found.Nom_fournisseur || bl.nfournisseur;
+                bl.supplier_address = found.adresse_fourni || found.adresse || '';
+                bl.supplier_phone = found.tel || found.telephone || '';
+              }
+            }
+          } catch { /* non critique */ }
+        }
+        setBl(bl);
       } else {
         setError(data.error || 'BL introuvable');
       }
@@ -106,7 +129,7 @@ export default function PurchaseBLDetailPage({ params }: PageProps) {
         <div className={styles.title}>
           📋 BL d'Achat
           <span className={styles.docNumber}>
-            {bl.numero_bl_fournisseur || `#${bl.nbl_achat}`}
+            {bl.nfact || bl.numero_bl_fournisseur || (bl.nbl_achat ? `#${bl.nbl_achat}` : `${numero}`)}
           </span>
         </div>
         <div className={styles.headerButtons}>
