@@ -25,6 +25,9 @@ export async function POST(request: NextRequest) {
     }
 
     const password_hash = hashPassword(password);
+    // Also try common variations in case password was stored differently
+    const password_hash_lower = hashPassword(password.toLowerCase());
+    const password_hash_trim = hashPassword(password.trim());
     const sb = getSupabase();
 
     // 1. Try Supabase users table — no active filter to avoid column name issues
@@ -42,9 +45,11 @@ export async function POST(request: NextRequest) {
       debugInfo.byUsername = { count: byUsername?.length, error: e1?.message };
 
       if (byUsername && byUsername.length > 0) {
-        // Find one with matching password
+        // Find one with matching password — try multiple hash variants
         const match = byUsername.find((u: any) =>
-          u.password_hash === password_hash &&
+          (u.password_hash === password_hash ||
+           u.password_hash === password_hash_lower ||
+           u.password_hash === password_hash_trim) &&
           (u.active === true || u.active === 1 || u.active === null || u.active === undefined)
         );
         if (match) foundUser = match;
