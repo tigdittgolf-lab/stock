@@ -28,16 +28,29 @@ export async function POST(request: NextRequest) {
     // 1. Try to find user in Supabase users table
     let foundUser: any = null;
     try {
-      const { data: users, error } = await sb
+      const sb = getSupabase();
+      // Try by username first
+      let { data: users, error } = await sb
         .from('users')
         .select('*')
-        .or(`username.eq.${username},email.eq.${username}`)
+        .eq('username', username)
         .eq('active', true)
         .limit(1);
 
+      // If not found by username, try by email
+      if ((!users || users.length === 0) && !error) {
+        const result = await sb
+          .from('users')
+          .select('*')
+          .eq('email', username)
+          .eq('active', true)
+          .limit(1);
+        users = result.data;
+        error = result.error;
+      }
+
       if (!error && users && users.length > 0) {
         const user = users[0];
-        // Check password hash
         if (user.password_hash === password_hash) {
           foundUser = user;
         }
