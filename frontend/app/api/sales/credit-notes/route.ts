@@ -35,16 +35,22 @@ async function supabaseInsert(table: string, body: object) {
 export async function GET(request: NextRequest) {
   const tenant = request.headers.get('X-Tenant') || '';
   const dbType = request.headers.get('X-Database-Type') || 'supabase';
+  const { searchParams } = new URL(request.url);
+  const documentRef = searchParams.get('document_ref');
+  const documentType = searchParams.get('document_type');
 
   // Essayer le backend d'abord
   if (BACKEND_URL) {
     try {
-      const res = await fetch(`${BACKEND_URL}/api/sales/credit-notes`, {
+      const qs = new URLSearchParams();
+      if (documentRef) qs.set('document_ref', documentRef);
+      if (documentType) qs.set('document_type', documentType);
+      const url = `${BACKEND_URL}/api/sales/credit-notes${qs.toString() ? '?' + qs : ''}`;
+      const res = await fetch(url, {
         headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType, 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(8000),
       });
       if (res.ok) return NextResponse.json(await res.json());
-      console.warn(`[credit-notes] Backend ${res.status}, fallback Supabase direct`);
     } catch {
       console.warn('[credit-notes] Backend unavailable, using Supabase direct');
     }
@@ -53,16 +59,22 @@ export async function GET(request: NextRequest) {
   // Fallback Supabase direct
   try {
     if (dbType !== 'supabase') return NextResponse.json({ success: true, data: [] });
-    if (!tenant) return NextResponse.json({ success: false, error: 'Tenant requis' }, 400);
+    if (!tenant) return NextResponse.json({ success: false, error: 'Tenant requis' }, { status: 400 });
 
-    const data = await supabaseFrom('avoir', { 'tenant': `eq.${tenant}`, order: 'date_avoir.desc' });
+    const query: Record<string, string> = {
+      'tenant': `eq.${tenant}`,
+      'order': 'date_avoir.desc'
+    };
+    if (documentRef) query['document_ref'] = `eq.${documentRef}`;
+    if (documentType) query['document_type'] = `eq.${documentType}`;
+
+    const data = await supabaseFrom('avoir', query);
     return NextResponse.json({ success: true, data: data || [], source: 'supabase_direct' });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Erreur';
     if (msg.includes('does not exist') || msg.includes('HTTP 404') || msg.includes('HTTP 400')) {
       return NextResponse.json({ success: true, data: [], source: 'empty' });
     }
-    console.error('❌ credit-notes GET error:', error);
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }

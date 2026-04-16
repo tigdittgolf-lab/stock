@@ -47,6 +47,11 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [refreshPaymentTrigger, setRefreshPaymentTrigger] = useState(0);
+
+  // Avoirs (retours) liés à ce BL
+  const [avoirs, setAvoirs] = useState<Array<{
+    id: number; date_avoir: string; montant_ttc: number; motif: string; nclient: string;
+  }>>([]);
   
   // Unwrap params using React.use()
   const resolvedParams = use(params);
@@ -55,6 +60,17 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
     fetchDeliveryNote();
     fetchCompanyInfo();
   }, []);
+
+  const fetchAvoirs = async (blId: string, tenant: string, dbType: string) => {
+    try {
+      const res = await fetch(
+        `/api/sales/credit-notes?document_type=bl&document_ref=${blId}`,
+        { headers: { 'X-Tenant': tenant, 'X-Database-Type': dbType } }
+      );
+      const data = await res.json();
+      if (data.success) setAvoirs(data.data || []);
+    } catch { /* silencieux */ }
+  };
 
   const fetchDeliveryNoteSupabaseDirect = async (id: string, tenant: string) => {
     const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://szgodrjglbpzkrksnroi.supabase.co';
@@ -121,6 +137,9 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
           keys: Object.keys(data.data || {})
         });
         setDeliveryNote(data.data);
+        // Charger les avoirs liés à ce BL
+        const blId = data.data?.nfact || data.data?.nbl || resolvedParams.id;
+        fetchAvoirs(String(blId), tenant, dbType);
       } else {
         setError(data.error || 'Erreur lors du chargement');
       }
@@ -264,7 +283,14 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1>Bon de Livraison N° {deliveryNote.nfact || deliveryNote.nbl}</h1>
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          Bon de Livraison N° {deliveryNote.nfact || deliveryNote.nbl}
+          {avoirs.length > 0 && (
+            <span style={{ background: '#e74c3c', color: 'white', borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
+              ↩️ {avoirs.length} avoir{avoirs.length > 1 ? 's' : ''}
+            </span>
+          )}
+        </h1>
         <div>
           <button onClick={() => router.push('/delivery-notes/list')} className={styles.secondaryButton}>
             Retour à la liste
@@ -445,6 +471,93 @@ export default function DeliveryNoteDetail({ params }: { params: Promise<{ id: s
               </div>
             </div>
           </div>
+
+          {/* Section Avoirs / Retours liés */}
+          {avoirs.length > 0 && (
+            <div className={styles.formSection} style={{ borderLeft: '4px solid #e74c3c', paddingLeft: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h2 style={{ margin: 0, color: '#e74c3c', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  ↩️ Retours / Avoirs liés
+                  <span style={{ background: '#e74c3c', color: 'white', borderRadius: '50%', width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>
+                    {avoirs.length}
+                  </span>
+                </h2>
+                <button
+                  onClick={() => router.push(`/returns/new?type=bl&id=${deliveryNote.nfact || deliveryNote.nbl}`)}
+                  style={{ padding: '8px 16px', background: 'linear-gradient(135deg,#e74c3c,#c0392b)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}
+                >
+                  ➕ Nouveau retour
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {avoirs.map((avoir) => {
+                  const ttc = Math.round((avoir.montant_ttc || 0) * 100) / 100;
+                  return (
+                    <div key={avoir.id}
+                      onClick={() => router.push(`/returns/${avoir.id}`)}
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '12px 16px', background: 'var(--background-secondary)',
+                        border: '1px solid var(--border-color)', borderRadius: 10, cursor: 'pointer',
+                        transition: 'all 0.2s' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = '#e74c3c'; e.currentTarget.style.background = 'var(--error-bg)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'var(--background-secondary)'; }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 36, height: 36, background: '#e74c3c', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+                          AV
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: 14 }}>
+                            Avoir N° {avoir.id}
+                          </div>
+                          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                            {avoir.date_avoir ? new Date(avoir.date_avoir).toLocaleDateString('fr-FR') : '—'}
+                            {avoir.motif && <span style={{ marginLeft: 8 }}>· {avoir.motif}</span>}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontWeight: 700, color: '#e74c3c', fontSize: 15 }}>
+                            -{ttc.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>TTC</div>
+                        </div>
+                        <span style={{ color: 'var(--text-tertiary)', fontSize: 18 }}>›</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Résumé total des avoirs */}
+              {avoirs.length > 1 && (
+                <div style={{ marginTop: 12, padding: '10px 16px', background: 'var(--error-bg)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--error-text)', fontWeight: 600, fontSize: 13 }}>
+                    Total retourné ({avoirs.length} avoirs)
+                  </span>
+                  <span style={{ color: '#e74c3c', fontWeight: 800, fontSize: 16 }}>
+                    -{avoirs.reduce((s, a) => s + (a.montant_ttc || 0), 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} DA
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Bouton créer avoir si aucun avoir existant */}
+          {avoirs.length === 0 && (
+            <div className={styles.formSection} style={{ textAlign: 'center', padding: '16px 20px' }}>
+              <button
+                onClick={() => router.push(`/returns/new?type=bl&id=${deliveryNote.nfact || deliveryNote.nbl}`)}
+                style={{ padding: '10px 20px', background: 'transparent', color: '#e74c3c', border: '2px dashed #e74c3c', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14, transition: 'all 0.2s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--error-bg)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                ↩️ Créer un retour / avoir sur ce BL
+              </button>
+            </div>
+          )}
 
           {/* Signatures */}
           <div className={styles.formSection}>
