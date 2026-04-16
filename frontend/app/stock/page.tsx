@@ -356,37 +356,6 @@ export default function StockManagement() {
             {activeTab === 'overview' && (
               <div>
                 <h2>📊 Vue d'ensemble du Stock</h2>
-                
-                <div style={{
-                  background: 'var(--warning-color-light)',
-                  color: 'var(--text-primary)',
-                  padding: '20px',
-                  borderRadius: '8px',
-                  margin: '20px 0',
-                  border: '1px solid var(--border-color)'
-                }}>
-                  <h3 style={{ margin: '0 0 15px 0' }}>⚠️ Configuration Requise</h3>
-                  <p style={{ margin: '0 0 15px 0' }}>
-                    Le système de gestion du stock nécessite l'exécution des fonctions RPC dans Supabase.
-                  </p>
-                  <div style={{ 
-                    background: 'var(--background-secondary)', 
-                    padding: '15px', 
-                    borderRadius: '5px',
-                    border: '1px solid var(--border-color)',
-                    marginBottom: '15px'
-                  }}>
-                    <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-primary)' }}>📋 Instructions :</h4>
-                    <ol style={{ margin: '0', paddingLeft: '20px', color: 'var(--text-secondary)' }}>
-                      <li>Ouvrez le fichier <code>EXECUTE_STOCK_RPC_FUNCTIONS.md</code></li>
-                      <li>Suivez les instructions pour exécuter les fonctions RPC dans Supabase</li>
-                      <li>Actualisez cette page après l'exécution</li>
-                    </ol>
-                  </div>
-                  <p style={{ margin: '0', fontSize: '14px' }}>
-                    <strong>Note :</strong> Le système est fonctionnel, mais les données avancées nécessitent cette configuration.
-                  </p>
-                </div>
 
                 {/* Affichage des données (vraies ou fallback) */}
                 {stockOverview && (
