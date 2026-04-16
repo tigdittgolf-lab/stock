@@ -25,19 +25,36 @@ export async function GET(request: NextRequest) {
 
   try {
     let rows: any[] = [];
-    for (const tbl of ['famille', 'famille_article', 'familles']) {
+    // Try all known table names for families across different schema versions
+    for (const tbl of ['famille_art', 'famille', 'famille_article', 'familles', 'family']) {
       try { rows = await readTable(tenant, tbl); if (rows.length > 0) break; } catch { /* try next */ }
+    }
+
+    // If still empty, extract unique families from article table
+    if (rows.length === 0) {
+      try {
+        const artRows = await readTable(tenant, 'article');
+        const families = new Set<string>();
+        artRows.forEach((a: any) => {
+          const keys = Object.keys(a);
+          const k = keys.find(k => k.toLowerCase() === 'famille');
+          if (k && a[k]) families.add(String(a[k]).trim());
+        });
+        const data = [...families].sort().map(f => ({ id: f, nom: f, code: f }));
+        return NextResponse.json({ success: true, data, source: 'article_families' });
+      } catch { /* fall through */ }
     }
 
     const data = rows.map((r: any) => {
       const keys = Object.keys(r);
       const fv = (...names: string[]) => { for (const n of names) { const k = keys.find(k => k.toLowerCase() === n.toLowerCase()); if (k && r[k]) return r[k]; } return ''; };
+      const nom = fv('famille', 'nom', 'libelle', 'designation', 'name');
       return {
-        id: fv('id', 'code_famille', 'code'),
-        nom: fv('nom', 'libelle', 'designation', 'famille'),
-        code: fv('code_famille', 'code', 'id'),
+        id: fv('id', 'code_famille', 'code') || nom,
+        nom,
+        code: fv('code_famille', 'code', 'id') || nom,
       };
-    });
+    }).filter(d => d.nom);
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
