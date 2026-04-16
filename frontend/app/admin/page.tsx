@@ -73,7 +73,7 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <main className={styles.main} style={{ paddingTop: '40px' }}>
+      <main className={styles.main} style={{ paddingTop: '120px' }}>
         {/* Statistiques globales */}
         <div style={{ 
           display: 'grid', 

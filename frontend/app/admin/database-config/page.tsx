@@ -202,7 +202,7 @@ export default function DatabaseConfigPage() {
         </div>
       </header>
 
-      <main className={styles.main} style={{ paddingTop: '40px' }}>
+      <main className={styles.main} style={{ paddingTop: '120px' }}>
         {/* Messages */}
         {message && (
           <div style={{

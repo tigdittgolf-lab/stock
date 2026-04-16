@@ -122,7 +122,7 @@ export default function DatabaseTestPage() {
         </div>
       </header>
 
-      <main className={styles.main} style={{ paddingTop: '40px' }}>
+      <main className={styles.main} style={{ paddingTop: '120px' }}>
         {/* Informations système */}
         <div style={{
           background: 'white',

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import { getApiUrl } from '@/lib/api';
@@ -268,7 +268,7 @@ export default function BusinessUnitsPage() {
         </div>
       </header>
 
-      <main className={styles.main} style={{ paddingTop: '40px' }}>
+      <main className={styles.main} style={{ paddingTop: '120px' }}>
         {/* Messages */}
         {message && (
           <div style={{

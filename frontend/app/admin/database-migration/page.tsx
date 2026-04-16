@@ -401,7 +401,7 @@ export default function DatabaseMigrationPage() {
         </div>
       </header>
 
-      <main className={styles.main} style={{ paddingTop: '40px' }}>
+      <main className={styles.main} style={{ paddingTop: '120px' }}>
         {/* Sélection Source et Destination */}
         <div style={{
           background: 'white',
