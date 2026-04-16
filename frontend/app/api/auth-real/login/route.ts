@@ -10,6 +10,11 @@ function getSupabase() {
   );
 }
 
+function hashPassword(password: string): string {
+  const crypto = require('crypto');
+  return crypto.createHash('sha256').update(password).digest('hex');
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -19,85 +24,95 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Username et password requis' }, { status: 400 });
     }
 
-    // Hash the password the same way it was stored
-    const crypto = require('crypto');
-    const password_hash = crypto.createHash('sha256').update(password).digest('hex');
-
+    const password_hash = hashPassword(password);
     const sb = getSupabase();
 
-    // 1. Try to find user in Supabase users table
+    // 1. Try Supabase users table — no active filter to avoid column name issues
     let foundUser: any = null;
+    let debugInfo: any = {};
+
     try {
-      const sb = getSupabase();
-      // Try by username first
-      let { data: users, error } = await sb
+      // Fetch all users matching username (case-insensitive)
+      const { data: byUsername, error: e1 } = await sb
         .from('users')
         .select('*')
-        .eq('username', username)
-        .eq('active', true)
-        .limit(1);
+        .ilike('username', username)
+        .limit(5);
 
-      // If not found by username, try by email
-      if ((!users || users.length === 0) && !error) {
-        const result = await sb
+      debugInfo.byUsername = { count: byUsername?.length, error: e1?.message };
+
+      if (byUsername && byUsername.length > 0) {
+        // Find one with matching password
+        const match = byUsername.find((u: any) =>
+          u.password_hash === password_hash &&
+          (u.active === true || u.active === 1 || u.active === null || u.active === undefined)
+        );
+        if (match) foundUser = match;
+      }
+
+      // Try by email if not found
+      if (!foundUser) {
+        const { data: byEmail, error: e2 } = await sb
           .from('users')
           .select('*')
-          .eq('email', username)
-          .eq('active', true)
-          .limit(1);
-        users = result.data;
-        error = result.error;
-      }
+          .ilike('email', username)
+          .limit(5);
 
-      if (!error && users && users.length > 0) {
-        const user = users[0];
-        if (user.password_hash === password_hash) {
-          foundUser = user;
+        debugInfo.byEmail = { count: byEmail?.length, error: e2?.message };
+
+        if (byEmail && byEmail.length > 0) {
+          const match = byEmail.find((u: any) =>
+            u.password_hash === password_hash &&
+            (u.active === true || u.active === 1 || u.active === null || u.active === undefined)
+          );
+          if (match) foundUser = match;
         }
       }
-    } catch (e) {
-      console.warn('Supabase users table lookup failed:', e);
+    } catch (e: any) {
+      debugInfo.exception = e.message;
+      console.warn('Supabase users lookup failed:', e.message);
     }
 
-    // 2. Fallback: hardcoded test accounts (for initial setup)
+    // 2. Fallback: hardcoded test accounts
     if (!foundUser) {
       const testUsers = [
-        { id: 1, username: 'admin', password: 'admin123', role: 'admin', full_name: 'Administrateur', email: 'admin@stock.dz', business_units: [] },
-        { id: 2, username: 'manager', password: 'manager123', role: 'manager', full_name: 'Manager', email: 'manager@stock.dz', business_units: [] },
-        { id: 3, username: 'user', password: 'user123', role: 'user', full_name: 'Utilisateur', email: 'user@stock.dz', business_units: [] }
+        { id: 1, username: 'admin',   password: 'admin123',   role: 'admin',   full_name: 'Administrateur', email: 'admin@stock.dz',   business_units: [], active: true },
+        { id: 2, username: 'manager', password: 'manager123', role: 'manager', full_name: 'Manager',         email: 'manager@stock.dz', business_units: [], active: true },
+        { id: 3, username: 'user',    password: 'user123',    role: 'user',    full_name: 'Utilisateur',     email: 'user@stock.dz',    business_units: [], active: true },
       ];
       const testUser = testUsers.find(u =>
-        (u.username === username || u.email === username) && u.password === password
+        (u.username.toLowerCase() === username.toLowerCase() ||
+         u.email.toLowerCase() === username.toLowerCase()) &&
+        u.password === password
       );
-      if (testUser) {
-        foundUser = { ...testUser, password_hash: null };
-      }
+      if (testUser) foundUser = testUser;
     }
 
     if (!foundUser) {
-      return NextResponse.json({ success: false, error: 'Identifiants incorrects' }, { status: 401 });
+      return NextResponse.json({
+        success: false,
+        error: 'Identifiants incorrects',
+        debug: debugInfo  // visible in browser console for diagnosis
+      }, { status: 401 });
     }
 
     // Generate token
     const token = Buffer.from(`${foundUser.username}:${Date.now()}`).toString('base64');
 
-    // Fetch available business units
+    // Fetch business units
     let businessUnits: any[] = [];
     try {
       const { data: buData } = await sb
         .from('business_units')
         .select('schema_name, bu_code, year, nom_entreprise')
-        .eq('active', true)
         .order('year', { ascending: false });
       businessUnits = buData || [];
     } catch { /* non critique */ }
 
-    // Filter BUs by user permissions (admin sees all)
-    const userBUs = foundUser.role === 'admin'
-      ? businessUnits
-      : businessUnits.filter(bu =>
-          (foundUser.business_units || []).includes(bu.schema_name)
-        );
+    const isAdmin = foundUser.role === 'admin';
+    const userBUSchemas = isAdmin
+      ? businessUnits.map((bu: any) => bu.schema_name)
+      : (foundUser.business_units || []);
 
     return NextResponse.json({
       success: true,
@@ -108,15 +123,13 @@ export async function POST(request: NextRequest) {
         email: foundUser.email,
         nom: foundUser.full_name || foundUser.nom || foundUser.username,
         role: foundUser.role,
-        business_units: foundUser.role === 'admin'
-          ? businessUnits.map((bu: any) => bu.schema_name)
-          : (foundUser.business_units || [])
+        business_units: userBUSchemas
       },
-      businessUnits: userBUs
+      businessUnits: isAdmin ? businessUnits : businessUnits.filter((bu: any) => userBUSchemas.includes(bu.schema_name))
     });
 
   } catch (error: any) {
     console.error('Error in login:', error);
-    return NextResponse.json({ success: false, error: 'Erreur serveur' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Erreur serveur: ' + error.message }, { status: 500 });
   }
 }
