@@ -1880,6 +1880,38 @@ export default function Dashboard() {
                         })
                       )}
                     </tbody>
+                    {/* ── TOTAUX DES ARTICLES FILTRÉS ── */}
+                    {getFilteredArticles().length > 0 && (() => {
+                      const filtered = getFilteredArticles();
+                      const fmt = (n: number) => (n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                      const totalPU = filtered.reduce((s, a) => s + (parseFloat(String(a.prix_unitaire || 0)) || 0), 0);
+                      const totalPV = filtered.reduce((s, a) => s + (parseFloat(String(a.prix_vente || 0)) || 0), 0);
+                      const totalStockF = filtered.reduce((s, a) => s + (parseFloat(String(a.stock_f || 0)) || 0), 0);
+                      const totalStockBL = filtered.reduce((s, a) => s + (parseFloat(String(a.stock_bl || 0)) || 0), 0);
+                      const valeurPA = filtered.reduce((s, a) => s + ((parseFloat(String(a.stock_f || 0)) || 0) * (parseFloat(String(a.prix_unitaire || 0)) || 0)), 0);
+                      const valeurPV = filtered.reduce((s, a) => s + ((parseFloat(String(a.stock_f || 0)) || 0) * (parseFloat(String(a.prix_vente || 0)) || 0)), 0);
+                      return (
+                        <tfoot>
+                          <tr style={{ background: 'var(--primary-color)', color: 'white', fontWeight: 700, fontSize: '12px' }}>
+                            <td style={{ padding: '10px 8px' }} colSpan={2}>
+                              📊 {filtered.length} article{filtered.length > 1 ? 's' : ''}
+                            </td>
+                            <td style={{ padding: '10px 8px' }}></td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right' }}>{fmt(totalPU)} DA</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right' }}>{fmt(totalPV)} DA</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right' }}></td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right' }}>{fmt(totalStockF)}</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right' }}>{fmt(totalStockBL)}</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right' }}>{fmt(totalStockF + totalStockBL)}</td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right', fontSize: '11px', lineHeight: 1.6 }}>
+                              <div>PA: {fmt(valeurPA)} DA</div>
+                              <div>PV: {fmt(valeurPV)} DA</div>
+                            </td>
+                            <td style={{ padding: '10px 8px' }}></td>
+                          </tr>
+                        </tfoot>
+                      );
+                    })()}
                   </table>
                   
                   {/* Pagination */}
