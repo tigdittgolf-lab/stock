@@ -12,6 +12,9 @@ interface PaymentSummary {
 interface Statistics {
   total_payments: number;
   total_amount: number;
+  total_avoirs?: number;
+  total_avoirs_amount?: number;
+  net_amount?: number;
   by_type: Record<string, PaymentSummary>;
   by_method: Record<string, PaymentSummary>;
   by_month: Record<string, PaymentSummary>;
@@ -208,21 +211,35 @@ export default function PaymentsReport() {
             <div className={styles.formSection} style={{ marginBottom: '2rem' }}>
               <h2>📈 Résumé Global</h2>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '0.9rem', color: '#666' }}>Total paiements</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#28a745' }}>
-                    {statistics.total_amount.toFixed(2)} DA
+                <div style={{ padding: '1rem', background: 'var(--background-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Total encaissé</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--success-color)' }}>
+                    {(statistics.total_amount || 0).toFixed(2)} DA
                   </div>
                 </div>
-                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '0.9rem', color: '#666' }}>Nombre de paiements</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+                <div style={{ padding: '1rem', background: 'var(--background-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Nombre de paiements</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
                     {statistics.total_payments}
                   </div>
                 </div>
-                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '0.9rem', color: '#666' }}>Paiement moyen</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+                {(statistics as any).total_avoirs_amount > 0 && (
+                  <div style={{ padding: '1rem', background: 'var(--error-bg)', borderRadius: '8px', border: '1px solid var(--error-border)' }}>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--error-text)' }}>Avoirs / Retours ({(statistics as any).total_avoirs})</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--error-color)' }}>
+                      -{(statistics as any).total_avoirs_amount.toFixed(2)} DA
+                    </div>
+                  </div>
+                )}
+                <div style={{ padding: '1rem', background: 'var(--primary-color)', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)' }}>Net (paiements - avoirs)</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white' }}>
+                    {((statistics as any).net_amount ?? statistics.total_amount).toFixed(2)} DA
+                  </div>
+                </div>
+                <div style={{ padding: '1rem', background: 'var(--background-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Paiement moyen</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
                     {statistics.total_payments > 0 
                       ? (statistics.total_amount / statistics.total_payments).toFixed(2)
                       : '0.00'} DA

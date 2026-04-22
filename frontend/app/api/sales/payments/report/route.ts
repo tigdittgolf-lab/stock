@@ -77,13 +77,32 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Also fetch avoirs (credit notes) for the same period
+    let avoirs: any[] = [];
+    try {
+      let avoirUrl = `${SUPABASE_URL}/rest/v1/avoir?tenant=eq.${tenant}&select=*`;
+      if (dateFrom) avoirUrl += `&date_avoir=gte.${dateFrom}`;
+      if (dateTo) avoirUrl += `&date_avoir=lte.${dateTo}`;
+      const avoirRes = await fetch(avoirUrl, {
+        headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`, 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (avoirRes.ok) avoirs = await avoirRes.json();
+    } catch { /* non critique */ }
+
+    const totalAvoirs = avoirs.reduce((s: number, a: any) => s + parseFloat(a.montant_ttc || 0), 0);
+
     return NextResponse.json({
       success: true,
       data: {
         payments,
+        avoirs,
         statistics: {
           total_payments: payments.length,
           total_amount: totalAmount,
+          total_avoirs: avoirs.length,
+          total_avoirs_amount: totalAvoirs,
+          net_amount: totalAmount - totalAvoirs,  // paiements nets après avoirs
           by_type: byType,
           by_method: byMethod,
           by_month: byMonth,

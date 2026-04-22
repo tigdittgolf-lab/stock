@@ -31,33 +31,33 @@ export async function GET(request: NextRequest) {
     cutoffDate.setDate(cutoffDate.getDate() - parseInt(days));
     const cutoff = cutoffDate.toISOString().split('T')[0];
 
-    // Get overdue BL (delivery notes with unpaid balance)
+    // Get overdue BL (delivery notes with unpaid balance, net of avoirs)
     const { data: blData } = await supabaseAdmin.rpc('exec_sql', {
       sql: `
         SELECT 
-          b.nbl as document_ref,
+          b."NFact" as document_ref,
           'delivery_note' as document_type,
           b."Nclient" as nclient,
           c."Raison_sociale" as client_name,
-          b.montant_ttc as total_amount,
+          b.montant_ht + b."TVA" as total_amount,
           COALESCE((
-            SELECT SUM(p.montant) FROM public.payments p
-            WHERE p.document_ref = b.nbl::text 
+            SELECT SUM(p.amount) FROM public.payments p
+            WHERE p.document_id::text = b."NFact"::text 
               AND p.document_type = 'delivery_note'
-              AND p.tenant = '${tenant}'
+              AND p.tenant_id = '${tenant}'
           ), 0) as paid_amount,
+          COALESCE((
+            SELECT SUM(a.montant_ttc) FROM public.avoir a
+            WHERE a.document_ref::text = b."NFact"::text 
+              AND a.document_type = 'bl'
+              AND a.tenant = '${tenant}'
+          ), 0) as avoir_amount,
           b.date_fact as document_date
         FROM "${tenant}".bl b
         LEFT JOIN "${tenant}".client c ON b."Nclient" = c."Nclient"
         WHERE b.date_fact <= '${cutoff}'
-          AND b.montant_ttc > COALESCE((
-            SELECT SUM(p.montant) FROM public.payments p
-            WHERE p.document_ref = b.nbl::text 
-              AND p.document_type = 'delivery_note'
-              AND p.tenant = '${tenant}'
-          ), 0)
         ORDER BY b.date_fact ASC
-        LIMIT 100;
+        LIMIT 200;
       `
     });
 
@@ -68,10 +68,12 @@ export async function GET(request: NextRequest) {
       client_name: row.client_name,
       total_amount: parseFloat(row.total_amount || 0),
       paid_amount: parseFloat(row.paid_amount || 0),
-      remaining: parseFloat(row.total_amount || 0) - parseFloat(row.paid_amount || 0),
+      avoir_amount: parseFloat(row.avoir_amount || 0),
+      // Net balance = total - paid - avoirs
+      remaining: Math.max(0, parseFloat(row.total_amount || 0) - parseFloat(row.paid_amount || 0) - parseFloat(row.avoir_amount || 0)),
       document_date: row.document_date,
       days_overdue: Math.floor((Date.now() - new Date(row.document_date).getTime()) / 86400000)
-    })).filter((r: any) => r.remaining > 0);
+    })).filter((r: any) => r.remaining > 0.01);
 
     return NextResponse.json({ success: true, data: results, source: 'supabase_direct' });
   } catch (error) {
