@@ -32,7 +32,7 @@
   font-size: 20px;
   color: #fd7e14;
   font-weight: 600;
-  background: #fff3e0;
+  background: rgba(253, 126, 20, 0.12);
   padding: 8px 16px;
   border-radius: 8px;
 }
@@ -244,18 +244,18 @@
 }
 
 .stockBadge.high {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
 .stockBadge.medium {
-  background: #fed7aa;
-  color: #92400e;
+  background: var(--warning-bg);
+  color: var(--warning-text);
 }
 
 .stockBadge.low {
-  background: #fecaca;
-  color: #991b1b;
+  background: var(--error-bg);
+  color: var(--error-text);
 }
 
 /* Ligne d'article */
@@ -410,12 +410,12 @@
 
 .debtAlert {
   padding: 14px 18px;
-  background: #fff3cd;
-  border: 1px solid #ffc107;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
   border-radius: 8px;
   margin-top: 15px;
   font-weight: 600;
-  color: #856404;
+  color: var(--warning-text);
 }
 
 /* Actions */
@@ -479,20 +479,20 @@
 /* Messages */
 .errorMsg {
   padding: 14px 18px;
-  background: #f8d7da;
-  border: 1px solid #f5c6cb;
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
   border-radius: 8px;
-  color: #721c24;
+  color: var(--error-text);
   margin: 15px 30px;
   font-weight: 500;
 }
 
 .successMsg {
   padding: 14px 18px;
-  background: #d4edda;
-  border: 1px solid #c3e6cb;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
   border-radius: 8px;
-  color: #155724;
+  color: var(--success-text);
   margin: 15px 30px;
   font-weight: 500;
 }
@@ -501,11 +501,11 @@
 .articlesInfo {
   margin-bottom: 15px;
   padding: 10px 16px;
-  background: #e7f3ff;
-  border: 1px solid #b8daff;
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
   border-radius: 8px;
   font-size: 14px;
-  color: #004085;
+  color: var(--info-text);
 }
 
 /* ===== RESPONSIVE ===== */
@@ -559,10 +559,3 @@
   background: linear-gradient(135deg, #7c3a00 0%, #9a4500 100%) !important;
   border: 1px solid #c05a00;
 }
-:root[data-theme="dark"] .docNumber {
-  background: #3d1f00;
-  color: #ffb74d;
-}
-:root[data-theme="dark"] .stockBadge.high { background: #064e3b; color: #6ee7b7; }
-:root[data-theme="dark"] .stockBadge.medium { background: #78350f; color: #fcd34d; }
-:root[data-theme="dark"] .stockBadge.low { background: #7f1d1d; color: #fca5a5; }
