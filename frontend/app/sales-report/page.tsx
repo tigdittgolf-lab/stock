@@ -27,6 +27,8 @@ interface SalesTotals {
   total_ttc: number;
   total_marge: number;
   marge_percentage_avg: number;
+  total_avoirs?: number;
+  net_ttc?: number;
 }
 
 export default function SalesReport() {
@@ -45,30 +47,27 @@ export default function SalesReport() {
     dateFrom: '',
     dateTo: '',
     clientCode: '',
-    type: 'ALL', // ALL, BL, FACTURE
+    type: 'ALL',
     todayOnly: false
   });
 
-  // Calculer les données paginées
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentSales = sales.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(sales.length / itemsPerPage);
 
-  // Réinitialiser Ã  la page 1 quand les filtres changent
   useEffect(() => {
     setCurrentPage(1);
   }, [filters, itemsPerPage]);
 
   useEffect(() => {
-    // Initialiser avec une plage plus large par défaut
     const today = new Date().toISOString().split('T')[0];
     const startOfYear = '2025-01-01';
     setFilters(prev => ({
       ...prev,
       dateFrom: startOfYear,
       dateTo: today,
-      todayOnly: false // Désactiver le filtre "aujourd'hui seulement" par défaut
+      todayOnly: false
     }));
   }, []);
 
@@ -82,10 +81,9 @@ export default function SalesReport() {
     try {
       setLoading(true);
       setError('');
-      
+
       const tenant = localStorage.getItem('selectedTenant') || '2025_bu01';
-      
-      // Construire les paramètres de requÃªte
+
       const params = new URLSearchParams({
         dateFrom: filters.dateFrom,
         dateTo: filters.dateTo,
@@ -93,25 +91,23 @@ export default function SalesReport() {
         ...(filters.clientCode && { clientCode: filters.clientCode })
       });
 
-      console.log('ðŸ” Fetching sales data with filters:', filters);
-      
+      console.log('🔍 Fetching sales data with filters:', filters);
+
       const response = await fetch(`/api/sales/report?${params}`, {
-        headers: {
-          'X-Tenant': tenant
-        }
+        headers: { 'X-Tenant': tenant }
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         setSales(result.data.sales || []);
         setTotals(result.data.totals || null);
-        console.log('âœ… Sales data loaded:', result.data);
+        console.log('✅ Sales data loaded:', result.data);
       } else {
         setError(result.error || 'Erreur lors du chargement');
       }
-    } catch (error) {
-      console.error('❌ Error fetching sales data:', error);
+    } catch (err) {
+      console.error('❌ Error fetching sales data:', err);
       setError('Erreur de connexion');
     } finally {
       setLoading(false);
@@ -121,14 +117,11 @@ export default function SalesReport() {
   const handleFilterChange = (field: string, value: any) => {
     setFilters(prev => {
       const newFilters = { ...prev, [field]: value };
-      
-      // Si "Aujourd'hui seulement" est coché, mettre les dates Ã  aujourd'hui
       if (field === 'todayOnly' && value) {
         const today = new Date().toISOString().split('T')[0];
         newFilters.dateFrom = today;
         newFilters.dateTo = today;
       }
-      
       return newFilters;
     });
   };
@@ -145,24 +138,17 @@ export default function SalesReport() {
   };
 
   const formatAmount = (amount: number | undefined | null) => {
-    if (amount === undefined || amount === null || isNaN(amount)) {
-      return '0.00';
-    }
+    if (amount === undefined || amount === null || isNaN(amount)) return '0.00';
     return Number(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   };
 
-  const getTypeColor = (type: string) => {
-    return type === 'BL' ? '#17a2b8' : '#28a745';
-  };
-
-  const getTypeIcon = (type: string) => {
-    return type === 'BL' ? 'ðŸ“¦' : 'ðŸ§¾';
-  };
+  const getTypeColor = (type: string) => type === 'BL' ? '#17a2b8' : '#28a745';
+  const getTypeIcon = (type: string) => type === 'BL' ? '📦' : '🧾';
 
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1>ðŸ“Š Rapport des Ventes</h1>
+        <h1>📊 Rapport des Ventes</h1>
         <div>
           <button onClick={() => router.push('/dashboard')} className={styles.secondaryButton}>
             Retour
@@ -173,7 +159,7 @@ export default function SalesReport() {
       <main className={styles.main}>
         {/* Filtres */}
         <div className={styles.formSection} style={{ marginBottom: '20px' }}>
-          <h2>ðŸ” Filtres</h2>
+          <h2>🔍 Filtres</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', alignItems: 'end' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
@@ -183,12 +169,7 @@ export default function SalesReport() {
                 type="date"
                 value={filters.dateFrom}
                 onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
+                style={{ width: '100%', padding: '8px', border: '1px solid var(--border-color)', borderRadius: '4px', background: 'var(--input-background)', color: 'var(--text-primary)' }}
               />
             </div>
 
@@ -200,12 +181,7 @@ export default function SalesReport() {
                 type="date"
                 value={filters.dateTo}
                 onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
+                style={{ width: '100%', padding: '8px', border: '1px solid var(--border-color)', borderRadius: '4px', background: 'var(--input-background)', color: 'var(--text-primary)' }}
               />
             </div>
 
@@ -216,12 +192,7 @@ export default function SalesReport() {
               <select
                 value={filters.type}
                 onChange={(e) => handleFilterChange('type', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
+                style={{ width: '100%', padding: '8px', border: '1px solid var(--border-color)', borderRadius: '4px', background: 'var(--input-background)', color: 'var(--text-primary)' }}
               >
                 <option value="ALL">Tous les documents</option>
                 <option value="BL">Bons de livraison seulement</option>
@@ -238,12 +209,7 @@ export default function SalesReport() {
                 value={filters.clientCode}
                 onChange={(e) => handleFilterChange('clientCode', e.target.value)}
                 placeholder="Ex: CL01"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
+                style={{ width: '100%', padding: '8px', border: '1px solid var(--border-color)', borderRadius: '4px', background: 'var(--input-background)', color: 'var(--text-primary)' }}
               />
             </div>
 
@@ -254,16 +220,12 @@ export default function SalesReport() {
                   checked={filters.todayOnly}
                   onChange={(e) => handleFilterChange('todayOnly', e.target.checked)}
                 />
-                <span style={{ fontWeight: 'bold' }}>Aujourd'hui seulement</span>
+                <span style={{ fontWeight: 'bold' }}>{"Aujourd'hui seulement"}</span>
               </label>
             </div>
 
             <div>
-              <button
-                onClick={resetFilters}
-                className={styles.secondaryButton}
-                style={{ width: '100%' }}
-              >
+              <button onClick={resetFilters} className={styles.secondaryButton} style={{ width: '100%' }}>
                 🔄 Réinitialiser
               </button>
             </div>
@@ -272,32 +234,44 @@ export default function SalesReport() {
 
         {/* Totaux */}
         {totals && (
-          <div className={styles.formSection} style={{ marginBottom: '20px', background: '#f8f9fa' }}>
-            <h2>ðŸ“ˆ Résumé</h2>
+          <div className={styles.formSection} style={{ marginBottom: '20px', background: 'var(--background-secondary)' }}>
+            <h2>📈 Résumé</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
-              <div style={{ textAlign: 'center', padding: '10px', background: 'white', borderRadius: '5px' }}>
+              <div style={{ textAlign: 'center', padding: '10px', background: 'var(--card-background)', borderRadius: '5px' }}>
                 <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#17a2b8' }}>{totals.count_bl}</div>
-                <div style={{ fontSize: '0.9rem', color: '#666' }}>Bons de livraison</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Bons de livraison</div>
               </div>
-              <div style={{ textAlign: 'center', padding: '10px', background: 'white', borderRadius: '5px' }}>
+              <div style={{ textAlign: 'center', padding: '10px', background: 'var(--card-background)', borderRadius: '5px' }}>
                 <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#28a745' }}>{totals.count_factures}</div>
-                <div style={{ fontSize: '0.9rem', color: '#666' }}>Factures</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Factures</div>
               </div>
-              <div style={{ textAlign: 'center', padding: '10px', background: 'white', borderRadius: '5px' }}>
+              <div style={{ textAlign: 'center', padding: '10px', background: 'var(--card-background)', borderRadius: '5px' }}>
                 <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#007bff' }}>{totals.total_count}</div>
-                <div style={{ fontSize: '0.9rem', color: '#666' }}>Total documents</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Total documents</div>
               </div>
-              <div style={{ textAlign: 'center', padding: '10px', background: 'white', borderRadius: '5px' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc3545' }}>{formatAmount(totals.total_ttc)} DA</div>
-                <div style={{ fontSize: '0.9rem', color: '#666' }}>Chiffre d'affaires TTC</div>
+              <div style={{ textAlign: 'center', padding: '10px', background: 'var(--card-background)', borderRadius: '5px' }}>
+                <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#dc3545' }}>{formatAmount(totals.total_ttc)} DA</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>CA Brut TTC</div>
               </div>
-              <div style={{ textAlign: 'center', padding: '10px', background: 'white', borderRadius: '5px' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ffc107' }}>{formatAmount(totals.total_marge)} DA</div>
-                <div style={{ fontSize: '0.9rem', color: '#666' }}>Marge totale</div>
+              {totals.total_avoirs !== undefined && totals.total_avoirs > 0 && (
+                <div style={{ textAlign: 'center', padding: '10px', background: 'var(--card-background)', borderRadius: '5px', border: '1px solid #dc3545' }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#dc3545' }}>- {formatAmount(totals.total_avoirs)} DA</div>
+                  <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Avoirs / Retours</div>
+                </div>
+              )}
+              {totals.net_ttc !== undefined && totals.total_avoirs !== undefined && totals.total_avoirs > 0 && (
+                <div style={{ textAlign: 'center', padding: '10px', background: 'var(--card-background)', borderRadius: '5px', border: '2px solid #28a745' }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#28a745' }}>{formatAmount(totals.net_ttc)} DA</div>
+                  <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>CA Net TTC</div>
+                </div>
+              )}
+              <div style={{ textAlign: 'center', padding: '10px', background: 'var(--card-background)', borderRadius: '5px' }}>
+                <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#ffc107' }}>{formatAmount(totals.total_marge)} DA</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Marge totale</div>
               </div>
-              <div style={{ textAlign: 'center', padding: '10px', background: 'white', borderRadius: '5px' }}>
+              <div style={{ textAlign: 'center', padding: '10px', background: 'var(--card-background)', borderRadius: '5px' }}>
                 <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#6f42c1' }}>{totals.marge_percentage_avg.toFixed(1)}%</div>
-                <div style={{ fontSize: '0.9rem', color: '#666' }}>Marge moyenne</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Marge moyenne</div>
               </div>
             </div>
           </div>
@@ -315,23 +289,19 @@ export default function SalesReport() {
           </div>
         ) : sales.length === 0 ? (
           <div className={styles.formSection} style={{ textAlign: 'center' }}>
-            <h2>ðŸ“­ Aucune vente trouvée</h2>
+            <h2>🔭 Aucune vente trouvée</h2>
             <p>Aucune vente ne correspond aux critères sélectionnés.</p>
           </div>
         ) : (
           <div className={styles.tableContainer}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h2>ðŸ“‹ Détail des Ventes ({sales.length} documents)</h2>
+              <h2>📋 Détail des Ventes ({sales.length} documents)</h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <label style={{ fontWeight: 'bold' }}>Lignes par page:</label>
                 <select
                   value={itemsPerPage}
                   onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                  style={{
-                    padding: '5px 10px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px'
-                  }}
+                  style={{ padding: '5px 10px', border: '1px solid var(--border-color)', borderRadius: '4px', background: 'var(--input-background)', color: 'var(--text-primary)' }}
                 >
                   <option value={10}>10</option>
                   <option value={25}>25</option>
@@ -341,12 +311,12 @@ export default function SalesReport() {
                 </select>
               </div>
             </div>
-            
+
             <table className={styles.table}>
               <thead>
                 <tr>
                   <th>Type</th>
-                  <th>NÂ°</th>
+                  <th>N°</th>
                   <th>Date</th>
                   <th>Client</th>
                   <th style={{ textAlign: 'right' }}>Montant HT</th>
@@ -358,16 +328,10 @@ export default function SalesReport() {
                 </tr>
               </thead>
               <tbody>
-                {currentSales.map((sale, index) => (
+                {currentSales.map((sale) => (
                   <tr key={`${sale.type}-${sale.numero}`}>
                     <td>
-                      <span style={{ 
-                        color: getTypeColor(sale.type), 
-                        fontWeight: 'bold',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px'
-                      }}>
+                      <span style={{ color: getTypeColor(sale.type), fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
                         {getTypeIcon(sale.type)} {sale.type}
                       </span>
                     </td>
@@ -377,7 +341,7 @@ export default function SalesReport() {
                       <div>
                         <strong>{sale.client_code}</strong>
                         <br />
-                        <small style={{ color: '#666' }}>{sale.client_name}</small>
+                        <small style={{ color: 'var(--text-secondary)' }}>{sale.client_name}</small>
                       </div>
                     </td>
                     <td style={{ textAlign: 'right' }}>{formatAmount(sale.montant_ht)} DA</td>
@@ -415,37 +379,31 @@ export default function SalesReport() {
                 gap: '10px',
                 marginTop: '20px',
                 padding: '15px',
-                background: '#f8f9fa',
+                background: 'var(--background-secondary)',
                 borderRadius: '5px'
               }}>
                 <button
                   onClick={() => setCurrentPage(1)}
                   disabled={currentPage === 1}
                   className={styles.secondaryButton}
-                  style={{
-                    opacity: currentPage === 1 ? 0.5 : 1,
-                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
-                  }}
+                  style={{ opacity: currentPage === 1 ? 0.5 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
                 >
-                  â®ï¸ Début
+                  ⏮️ Début
                 </button>
-                
+
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
                   className={styles.secondaryButton}
-                  style={{
-                    opacity: currentPage === 1 ? 0.5 : 1,
-                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
-                  }}
+                  style={{ opacity: currentPage === 1 ? 0.5 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
                 >
-                  â—€ï¸ Précédent
+                  ◀️ Précédent
                 </button>
 
                 <span style={{ fontWeight: 'bold', padding: '0 15px' }}>
                   Page {currentPage} sur {totalPages}
                   <br />
-                  <small style={{ color: '#666' }}>
+                  <small style={{ color: 'var(--text-secondary)' }}>
                     ({indexOfFirstItem + 1}-{Math.min(indexOfLastItem, sales.length)} sur {sales.length})
                   </small>
                 </span>
@@ -454,24 +412,18 @@ export default function SalesReport() {
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
                   className={styles.secondaryButton}
-                  style={{
-                    opacity: currentPage === totalPages ? 0.5 : 1,
-                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
-                  }}
+                  style={{ opacity: currentPage === totalPages ? 0.5 : 1, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
                 >
-                  Suivant â–¶ï¸
+                  Suivant ▶️
                 </button>
 
                 <button
                   onClick={() => setCurrentPage(totalPages)}
                   disabled={currentPage === totalPages}
                   className={styles.secondaryButton}
-                  style={{
-                    opacity: currentPage === totalPages ? 0.5 : 1,
-                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
-                  }}
+                  style={{ opacity: currentPage === totalPages ? 0.5 : 1, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
                 >
-                  Fin â­ï¸
+                  Fin ⏭️
                 </button>
               </div>
             )}
