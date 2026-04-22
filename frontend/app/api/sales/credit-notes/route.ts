@@ -157,6 +157,21 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Déduire le montant de l'avoir du CA client
+    // C_affaire_bl pour les BL, C_affaire_fact pour les factures
+    const caCol = document_type === 'bl' ? 'C_affaire_bl' : 'C_affaire_fact';
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
+        method: 'POST',
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sql: `UPDATE "${tenant}"."client" SET "${caCol}" = COALESCE("${caCol}", 0) - ${montant_ttc} WHERE "Nclient" = '${nclient}'`
+        }),
+      });
+    } catch (e) {
+      console.warn('[credit-notes] CA update failed (non critique):', e);
+    }
+
     return NextResponse.json({
       success: true,
       message: `Avoir N°${avoir.id} créé avec succès`,
