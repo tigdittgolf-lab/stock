@@ -354,7 +354,12 @@ frontend/.env.local
 
 # --- 8. Creation du ZIP final ---
 Write-Step "Creation du ZIP final"
-$zipPath = "$OutDir.zip"
+$outName = Split-Path -Leaf $OutDir
+# Le ZIP est ecrit dans un sous-dossier dedie : certaines racines de lecteur
+# (ex: D:\) interdisent la creation de fichiers directement a la racine.
+$zipDist = Join-Path (Split-Path -Parent $OutDir) "$outName-zip"
+New-Item -ItemType Directory -Force -Path $zipDist | Out-Null
+$zipPath = Join-Path $zipDist "$outName.zip"
 if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
 $compressStart = Get-Date
 $totalMB = (Get-ChildItem -Recurse $OutDir | Measure-Object -Property Length -Sum).Sum / 1MB
