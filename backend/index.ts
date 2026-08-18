@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { serve } from '@hono/node-server';
 import { setupDatabase } from './src/setupDatabase.js';
 import { databaseMiddleware } from './src/middleware/databaseMiddleware.js';
 import articles from './src/routes/articles-clean.js';
@@ -26,6 +27,8 @@ import database from './src/routes/database.js';
 import whatsapp from './src/routes/whatsapp.js';
 import migrations from './routes/migrations.js';
 import company from './src/routes/company.js';
+import license from './src/routes/license.js';
+import { licenseGuard } from './src/middleware/licenseGuard.js';
 
 const app = new Hono();
 
@@ -79,6 +82,16 @@ app.use('/*', async (c, next) => {
 // IMPORTANT: Database middleware - Configure la base de données pour chaque requête
 app.use('/api/*', databaseMiddleware);
 
+// Garde de licence sur les opérations métier transactionnelles
+// (blocage 402 si non activé). La démo/paramétrage (articles, clients,
+// fournisseurs, familles, settings) reste accessible sans licence.
+// Les guards sont déclarés AVANT les routes pour être exécutés en premier.
+app.use('/api/sales/*', licenseGuard);
+app.use('/api/purchases/*', licenseGuard);
+app.use('/api/stock/*', licenseGuard);
+app.use('/api/pdf/*', licenseGuard);
+app.use('/api/reports/*', licenseGuard);
+
 // API Routes
 app.route('/api/articles', articles);
 app.route('/api/clients', clients);
@@ -116,6 +129,9 @@ try {
   console.error('❌ Failed to register purchases routes:', error);
 }
 
+// Licence : état + activation (toujours accessible)
+app.route('/api/license', license);
+
 // Health check
 app.get('/health', (c) => c.json({ status: 'OK', timestamp: new Date().toISOString() }));
 
@@ -142,6 +158,7 @@ app.get('/', (c) => c.json({
     admin: '/api/admin',
     company: '/api/company',
     whatsapp: '/api/whatsapp',
+    license: '/api/license',
     health: '/health'
   }
 }));
@@ -162,10 +179,10 @@ if (import.meta.main) {
       const port = process.env.PORT || 3005;
       console.log(`Server starting on port ${port}...`);
 
-      // Start server
-      Bun.serve({
-        port,
+      // Start server (Node.js compatible via @hono/node-server)
+      serve({
         fetch: app.fetch,
+        port: Number(port),
       });
 
       console.log(`🚀 Stock Management API is running on http://localhost:${port}`);

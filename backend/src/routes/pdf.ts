@@ -3,7 +3,8 @@ import { supabaseAdmin } from '../supabaseClient.js';
 import { backendDatabaseService } from '../services/databaseService.js';
 import { PDFService } from '../services/pdfService.js';
 import { numberToWords } from '../utils/numberToWords.js';
-import { createdDocumentsCache } from './sales.js';
+// Cache local pour les documents (utilise uniquement dans ce module)
+const createdDocumentsCache = new Map<string, any[]>();
 
 const pdf = new Hono();
 

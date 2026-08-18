@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from '@/utils/supabase';
 import { getApiUrl } from '@/lib/api';
@@ -13,7 +13,26 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedDatabase, setSelectedDatabase] = useState<'supabase' | 'mysql' | 'mariadb' | 'postgresql'>('supabase');
+  const [activeDbName, setActiveDbName] = useState<string | null>(null);
+
+  // Récupérer la base active depuis le backend (badge informatif uniquement)
+  useEffect(() => {
+    const loadDb = async () => {
+      try {
+        const res = await fetch(getApiUrl('database-config'));
+        const data = await res.json();
+        const cfg = data?.data;
+        if (cfg && cfg.name) {
+          setActiveDbName(cfg.name);
+          const type = cfg.type || 'supabase';
+          localStorage.setItem('activeDbConfig', JSON.stringify({ type, name: cfg.name, ...cfg }));
+        }
+      } catch (e) {
+        console.warn('Impossible de lire la base active:', e);
+      }
+    };
+    loadDb();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,62 +40,21 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Configurer la base de données AVANT la connexion
-      const dbConfigs = {
-        supabase: {
-          type: 'supabase',
-          name: 'Supabase Cloud',
-          supabaseUrl: 'https://szgodrjglbpzkrksnroi.supabase.co'
-        },
-        mysql: {
-          type: 'mysql',
-          name: 'MySQL Local',
-          host: 'localhost',
-          port: 3306,
-          database: 'stock_management',
-          username: 'root',
-          password: ''
-        },
-        mariadb: {
-          type: 'mysql',
-          name: 'MariaDB Local (WAMP)',
-          host: 'localhost',
-          port: 3307,
-          database: 'stock_management',
-          username: 'root',
-          password: ''
-        },
-        postgresql: {
-          type: 'postgresql',
-          name: 'PostgreSQL Local',
-          host: 'localhost',
-          port: 5432,
-          database: 'stock_management',
-          username: 'postgres',
-          password: 'postgres'
-        }
-      };
+      // La base de données active est celle configurée sur le serveur (persistante)
+      let dbType = 'supabase';
+      try {
+        const cfg = localStorage.getItem('activeDbConfig');
+        if (cfg) dbType = JSON.parse(cfg).type || 'supabase';
+      } catch { /* ignore */ }
 
-      const dbConfig = dbConfigs[selectedDatabase];
-      
-      // Sauvegarder la configuration de la base de données
-      localStorage.setItem('activeDbConfig', JSON.stringify({
-        ...dbConfig,
-        isActive: true,
-        lastTested: new Date().toISOString()
-      }));
-
-      console.log(`📊 Base de données sélectionnée: ${dbConfig.name}`);
-
-      // Pour MariaDB, on envoie 'mysql' comme type au backend
-      const backendDbType = selectedDatabase === 'mariadb' ? 'mysql' : selectedDatabase;
+      console.log(`📊 Base de données active: ${dbType}`);
 
       // Utiliser le nouveau système d'authentification
       const response = await fetch(getApiUrl('auth-real/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Database-Type': backendDbType
+          'X-Database-Type': dbType
         },
         body: JSON.stringify({
           username: email, // Accepte email OU username
@@ -123,125 +101,33 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Sélection de la base de données */}
+          {/* Base de données active (badge informatif - configurable par l'admin dans Paramètres) */}
           <div className={styles.formGroup}>
-            <label htmlFor="database">Base de données</label>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '1fr 1fr', 
-              gap: '10px',
-              marginTop: '8px'
+            <label htmlFor="database">Base de données active</label>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginTop: '8px',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              background: '#e7f3ff',
+              border: '1px solid #b8daff',
             }}>
-              <button
-                type="button"
-                onClick={() => setSelectedDatabase('supabase')}
-                disabled={loading}
-                style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: selectedDatabase === 'supabase' ? '2px solid #3ecf8e' : '1px solid #e5e7eb',
-                  backgroundColor: selectedDatabase === 'supabase' ? '#3ecf8e15' : 'white',
-                  color: selectedDatabase === 'supabase' ? '#3ecf8e' : '#6b7280',
-                  fontSize: '13px',
-                  fontWeight: selectedDatabase === 'supabase' ? '600' : '400',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <span style={{ fontSize: '24px' }}>☁️</span>
-                <span>Supabase</span>
-                <span style={{ fontSize: '10px', opacity: 0.7 }}>Cloud</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedDatabase('mysql')}
-                disabled={loading}
-                style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: selectedDatabase === 'mysql' ? '2px solid #00758f' : '1px solid #e5e7eb',
-                  backgroundColor: selectedDatabase === 'mysql' ? '#00758f15' : 'white',
-                  color: selectedDatabase === 'mysql' ? '#00758f' : '#6b7280',
-                  fontSize: '13px',
-                  fontWeight: selectedDatabase === 'mysql' ? '600' : '400',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <span style={{ fontSize: '24px' }}>🐬</span>
-                <span>MySQL</span>
-                <span style={{ fontSize: '10px', opacity: 0.7 }}>Port 3306</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedDatabase('mariadb')}
-                disabled={loading}
-                style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: selectedDatabase === 'mariadb' ? '2px solid #c0765a' : '1px solid #e5e7eb',
-                  backgroundColor: selectedDatabase === 'mariadb' ? '#c0765a15' : 'white',
-                  color: selectedDatabase === 'mariadb' ? '#c0765a' : '#6b7280',
-                  fontSize: '13px',
-                  fontWeight: selectedDatabase === 'mariadb' ? '600' : '400',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <span style={{ fontSize: '24px' }}>🦭</span>
-                <span>MariaDB</span>
-                <span style={{ fontSize: '10px', opacity: 0.7 }}>WAMP 3307</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedDatabase('postgresql')}
-                disabled={loading}
-                style={{
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: selectedDatabase === 'postgresql' ? '2px solid #336791' : '1px solid #e5e7eb',
-                  backgroundColor: selectedDatabase === 'postgresql' ? '#33679115' : 'white',
-                  color: selectedDatabase === 'postgresql' ? '#336791' : '#6b7280',
-                  fontSize: '13px',
-                  fontWeight: selectedDatabase === 'postgresql' ? '600' : '400',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <span style={{ fontSize: '24px' }}>🐘</span>
-                <span>PostgreSQL</span>
-                <span style={{ fontSize: '10px', opacity: 0.7 }}>Port 5432</span>
-              </button>
+              <span style={{ fontSize: '24px' }}>
+                {activeDbName?.toLowerCase().includes('supabase') ? '☁️' : activeDbName?.toLowerCase().includes('postgres') ? '🐘' : activeDbName?.toLowerCase().includes('maria') ? '🦭' : '🐬'}
+              </span>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: '#004085' }}>
+                {activeDbName || 'Chargement...'}
+              </span>
             </div>
-            <p style={{ 
-              fontSize: '12px', 
-              color: '#6b7280', 
+            <p style={{
+              fontSize: '12px',
+              color: '#6b7280',
               marginTop: '8px',
               textAlign: 'center'
             }}>
-              {selectedDatabase === 'supabase' && '☁️ Base de données cloud hébergée'}
-              {selectedDatabase === 'mysql' && '🐬 Base de données MySQL locale (port 3306)'}
-              {selectedDatabase === 'mariadb' && '🦭 Base de données MariaDB locale WAMP (port 3307)'}
-              {selectedDatabase === 'postgresql' && '🐘 Base de données PostgreSQL locale (port 5432)'}
+              La base est configurée lors de l'installation. L'administrateur peut la modifier dans Paramètres.
             </p>
           </div>
 

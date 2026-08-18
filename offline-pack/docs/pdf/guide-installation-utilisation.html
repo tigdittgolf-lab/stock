@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>StockApp — Guide d'installation et d'utilisation</title>
+<style>
+  /* ============================================================
+     PALETTE — identique à la présentation actionnaires
+     ============================================================ */
+  :root {
+    --primary:        #1e3a5f;
+    --primary-soft:   #2c5282;
+    --accent:         #0e7c66;
+    --accent-soft:    #e6f4f1;
+    --gold:           #c8a24a;
+    --warn:           #b8741a;     /* orange — pour les ⚠️ */
+    --warn-soft:      #fbf1e2;
+    --info:           #2c5282;     /* bleu — pour les 💡/ℹ️ */
+    --info-soft:      #eaf0f8;
+    --bg-dark:        #0f1f33;
+    --bg-page:        #ffffff;
+    --bg-tint:        #f4f7fb;
+    --bg-code:        #0f2438;     /* fond des blocs de code */
+    --text:           #1a2332;
+    --text-muted:     #5a6b80;
+    --border:         #dce3ec;
+    --rule:           #c9d4e0;
+  }
+
+  @page { size: A4; margin: 0; }
+
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-page);
+    color: var(--text);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    width: 210mm; height: 297mm;
+    box-sizing: border-box;
+    position: relative; overflow: hidden;
+    page-break-after: always; break-after: page;
+    display: flex; flex-direction: column;
+  }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+
+  /* ============================================================
+     COVER
+     ============================================================ */
+  .cover {
+    background: linear-gradient(160deg, var(--bg-dark) 0%, #142a45 55%, var(--primary) 100%);
+    color: #fff; padding: 0;
+  }
+  .cover-inner {
+    position: absolute; inset: 22mm 20mm;
+    display: flex; flex-direction: column;
+  }
+  .cover-kicker {
+    font-size: 12pt; letter-spacing: 4pt;
+    text-transform: uppercase; color: var(--gold);
+    font-weight: 600; opacity: 0.95;
+  }
+  .cover-logo {
+    margin-top: 6mm; display: inline-flex;
+    align-items: center; gap: 8px;
+  }
+  .logo-mark {
+    width: 14mm; height: 14mm; border-radius: 4mm;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22pt; font-weight: 800; letter-spacing: -1pt;
+  }
+  .logo-text { font-size: 26pt; font-weight: 800; letter-spacing: -0.5pt; }
+  .cover-hero { margin-top: auto; }
+  .cover-title {
+    font-size: 38pt; font-weight: 800; line-height: 1.08;
+    letter-spacing: -1pt; margin: 0; max-width: 150mm;
+  }
+  .cover-title .em { color: var(--gold); }
+  .cover-subtitle {
+    margin-top: 8mm; font-size: 14pt; line-height: 1.55;
+    color: #cdd9e8; max-width: 145mm; font-weight: 400;
+  }
+  .cover-summary {
+    margin-top: 12mm; padding: 7mm 8mm;
+    background: rgba(255,255,255,0.06);
+    border-left: 3px solid var(--gold); border-radius: 2px;
+    font-size: 11pt; line-height: 1.6; color: #e3ebf5; max-width: 145mm;
+  }
+  .cover-meta {
+    margin-top: 12mm; display: flex;
+    justify-content: space-between; align-items: flex-end;
+    font-size: 10pt; color: #9fb2c9; letter-spacing: 0.5pt;
+  }
+  .cover-meta .doc-type { text-transform: uppercase; letter-spacing: 2pt; }
+
+  /* ============================================================
+     PAGES CORPS
+     ============================================================ */
+  .body-page {
+    padding: 14mm 16mm 12mm 16mm;
+    background: var(--bg-page);
+  }
+  .page-header {
+    display: flex; justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 3mm; margin-bottom: 6mm;
+  }
+  .page-header .ph-left {
+    font-size: 8.5pt; letter-spacing: 2.5pt; text-transform: uppercase;
+    color: var(--primary); font-weight: 700;
+  }
+  .page-header .ph-right {
+    font-size: 8.5pt; color: var(--text-muted); letter-spacing: 0.5pt;
+  }
+  .page-footer {
+    position: absolute; left: 16mm; right: 16mm; bottom: 7mm;
+    display: flex; justify-content: space-between;
+    font-size: 8pt; color: var(--text-muted);
+    border-top: 1px solid var(--border); padding-top: 2mm;
+  }
+
+  /* Bandeau de partie (INSTALL / USAGE / ANNEXES) */
+  .part-banner {
+    display: inline-block;
+    font-size: 8pt; font-weight: 700; letter-spacing: 1.5pt;
+    text-transform: uppercase; color: #fff;
+    background: var(--accent);
+    padding: 1.5mm 4mm; border-radius: 2px; margin-bottom: 3mm;
+  }
+  .part-banner.install { background: var(--primary-soft); }
+  .part-banner.usage   { background: var(--accent); }
+  .part-banner.annex   { background: var(--gold); color: #2a1f08; }
+
+  h1.section-title {
+    font-size: 21pt; font-weight: 800; color: var(--primary);
+    letter-spacing: -0.5pt; margin: 0 0 2mm 0; line-height: 1.1;
+  }
+  .section-lead {
+    font-size: 10.5pt; line-height: 1.5; color: var(--text-muted);
+    margin: 0 0 5mm 0; max-width: 170mm;
+  }
+  h2 {
+    font-size: 12pt; font-weight: 700; color: var(--primary);
+    margin: 3.5mm 0 2mm 0;
+  }
+  h2 .h2-num {
+    display: inline-block; font-size: 9pt; color: #fff;
+    background: var(--accent); padding: 1px 6px;
+    border-radius: 3px; vertical-align: middle;
+    margin-right: 6px; font-weight: 700;
+  }
+  h3 {
+    font-size: 10pt; font-weight: 700; color: var(--primary-soft);
+    margin: 2.5mm 0 1mm 0;
+  }
+  p {
+    font-size: 9.5pt; line-height: 1.45; margin: 0 0 1.8mm 0; color: var(--text);
+  }
+
+  /* Listes à puces compactes */
+  ul.tight, ol.tight {
+    list-style: none; padding: 0; margin: 1.5mm 0;
+  }
+  ul.tight li, ol.tight li {
+    position: relative; padding-left: 6mm;
+    margin-bottom: 1.1mm; font-size: 9.3pt; line-height: 1.4;
+  }
+  ul.tight li::before {
+    content: "▸"; position: absolute; left: 0.5mm;
+    color: var(--accent); font-weight: 800; font-size: 10pt;
+  }
+  ol.tight { counter-reset: step; }
+  ol.tight li {
+    counter-increment: step;
+  }
+  ol.tight li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 0.3mm;
+    width: 4.5mm; height: 4.5mm; line-height: 4.5mm;
+    text-align: center; font-size: 7.5pt; font-weight: 800;
+    color: #fff; background: var(--accent); border-radius: 50%;
+  }
+
+  /* Tableaux */
+  table {
+    width: 100%; border-collapse: collapse;
+    margin: 2mm 0 3mm 0; font-size: 9pt;
+  }
+  th {
+    background: var(--primary); color: #fff; text-align: left;
+    padding: 1.7mm 2.3mm; font-weight: 600; font-size: 8.6pt;
+    letter-spacing: 0.3pt;
+  }
+  td {
+    padding: 1.5mm 2.3mm; border-bottom: 1px solid var(--border);
+    vertical-align: top; line-height: 1.38;
+  }
+  tr:nth-child(even) td { background: var(--bg-tint); }
+  td.center, th.center { text-align: center; }
+  td code, p code, li code {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 8.5pt; background: var(--bg-tint);
+    padding: 0 2px; border-radius: 2px; color: var(--primary);
+  }
+
+  /* Bloc de code (fond sombre, monospace) */
+  pre.code {
+    background: var(--bg-code); color: #e6edf6;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 8.3pt; line-height: 1.45;
+    padding: 2.4mm 3.5mm; border-radius: 3px;
+    margin: 1.5mm 0 2.5mm 0; white-space: pre-wrap;
+    word-break: break-word;
+    border-left: 3px solid var(--accent);
+  }
+  pre.code .c-cmt { color: #7d93ab; font-style: italic; }
+  pre.code .c-key { color: #7fc7d4; }
+
+  /* Admonitions — ⚠️ 💡 ℹ️ ✅ */
+  .admon {
+    padding: 2.8mm 4mm; margin: 2.4mm 0;
+    border-radius: 3px; border-left: 4px solid;
+    font-size: 9.1pt; line-height: 1.45;
+  }
+  .admon .adm-title {
+    font-size: 9.2pt; font-weight: 700; margin: 0 0 1mm 0;
+  }
+  .admon p { font-size: 9.1pt; margin: 0; }
+  .admon.warn  { background: var(--warn-soft);  border-left-color: var(--warn);  }
+  .admon.warn  .adm-title { color: var(--warn);  }
+  .admon.info  { background: var(--info-soft);  border-left-color: var(--info);  }
+  .admon.info  .adm-title { color: var(--info);  }
+  .admon.tip   { background: var(--accent-soft); border-left-color: var(--accent); }
+  .admon.tip   .adm-title { color: var(--accent); }
+  .admon.ok    { background: var(--accent-soft); border-left-color: var(--accent); }
+  .admon.ok    .adm-title { color: var(--accent); }
+
+  /* Grille de cartes */
+  .grid {
+    display: grid; gap: 4mm; margin: 3mm 0;
+  }
+  .grid.g2 { grid-template-columns: 1fr 1fr; }
+  .grid.g3 { grid-template-columns: 1fr 1fr 1fr; }
+  .card {
+    background: var(--bg-tint); border: 1px solid var(--border);
+    border-left: 4px solid var(--accent); border-radius: 3px;
+    padding: 4mm 5mm;
+  }
+  .card h3 { margin-top: 0; }
+  .card p { font-size: 9.2pt; color: var(--text-muted); margin: 0; line-height: 1.45; }
+
+  /* Checklist (cases à cocher) */
+  ul.check {
+    list-style: none; padding: 0; margin: 1.5mm 0;
+  }
+  ul.check li {
+    position: relative; padding-left: 7mm;
+    margin-bottom: 1.3mm; font-size: 9.1pt; line-height: 1.35;
+  }
+  ul.check li::before {
+    content: ""; position: absolute; left: 0; top: 0.5mm;
+    width: 4mm; height: 4mm; border: 1.2px solid var(--primary-soft);
+    border-radius: 1px; background: #fff;
+  }
+
+  /* Sommaire */
+  .toc { font-size: 9.5pt; }
+  .toc-part {
+    font-weight: 700; color: var(--primary);
+    text-transform: uppercase; letter-spacing: 1pt;
+    font-size: 9pt; margin: 3mm 0 1.5mm 0;
+  }
+  .toc ol {
+    list-style: none; counter-reset: tocitem;
+    padding: 0; margin: 0 0 0 0;
+  }
+  .toc ol li {
+    counter-increment: tocitem;
+    padding: 1mm 0; border-bottom: 1px dotted var(--border);
+    font-size: 9.3pt;
+  }
+  .toc ol li::before {
+    content: counter(tocitem) ".";
+    color: var(--accent); font-weight: 700;
+    display: inline-block; width: 7mm;
+  }
+
+  /* Séquence console (sortie texte) */
+  .console {
+    background: #0f2438; color: #b8e6cf;
+    font-family: "Consolas", monospace; font-size: 8.5pt;
+    padding: 3mm 4mm; border-radius: 3px; line-height: 1.5;
+    margin: 2mm 0 3mm 0; white-space: pre-wrap;
+  }
+  .console .ok { color: #6fd08a; }
+  .console .lab { color: #f0c987; }
+
+  /* Mini-tags de mode */
+  .mode-pill {
+    display: inline-block; font-size: 7.5pt; font-weight: 700;
+    padding: 0.5mm 2mm; border-radius: 8px; letter-spacing: 0.3pt;
+    text-transform: uppercase;
+  }
+  .mode-pill.stand { background: var(--accent-soft); color: var(--accent); }
+  .mode-pill.serv  { background: var(--info-soft); color: var(--info); }
+  .mode-pill.cli   { background: var(--warn-soft); color: var(--warn); }
+
+  /* Closing */
+  .closing {
+    background: linear-gradient(160deg, var(--bg-dark) 0%, var(--primary) 100%);
+    color: #fff; padding: 0;
+  }
+  .closing-inner {
+    position: absolute; inset: 30mm 22mm;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .closing h1 {
+    font-size: 28pt; font-weight: 800; line-height: 1.15;
+    margin: 0 0 6mm 0; letter-spacing: -0.5pt;
+  }
+  .closing h1 .em { color: var(--gold); }
+  .closing p {
+    font-size: 11pt; color: #cdd9e8; line-height: 1.6; max-width: 150mm;
+  }
+  .closing .signoff {
+    margin-top: 12mm; padding-top: 5mm;
+    border-top: 1px solid rgba(255,255,255,0.18);
+    font-size: 9.5pt; color: #9fb2c9; letter-spacing: 1pt; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- PAGE 1 — COUVERTURE                                          -->
+<!-- ============================================================ -->
+<section class="page cover">
+  <div class="cover-inner">
+    <div class="cover-kicker">Guide technique &amp; utilisateur</div>
+
+    <div class="cover-logo">
+      <div class="logo-mark">S</div>
+      <div class="logo-text">StockApp</div>
+    </div>
+
+    <div class="cover-hero">
+      <h1 class="cover-title">
+        Installer, déployer<br>
+        et utiliser <span class="em">StockApp</span><br>
+        du premier clic au quotidien.
+      </h1>
+      <div class="cover-subtitle">
+        Guide unifié d'installation (administrateur / développeur) et
+        d'utilisation quotidienne (utilisateur final). Couvre le mode
+        hors-ligne (standalone, serveur LAN, client LAN) et le mode cloud.
+      </div>
+
+      <div class="cover-summary">
+        Trois parties : <b>I. Installation</b> — construire le pack et
+        produire l'installeur Windows&nbsp;; <b>II. Utilisation</b> —
+        démarrer, choisir son mode, naviguer les 9 modules, sauvegarder&nbsp;;
+        <b>III. Annexes</b> — variables d'environnement, dépannage rapide,
+        récapitulatif. Le client final n'a aucun pré-requis : tout est
+        embarqué dans l'installeur.
+      </div>
+
+      <div class="cover-meta">
+        <span class="doc-type">Guide v1.0</span>
+        <span>Version 1.0 — Juin 2026</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 2 — SOMMAIRE                                            -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Sommaire</div>
+    <div class="ph-right">StockApp — Guide</div>
+  </div>
+
+  <h1 class="section-title">Sommaire</h1>
+  <p class="section-lead">
+    Document en trois parties, du build de l'installeur jusqu'à l'usage
+    quotidien par l'utilisateur final.
+  </p>
+
+  <div class="toc">
+    <div class="toc-part" style="color:var(--primary-soft);">Partie I — Installation (administrateur / développeur)</div>
+    <ol>
+      <li>Pré-requis machine de build</li>
+      <li>Préparer les binaires portables (MariaDB, Node, Bun)</li>
+      <li>Construire le pack</li>
+      <li>Produire l'installeur Windows</li>
+      <li>Tester avant livraison &amp; checklist</li>
+      <li>Configuration du pare-feu (mode serveur)</li>
+    </ol>
+
+    <div class="toc-part" style="color:var(--accent);">Partie II — Utilisation quotidienne (utilisateur final)</div>
+    <ol>
+      <li>Démarrer l'application</li>
+      <li>Premier lancement : choisir son mode (1/2/3)</li>
+      <li>Se connecter &amp; sécuriser le compte admin</li>
+      <li>Le tableau de bord</li>
+      <li>Les 9 modules métier</li>
+      <li>Mode réseau (plusieurs PC)</li>
+      <li>Sauvegardes (manuel &amp; automatique)</li>
+      <li>Arrêter &amp; bonnes pratiques</li>
+    </ol>
+
+    <div class="toc-part" style="color:var(--gold);">Partie III — Annexes</div>
+    <ol>
+      <li>Variables d'environnement</li>
+      <li>Dépannage rapide</li>
+      <li>Récapitulatif &amp; documentation associée</li>
+    </ol>
+  </div>
+
+  <div class="admon info" style="margin-top:6mm;">
+    <div class="adm-title">ℹ️ À qui s'adresse ce guide ?</div>
+    <p><b>Partie I</b> à la personne qui prépare et déploie l'application.
+       <b>Partie II</b> à l'utilisateur final (commerçant, vendeur, gérant).
+       <b>Partie III</b> à tous. Le client final n'a <b>aucun</b> pré-requis :
+       tout (base de données, runtimes, application) est embarqué dans l'installeur.</p>
+  </div>
+
+  <div class="page-footer"><span>StockApp — Guide v1.0</span><span>2</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 3 — INSTALL §1 + §2                                     -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Partie I · Installation</div>
+    <div class="ph-right">§1 Pré-requis · §2 Binaires</div>
+  </div>
+
+  <span class="part-banner install">Partie I — Installation</span>
+  <h1 class="section-title">Construire et déployer StockApp</h1>
+  <p class="section-lead">
+    La machine de build a besoin d'Internet une seule fois (récupération
+    des dépendances). Ensuite, le pack livré au client n'a plus besoin de rien.
+  </p>
+
+  <h2><span class="h2-num">1</span>Pré-requis machine de build</h2>
+  <table>
+    <tr><th style="width:32%">Outil</th><th style="width:40%">Rôle</th><th>Lien</th></tr>
+    <tr><td><b>Node.js 20+</b> + npm</td><td>Compilation frontend / backend</td><td><code>nodejs.org</code></td></tr>
+    <tr><td><b>Bun</b> (recommandé)</td><td>Runtime backend plus rapide</td><td><code>bun.sh</code></td></tr>
+    <tr><td><b>Git</b></td><td>Cloner le dépôt</td><td><code>git-scm.com</code></td></tr>
+    <tr><td><b>Inno Setup 6</b></td><td>Produire l'installeur <code>.exe</code></td><td><code>jrsoftware.org</code></td></tr>
+    <tr><td><b>PowerShell 5.1+</b></td><td>Exécuter les scripts de build</td><td>fourni avec Windows</td></tr>
+  </table>
+  <div class="admon warn">
+    <div class="adm-title">⚠️ Machine cliente</div>
+    <p>La machine cliente n'a <b>aucun</b> de ces pré-requis : tout est embarqué dans l'installeur.</p>
+  </div>
+
+  <h2><span class="h2-num">2</span>Préparer les binaires portables</h2>
+  <p>
+    Le dossier <code>offline-pack/bin/</code> doit contenir les exécutables
+    <b>non versionnés</b> (trop volumineux). À télécharger une fois&nbsp;:
+  </p>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>2.1 · MariaDB portable</h3>
+      <p>ZIP Windows x64 → <code>mariadb.org/download</code>. Décompresser dans
+      <code>offline-pack\bin\mariadb\bin\</code> (<code>mysqld.exe</code>,
+      <code>mysql.exe</code>, <code>mysqldump.exe</code>).</p>
+    </div>
+    <div class="card">
+      <h3>2.2 · Node.js portable</h3>
+      <p>Windows Binary (.zip) 64-bit → <code>nodejs.org/download</code>.
+      Décompresser dans <code>offline-pack\bin\node\</code>
+      (<code>node.exe</code>, <code>npm.cmd</code>).</p>
+    </div>
+    <div class="card">
+      <h3>2.3 · Bun (optionnel)</h3>
+      <p><code>bun.exe</code> (Windows-x64) → releases GitHub. Placer dans
+      <code>offline-pack\bin\bun\bun.exe</code>. Si absent, le lanceur bascule
+      automatiquement sur Node.</p>
+    </div>
+    <div class="card">
+      <h3>2.4 · Icône (optionnel)</h3>
+      <p><code>offline-pack\bin\app.ico</code> : utilisée pour les raccourcis
+      bureau et menu Démarrer générés par l'installeur.</p>
+    </div>
+  </div>
+
+  <div class="page-footer"><span>StockApp — Guide v1.0</span><span>3</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 4 — INSTALL §3 + §4                                     -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Partie I · Installation</div>
+    <div class="ph-right">§3 Build · §4 Installeur</div>
+  </div>
+
+  <h2><span class="h2-num">3</span>Construire le pack</h2>
+  <p>Depuis une console PowerShell&nbsp;:</p>
+<pre class="code">cd C:\netbean\St_Article_1\offline-pack\scripts
+.\build-pack.ps1</pre>
+
+  <h3>Paramètres utiles</h3>
+  <table>
+    <tr><th style="width:42%">Paramètre</th><th>Effet</th></tr>
+    <tr><td><code>-RepoRoot C:\netbean\St_Article_1</code></td><td>Dossier source</td></tr>
+    <tr><td><code>-OutDir C:\StockApp</code></td><td>Dossier de sortie (défaut)</td></tr>
+    <tr><td><code>-SkipFrontendBuild</code></td><td>Ne pas rebuilder le frontend</td></tr>
+    <tr><td><code>-SkipBackendInstall</code></td><td>Ne pas réinstaller les dépendances backend</td></tr>
+  </table>
+
+  <h3>Ce que fait le script</h3>
+  <ol class="tight">
+    <li>Crée la structure <code>bin/</code>, <code>data/</code>, <code>logs/</code>, <code>database/</code>, <code>scripts/</code>.</li>
+    <li>Copie le <b>backend</b> + installe ses dépendances (Bun, sinon npm).</li>
+    <li>Copie le <b>frontend</b>, lance <code>npm install</code> + <code>npm run build</code>.</li>
+    <li>Copie le <b>schéma SQL</b> (<code>schema-mysql.sql</code> + <code>seed-admin.sql</code>).</li>
+    <li>Copie les <b>scripts</b> de lancement.</li>
+    <li>Copie <b>MariaDB portable</b> et <b>Node portable</b> depuis <code>offline-pack\bin\</code>.</li>
+    <li>Génère un <code>.gitignore</code> (exclut les données runtime).</li>
+  </ol>
+
+  <h2><span class="h2-num">4</span>Produire l'installeur Windows</h2>
+<pre class="code">cd C:\netbean\St_Article_1\offline-pack\installer
+iscc stockapp.iss</pre>
+  <p>➡️ Génère <code>offline-pack\installer\output\StockApp-Setup-1.0.0.exe</code>.</p>
+
+  <h3>Ce que fait l'installeur</h3>
+  <ul class="tight">
+    <li>Copie tout dans <code>C:\Program Files\StockApp</code>.</li>
+    <li>Crée un raccourci <b>menu Démarrer</b> + (option) <b>bureau</b>.</li>
+    <li>Exclut <code>logs\</code>, <code>data\mysql\</code>, <code>config.env</code> (le client repart à zéro).</li>
+    <li>À la désinstallation : supprime <code>logs\</code> et <code>data\</code> (client prévenu).</li>
+    <li>Lance l'application à la fin de l'installation.</li>
+  </ul>
+
+  <div class="admon tip">
+    <div class="adm-title">💡 Alternative sans installeur</div>
+    <p>Zipper <code>C:\StockApp</code> et le remettre tel quel. Le client le décompresse
+    et double-clique sur <code>start.bat</code>. Aucune installation administrative
+    n'est requise (sauf pare-feu en mode serveur).</p>
+  </div>
+
+  <div class="page-footer"><span>StockApp — Guide v1.0</span><span>4</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 5 — INSTALL §5 + §6                                     -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Partie I · Installation</div>
+    <div class="ph-right">§5 Test · §6 Pare-feu</div>
+  </div>
+
+  <h2><span class="h2-num">5</span>Tester avant livraison</h2>
+  <p>Sur la machine de build&nbsp;:</p>
+<pre class="code">cd C:\StockApp
+.\start.bat</pre>
+  <ol class="tight">
+    <li>Choisir le mode <b>standalone</b> dans l'assistant.</li>
+    <li>Vérifier que les <b>3 services</b> démarrent (MariaDB, backend, frontend).</li>
+    <li>Le navigateur doit s'ouvrir sur <code>http://localhost:3000</code>.</li>
+    <li>Se connecter avec <code>admin</code> / <code>admin123</code>.</li>
+    <li><b>Ctrl+C</b> dans la console pour arrêter proprement.</li>
+  </ol>
+
+  <div class="admon warn">
+    <div class="adm-title">⚠️ Avant livraison</div>
+    <p>Supprimez <code>C:\StockApp\data\mysql\</code> et
+    <code>C:\StockApp\data\.schema-initialized</code> pour que le client démarre
+    avec une base <b>vierge</b>.</p>
+  </div>
+
+  <h3>Checklist de livraison</h3>
+  <ul class="check">
+    <li><code>bin\mariadb\bin\mysqld.exe</code> présent</li>
+    <li><code>bin\node\node.exe</code> présent</li>
+    <li><code>frontend\.next</code> présent (build de production)</li>
+    <li><code>backend\node_modules</code> présent</li>
+    <li><code>database\schema-mysql.sql</code> + <code>seed-admin.sql</code> présents</li>
+    <li><code>start.bat</code> + <code>scripts\</code> présents</li>
+    <li><code>data\</code> et <code>config.env</code> <b>absents</b> (vierge pour le client)</li>
+    <li>Test de démarrage en standalone réussi</li>
+    <li><code>.exe</code> Inno Setup généré (si livraison par installeur)</li>
+  </ul>
+
+  <h2><span class="h2-num">6</span>Pare-feu (mode serveur uniquement)</h2>
+  <p>Sur le <b>PC serveur</b>, ouvrir une console <b>en tant qu'administrateur</b>&nbsp;:</p>
+<pre class="code">cd C:\StockApp\scripts
+.\install-firewall-rules.ps1</pre>
+  <p>Crée les règles entrantes <b>3000</b> (frontend) et <b>3005</b> (backend).
+     Profils <b>Privé</b> et <b>Domaine</b> uniquement (jamais Public).</p>
+
+  <table>
+    <tr><th style="width:14%">Port</th><th style="width:42%">Service</th><th>Ouvrir sur le pare-feu ?</th></tr>
+    <tr><td class="center"><b>3000</b></td><td>Frontend Next.js</td><td class="center">✅ en mode serveur</td></tr>
+    <tr><td class="center"><b>3005</b></td><td>Backend Hono</td><td class="center">❌ non (proxifié par le frontend)</td></tr>
+    <tr><td class="center"><b>3306</b></td><td>MySQL / MariaDB</td><td class="center">❌ déconseillé</td></tr>
+  </table>
+
+  <div class="page-footer"><span>StockApp — Guide v1.0</span><span>5</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 6 — USAGE §7 (démarrer)                                 -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Partie II · Utilisation</div>
+    <div class="ph-right">§7 Démarrer</div>
+  </div>
+
+  <span class="part-banner usage">Partie II — Utilisation quotidienne</span>
+  <h1 class="section-title">Démarrer et choisir son mode</h1>
+  <p class="section-lead">
+    Cette partie s'adresse à <b>l'utilisateur final</b>. Deux étapes suffisent
+    au quotidien : double-cliquer sur l'icône, puis travailler.
+  </p>
+
+  <h2><span class="h2-num">7</span>Démarrer l'application</h2>
+  <ol class="tight">
+    <li>Double-cliquez sur l'icône <b>StockApp</b> (bureau ou menu Démarrer), ou sur <code>start.bat</code> dans <code>C:\StockApp</code>.</li>
+    <li>Une <b>fenêtre noire</b> (console) s'ouvre : <b>ne la fermez pas</b>.</li>
+    <li>Au premier lancement, un <b>assistant</b> s'affiche (voir §8).</li>
+  </ol>
+
+  <h3>Séquence de démarrage normale</h3>
+<div class="console"><span class="lab">&gt;&gt;&gt;</span> Démarrage de la base de données (MariaDB)
+    <span class="ok">[OK] Base de données prête</span>
+<span class="lab">&gt;&gt;&gt;</span> Démarrage du backend (port 3005)
+    <span class="ok">[OK] Backend prêt</span>
+<span class="lab">&gt;&gt;&gt;</span> Démarrage du frontend (port 3000)
+    <span class="ok">[OK] Frontend prêt</span></div>
+  <p>Le navigateur <b>s'ouvre tout seul</b> sur la bonne adresse.</p>
+
+  <div class="admon warn">
+    <div class="adm-title">⚠️ Ne pas fermer la fenêtre noire</div>
+    <p>En <b>standalone / serveur</b> : l'application s'arrête pour tout le monde.
+       En <b>client</b> : seul votre affichage se ferme. Pour arrêter proprement :
+       <b>Ctrl + C</b> puis répondre <b>O</b>. Ne fermez <b>jamais</b> avec le X rouge
+       en cours de travail (base potentiellement instable).</p>
+  </div>
+
+  <div class="page-footer"><span>StockApp — Guide v1.0</span><span>6</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 7 — USAGE §8 (choisir son mode)                         -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Partie II · Utilisation</div>
+    <div class="ph-right">§8 Mode 1/2/3</div>
+  </div>
+
+  <h2><span class="h2-num">8</span>Premier lancement : choisir son mode</h2>
+  <p>L'assistant demande comment vous allez utiliser l'application&nbsp;:</p>
+<pre class="code">Comment allez-vous utiliser l'application ?
+  [1] Ce PC uniquement (mode standalone)
+  [2] Ce PC SERT de serveur pour le réseau (LAN)
+  [3] Ce PC est un CLIENT (se connecter à un serveur existant)
+
+Votre choix (1/2/3) [défaut: 1]</pre>
+
+  <table>
+    <tr><th style="width:8%">Choix</th><th style="width:38%">Quand ?</th><th>Ce qui démarre</th></tr>
+    <tr><td><span class="mode-pill stand">1 Standalone</span></td><td>Un seul PC</td><td>Base + backend + frontend sur ce PC</td></tr>
+    <tr><td><span class="mode-pill serv">2 Serveur LAN</span></td><td>Ce PC centralise les données pour d'autres</td><td>Idem + accessible au LAN</td></tr>
+    <tr><td><span class="mode-pill cli">3 Client LAN</span></td><td>Un serveur existe déjà sur le réseau</td><td>Seul le navigateur</td></tr>
+  </table>
+
+  <h3>En mode client : saisir l'IP du serveur</h3>
+<pre class="code">Adresse IP du PC serveur (ex: 192.168.1.50)</pre>
+
+  <div class="admon tip">
+    <div class="adm-title">💡 Trouver l'IP du serveur (mode client)</div>
+    <p>Sur le PC serveur, ouvrir une console et taper <code>ipconfig</code>.
+       Chercher « <b>Adresse IPv4</b> » (ex: <code>192.168.1.50</code>).
+       Demander une <b>réservation DHCP</b> ou IP fixe pour qu'elle ne change pas.</p>
+  </div>
+
+  <h3>Validation</h3>
+  <p>L'assistant affiche un récapitulatif → taper <b>O</b> (ou Entrée) pour valider.</p>
+
+  <table>
+    <tr><th>Mode</th><th class="center">MySQL local</th><th class="center">Backend local</th><th class="center">Frontend</th><th>URL d'accès</th></tr>
+    <tr><td><b>Standalone</b></td><td class="center">✅</td><td class="center">✅</td><td class="center">✅</td><td><code>http://localhost:3000</code></td></tr>
+    <tr><td><b>Serveur LAN</b></td><td class="center">✅</td><td class="center">✅</td><td class="center">✅</td><td><code>http://&lt;IP-serveur&gt;:3000</code></td></tr>
+    <tr><td><b>Client LAN</b></td><td class="center">❌</td><td class="center">❌</td><td class="center">navigateur</td><td><code>http://&lt;IP-serveur&gt;:3000</code></td></tr>
+  </table>
+
+  <div class="page-footer"><span>StockApp — Guide v1.0</span><span>7</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 7 — USAGE §9 + §10                                      -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Partie II · Utilisation</div>
+    <div class="ph-right">§9 Connexion · §10 Tableau de bord</div>
+  </div>
+
+  <h2><span class="h2-num">9</span>Se connecter &amp; sécuriser le compte</h2>
+
+  <h3>Identifiants par défaut</h3>
+<pre class="code">Utilisateur : admin
+Mot de passe : admin123</pre>
+
+  <div class="admon warn">
+    <div class="adm-title">🔐 Changer le mot de passe (OBLIGATOIRE)</div>
+    <p>Dès la première connexion&nbsp;:</p>
+    <p>1. Aller dans <b>Paramètres → Utilisateurs</b> (ou <b>Mon profil</b>).<br>
+       2. Modifier le mot de passe du compte <code>admin</code>.<br>
+       3. <b>Le noter en lieu sûr</b> — en mode offline, il n'y a pas de
+       récupération automatique par e-mail.</p>
+  </div>
+
+  <h2><span class="h2-num">10</span>Le tableau de bord</h2>
+  <p>Page d'accueil après connexion. Il présente&nbsp;:</p>
+  <ul class="tight">
+    <li><b>Chiffre d'affaires</b>, stock global, <b>valorisation</b>.</li>
+    <li>Indicateurs mis à jour en temps réel, avec <b>ligne de totaux dynamique</b> (prix unitaire, prix de vente, stock, valorisation) tenant compte des filtres.</li>
+    <li>Sélecteur de <b>business unit</b> (multi-tenant) et d'<b>exercice</b>.</li>
+    <li>Indicateur de <b>base de données</b> connectée (MySQL local ou Supabase cloud).</li>
+    <li><b>Thème clair / sombre</b>.</li>
+  </ul>
+
+  <div class="callout" style="background:var(--accent-soft);border-left:4px solid var(--accent);padding:4mm 5mm;margin:4mm 0;border-radius:3px;">
+    <div style="font-size:11pt;font-weight:700;color:var(--primary);margin-bottom:1.5mm;">📌 Bon réflexe</div>
+    <p style="margin:0;font-size:9.5pt;color:#234;">Le tableau de bord est la <b>vue de pilotage</b> : CA en temps réel,
+    valorisation du stock, alertes de seuil. Avant toute session de saisie,
+    un coup d'œil au dashboard permet de repérer les ruptures et les impayés.</p>
+  </div>
+
+  <div class="page-footer"><span>StockApp — Guide v1.0</span><span>8</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 8 — USAGE §11 (modules 1/2)                             -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Partie II · Utilisation</div>
+    <div class="ph-right">§11 Modules métier (1/2)</div>
+  </div>
+
+  <h2><span class="h2-num">11</span>Les modules métier — 1/2</h2>
+  <p>StockApp est organisé en <b>9 modules</b> accessibles depuis le menu.</p>
+
+  <table>
+    <tr><th style="width:22%">Module</th><th style="width:34%">Contenu</th><th>Fonctions clés</th></tr>
+    <tr><td><b>📊 Tableau de bord</b></td><td>Vue synthétique de l'activité</td><td>CA, stock, valorisation, totaux dynamiques, multi-tenant</td></tr>
+    <tr><td><b>📦 Articles &amp; Stock</b></td><td>Catalogue, familles, stock</td><td>Prix d'achat, <b>marge</b>, TVA, prix de vente, seuils, étiquettes imprimables</td></tr>
+    <tr><td><b>👥 Clients</b></td><td>Fiches clients et encours</td><td>CA par client, historique paiements, <b>encours</b> et <b>échéancier</b></td></tr>
+    <tr><td><b>🏭 Fournisseurs</b></td><td>Fiches fournisseurs et dettes</td><td>Factures d'achat, suivi des <b>dettes</b></td></tr>
+    <tr><td><b>🛒 Commerce</b></td><td>Ventes : BL, factures, proforma</td><td>Création, modification, <b>PDF</b>, retours / avoirs</td></tr>
+  </table>
+
+  <h3>🛒 Commerce — le cœur de l'activité</h3>
+  <ul class="tight">
+    <li><b>Bons de livraison (BL)</b> : créer, modifier, détailler, imprimer en PDF.</li>
+    <li><b>Factures</b> : émission, suivi, lien avec les BL.</li>
+    <li><b>Proforma</b> : devis destiné au client.</li>
+    <li><b>Retours / Avoirs</b> : déduction du solde client, reportés dans les paiements.</li>
+  </ul>
+
+  <div class="admon info">
+    <div class="adm-title">💡 Flux type d'une vente</div>
+    <p><b>BL</b> (livraison) → transformation en <b>facture</b> →
+       <b>encaissement</b> → mise à jour automatique du <b>stock</b> et du
+       <b>CA client</b>. Tout reste cohérent sans double saisie.</p>
+  </div>
+
+  <div class="page-footer"><span>StockApp — Guide v1.0</span><span>9</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 9 — USAGE §11 (modules 2/2)                             -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Partie II · Utilisation</div>
+    <div class="ph-right">§11 Modules métier (2/2)</div>
+  </div>
+
+  <h2><span class="h2-num">11</span>Les modules métier — 2/2</h2>
+
+  <table>
+    <tr><th style="width:22%">Module</th><th style="width:34%">Contenu</th><th>Fonctions clés</th></tr>
+    <tr><td><b>🛍️ Achats</b></td><td>Achats fournisseurs</td><td>BL fournisseurs, factures d'achat, statistiques</td></tr>
+    <tr><td><b>💶 Finances &amp; Paiements</b></td><td>Paiements et trésorerie</td><td>Encaissements, <b>impayés</b>, échéances, avoirs (montant net)</td></tr>
+    <tr><td><b>📑 Fiscal</b></td><td>Déclarations fiscales</td><td><b>État G50</b>, paramètres fiscaux, exercices</td></tr>
+    <tr><td><b>⚙️ Paramètres &amp; Admin</b></td><td>Utilisateurs et configuration</td><td>Rôles ADMIN/USER, business units, paramètres société</td></tr>
+  </table>
+
+  <h3>💶 Finances &amp; Paiements — piloter la trésorerie</h3>
+  <ul class="tight">
+    <li><b>Encaissements</b> : ajout, historique, échéancier.</li>
+    <li><b>Impayés</b> et <b>retard de paiement</b> suivis automatiquement.</li>
+    <li><b>Avoirs</b> déduits du solde client.</li>
+    <li><b>États récapitulatifs</b> des paiements (montant net).</li>
+    <li><b>Dettes</b> fournisseurs.</li>
+  </ul>
+
+  <h3>📑 Fiscal &amp; ⚙️ Administration</h3>
+  <ul class="tight">
+    <li><b>État G50</b> et paramètres fiscaux (TVA, exercices).</li>
+    <li><b>Utilisateurs</b> : création, profils ADMIN/USER, permissions.</li>
+    <li><b>Business units</b> (multi-tenant) et paramètres société.</li>
+  </ul>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>📱 Mobile</h3>
+      <p>Interfaces allégées <b>mobile</b> (BL, factures) pour tablette et smartphone —
+      saisie rapide en mobilité sur le réseau LAN.</p>
+    </div>
+    <div class="card">
+      <h3>🖨️ Impression PDF</h3>
+      <p>BL, facture, proforma au format PDF professionnel&nbsp;: montant en lettres,
+      coordonnées société, alignement soigné.</p>
+    </div>
+  </div>
+
+  <div class="page-footer"><span>StockApp — Guide v1.0</span><span>10</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 10 — USAGE §12 (réseau)                                 -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Partie II · Utilisation</div>
+    <div class="ph-right">§12 Mode réseau</div>
+  </div>
+
+  <h2><span class="h2-num">12</span>Mode réseau (plusieurs PC)</h2>
+
+  <h3>12.1 · Préparer le PC serveur</h3>
+  <ol class="tight">
+    <li>Installer StockApp et choisir le mode <span class="mode-pill serv">2 Serveur</span>.</li>
+    <li>Noter l'<b>IP LAN</b> affichée par l'assistant (ex: <code>192.168.1.50</code>).</li>
+    <li>Transmettre cette IP aux utilisateurs des PC clients.</li>
+    <li>Ouvrir les ports du pare-feu (voir §6).</li>
+  </ol>
+
+  <h3>12.2 · Configurer un PC client</h3>
+  <ol class="tight">
+    <li>Installer StockApp (ou copier le dossier).</li>
+    <li>Au premier lancement, choisir <span class="mode-pill cli">3 Client</span>.</li>
+    <li>Saisir l'IP du serveur (ex: <code>192.168.1.50</code>).</li>
+    <li>Le navigateur s'ouvre sur <code>http://192.168.1.50:3000</code>.</li>
+  </ol>
+
+  <h3>12.3 · Règles à respecter en réseau</h3>
+  <table>
+    <tr><th style="width:42%">Règle</th><th>Pourquoi</th></tr>
+    <tr><td>🔌 <b>Le PC serveur doit rester allumé</b></td><td>Les clients ne peuvent plus travailler s'il est éteint.</td></tr>
+    <tr><td>🌐 <b>Tous les PC sur le même réseau</b></td><td>LAN (Wi-Fi ou câble) partagé.</td></tr>
+    <tr><td>🔒 <b>Fixer l'IP du serveur</b></td><td>Demander une <b>réservation DHCP</b> ou <b>IP fixe</b>.</td></tr>
+    <tr><td>💾 <b>Sauvegarder régulièrement</b></td><td>Voir §13.</td></tr>
+  </table>
+
+  <div class="admon warn">
+    <div class="adm-title">⚠️ Spécificité du mode serveur</div>
+    <p>La <b>base de données</b> et le <b>backend</b> ne tournent <b>que sur le PC serveur</b>.
+       Les PC clients n'exécutent que le navigateur — ils consomment donc peu de ressources,
+       mais sont dépendants de la disponibilité du serveur.</p>
+  </div>
+
+  <div class="page-footer"><span>StockApp — Guide v1.0</span><span>11</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 11 — USAGE §13 + §14 (sauvegardes, arrêt)                -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Partie II · Utilisation</div>
+    <div class="ph-right">§13 Sauvegardes · §14 Arrêt</div>
+  </div>
+
+  <h2><span class="h2-num">13</span>Sauvegardes</h2>
+  <div class="admon warn">
+    <div class="adm-title">💾 En mode offline, votre responsabilité</div>
+    <p>Personne d'autre que vous ne protège vos données. Une sauvegarde
+       quotidienne est <b>indispensable</b>.</p>
+  </div>
+
+  <h3>13.1 · Sauvegarde manuelle</h3>
+  <p>Sur le PC serveur (ou standalone), console administrateur&nbsp;:</p>
+<pre class="code">powershell.exe -File "C:\StockApp\scripts\backup.ps1" `
+  -OutputDir "D:\Mes Sauvegardes"</pre>
+  <p>Crée un fichier horodaté&nbsp;: <code>stockapp_2025_bu01_2026-06-18_2200.sql</code>.</p>
+
+  <h3>13.2 · Sauvegarde automatique (recommandé)</h3>
+  <p>Planification quotidienne à 22h00 via le <b>Planificateur de tâches Windows</b>&nbsp;:</p>
+<pre class="code">schtasks /Create /TN "StockApp Backup" `
+  /TR "powershell.exe -File C:\StockApp\scripts\backup.ps1 -AppRoot C:\StockApp" `
+  /SC DAILY /ST 22:00 /RL HIGHEST</pre>
+  <p>Les sauvegardes de plus de <b>30 jours</b> sont supprimées automatiquement.</p>
+
+  <h3>13.3 · Bonnes pratiques</h3>
+  <ul class="tight">
+    <li>✅ <b>Copier les sauvegardes sur un disque externe / clé USB</b> (au moins 1×/semaine).</li>
+    <li>✅ <b>Tester la restauration</b> de temps en temps.</li>
+    <li>✅ <b>Sauvegarder avant</b> toute mise à jour ou modification importante.</li>
+  </ul>
+
+  <h2><span class="h2-num">14</span>Arrêter &amp; bonnes pratiques</h2>
+  <p><b>Ctrl + C</b> dans la fenêtre noire → répondre <b>O</b>.</p>
+  <ul class="tight">
+    <li>✅ Ne jamais éteindre le PC serveur en coupant le courant : toujours <b>Ctrl+C</b> puis attendre.</li>
+    <li>✅ Sauvegarder chaque jour.</li>
+    <li>✅ Changer les mots de passe par défaut.</li>
+    <li>✅ Garder le PC serveur sur une <b>IP fixe</b> (en LAN).</li>
+    <li>✅ Noter l'emplacement des sauvegardes et les tester.</li>
+  </ul>
+
+  <div class="page-footer"><span>StockApp — Guide v1.0</span><span>12</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 12 — ANNEXES §15 (variables d'environnement)            -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Partie III · Annexes</div>
+    <div class="ph-right">§15 Variables d'environnement</div>
+  </div>
+
+  <span class="part-banner annex">Partie III — Annexes</span>
+  <h1 class="section-title">Variables d'environnement</h1>
+  <p class="section-lead">
+    Ces fichiers sont <b>générés automatiquement</b> par le lanceur selon le
+    mode choisi (standalone / serveur / client). Documentés dans
+    <code>offline-pack\config\</code> pour référence.
+  </p>
+
+  <h2><span class="h2-num">15</span>Frontend — <code>frontend\.env.local</code></h2>
+<pre class="code">NEXT_PUBLIC_OFFLINE_MODE=standalone   <span class="c-cmt"># standalone | server | client</span>
+NEXT_PUBLIC_API_URL=http://localhost:3005/api
+NEXT_PUBLIC_BACKEND_PORT=3005
+NEXT_PUBLIC_DB_TYPE=mysql             <span class="c-cmt"># toujours mysql en offline</span>
+NEXT_PUBLIC_TENANT=2025_bu01
+PORT=3000
+NODE_ENV=production</pre>
+
+  <h2>Backend — <code>backend\.env</code></h2>
+<pre class="code">PORT=3005
+NODE_ENV=production
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_DATABASE=2025_bu01
+MYSQL_USER=root
+MYSQL_PASSWORD=
+AUTH_MYSQL_DATABASE=stock_management_auth
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000</pre>
+
+  <div class="admon warn">
+    <div class="adm-title">🔴 Règle d'or du mode offline</div>
+    <p>En mode offline, <b>ne pas définir</b> les variables <code>SUPABASE_*</code> /
+       <code>NEXT_PUBLIC_SUPABASE_*</code>, sinon l'application tente de contacter le cloud.</p>
+  </div>
+
+  <div class="admon info">
+    <div class="adm-title">ℹ️ Variable clé</div>
+    <p><code>NEXT_PUBLIC_OFFLINE_MODE</code> pilote tout : <code>standalone</code>
+       (1 PC), <code>server</code> (PC serveur accessible au LAN) ou
+       <code>client</code> (PC léger pointant vers un serveur). Choisie via
+       l'assistant au premier lancement.</p>
+  </div>
+
+  <div class="page-footer"><span>StockApp — Guide v1.0</span><span>13</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 13 — ANNEXES §16 + §17                                  -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Partie III · Annexes</div>
+    <div class="ph-right">§16 Dépannage · §17 Récapitulatif</div>
+  </div>
+
+  <h2><span class="h2-num">16</span>Dépannage rapide</h2>
+  <table>
+    <tr><th style="width:38%">Problème</th><th>Solution rapide</th></tr>
+    <tr><td>Rien ne se passe au double-clic</td><td>Lancer depuis une console&nbsp;: <code>cd C:\StockApp &amp;&amp; start.bat</code></td></tr>
+    <tr><td>« MariaDB n'a pas démarré »</td><td>Port 3306 pris&nbsp;? <code>netstat -ano | findstr :3306</code></td></tr>
+    <tr><td>« Le backend n'a pas démarré »</td><td>MySQL démarré avant&nbsp;? Voir <code>logs\stockapp.log</code></td></tr>
+    <tr><td>Navigateur « page inaccessible »</td><td>Vérifier <code>curl http://localhost:3000</code> sur le serveur</td></tr>
+    <tr><td>Clients LAN injoignables</td><td>Pare-feu&nbsp;? IP serveur correcte&nbsp;? <code>ping &lt;IP&gt;</code> depuis le client</td></tr>
+    <tr><td>Identifiants refusés</td><td>Réinjecter <code>seed-admin.sql</code> via <code>mysql.exe</code></td></tr>
+    <tr><td>Mot de passe oublié</td><td>Voir <code>GUIDE_DEPANNAGE_OFFLINE.md</code> §8 (reset SQL)</td></tr>
+    <tr><td>Port déjà utilisé</td><td><code>netstat -ano | findstr :3000</code> puis tuer le PID</td></tr>
+  </table>
+
+  <div class="admon tip">
+    <div class="adm-title">📖 Dépannage détaillé</div>
+    <p><code>docs/GUIDE_DEPANNAGE_OFFLINE.md</code> — 14 sections par symptôme,
+       avec commandes de diagnostic et procédures de restauration.</p>
+  </div>
+
+  <h2><span class="h2-num">17</span>Récapitulatif</h2>
+  <table>
+    <tr><th style="width:32%">Action</th><th>Comment</th></tr>
+    <tr><td><b>Construire le pack</b></td><td><code>offline-pack\scripts\build-pack.ps1</code></td></tr>
+    <tr><td><b>Générer l'installeur</b></td><td><code>iscc offline-pack\installer\stockapp.iss</code></td></tr>
+    <tr><td><b>Démarrer</b></td><td>Double-clic sur <b>StockApp</b> (ou <code>start.bat</code>)</td></tr>
+    <tr><td><b>Arrêter</b></td><td><b>Ctrl + C</b> dans la fenêtre noire</td></tr>
+    <tr><td><b>URL d'accès</b></td><td>Standalone/serveur&nbsp;: <code>http://localhost:3000</code> — Client&nbsp;: <code>http://&lt;IP-serveur&gt;:3000</code></td></tr>
+    <tr><td><b>Identifiants par défaut</b></td><td><code>admin</code> / <code>admin123</code> (<b>à changer</b>)</td></tr>
+    <tr><td><b>Sauvegarder</b></td><td><code>scripts\backup.ps1</code> (manuel ou planifié)</td></tr>
+    <tr><td><b>Logs</b></td><td><code>C:\StockApp\logs\stockapp.log</code></td></tr>
+    <tr><td><b>Aide / dépannage</b></td><td><code>docs/GUIDE_DEPANNAGE_OFFLINE.md</code></td></tr>
+  </table>
+
+  <div class="page-footer"><span>StockApp — Guide v1.0</span><span>14</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 14 — CLOSING                                            -->
+<!-- ============================================================ -->
+<section class="page closing">
+  <div class="closing-inner">
+    <h1>
+      Du build au quotidien,<br>
+      <span class="em">tout est tracé</span> dans ce guide.
+    </h1>
+    <p>
+      StockApp s'installe en un double-clic grâce à un installeur Windows
+      auto-suffisant, puis se lance au quotidien sans aucune compétence
+      technique. Que l'usage soit standalone, en réseau LAN ou dans le cloud,
+      les mêmes modules, les mêmes données, le même confort.
+    </p>
+    <p style="margin-top:4mm;">
+      <b>Documentation associée</b> — présentation actionnaires, guide
+      d'installation, guide d'utilisation, architecture, dépannage&nbsp;:
+      disponibles dans <code style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;color:#fff;">offline-pack/docs/</code>.
+    </p>
+    <div class="signoff">StockApp — Guide v1.0 — Juin 2026</div>
+  </div>
+</section>
+
+</body>
+</html>

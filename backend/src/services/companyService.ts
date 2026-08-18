@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../supabaseClient.js';
+import { backendDatabaseService } from './databaseService.js';
 
 export interface CompanyInfo {
   name: string;
@@ -40,6 +41,23 @@ export class CompanyService {
     }
 
     try {
+      // Mode MySQL : lire directement depuis la table activite du tenant
+      if (backendDatabaseService.getActiveDatabaseType() === 'mysql') {
+        const result = await backendDatabaseService.executeQuery(
+          `SELECT * FROM \`${currentTenant}\`.activite WHERE tenant_id = ? LIMIT 1`,
+          [currentTenant]
+        );
+        if (result.success && result.data && result.data.length > 0) {
+          const row = result.data[0];
+          const companyInfo: CompanyInfo = this.mapRowToInfo(row);
+          this.cachedCompanyInfo.set(currentTenant, companyInfo);
+          this.lastFetch.set(currentTenant, now);
+          console.log(`✅ Company info loaded from MySQL for ${currentTenant}:`, companyInfo.name || '(vide)');
+          return companyInfo;
+        }
+        console.warn('Aucune ligne activite en MySQL, retour recupere du fallback');
+      }
+
       console.log(`🏢 Fetching company info from activite table for tenant: ${currentTenant}...`);
 
       // Try RPC function first
@@ -56,33 +74,33 @@ export class CompanyService {
             .rpc('get_tenant_activite', { p_schema: currentTenant });
           
           if (activitiesError || !activitiesData || activitiesData.length === 0) {
-            console.warn('Fallback method also failed, using hardcoded data');
-            // Use the real company data we know exists
+            console.warn('Fallback method also failed, using default data');
+            // Retourner des informations neutres (aucune donnée réel codée en dur)
             const companyInfo: CompanyInfo = {
-              name: 'ETS BENAMAR BOUZID MENOUAR',
-              address: '10, Rue Belhandouz A.E.K, Mostaganem',
-              phone: '(213)045.42.35.20',
-              email: 'outillagesaada@gmail.com',
-              nif: '10227010185816600000',
-              rc: '21A3965999-27/00'
+              name: '',
+              address: '',
+              phone: '',
+              email: '',
+              nif: '',
+              rc: ''
             };
             
             // Cache the result per tenant
             this.cachedCompanyInfo.set(currentTenant, companyInfo);
             this.lastFetch.set(currentTenant, now);
             
-            console.log(`✅ Using hardcoded company info for ${currentTenant}:`, companyInfo.name);
+            console.log(`✅ Using default company info for ${currentTenant}`);
             return companyInfo;
           }
           
           const companyData = activitiesData[0];
           const companyInfo: CompanyInfo = {
-            name: companyData.nom_entreprise || 'ETS BENAMAR BOUZID MENOUAR',
-            address: companyData.adresse || '10, Rue Belhandouz A.E.K, Mostaganem',
-            phone: this.cleanPhoneNumber(companyData.telephone) || '(213)045.42.35.20',
-            email: companyData.email || 'outillagesaada@gmail.com',
-            nif: companyData.nif || '10227010185816600000',
-            rc: companyData.rc || '21A3965999-27/00'
+            name: companyData.nom_entreprise || '',
+            address: companyData.adresse || '',
+            phone: this.cleanPhoneNumber(companyData.telephone),
+            email: companyData.email || '',
+            nif: companyData.nif || '',
+            rc: companyData.rc || ''
           };
           
           // Cache the result per tenant
@@ -102,12 +120,12 @@ export class CompanyService {
       
       // Map the data to our CompanyInfo interface
       const companyInfo: CompanyInfo = {
-        name: companyData.raison_sociale || 'ETS BENAMAR BOUZID MENOUAR',
+        name: companyData.raison_sociale || companyData.nom_entreprise || '',
         address: this.formatAddress(companyData),
-        phone: this.cleanPhoneNumber(companyData.tel_fixe) || '(213)045.42.35.20',
-        email: companyData.e_mail || 'outillagesaada@gmail.com',
-        nif: companyData.nif || companyData.ident_fiscal || companyData.nis || '10227010185816600000',
-        rc: companyData.rc || companyData.nrc || '21A3965999-27/00',
+        phone: this.cleanPhoneNumber(companyData.tel_fixe),
+        email: companyData.e_mail || '',
+        nif: companyData.nif || companyData.ident_fiscal || companyData.nis || '',
+        rc: companyData.rc || companyData.nrc || '',
         domaine_activite: companyData.domaine_activite || '',
         sous_domaine: companyData.sous_domaine || '',
         commune: companyData.commune || '',
@@ -142,20 +160,40 @@ export class CompanyService {
     if (data.commune) parts.push(data.commune);
     if (data.wilaya) parts.push(data.wilaya);
     
-    return parts.length > 0 ? parts.join(', ') : 'Adresse de votre entreprise';
+    return parts.length > 0 ? parts.join(', ') : '';
+  }
+
+  private static mapRowToInfo(row: any): CompanyInfo {
+    return {
+      name: row.raison_sociale || row.nom_entreprise || '',
+      address: this.formatAddress(row),
+      phone: this.cleanPhoneNumber(row.tel_fixe || row.telephone),
+      email: row.email || row.e_mail || '',
+      nif: row.nif || row.ident_fiscal || row.nis || '',
+      rc: row.rc || row.nrc || '',
+      domaine_activite: row.domaine_activite || '',
+      sous_domaine: row.sous_domaine || '',
+      commune: row.commune || '',
+      wilaya: row.wilaya || '',
+      tel_port: row.tel_port || '',
+      nis: row.nis || '',
+      art: row.nart || '',
+      ident_fiscal: row.ident_fiscal || '',
+      banq: row.banq || ''
+    };
   }
 
   /**
-   * Get default company info as fallback
+   * Get default company info as fallback (neutre, aucune donnée réelle)
    */
   private static getDefaultCompanyInfo(): CompanyInfo {
     return {
-      name: 'ETS BENAMAR BOUZID MENOUAR',
-      address: '10, Rue Belhandouz A.E.K, Mostaganem',
-      phone: '(213)045.42.35.20',
-      email: 'outillagesaada@gmail.com',
-      nif: '10227010185816600000',
-      rc: '21A3965999-27/00'
+      name: '',
+      address: '',
+      phone: '',
+      email: '',
+      nif: '',
+      rc: ''
     };
   }
 

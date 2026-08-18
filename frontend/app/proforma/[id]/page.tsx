@@ -67,37 +67,37 @@ export default function ProformaDetail({ params }: { params: Promise<{ id: strin
         if (data.success && data.data && data.data.length > 0) {
           const activity = data.data[0];
           setCompanyInfo({
-            nom_activite: activity.nom_entreprise || 'ETS BENAMAR BOUZID MENOUAR',
-            adresse: activity.adresse || '10, Rue Belhandouz A.E.K, Mostaganem',
-            telephone: activity.telephone || '(213)045.42.35.20',
-            email: activity.email || 'outillagesaada@gmail.com'
+            nom_activite: activity.nom_entreprise || '',
+            adresse: activity.adresse || '',
+            telephone: activity.telephone || '',
+            email: activity.email || ''
           });
           console.log('✅ Company info set from database');
         } else {
           console.warn('⚠️ No company data found, using defaults');
           setCompanyInfo({
-            nom_activite: 'ETS BENAMAR BOUZID MENOUAR',
-            adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
-            telephone: '(213)045.42.35.20',
-            email: 'outillagesaada@gmail.com'
+            nom_activite: '',
+            adresse: '',
+            telephone: '',
+            email: ''
           });
         }
       } else {
         console.warn('⚠️ Could not fetch company info, using defaults');
         setCompanyInfo({
-          nom_activite: 'ETS BENAMAR BOUZID MENOUAR',
-          adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
-          telephone: '(213)045.42.35.20',
-          email: 'outillagesaada@gmail.com'
+          nom_activite: '',
+          adresse: '',
+          telephone: '',
+          email: ''
         });
       }
     } catch (error) {
       console.error('❌ Error fetching company info:', error);
       setCompanyInfo({
-        nom_activite: 'ETS BENAMAR BOUZID MENOUAR',
-        adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
-        telephone: '(213)045.42.35.20',
-        email: 'outillagesaada@gmail.com'
+        nom_activite: '',
+        adresse: '',
+        telephone: '',
+        email: ''
       });
     }
   };

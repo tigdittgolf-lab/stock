@@ -2340,16 +2340,16 @@ sales.get('/company-info', async (c) => {
   } catch (error) {
     console.error('❌ Error fetching company info:', error);
     
-    // Fallback avec les vraies données de votre entreprise
+    // Fallback neutre (aucune donnée réelle codée en dur)
     const fallbackCompanyInfo = {
-      name: 'ETS BENAMAR BOUZID MENOUAR',
-      address: '10, Rue Belhandouz A.E.K, Mostaganem, Mostaganem',
-      phone: '(213)045.42.35.20',
-      email: 'outillagesaada@gmail.com',
-      nif: '10227010185816600000',
-      rc: '21A3965999-27/00',
-      art: '100227010185845',
-      domaine_activite: 'Commerce Outillage et Équipements'
+      name: '',
+      address: '',
+      phone: '',
+      email: '',
+      nif: '',
+      rc: '',
+      art: '',
+      domaine_activite: ''
     };
 
     return c.json({

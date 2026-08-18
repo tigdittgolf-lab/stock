@@ -84,3 +84,23 @@ target/
 *.sqlite
 
 ngrok.exe
+
+# ===== Offline Pack (mode hors-ligne) =====
+# Binaires portables (trop volumineux pour Git — à fournir séparément)
+offline-pack/bin/
+
+# Données et configuration runtime (générés par le lanceur)
+offline-pack/data/
+offline-pack/logs/
+offline-pack/config.env
+offline-pack/backend/.env
+offline-pack/frontend/.env.local
+
+# Installeur généré
+offline-pack/installer/output/
+
+# Pack construit (C:\StockApp livré)
+offline-pack/build-output/
+
+# Fichiers archives (correctifs historiques)
+archive/

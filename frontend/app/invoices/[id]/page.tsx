@@ -122,53 +122,53 @@ export default function InvoiceDetail({ params }: { params: Promise<{ id: string
         if (data.success && data.data && data.data.length > 0) {
           const activity = data.data[0];
           setCompanyInfo({
-            name: activity.nom_entreprise || 'ETS BENAMAR BOUZID MENOUAR',
-            address: activity.adresse || '10, Rue Belhandouz A.E.K, Mostaganem',
-            phone: activity.telephone || '(213)045.42.35.20',
-            email: activity.email || 'outillagesaada@gmail.com',
-            nif: activity.nif || '10227010185816600000',
-            rc: activity.rc || '21A3965999-27/00',
-            art: activity.art || '100227010185845',
-            domaine_activite: activity.activite || 'Commerce Outillage et Équipements'
+            name: activity.nom_entreprise || '',
+            address: activity.adresse || '',
+            phone: activity.telephone || '',
+            email: activity.email || '',
+            nif: activity.nif || '',
+            rc: activity.rc || '',
+            art: activity.art || '',
+            domaine_activite: activity.activite || ''
           });
           console.log('✅ Company info set from database');
         } else {
           console.warn('⚠️ No company data found, using defaults');
           setCompanyInfo({
-            name: 'ETS BENAMAR BOUZID MENOUAR',
-            address: '10, Rue Belhandouz A.E.K, Mostaganem',
-            phone: '(213)045.42.35.20',
-            email: 'outillagesaada@gmail.com',
-            nif: '10227010185816600000',
-            rc: '21A3965999-27/00',
-            art: '100227010185845',
-            domaine_activite: 'Commerce Outillage et Équipements'
+            name: '',
+            address: '',
+            phone: '',
+            email: '',
+            nif: '',
+            rc: '',
+            art: '',
+            domaine_activite: ''
           });
         }
       } else {
         console.warn('⚠️ Could not fetch company info, using defaults');
         setCompanyInfo({
-          name: 'ETS BENAMAR BOUZID MENOUAR',
-          address: '10, Rue Belhandouz A.E.K, Mostaganem',
-          phone: '(213)045.42.35.20',
-          email: 'outillagesaada@gmail.com',
-          nif: '10227010185816600000',
-          rc: '21A3965999-27/00',
-          art: '100227010185845',
-          domaine_activite: 'Commerce Outillage et Équipements'
+          name: '',
+          address: '',
+          phone: '',
+          email: '',
+          nif: '',
+          rc: '',
+          art: '',
+          domaine_activite: ''
         });
       }
     } catch (error) {
       console.error('❌ Error fetching company info:', error);
       setCompanyInfo({
-        name: 'ETS BENAMAR BOUZID MENOUAR',
-        address: '10, Rue Belhandouz A.E.K, Mostaganem',
-        phone: '(213)045.42.35.20',
-        email: 'outillagesaada@gmail.com',
-        nif: '10227010185816600000',
-        rc: '21A3965999-27/00',
-        art: '100227010185845',
-        domaine_activite: 'Commerce Outillage et Équipements'
+        name: '',
+        address: '',
+        phone: '',
+        email: '',
+        nif: '',
+        rc: '',
+        art: '',
+        domaine_activite: ''
       });
     }
   };

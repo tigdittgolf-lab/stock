@@ -242,7 +242,7 @@ export default function HomePage() {
           <div className={styles.footerSection}>
             <h4>Système</h4>
             <p>Version 2.0</p>
-            <p>© 2025 ETS BENAMAR BOUZID MENOUAR</p>
+            <p>© 2025 StockApp</p>
           </div>
         </div>
       </footer>

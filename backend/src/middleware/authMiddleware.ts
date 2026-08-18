@@ -91,6 +91,51 @@ export const requireRole = (allowedRoles: string[]) => {
 // Middleware pour admin uniquement
 export const requireAdmin = requireRole(['admin']);
 
+/**
+ * Middleware admin local (mode offline / config système) :
+ * valide le JWT et exige le rôle admin SANS appeler la base Supabase.
+ * Utilisé pour les routes "config système" (changement de base de données)
+ * qui doivent fonctionner même quand la base métier est MySQL locale.
+ */
+export const requireAdminLocal = async (c: Context, next: Next) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ success: false, error: 'Token d\'authentification requis' }, 401);
+    }
+
+    const token = authHeader.substring(7);
+    const payload = await verify(token, JWT_SECRET);
+
+    const role = (payload.role as string) || (payload.profil as string) || '';
+    const username = (payload.username as string) || (payload.email as string) || '';
+
+    const isAdmin =
+      role === 'admin' ||
+      username === 'admin' ||
+      (Array.isArray(payload.profiles) &&
+        (payload.profiles as any[]).some((p: any) => p.role === 'admin'));
+
+    if (!isAdmin) {
+      return c.json({ success: false, error: 'Accès réservé aux administrateurs' }, 403);
+    }
+
+    c.set('user', {
+      id: (payload.userId as any) || (payload.sub as any) || 0,
+      username,
+      email: (payload.email as string) || '',
+      full_name: (payload.full_name as string) || '',
+      role: 'admin',
+      business_units: (payload.business_units as string[]) || [],
+    });
+
+    await next();
+  } catch (error) {
+    console.error('❌ Admin local middleware error:', error);
+    return c.json({ success: false, error: 'Token invalide ou expiré' }, 401);
+  }
+};
+
 // Middleware pour admin et manager
 export const requireAdminOrManager = requireRole(['admin', 'manager']);
 

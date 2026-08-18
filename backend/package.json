@@ -19,6 +19,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@hono/node-server": "^2.0.12",
     "@supabase/supabase-js": "^2.86.2",
     "@types/pg": "^8.16.0",
     "@types/redis": "^4.0.10",

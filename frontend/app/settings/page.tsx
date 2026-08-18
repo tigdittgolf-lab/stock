@@ -39,9 +39,18 @@ interface Activity {
   updated_at?: string;
 }
 
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '10px',
+  border: '1px solid #dee2e6',
+  borderRadius: '4px',
+  fontSize: '14px'
+};
+
 export default function SettingsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('families');
+  const [userRole, setUserRole] = useState<string>('');
   
   // États pour les familles
   const [families, setFamilies] = useState<Family[]>([]);
@@ -50,6 +59,11 @@ export default function SettingsPage() {
   // États pour les informations entreprise
   const [companyInfo, setCompanyInfo] = useState<Activity | null>(null);
   const [editingCompany, setEditingCompany] = useState(false);
+  
+  // États pour la base de données (admin)
+  const [dbConfig, setDbConfig] = useState<any>(null);
+  const [dbLoading, setDbLoading] = useState(false);
+  const [dbMessage, setDbMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   
   // États communs
   const [loading, setLoading] = useState(false);
@@ -63,6 +77,23 @@ export default function SettingsPage() {
     }
     return '2025_bu01';
   };
+
+  // getToken depuis localStorage
+  const getToken = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('auth_token') || '';
+    }
+    return '';
+  };
+
+  useEffect(() => {
+    try {
+      const userInfo = localStorage.getItem('user_info');
+      if (userInfo) {
+        setUserRole(JSON.parse(userInfo).role || '');
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   // Show message
   const showMessage = (msg: string, isError = false) => {
@@ -228,14 +259,14 @@ export default function SettingsPage() {
         // Créer une activité par défaut si aucune n'existe
         setCompanyInfo({
           id: 0,
-          nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR',
-          adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
-          telephone: '(213)045.42.35.20',
-          email: 'outillagesaada@gmail.com',
+          nom_entreprise: '',
+          adresse: '',
+          telephone: '',
+          email: '',
           nif: '',
           rc: '',
-          activite: 'Commerce et Distribution',
-          slogan: 'Votre partenaire de confiance',
+          activite: '',
+          slogan: '',
           created_at: new Date().toISOString()
         });
       }
@@ -299,13 +330,113 @@ export default function SettingsPage() {
       fetchFamilies();
     } else if (activeTab === 'company') {
       fetchCompanyInfo();
+    } else if (activeTab === 'database') {
+      fetchDatabaseConfig();
     }
   }, [activeTab]);
+
+  // Fonctions pour la base de données (admin)
+  const fetchDatabaseConfig = async () => {
+    try {
+      setDbLoading(true);
+      setDbMessage(null);
+      const res = await fetch(getApiUrl('database-config'), {
+        headers: { 'X-Tenant': getTenant() }
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        const cfg = data.data;
+        setDbConfig({
+          type: cfg.type || 'mysql',
+          name: cfg.name || 'MySQL Local',
+          host: cfg.host || 'localhost',
+          port: cfg.port || 3306,
+          database: cfg.database || 'stock_management',
+          username: cfg.username || 'root',
+          supabaseUrl: cfg.supabaseUrl || ''
+        });
+      } else {
+        setDbConfig({ type: 'mysql', name: 'MySQL Local', host: 'localhost', port: 3306, database: 'stock_management', username: 'root', supabaseUrl: '' });
+      }
+    } catch (err) {
+      console.error('Erreur lecture config DB:', err);
+      setDbMessage({ type: 'err', text: 'Impossible de lire la configuration.' });
+    } finally {
+      setDbLoading(false);
+    }
+  };
+
+  const switchDatabase = async (apply: boolean, customConfig?: any) => {
+    if (!dbConfig) return;
+    setDbLoading(true);
+    setDbMessage(null);
+    try {
+      const endpoint = apply ? 'database-config/switch' : 'database-config/test';
+      let payload: any;
+      if (customConfig) {
+        payload = { config: customConfig };
+      } else {
+        payload = {
+          config: {
+            type: dbConfig.type,
+            name: dbConfig.name,
+            host: dbConfig.type === 'supabase' ? undefined : dbConfig.host,
+            port: dbConfig.type === 'supabase' ? undefined : parseInt(dbConfig.port || 3306),
+            database: dbConfig.type === 'supabase' ? undefined : (dbConfig.database || 'stock_management'),
+            username: dbConfig.type === 'supabase' ? undefined : dbConfig.username,
+            password: dbConfig.type === 'supabase' ? undefined : (dbConfig.password || ''),
+            supabaseUrl: dbConfig.type === 'supabase' ? (dbConfig.supabaseUrl || undefined) : undefined,
+            supabaseKey: dbConfig.type === 'supabase' ? (dbConfig.supabaseKey || undefined) : undefined
+          }
+        };
+      }
+
+      const res = await fetch(getApiUrl(endpoint), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Tenant': getTenant(),
+          'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        if (apply) {
+          setDbMessage({ type: 'ok', text: data.message || 'Base de données changée.' });
+          // Mettre à jour localStorage pour le frontend (type normalisé côté backend)
+          const normalizedType = dbConfig.type === 'mariadb' ? 'mysql' : dbConfig.type;
+          localStorage.setItem('activeDbConfig', JSON.stringify({
+            type: normalizedType,
+            name: dbConfig.name,
+            host: dbConfig.host,
+            port: dbConfig.port,
+            database: dbConfig.database,
+            username: dbConfig.username,
+            supabaseUrl: dbConfig.supabaseUrl,
+            isActive: true,
+            lastTested: new Date().toISOString()
+          }));
+          window.location.reload();
+        } else {
+          setDbMessage({ type: 'ok', text: data.message || 'Connexion testée avec succès.' });
+        }
+      } else {
+        setDbMessage({ type: 'err', text: data.error || 'Échec de la connexion.' });
+      }
+    } catch (err) {
+      console.error('Erreur DB config:', err);
+      setDbMessage({ type: 'err', text: 'Erreur lors de la requête.' });
+    } finally {
+      setDbLoading(false);
+    }
+  };
 
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <div>
             <h1>⚙️ Paramètres du Système</h1>
             <div style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
@@ -363,6 +494,22 @@ export default function SettingsPage() {
           >
             🏢 Informations Entreprise
           </button>
+          {userRole === 'admin' && (
+            <button
+              onClick={() => setActiveTab('database')}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: activeTab === 'database' ? '#dc3545' : 'transparent',
+                color: activeTab === 'database' ? 'white' : '#dc3545',
+                border: '1px solid #dc3545',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              🗄️ Base de Données
+            </button>
+          )}
         </nav>
       </header>
 
@@ -869,6 +1016,166 @@ export default function SettingsPage() {
                 <li><strong>Champs protégés :</strong> Nom entreprise, NIF, RC (réservés à l'administrateur)</li>
                 <li>Ces informations apparaîtront sur vos documents (factures, bons de livraison)</li>
                 <li>Pour modifier les champs protégés, contactez l'administrateur système</li>
+              </ul>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'database' && userRole === 'admin' && (
+          <>
+            <div style={{
+              background: 'white',
+              padding: '20px',
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              marginBottom: '20px'
+            }}>
+              <h2 style={{ margin: '0 0 15px 0', color: '#212529' }}>
+                🗄️ Configuration de la Base de Données
+              </h2>
+              <p style={{ margin: '0 0 15px 0', color: '#6c757d', fontSize: '14px' }}>
+                Configurez la source de données utilisée par StockApp. La modification est immédiate et persistante.
+              </p>
+
+              {dbMessage && (
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: '4px',
+                  marginBottom: '15px',
+                  background: dbMessage.type === 'ok' ? '#d4edda' : '#f8d7da',
+                  color: dbMessage.type === 'ok' ? '#155724' : '#721c24',
+                  border: `1px solid ${dbMessage.type === 'ok' ? '#c3e6cb' : '#f5c6cb'}`
+                }}>
+                  {dbMessage.text}
+                </div>
+              )}
+
+              {dbLoading ? (
+                <div style={{ textAlign: 'center', padding: '30px', color: '#6c757d' }}>
+                  Chargement...
+                </div>
+              ) : dbConfig ? (
+                <div style={{ display: 'grid', gap: '15px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
+                      Type de base
+                    </label>
+                    <select
+                      value={dbConfig.type}
+                      onChange={(e) => setDbConfig({ ...dbConfig, type: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        border: '1px solid #dee2e6',
+                        borderRadius: '4px',
+                        fontSize: '14px'
+                      }}
+                    >
+                      <option value="mysql">🐬 MySQL / MariaDB local</option>
+                      <option value="mariadb">🦭 MariaDB (WAMP, port 3307)</option>
+                      <option value="supabase">☁️ Supabase Cloud</option>
+                      <option value="postgresql">🐘 PostgreSQL local</option>
+                    </select>
+                  </div>
+
+                  {(dbConfig.type === 'mysql' || dbConfig.type === 'mariadb') && (
+                    <>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Hôte</label>
+                          <input type="text" value={dbConfig.host || ''} onChange={(e) => setDbConfig({ ...dbConfig, host: e.target.value })} placeholder="localhost" style={inputStyle} />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Port</label>
+                          <input type="number" value={dbConfig.port || (dbConfig.type === 'mariadb' ? 3307 : 3306)} onChange={(e) => setDbConfig({ ...dbConfig, port: e.target.value })} placeholder="3306" style={inputStyle} />
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Base de données</label>
+                          <input type="text" value={dbConfig.database || ''} onChange={(e) => setDbConfig({ ...dbConfig, database: e.target.value })} placeholder="stock_management" style={inputStyle} />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Utilisateur</label>
+                          <input type="text" value={dbConfig.username || ''} onChange={(e) => setDbConfig({ ...dbConfig, username: e.target.value })} placeholder="root" style={inputStyle} />
+                        </div>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Mot de passe</label>
+                        <input type="password" value={dbConfig.password || ''} onChange={(e) => setDbConfig({ ...dbConfig, password: e.target.value })} placeholder="••••••" style={inputStyle} />
+                      </div>
+                    </>
+                  )}
+
+                  {dbConfig.type === 'supabase' && (
+                    <>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>URL Supabase</label>
+                        <input type="text" value={dbConfig.supabaseUrl || ''} onChange={(e) => setDbConfig({ ...dbConfig, supabaseUrl: e.target.value })} placeholder="https://votre-projet.supabase.co" style={inputStyle} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Clé Service (Service Role Key)</label>
+                        <input type="password" value={dbConfig.supabaseKey || ''} onChange={(e) => setDbConfig({ ...dbConfig, supabaseKey: e.target.value })} placeholder="eyJhbGci..." style={inputStyle} />
+                      </div>
+                      <p style={{ margin: 0, fontSize: '13px', color: '#856404', background: '#fff3cd', padding: '10px', borderRadius: '4px', border: '1px solid #ffeeba' }}>
+                        ⚠️ La clé sucrette n'est pas renvoyée par le serveur : re-saisissez-la si vous reconfigurez le cloud.
+                      </p>
+                    </>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                    <button
+                      onClick={() => switchDatabase(false)}
+                      disabled={dbLoading}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      🧪 Tester la connexion
+                    </button>
+                    <button
+                      onClick={() => switchDatabase(true)}
+                      disabled={dbLoading}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: dbLoading ? '#6c757d' : '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: dbLoading ? 'not-allowed' : 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      💾 Appliquer et utiliser
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: '30px', textAlign: 'center', color: '#6c757d' }}>
+                  Aucune donnée disponible.
+                </div>
+              )}
+            </div>
+
+            <div style={{
+              background: '#e7f3ff',
+              border: '1px solid #b8daff',
+              padding: '15px',
+              borderRadius: '4px'
+            }}>
+              <h3 style={{ margin: '0 0 10px 0', color: '#004085' }}>💡 Conseil</h3>
+              <ul style={{ margin: '0', paddingLeft: '20px', color: '#004085' }}>
+                <li>Utilisez toujours <strong>Test</strong> avant d'appliquer une nouvelle base.</li>
+                <li>Le mode pack offline utilise la base <strong>MariaDB locale embarquée</strong>.</li>
+                <li>Le changement est immédiat et persiste après redémarrage.</li>
               </ul>
             </div>
           </>

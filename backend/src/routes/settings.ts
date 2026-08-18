@@ -334,48 +334,77 @@ settings.get('/activities', async (c) => {
     let error = null;
     
     try {
-      console.log(`🔍 Fetching data from ${tenant.schema}.activite table`);
-      
-      // Utiliser directement la fonction RPC personnalisée
-      const { data: rpcData, error: rpcError } = await supabaseAdmin
-        .rpc('get_tenant_activite', { p_schema: tenant.schema });
+console.log(`🔍 Fetching data from ${tenant.schema}.activite table`);
+    
+    // Mode MySQL : lecture directe de la table activite du tenant
+    if (backendDatabaseService.getActiveDatabaseType() === 'mysql') {
+      const result = await backendDatabaseService.executeRPC('get_company_info', {
+        p_tenant: tenant.schema
+      });
+      if (result && result.success && result.data && result.data.length > 0) {
+        const row = result.data[0];
+        data = [{
+          id: 1,
+          nom_entreprise: row.nom_entreprise || row.raison_sociale || '',
+          raison_sociale: row.raison_sociale || '',
+          adresse: row.adresse || '',
+          telephone: row.telephone || row.tel_fixe || '',
+          email: row.email || '',
+          nif: row.nif || '',
+          rc: row.rc || row.nrc || '',
+          activite: row.domaine_activite || '',
+          slogan: row.slogan || '',
+          created_at: null
+        }];
+        console.log(`✅ Activities loaded from MySQL for ${tenant.schema}`);
+        return c.json({ 
+          success: true, 
+          data: data,
+          tenant: tenant.schema
+        , database_type: backendDatabaseService.getActiveDatabaseType() });
+      }
+    }
+    
+    // Utiliser directement la fonction RPC personnalisée
+    const { data: rpcData, error: rpcError } = await supabaseAdmin
+      .rpc('get_tenant_activite', { p_schema: tenant.schema });
       
       if (rpcError) {
         console.error(`❌ RPC error:`, rpcError);
-        // Fallback avec vos vraies données
+        // Fallback neutre
         data = [{
           id: 2,
-          nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR',
-          adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
-          telephone: '(213)045.42.35.20',
-          email: 'outillagesaada@gmail.com',
-          nif: '10227010185816600000',
-          rc: '21A3965999-27/00',
-          activite: 'Commerce - Outillage et Équipements',
+          nom_entreprise: '',
+          adresse: '',
+          telephone: '',
+          email: '',
+          nif: '',
+          rc: '',
+          activite: '',
           slogan: '',
-          created_at: '2025-12-13T22:25:48.837444Z'
+          created_at: null
         }];
-        console.log(`✅ Using fallback company data`);
+        console.log(`✅ Using neutral fallback company data`);
       } else {
         data = rpcData || [];
         console.log(`✅ Found ${data.length} activities from database`);
       }
-    } catch (e) {
+} catch (e) {
       console.error(`❌ Error accessing activite table:`, e);
-      // Fallback en cas d'erreur totale
+      // Fallback neutre en cas d'erreur totale
       data = [{
         id: 2,
-        nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR',
-        adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
-        telephone: '(213)045.42.35.20',
-        email: 'outillagesaada@gmail.com',
-        nif: '10227010185816600000',
-        rc: '21A3965999-27/00',
-        activite: 'Commerce - Outillage et Équipements',
+        nom_entreprise: '',
+        adresse: '',
+        telephone: '',
+        email: '',
+        nif: '',
+        rc: '',
+        activite: '',
         slogan: '',
-        created_at: '2025-12-13T22:25:48.837444Z'
+        created_at: null
       }];
-      console.log(`✅ Using fallback company data`);
+      console.log(`✅ Using neutral fallback company data`);
     }
     
     console.log(`✅ Found ${data?.length || 0} activities`);

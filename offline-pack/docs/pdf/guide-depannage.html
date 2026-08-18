@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>StockApp — Guide de dépannage</title>
+<style>
+  /* Charte identique aux autres PDFs StockApp */
+  :root {
+    --primary:        #1e3a5f;
+    --primary-soft:   #2c5282;
+    --accent:         #0e7c66;
+    --accent-soft:    #e6f4f1;
+    --gold:           #c8a24a;
+    --warn:           #b8741a;
+    --warn-soft:      #fbf1e2;
+    --danger:         #a83232;
+    --danger-soft:    #f9ebeb;
+    --info:           #2c5282;
+    --info-soft:      #eaf0f8;
+    --bg-dark:        #0f1f33;
+    --bg-page:        #ffffff;
+    --bg-tint:        #f4f7fb;
+    --bg-code:        #0f2438;
+    --text:           #1a2332;
+    --text-muted:     #5a6b80;
+    --border:         #dce3ec;
+  }
+
+  @page { size: A4; margin: 0; }
+
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-page);
+    color: var(--text);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    width: 210mm; height: 297mm;
+    box-sizing: border-box;
+    position: relative; overflow: hidden;
+    page-break-after: always; break-after: page;
+    display: flex; flex-direction: column;
+  }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+
+  /* COVER */
+  .cover {
+    background: linear-gradient(160deg, var(--bg-dark) 0%, #142a45 55%, var(--primary) 100%);
+    color: #fff; padding: 0;
+  }
+  .cover-inner {
+    position: absolute; inset: 22mm 20mm;
+    display: flex; flex-direction: column;
+  }
+  .cover-kicker {
+    font-size: 12pt; letter-spacing: 4pt;
+    text-transform: uppercase; color: var(--gold);
+    font-weight: 600; opacity: 0.95;
+  }
+  .cover-logo {
+    margin-top: 6mm; display: inline-flex;
+    align-items: center; gap: 8px;
+  }
+  .logo-mark {
+    width: 14mm; height: 14mm; border-radius: 4mm;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22pt; font-weight: 800; letter-spacing: -1pt;
+  }
+  .logo-text { font-size: 26pt; font-weight: 800; letter-spacing: -0.5pt; }
+  .cover-hero { margin-top: auto; }
+  .cover-title {
+    font-size: 38pt; font-weight: 800; line-height: 1.08;
+    letter-spacing: -1pt; margin: 0; max-width: 150mm;
+  }
+  .cover-title .em { color: var(--gold); }
+  .cover-subtitle {
+    margin-top: 8mm; font-size: 14pt; line-height: 1.55;
+    color: #cdd9e8; max-width: 145mm; font-weight: 400;
+  }
+  .cover-summary {
+    margin-top: 12mm; padding: 7mm 8mm;
+    background: rgba(255,255,255,0.06);
+    border-left: 3px solid var(--gold); border-radius: 2px;
+    font-size: 11pt; line-height: 1.6; color: #e3ebf5; max-width: 145mm;
+  }
+  .cover-meta {
+    margin-top: 12mm; display: flex;
+    justify-content: space-between; align-items: flex-end;
+    font-size: 10pt; color: #9fb2c9; letter-spacing: 0.5pt;
+  }
+  .cover-meta .doc-type { text-transform: uppercase; letter-spacing: 2pt; }
+
+  /* PAGES CORPS — compacts (validé anti-débordement) */
+  .body-page {
+    padding: 14mm 16mm 12mm 16mm;
+    background: var(--bg-page);
+  }
+  .page-header {
+    display: flex; justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 3mm; margin-bottom: 6mm;
+  }
+  .page-header .ph-left {
+    font-size: 8.5pt; letter-spacing: 2.5pt; text-transform: uppercase;
+    color: var(--primary); font-weight: 700;
+  }
+  .page-header .ph-right {
+    font-size: 8.5pt; color: var(--text-muted); letter-spacing: 0.5pt;
+  }
+  .page-footer {
+    position: absolute; left: 16mm; right: 16mm; bottom: 7mm;
+    display: flex; justify-content: space-between;
+    font-size: 8pt; color: var(--text-muted);
+    border-top: 1px solid var(--border); padding-top: 2mm;
+  }
+
+  h1.section-title {
+    font-size: 21pt; font-weight: 800; color: var(--primary);
+    letter-spacing: -0.5pt; margin: 0 0 2mm 0; line-height: 1.1;
+  }
+  .section-lead {
+    font-size: 10.5pt; line-height: 1.5; color: var(--text-muted);
+    margin: 0 0 5mm 0; max-width: 170mm;
+  }
+  h2 {
+    font-size: 12pt; font-weight: 700; color: var(--primary);
+    margin: 3.5mm 0 2mm 0;
+  }
+  h2 .h2-num {
+    display: inline-block; font-size: 9pt; color: #fff;
+    background: var(--accent); padding: 1px 6px;
+    border-radius: 3px; vertical-align: middle;
+    margin-right: 6px; font-weight: 700;
+  }
+  h3 {
+    font-size: 10pt; font-weight: 700; color: var(--primary-soft);
+    margin: 2.5mm 0 1mm 0;
+  }
+  p {
+    font-size: 9.5pt; line-height: 1.45; margin: 0 0 1.8mm 0; color: var(--text);
+  }
+
+  ul.tight, ol.tight {
+    list-style: none; padding: 0; margin: 1.5mm 0;
+  }
+  ul.tight li, ol.tight li {
+    position: relative; padding-left: 6mm;
+    margin-bottom: 1.1mm; font-size: 9.3pt; line-height: 1.4;
+  }
+  ul.tight li::before {
+    content: "▸"; position: absolute; left: 0.5mm;
+    color: var(--accent); font-weight: 800; font-size: 10pt;
+  }
+  ol.tight { counter-reset: step; }
+  ol.tight li { counter-increment: step; }
+  ol.tight li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 0.3mm;
+    width: 4.5mm; height: 4.5mm; line-height: 4.5mm;
+    text-align: center; font-size: 7.5pt; font-weight: 800;
+    color: #fff; background: var(--accent); border-radius: 50%;
+  }
+
+  table {
+    width: 100%; border-collapse: collapse;
+    margin: 2mm 0 3mm 0; font-size: 9pt;
+  }
+  th {
+    background: var(--primary); color: #fff; text-align: left;
+    padding: 1.7mm 2.3mm; font-weight: 600; font-size: 8.6pt;
+    letter-spacing: 0.3pt;
+  }
+  td {
+    padding: 1.5mm 2.3mm; border-bottom: 1px solid var(--border);
+    vertical-align: top; line-height: 1.38;
+  }
+  tr:nth-child(even) td { background: var(--bg-tint); }
+  td code, p code, li code {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 8.3pt; background: var(--bg-tint);
+    padding: 0 2px; border-radius: 2px; color: var(--primary);
+  }
+
+  pre.code {
+    background: var(--bg-code); color: #e6edf6;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 8.3pt; line-height: 1.45;
+    padding: 2.4mm 3.5mm; border-radius: 3px;
+    margin: 1.5mm 0 2.5mm 0; white-space: pre-wrap;
+    word-break: break-word;
+    border-left: 3px solid var(--accent);
+  }
+  pre.code .c-cmt { color: #7d93ab; font-style: italic; }
+
+  .admon {
+    padding: 2.8mm 4mm; margin: 2.4mm 0;
+    border-radius: 3px; border-left: 4px solid;
+    font-size: 9.1pt; line-height: 1.45;
+  }
+  .admon .adm-title {
+    font-size: 9.2pt; font-weight: 700; margin: 0 0 1mm 0;
+  }
+  .admon p { font-size: 9.1pt; margin: 0; }
+  .admon.warn   { background: var(--warn-soft);   border-left-color: var(--warn); }
+  .admon.warn   .adm-title { color: var(--warn); }
+  .admon.info   { background: var(--info-soft);   border-left-color: var(--info); }
+  .admon.info   .adm-title { color: var(--info); }
+  .admon.tip    { background: var(--accent-soft); border-left-color: var(--accent); }
+  .admon.tip    .adm-title { color: var(--accent); }
+  .admon.danger { background: var(--danger-soft); border-left-color: var(--danger); }
+  .admon.danger .adm-title { color: var(--danger); }
+
+  /* Cartes symptômes (sommaire) */
+  .sym-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 3mm; margin: 3mm 0;
+  }
+  .sym {
+    background: var(--bg-tint); border: 1px solid var(--border);
+    border-left: 4px solid var(--primary-soft);
+    border-radius: 3px; padding: 3mm 4mm;
+    font-size: 9pt; line-height: 1.35;
+  }
+  .sym .sym-num {
+    display: inline-block; font-weight: 800; color: var(--accent);
+    width: 6mm;
+  }
+  .sym b { color: var(--primary); }
+
+  /* CLOSING */
+  .closing {
+    background: linear-gradient(160deg, var(--bg-dark) 0%, var(--primary) 100%);
+    color: #fff; padding: 0;
+  }
+  .closing-inner {
+    position: absolute; inset: 30mm 22mm;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .closing h1 {
+    font-size: 28pt; font-weight: 800; line-height: 1.15;
+    margin: 0 0 6mm 0; letter-spacing: -0.5pt;
+  }
+  .closing h1 .em { color: var(--gold); }
+  .closing p {
+    font-size: 11pt; color: #cdd9e8; line-height: 1.6; max-width: 150mm;
+  }
+  .closing .signoff {
+    margin-top: 12mm; padding-top: 5mm;
+    border-top: 1px solid rgba(255,255,255,0.18);
+    font-size: 9.5pt; color: #9fb2c9; letter-spacing: 1pt; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- PAGE 1 — COUVERTURE                                          -->
+<!-- ============================================================ -->
+<section class="page cover">
+  <div class="cover-inner">
+    <div class="cover-kicker">Guide de dépannage</div>
+
+    <div class="cover-logo">
+      <div class="logo-mark">S</div>
+      <div class="logo-text">StockApp</div>
+    </div>
+
+    <div class="cover-hero">
+      <h1 class="cover-title">
+        Diagnostiquer<br>
+        et <span class="em">résoudre</span><br>
+        les incidents.
+      </h1>
+      <div class="cover-subtitle">
+        Guide de dépannage du mode hors-ligne StockApp : 15 sections
+        par symptôme, du double-clic qui ne fait rien à la restauration
+        de sauvegarde et la remise à zéro complète.
+      </div>
+
+      <div class="cover-summary">
+        <b>Avant tout dépannage</b>, consultez les journaux&nbsp;:
+        <code style="background:rgba(255,255,255,0.12);padding:1px 4px;border-radius:2px;color:#fff;">C:\StockApp\logs\stockapp.log</code>.
+        Ce guide part du symptôme observable (message d'erreur, comportement)
+        et donne à chaque fois la cause probable + la commande de vérification
+        + la solution. Les commandes sont exécutables en PowerShell ou cmd.
+      </div>
+
+      <div class="cover-meta">
+        <span class="doc-type">Dépannage v1.0</span>
+        <span>Version 1.0 — Juin 2026</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 2 — SOMMAIRE DES SYMPTÔMES                              -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Sommaire des symptômes</div>
+    <div class="ph-right">StockApp — Dépannage</div>
+  </div>
+
+  <h1 class="section-title">Quel est votre symptôme ?</h1>
+  <p class="section-lead">
+    Trouvez ci-dessous le symptôme observable, puis rendez-vous à la
+    section correspondante. Chaque section indique causes, vérifications
+    et solutions, avec les commandes prêtes à copier-coller.
+  </p>
+
+  <div class="sym-grid">
+    <div class="sym"><span class="sym-num">1.</span><b>Rien au double-clic</b> sur <code>start.bat</code></div>
+    <div class="sym"><span class="sym-num">2.</span><b>« MariaDB n'a pas démarré »</b></div>
+    <div class="sym"><span class="sym-num">3.</span><b>« Le backend n'a pas démarré »</b></div>
+    <div class="sym"><span class="sym-num">4.</span><b>« Le frontend n'a pas démarré »</b></div>
+    <div class="sym"><span class="sym-num">5.</span><b>Navigateur vide</b> / « impossible de se connecter »</div>
+    <div class="sym"><span class="sym-num">6.</span><b>PC clients</b> ne joignent pas le serveur</div>
+    <div class="sym"><span class="sym-num">7.</span><b>Identifiants admin refusés</b></div>
+    <div class="sym"><span class="sym-num">8.</span><b>Mot de passe admin oublié</b></div>
+    <div class="sym"><span class="sym-num">9.</span><b>Port déjà utilisé</b> (3000 / 3005 / 3306)</div>
+    <div class="sym"><span class="sym-num">10.</span><b>Application lente</b> ou qui gèle</div>
+    <div class="sym"><span class="sym-num">11.</span><b>Restaurer</b> une sauvegarde</div>
+    <div class="sym"><span class="sym-num">12.</span><b>L'IP du serveur</b> a changé</div>
+    <div class="sym"><span class="sym-num">13.</span><b>Remise à zéro</b> complète</div>
+    <div class="sym"><span class="sym-num">14.</span><b>L'app tente</b> de joindre le cloud</div>
+  </div>
+
+  <div class="admon warn" style="margin-top:5mm;">
+    <div class="adm-title">🚑 Réflexe n°1 : lire les logs</div>
+    <p>Avant toute manipulation, extrayez les dernières lignes du journal&nbsp;:
+    <code>Get-Content C:\StockApp\logs\stockapp.log -Tail 50</code>. Le message
+    d'erreur y est presque toujours explicite (« port déjà utilisé », « datafile
+    introuvable », etc.) et oriente directement vers la bonne section.</p>
+  </div>
+
+  <div class="admon info">
+    <div class="adm-title">ℹ️ Commandes &amp; chemins</div>
+    <p>Toutes les commandes supposent une installation dans <code>C:\StockApp</code>.
+       En PowerShell, <code>&amp;</code> sert à invoquer un exécutable contenant un
+       chemin. Les backticks <code>`</code> en fin de ligne indiquent la continuation
+       sur la ligne suivante.</p>
+  </div>
+
+  <div class="page-footer"><span>StockApp — Dépannage v1.0</span><span>2</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 3 — §1 + §2                                             -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Démarrage</div>
+    <div class="ph-right">§1 · §2</div>
+  </div>
+
+  <h2><span class="h2-num">1</span>Rien ne se passe au double-clic</h2>
+  <p><b>Causes possibles :</b> la fenêtre s'ouvre puis se ferme instantanément
+     (erreur), ou Windows bloque l'exécution des scripts (politique d'exécution).</p>
+  <h3>Solutions</h3>
+  <ol class="tight">
+    <li><b>Lancez depuis une console</b> pour voir l'erreur&nbsp;:
+<pre class="code">cd C:\StockApp
+start.bat</pre></li>
+    <li>Si le message parle de <b>stratégie d'exécution</b>&nbsp;:
+<pre class="code">powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File C:\StockApp\scripts\StockApp-Launcher.ps1</pre></li>
+    <li><b>Clic droit → Propriétés</b> sur <code>start.bat</code> → décocher « Bloquer »
+        si l'option apparaît (fichier venu d'un autre PC / téléchargé).</li>
+  </ol>
+
+  <h2><span class="h2-num">2</span>MariaDB n'a pas démarré</h2>
+  <p><b>Message typique :</b></p>
+<pre class="code">[X] MariaDB n'a pas démarré dans les temps. Voir logs\stockapp.log</pre>
+
+  <table>
+    <tr><th style="width:24%">Cause</th><th style="width:38%">Vérification</th><th>Solution</th></tr>
+    <tr><td>Port 3306 déjà pris</td><td><code>netstat -ano | findstr :3306</code></td><td>Voir §9</td></tr>
+    <tr><td><code>mysqld.exe</code> absent</td><td><code>Test-Path C:\StockApp\bin\mariadb\bin\mysqld.exe</code></td><td>Re-construire le pack (<code>build-pack.ps1</code>)</td></tr>
+    <tr><td>Datadir corrompu</td><td>Le datadir existe mais MariaDB refuse</td><td>§13 (sauvegarder d'abord&nbsp;!)</td></tr>
+    <tr><td>Antivirus bloque mysqld</td><td>Voir alertes de l'antivirus</td><td>Exclusion pour <code>C:\StockApp\bin\mariadb\</code></td></tr>
+  </table>
+
+  <h3>Inspecter le log MySQL</h3>
+<pre class="code">Get-Content C:\StockApp\logs\stockapp.log -Tail 50</pre>
+  <p>Les erreurs MariaDB ressemblent à&nbsp;:</p>
+  <ul class="tight">
+    <li><code>Can't open datafile</code> → datadir cassé.</li>
+    <li><code>Port 3306 is already in use</code> → conflit avec un autre MySQL installé.</li>
+  </ul>
+
+  <div class="page-footer"><span>StockApp — Dépannage v1.0</span><span>3</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 4 — §3 + §4                                             -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Démarrage</div>
+    <div class="ph-right">§3 · §4</div>
+  </div>
+
+  <h2><span class="h2-num">3</span>Le backend n'a pas démarré</h2>
+  <p><b>Message typique :</b></p>
+<pre class="code">[X] Le backend n'a pas démarré. Voir logs\stockapp.log</pre>
+  <p><b>Causes &amp; solutions :</b></p>
+  <ol class="tight">
+    <li><b>Backend ne joint pas MySQL</b> → MySQL a échoué avant (voir §2).</li>
+    <li><b>Port 3005 déjà pris</b> → §9.</li>
+    <li><b>Dépendances backend manquantes</b> → <code>backend\node_modules</code> absent.
+        Re-construire le pack, ou installer manuellement&nbsp;:
+<pre class="code">cd C:\StockApp\backend
+C:\StockApp\bin\node\npm.cmd install --production</pre></li>
+    <li><b>Erreur de syntaxe dans <code>backend\.env</code></b> → supprimer le fichier,
+        il sera régénéré au prochain lancement.</li>
+    <li><b>Tester le backend à la main&nbsp;:</b>
+<pre class="code">cd C:\StockApp\backend
+C:\StockApp\bin\bun\bun.exe run index.ts
+REM ou :
+C:\StockApp\bin\node\node.exe index.ts</pre></li>
+  </ol>
+
+  <h2><span class="h2-num">4</span>Le frontend n'a pas démarré</h2>
+  <p><b>Message typique :</b></p>
+<pre class="code">[X] Le frontend n'a pas démarré. Voir logs\stockapp.log</pre>
+  <p><b>Causes &amp; solutions :</b></p>
+  <ol class="tight">
+    <li><b>Port 3000 déjà pris</b> → §9.</li>
+    <li><b>Build manquant</b> → <code>frontend\.next</code> absent. Le pack n'est pas complet.
+        Sur la machine de build&nbsp;:
+<pre class="code">cd C:\netbean\St_Article_1\frontend
+npm install
+npm run build</pre>
+        puis recopier <code>.next</code> et <code>node_modules</code> vers le client.</li>
+    <li><b><code>node_modules</code> manquant</b> → re-copier depuis le pack.</li>
+  </ol>
+
+  <div class="page-footer"><span>StockApp — Dépannage v1.0</span><span>4</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 5 — §5 + §6                                             -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Connexion &amp; réseau</div>
+    <div class="ph-right">§5 · §6</div>
+  </div>
+
+  <h2><span class="h2-num">5</span>Le navigateur n'affiche rien</h2>
+  <p><b>Symptômes :</b> <code>ERR_CONNECTION_REFUSED</code>, « Page inaccessible »,
+     page blanche après chargement.</p>
+  <h3>Diagnostic</h3>
+<pre class="code">REM Sur le PC serveur/standalone :
+curl http://localhost:3000          REM frontend ?
+curl http://localhost:3005/api      REM backend ?</pre>
+
+  <table>
+    <tr><th style="width:42%">Résultat</th><th style="width:30%">Diagnostic</th><th>Action</th></tr>
+    <tr><td>Frontend KO</td><td>Next.js pas démarré</td><td>§4</td></tr>
+    <tr><td>Frontend OK, Backend KO</td><td>Backend en panne</td><td>§3</td></tr>
+    <tr><td>Les deux OK mais page blanche</td><td>Erreur JS côté navigateur</td><td>Ouvrir la console navigateur (F12)</td></tr>
+  </table>
+
+  <div class="admon warn">
+    <div class="adm-title">⚠️ Page blanche après login</div>
+    <p>Vérifier dans la console du navigateur (F12 → Console) l'absence d'erreur
+       type <code>Supabase URL not defined</code>. Cela signifie que des variables
+       cloud sont encore présentes — voir §14.</p>
+  </div>
+
+  <h2><span class="h2-num">6</span>Les PC clients ne joignent pas le serveur</h2>
+  <p>Sur un PC client, le navigateur affiche <code>ERR_CONNECTION_REFUSED</code> /
+     <code>ERR_CONNECTION_TIMED_OUT</code> sur <code>http://&lt;IP-serveur&gt;:3000</code>.</p>
+  <h3>Checklist sur le PC serveur</h3>
+  <ol class="tight">
+    <li><b>L'application tourne-t-elle&nbsp;?</b> <code>curl http://localhost:3000</code></li>
+    <li><b>Le serveur écoute-t-il sur le réseau&nbsp;?</b> <code>netstat -ano | findstr :3000</code>
+        — doit afficher <code>0.0.0.0:3000</code> (et non <code>127.0.0.1:3000</code>).</li>
+    <li><b>Le pare-feu autorise-t-il&nbsp;?</b> <code>C:\StockApp\scripts\install-firewall-rules.ps1</code> (en admin).</li>
+    <li><b>Les 2 PC sont-ils sur le même réseau&nbsp;?</b> <code>ping &lt;IP-serveur&gt;</code> depuis le client.
+        Si le ping échoue → réseau différent (Wi-Fi, VLAN, VPN…).</li>
+    <li><b>L'IP saisie côté client est-elle correcte&nbsp;?</b> <code>Get-Content C:\StockApp\config.env</code>
+        → vérifier <code>SERVER_HOST</code>. Si l'IP a changé, voir §12.</li>
+  </ol>
+
+  <div class="page-footer"><span>StockApp — Dépannage v1.0</span><span>5</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 6 — §7 + §8                                             -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Authentification</div>
+    <div class="ph-right">§7 · §8</div>
+  </div>
+
+  <h2><span class="h2-num">7</span>Identifiants admin refusés</h2>
+  <p><b>Symptôme :</b> connexion à <code>admin</code> / <code>admin123</code> refusée dès l'installation.</p>
+  <h3>Vérifications</h3>
+  <ol class="tight">
+    <li>La base d'authentification a-t-elle été initialisée&nbsp;? Regarder si
+        <code>C:\StockApp\data\.schema-initialized</code> existe.</li>
+    <li><b>Ré-insérer le compte admin&nbsp;:</b>
+<pre class="code">&amp; "C:\StockApp\bin\mariadb\bin\mysql.exe" `
+    -h 127.0.0.1 -P 3306 -u root `
+    -e "source C:\StockApp\database\seed-admin.sql"</pre></li>
+    <li>Si vous avez changé le mot de passe et oublié la valeur → §8.</li>
+  </ol>
+  <div class="admon info">
+    <div class="adm-title">ℹ️ Hash des mots de passe</div>
+    <p>Le hash est <b>SHA-256</b> du mot de passe. Pas de sel, pas de bcrypt
+       (voir <code>seed-admin.sql</code> et <code>auth-mysql.ts</code> côté backend).</p>
+  </div>
+
+  <h2><span class="h2-num">8</span>Mot de passe admin oublié</h2>
+  <h3>Procédure de réinitialisation</h3>
+  <ol class="tight">
+    <li><b>Arrêtez</b> l'application (Ctrl+C).</li>
+    <li><b>Relancez</b> <code>start.bat</code> puis <b>Ctrl-C immédiatement</b> dès que
+        « Base de données prête » apparaît, pour garder MariaDB en marche tout en
+        arrêtant backend + frontend. <i>(Alternative : laisser tourner tout et
+        exécuter la commande — MySQL accepte plusieurs connexions.)</i></li>
+    <li><b>Réinjectez un mot de passe connu</b> (ex: remettre <code>admin123</code>)&nbsp;:
+<pre class="code">&amp; "C:\StockApp\bin\mariadb\bin\mysql.exe" `
+    -h 127.0.0.1 -P 3306 -u root stock_management_auth `
+    -e "UPDATE users SET password_hash='240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9' WHERE username='admin';"
+
+&amp; "C:\StockApp\bin\mariadb\bin\mysql.exe" `
+    -h 127.0.0.1 -P 3306 -u root 2025_bu01 `
+    -e "UPDATE user_info SET pass_word='240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9' WHERE username='admin';"</pre>
+        <span style="font-size:8.6pt;color:var(--text-muted);">Le hash ci-dessus = SHA-256 de <code>admin123</code>.</span></li>
+    <li>Connectez-vous avec <code>admin</code> / <code>admin123</code>, puis <b>changez-le</b> dans l'application.</li>
+  </ol>
+
+  <div class="admon tip">
+    <div class="adm-title">🔐 Générer un autre hash (PowerShell)</div>
+<pre class="code" style="margin-top:1mm;">$pwd = Read-Host "Mot de passe"
+-join ([System.Security.Cryptography.SHA256]::Create().ComputeHash(
+    [Text.Encoding]::UTF8.GetBytes($pwd)).ForEach{ $_.ToString('x2') })</pre>
+  </div>
+
+  <div class="page-footer"><span>StockApp — Dépannage v1.0</span><span>6</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 7 — §9 + §10                                            -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Ports &amp; performances</div>
+    <div class="ph-right">§9 · §10</div>
+  </div>
+
+  <h2><span class="h2-num">9</span>Port déjà utilisé</h2>
+  <p><b>Message typique :</b> <code>bind: Address already in use</code> ou un service qui échoue à démarrer.</p>
+  <h3>Identifier le coupable</h3>
+<pre class="code">netstat -ano | findstr :3000
+netstat -ano | findstr :3005
+netstat -ano | findstr :3306</pre>
+  <p>La dernière colonne donne le <b>PID</b>. Pour voir le programme&nbsp;: <code>Get-Process -Id &lt;PID&gt;</code></p>
+  <h3>Solutions</h3>
+  <ul class="tight">
+    <li><b>Une ancienne instance StockApp tourne encore</b> → tuez-la&nbsp;:
+<pre class="code">Get-Process mysqld,node,bun -ErrorAction SilentlyContinue | Stop-Process -Force</pre>
+        <span style="font-size:8.6pt;color:var(--text-muted);">(avec discernement — ne tuez pas un MySQL servant un autre logiciel&nbsp;!)</span></li>
+    <li><b>Un autre logiciel occupe le port</b> (ex: un MySQL déjà installé)&nbsp;:
+        soit arrêter ce logiciel, soit <b>changer le port</b> dans <code>config.env</code>&nbsp;:
+<pre class="code">MYSQL_PORT=3307
+BACKEND_PORT=3006
+FRONTEND_PORT=3001</pre>
+        <span style="font-size:8.6pt;color:var(--text-muted);">(pensez à adapter le pare-feu en mode serveur)</span></li>
+  </ul>
+
+  <h2><span class="h2-num">10</span>Application qui gèle ou lente</h2>
+  <p><b>Causes possibles :</b></p>
+  <ul class="tight">
+    <li><b>Datadir MySQL énorme</b> → sauvegarder, purger les vieilles sauvegardes SQL dans <code>backups\</code>.</li>
+    <li><b>Antivirus qui scanne à chaud</b> → ajouter une exclusion pour <code>C:\StockApp\data\</code> et <code>C:\StockApp\bin\</code>.</li>
+    <li><b>Disque presque plein</b> → vérifier l'espace disque.</li>
+    <li><b>Beaucoup de connexions concurrentes</b> (LAN) → le <code>my.ini</code> généré fixe <code>max_connections=100</code>. L'augmenter si nécessaire (modifier le template dans <code>StockApp-Launcher.ps1</code>).</li>
+  </ul>
+  <h3>Vérifier la charge MySQL</h3>
+<pre class="code">&amp; "C:\StockApp\bin\mariadb\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root `
+    -e "SHOW PROCESSLIST; SHOW STATUS LIKE 'Threads_connected';"</pre>
+
+  <div class="page-footer"><span>StockApp — Dépannage v1.0</span><span>7</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 8 — §11 + §12                                           -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Sauvegardes &amp; réseau</div>
+    <div class="ph-right">§11 · §12</div>
+  </div>
+
+  <h2><span class="h2-num">11</span>Restaurer une sauvegarde</h2>
+  <div class="admon warn">
+    <div class="adm-title">⚠️ Avant de restaurer</div>
+    <p>Effectuez d'abord une sauvegarde de l'état actuel, au cas où.</p>
+  </div>
+  <h3>Procédure</h3>
+  <ol class="tight">
+    <li><b>Ctrl+C</b> dans la console StockApp (arrêt propre).</li>
+    <li>Démarrez <b>uniquement MariaDB</b>&nbsp;:
+<pre class="code">&amp; "C:\StockApp\bin\mariadb\bin\mysqld.exe" `
+    --defaults-file="C:\StockApp\data\my.ini" --console</pre>
+        <span style="font-size:8.6pt;color:var(--text-muted);">(laissez cette fenêtre ouverte pendant la restauration)</span></li>
+    <li>Dans <b>une autre console</b>, chargez le dump&nbsp;:
+<pre class="code">&amp; "C:\StockApp\bin\mariadb\bin\mysql.exe" `
+    -h 127.0.0.1 -P 3306 -u root `
+    &lt; "D:\Sauvegardes\stockapp_2025_bu01_2026-06-18_2200.sql"</pre>
+        <span style="font-size:8.6pt;color:var(--text-muted);">Si le dump contient <code>CREATE DATABASE</code>, il recréera les bases.
+        Sinon, ajoutez <code>-D 2025_bu01</code> (et un 2e appel pour <code>stock_management_auth</code>).</span></li>
+    <li><b>Ctrl+C</b> dans la fenêtre mysqld pour l'arrêter.</li>
+    <li>Relancez normalement&nbsp;: <code>.\start.bat</code>.</li>
+  </ol>
+
+  <h2><span class="h2-num">12</span>L'IP du serveur a changé</h2>
+  <p>En mode LAN, les clients sont configurés avec une IP fixe. Si elle change
+     (changement de routeur, DHCP renouvelé), tous les clients perdent la connexion.</p>
+  <h3>Solution durable : fixer l'IP</h3>
+  <ul class="tight">
+    <li>Demander à l'administrateur réseau une <b>réservation DHCP</b> sur l'adresse MAC du PC serveur, ou</li>
+    <li>Configurer une <b>IP statique</b> dans Windows (Paramètres → Réseau → IPv4).</li>
+  </ul>
+  <h3>Solution immédiate : mettre à jour les clients</h3>
+  <p>Sur <b>chaque PC client</b>, éditez <code>C:\StockApp\config.env</code>&nbsp;:</p>
+<pre class="code">SERVER_HOST=192.168.1.60     <span class="c-cmt"># nouvelle IP</span></pre>
+  <p>Relancez le client (<code>start.bat</code>).</p>
+
+  <div class="page-footer"><span>StockApp — Dépannage v1.0</span><span>8</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 9 — §13 + §14 + §15                                     -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">Réinitialisation &amp; support</div>
+    <div class="ph-right">§13 · §14 · §15</div>
+  </div>
+
+  <h2><span class="h2-num">13</span>Remise à zéro complète</h2>
+  <div class="admon danger">
+    <div class="adm-title">🔴 Cette opération efface toutes les données métier</div>
+    <p>Articles, clients, factures… À n'utiliser qu'en dernier recours. <b>Sauvegardez avant&nbsp;!</b></p>
+  </div>
+<pre class="code">cd C:\StockApp
+
+REM 1. Arrêter l'application (Ctrl+C dans la console)
+
+REM 2. Supprimer les données + marqueurs
+Remove-Item -Recurse -Force data\mysql
+Remove-Item -Force data\.schema-initialized
+Remove-Item -Force config.env        REM pour repasser l'assistant
+Remove-Item -Force backend\.env
+Remove-Item -Force frontend\.env.local
+
+REM 3. Relancer : l'assistant réapparaît et la base est recréée vierge
+.\start.bat</pre>
+  <p>Vous repartez avec un compte <code>admin</code> / <code>admin123</code> et une base vide.</p>
+
+  <h2><span class="h2-num">14</span>L'application tente de joindre le cloud</h2>
+  <p><b>Symptôme :</b> la console du navigateur (F12) montre des requêtes vers
+     <code>supabase.co</code> ou <code>ngrok-free.dev</code>, ou des erreurs
+     <code>NEXT_PUBLIC_SUPABASE_URL is not defined</code>.</p>
+  <p><b>Cause :</b> des variables d'environnement « cloud » sont présentes.</p>
+  <h3>Vérifier</h3>
+<pre class="code">Get-Content C:\StockApp\frontend\.env.local
+Get-Content C:\StockApp\backend\.env</pre>
+  <h3>Correction</h3>
+  <ul class="tight">
+    <li>Supprimer toute ligne <code>NEXT_PUBLIC_SUPABASE_*</code>, <code>SUPABASE_*</code>,
+        <code>NEXT_PUBLIC_API_URL</code> qui pointerait vers ngrok/Internet.</li>
+    <li>Conserver uniquement les variables documentées dans <code>offline-pack\config\*.env.example</code>.</li>
+    <li>Le plus simple : supprimer ces fichiers <code>.env</code>, ils sont régénérés
+        correctement par <code>StockApp-Launcher.ps1</code> au prochain démarrage.</li>
+  </ul>
+
+  <h2><span class="h2-num">15</span>Demander de l'aide</h2>
+  <p>Si rien ne fonctionne, rassemblez ces éléments avant de contacter le support&nbsp;:</p>
+  <ol class="tight">
+    <li><b>Version</b> de StockApp (Paramètres → À propos, ou date du dossier <code>C:\StockApp</code>).</li>
+    <li><b>Mode</b> utilisé (standalone / serveur / client).</li>
+    <li><b>Capture</b> de la console (fenêtre noire) au moment de l'erreur.</li>
+    <li><b>Extrait</b> du journal&nbsp;: <code>Get-Content C:\StockApp\logs\stockapp.log -Tail 100</code></li>
+    <li><b>Résultat</b> des commandes de diagnostic&nbsp;: <code>netstat -ano | findstr ":3000 :3005 :3306"</code></li>
+  </ol>
+
+  <div class="page-footer"><span>StockApp — Dépannage v1.0</span><span>9</span></div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 10 — CLOSING                                            -->
+<!-- ============================================================ -->
+<section class="page closing">
+  <div class="closing-inner">
+    <h1>
+      Le bon réflexe&nbsp;:<br>
+      <span class="em">lire les logs</span>, puis ce guide.
+    </h1>
+    <p>
+      La grande majorité des incidents offline se résument à un port occupé,
+      un binaire manquant, un pare-feu fermé ou une variable cloud parasite.
+      Le journal <code style="background:rgba(255,255,255,0.12);padding:1px 4px;border-radius:2px;color:#fff;">logs\stockapp.log</code>
+      donne presque toujours la cause&nbsp;; ce guide donne la solution.
+    </p>
+    <p style="margin-top:4mm;">
+      <b>Documentation associée</b> — guides d'installation, d'utilisation,
+      architecture et présentation actionnaires&nbsp;: disponibles dans
+      <code style="background:rgba(255,255,255,0.12);padding:1px 4px;border-radius:2px;color:#fff;">offline-pack/docs/</code>.
+    </p>
+    <div class="signoff">StockApp — Dépannage v1.0 — Juin 2026</div>
+  </div>
+</section>
+
+</body>
+</html>

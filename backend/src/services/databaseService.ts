@@ -149,8 +149,23 @@ export class BackendDatabaseService {
     return this.activeConfig?.type || 'supabase';
   }
 
+  /** Config active complète (sans masquage). */
+  public getActiveConfig(): DatabaseConfig | undefined {
+    return this.activeConfig;
+  }
+
+  /** Teste une configuration SANS changer la base active. */
+  public async testDatabaseConnection(config: DatabaseConfig): Promise<boolean> {
+    return this.testConnection(config);
+  }
+
   public async switchDatabase(config: DatabaseConfig): Promise<boolean> {
     try {
+      // Normaliser mariadb -> mysql (même pilote, port différent)
+      if (config.type === 'mariadb') {
+        config.type = 'mysql';
+        config.name = config.name || 'MariaDB Local';
+      }
       console.log(`🔄 Backend switching to database: ${config.type} (${config.name})`);
       console.log(`📊 Config details: host=${config.host}, port=${config.port}, database=${config.database}`);
       
@@ -177,11 +192,10 @@ export class BackendDatabaseService {
         throw new Error('Connection test failed');
       }
       
-      // Sauvegarder la nouvelle configuration EN MÉMOIRE UNIQUEMENT
+      // Sauvegarder la nouvelle configuration pour persistance au redémarrage
       this.activeConfig = config;
-      // NE PAS sauvegarder dans un fichier - la config doit venir du header X-Database-Type à chaque requête
-      // this.saveActiveConfig(); // ❌ DÉSACTIVÉ - cause des problèmes de synchronisation
-      
+      this.saveActiveConfig();
+
       console.log(`✅ Backend database switched to: ${config.type}`);
       console.log(`📊 Active config: host=${this.activeConfig.host}, port=${this.activeConfig.port}`);
       return true;
@@ -3263,16 +3277,35 @@ export class BackendDatabaseService {
   }
 
   private async getCompanyInfo(dbType: 'mysql' | 'postgresql', tenant: string): Promise<any> {
-    // Retourner des informations par défaut si pas de table company_info
-    return {
-      success: true,
-      data: [{
-        nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR',
-        adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
-        telephone: '(213)045.42.35.20',
-        email: 'outillagesaada@gmail.com'
-      }]
-    };
+    try {
+      // Lire les informations de l'entreprise depuis la table activite du tenant
+      const sql = `SELECT * FROM \`${tenant}\`.activite WHERE tenant_id = ? LIMIT 1`;
+      const result = await this.executeMySQLQuery(sql, [tenant]);
+      if (result.success && result.data && result.data.length > 0) {
+        const row = result.data[0];
+        return {
+          success: true,
+          data: [{
+            nom_entreprise: row.raison_sociale || row.nom_entreprise || '',
+            raison_sociale: row.raison_sociale || '',
+            adresse: row.adresse || '',
+            telephone: row.tel_fixe || row.telephone || '',
+            tel_fixe: row.tel_fixe || '',
+            email: row.email || row.e_mail || '',
+            e_mail: row.e_mail || '',
+            nif: row.nif || '',
+            rc: row.rc || row.nrc || '',
+            domaine_activite: row.domaine_activite || '',
+            commune: row.commune || '',
+            wilaya: row.wilaya || ''
+          }]
+        };
+      }
+      return { success: true, data: [{ nom_entreprise: '' }] };
+    } catch (error) {
+      console.error('Erreur getCompanyInfo MySQL:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Erreur getCompanyInfo MySQL' };
+    }
   }
 
   private async updateCompanyInfo(dbType: 'mysql' | 'postgresql', params: any): Promise<any> {

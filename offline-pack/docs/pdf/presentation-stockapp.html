@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>StockApp — Présentation de la plateforme</title>
+<style>
+  /* ============================================================
+     PALETTE — cascade depuis une base bleu institutionnel
+     ============================================================ */
+  :root {
+    --primary:        #1e3a5f;   /* bleu nuit — titres, cover */
+    --primary-soft:   #2c5282;   /* accent */
+    --accent:         #0e7c66;   /* vert émeraude — valeur/bénéfices */
+    --accent-soft:    #e6f4f1;
+    --gold:           #c8a24a;   /* touche premium — rare */
+    --bg-dark:        #0f1f33;   /* cover background */
+    --bg-page:        #ffffff;
+    --bg-tint:        #f4f7fb;   /* blocs clairs */
+    --bg-tint-2:      #eef2f7;
+    --text:           #1a2332;
+    --text-muted:     #5a6b80;
+    --border:         #dce3ec;
+    --rule:           #c9d4e0;
+  }
+
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-page);
+    color: var(--text);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Page = 210 x 297 mm, chaque page indépendante.
+     IMPORTANT: height fixe + overflow hidden pour garantir une page A4 stricte.
+     Le contenu de chaque page est dimensionné pour tenir dans 297mm. */
+  .page {
+    width: 210mm;
+    height: 297mm;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+    break-after: page;
+    display: flex;
+    flex-direction: column;
+  }
+  .page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  /* ============================================================
+     COVER (page 1) — fond sombre, ancrage absolu
+     ============================================================ */
+  .cover {
+    background: linear-gradient(160deg, var(--bg-dark) 0%, #142a45 55%, var(--primary) 100%);
+    color: #ffffff;
+    padding: 0;
+  }
+  .cover-inner {
+    position: absolute;
+    inset: 22mm 20mm;
+    display: flex;
+    flex-direction: column;
+  }
+  .cover-kicker {
+    font-size: 12pt;
+    letter-spacing: 4pt;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+    opacity: 0.95;
+  }
+  .cover-logo {
+    margin-top: 6mm;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-mark {
+    width: 14mm;
+    height: 14mm;
+    border-radius: 4mm;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 22pt;
+    font-weight: 800;
+    letter-spacing: -1pt;
+  }
+  .logo-text {
+    font-size: 26pt;
+    font-weight: 800;
+    letter-spacing: -0.5pt;
+  }
+  .cover-hero {
+    margin-top: auto;
+  }
+  .cover-title {
+    font-size: 40pt;
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -1pt;
+    margin: 0;
+    max-width: 150mm;
+  }
+  .cover-title .em { color: var(--gold); }
+  .cover-subtitle {
+    margin-top: 8mm;
+    font-size: 14pt;
+    line-height: 1.55;
+    color: #cdd9e8;
+    max-width: 140mm;
+    font-weight: 400;
+  }
+  .cover-summary {
+    margin-top: 12mm;
+    padding: 7mm 8mm;
+    background: rgba(255,255,255,0.06);
+    border-left: 3px solid var(--gold);
+    border-radius: 2px;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #e3ebf5;
+    max-width: 145mm;
+  }
+  .cover-meta {
+    margin-top: 12mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-size: 10pt;
+    color: #9fb2c9;
+    letter-spacing: 0.5pt;
+  }
+  .cover-meta .doc-type {
+    text-transform: uppercase;
+    letter-spacing: 2pt;
+  }
+
+  /* ============================================================
+     PAGES CORPS
+     ============================================================ */
+  .body-page {
+    padding: 22mm 20mm 18mm 20mm;
+    background: var(--bg-page);
+  }
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4mm;
+    margin-bottom: 8mm;
+  }
+  .page-header .ph-left {
+    font-size: 9pt;
+    letter-spacing: 2.5pt;
+    text-transform: uppercase;
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .page-header .ph-right {
+    font-size: 9pt;
+    color: var(--text-muted);
+    letter-spacing: 0.5pt;
+  }
+  .page-footer {
+    position: absolute;
+    left: 20mm;
+    right: 20mm;
+    bottom: 10mm;
+    display: flex;
+    justify-content: space-between;
+    font-size: 8.5pt;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    padding-top: 3mm;
+  }
+
+  h1.section-title {
+    font-size: 24pt;
+    font-weight: 800;
+    color: var(--primary);
+    letter-spacing: -0.5pt;
+    margin: 0 0 2mm 0;
+    line-height: 1.1;
+  }
+  .section-lead {
+    font-size: 11.5pt;
+    line-height: 1.55;
+    color: var(--text-muted);
+    margin: 0 0 8mm 0;
+    max-width: 165mm;
+  }
+  h2 {
+    font-size: 14pt;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 7mm 0 3mm 0;
+  }
+  h2 .h2-tag {
+    display: inline-block;
+    font-size: 9pt;
+    color: #fff;
+    background: var(--accent);
+    padding: 1px 7px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-right: 6px;
+    font-weight: 700;
+    letter-spacing: 0.5pt;
+  }
+  p {
+    font-size: 10.5pt;
+    line-height: 1.6;
+    margin: 0 0 3mm 0;
+    color: var(--text);
+  }
+
+  /* Tableaux */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 3mm 0 5mm 0;
+    font-size: 10pt;
+  }
+  th {
+    background: var(--primary);
+    color: #fff;
+    text-align: left;
+    padding: 2.5mm 3mm;
+    font-weight: 600;
+    font-size: 9.5pt;
+    letter-spacing: 0.3pt;
+  }
+  td {
+    padding: 2.5mm 3mm;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.45;
+  }
+  tr:nth-child(even) td { background: var(--bg-tint); }
+  td.center, th.center { text-align: center; }
+
+  /* Cartes / grille */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5mm;
+    margin: 3mm 0;
+  }
+  .card {
+    background: var(--bg-tint);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 3px;
+    padding: 5mm 6mm;
+  }
+  .card .card-icon {
+    font-size: 16pt;
+    margin-bottom: 2mm;
+  }
+  .card h3 {
+    font-size: 11.5pt;
+    color: var(--primary);
+    margin: 0 0 2mm 0;
+    font-weight: 700;
+  }
+  .card p {
+    font-size: 9.5pt;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* Callout / citation */
+  .callout {
+    background: var(--accent-soft);
+    border-left: 4px solid var(--accent);
+    padding: 6mm 7mm;
+    margin: 5mm 0;
+    border-radius: 3px;
+  }
+  .callout .callout-title {
+    font-size: 13pt;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 0 0 2mm 0;
+  }
+  .callout p { color: #234; margin: 0; font-size: 10.5pt; }
+
+  /* Liste à puces soignée */
+  ul.feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 3mm 0;
+  }
+  ul.feature-list li {
+    position: relative;
+    padding-left: 8mm;
+    margin-bottom: 2.5mm;
+    font-size: 10.5pt;
+    line-height: 1.5;
+  }
+  ul.feature-list li::before {
+    content: "▸";
+    position: absolute;
+    left: 1mm;
+    color: var(--accent);
+    font-weight: 800;
+    font-size: 11pt;
+  }
+
+  /* Schéma architecture (boîtes) */
+  .arch-tier {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4mm;
+    margin: 4mm 0;
+  }
+  .arch-block {
+    border: 1.5px solid var(--primary-soft);
+    border-radius: 4px;
+    padding: 4mm 5mm;
+    background: #fff;
+  }
+  .arch-block .ab-title {
+    font-size: 11pt;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 0 0 1.5mm 0;
+  }
+  .arch-block .ab-tech {
+    font-size: 8.5pt;
+    color: var(--text-muted);
+    letter-spacing: 0.5pt;
+    text-transform: uppercase;
+    margin-bottom: 2mm;
+  }
+  .arch-block p { font-size: 9.5pt; margin: 0; color: var(--text-muted); }
+
+  /* Bandeau chiffres clés */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4mm;
+    margin: 4mm 0 6mm 0;
+  }
+  .kpi {
+    background: var(--primary);
+    color: #fff;
+    border-radius: 4px;
+    padding: 5mm 4mm;
+    text-align: center;
+  }
+  .kpi .kpi-num {
+    font-size: 22pt;
+    font-weight: 800;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .kpi .kpi-label {
+    font-size: 8.5pt;
+    margin-top: 2mm;
+    letter-spacing: 0.5pt;
+    color: #cdd9e8;
+    line-height: 1.3;
+  }
+
+  /* Encadré "bénéfice" */
+  .benefit-table td:first-child {
+    font-weight: 700;
+    color: var(--primary);
+    white-space: nowrap;
+  }
+
+  /* Mini-tag pour la dernière page */
+  .closing {
+    background: linear-gradient(160deg, var(--bg-dark) 0%, var(--primary) 100%);
+    color: #fff;
+    padding: 0;
+  }
+  .closing-inner {
+    position: absolute;
+    inset: 30mm 22mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .closing h1 {
+    font-size: 30pt;
+    font-weight: 800;
+    line-height: 1.15;
+    margin: 0 0 6mm 0;
+    letter-spacing: -0.5pt;
+  }
+  .closing h1 .em { color: var(--gold); }
+  .closing p {
+    font-size: 12pt;
+    color: #cdd9e8;
+    line-height: 1.6;
+    max-width: 150mm;
+  }
+  .closing .signoff {
+    margin-top: 14mm;
+    padding-top: 6mm;
+    border-top: 1px solid rgba(255,255,255,0.18);
+    font-size: 10pt;
+    color: #9fb2c9;
+    letter-spacing: 1pt;
+    text-transform: uppercase;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- PAGE 1 — COUVERTURE                                          -->
+<!-- ============================================================ -->
+<section class="page cover">
+  <div class="cover-inner">
+    <div class="cover-kicker">Document de synthèse</div>
+
+    <div class="cover-logo">
+      <div class="logo-mark">S</div>
+      <div class="logo-text">StockApp</div>
+    </div>
+
+    <div class="cover-hero">
+      <h1 class="cover-title">
+        Gérer son commerce<br>
+        <span class="em">de bout en bout</span>,<br>
+        partout, même sans Internet.
+      </h1>
+      <div class="cover-subtitle">
+        Présentation de la plateforme intégrée de gestion de stock,
+        de commercialisation et de pilotage — à destination du
+        comité de direction et des actionnaires.
+      </div>
+
+      <div class="cover-summary">
+        StockApp couvre l'ensemble du cycle métier — du référencement
+        des articles à la facturation, en passant par les achats, les
+        livraisons, les paiements et la fiscalité. Sa force&nbsp;:
+        fonctionner indifféremment dans le cloud ou 100&nbsp;% en local,
+        sans aucune connexion Internet.
+      </div>
+
+      <div class="cover-meta">
+        <span class="doc-type">Présentation plateforme</span>
+        <span>Version 1.0 — Juin 2026</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 2 — VUE D'ENSEMBLE                                      -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">1 · Vue d'ensemble</div>
+    <div class="ph-right">StockApp — Présentation plateforme</div>
+  </div>
+
+  <h1 class="section-title">Une plateforme intégrée, souveraine et résiliente</h1>
+  <p class="section-lead">
+    StockApp est une plateforme intégrée de gestion de stock et de
+    commercialisation destinée aux commerces et PME. Elle couvre tout le
+    cycle opérationnel et fonctionne aussi bien dans le cloud que 100&nbsp;%
+    en local, sans aucune connexion Internet.
+  </p>
+
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-num">9</div><div class="kpi-label">Modules métiers couverts</div></div>
+    <div class="kpi"><div class="kpi-num">2</div><div class="kpi-label">Modes de déploiement (cloud / offline)</div></div>
+    <div class="kpi"><div class="kpi-num">3</div><div class="kpi-label">Configurations offline possibles</div></div>
+    <div class="kpi"><div class="kpi-num">0</div><div class="kpi-label">Pré-requis côté client final</div></div>
+  </div>
+
+  <h2><span class="h2-tag">●</span> Caractéristiques clés</h2>
+  <table>
+    <tr><th style="width:32%">Caractéristique</th><th>Détail</th></tr>
+    <tr><td><b>Cœur métier</b></td><td>Articles, achats, ventes, livraison, facturation, paiements, stock</td></tr>
+    <tr><td><b>Multi-activité</b></td><td>Plusieurs business units (multi-tenant) sur une même plateforme</td></tr>
+    <tr><td><b>Modes de déploiement</b></td><td>Cloud <b>ou</b> hors-ligne (1 PC seul ou réseau LAN)</td></tr>
+    <tr><td><b>Accès</b></td><td>Interface web responsive (poste fixe, portable, tablette, mobile)</td></tr>
+    <tr><td><b>Utilisateurs</b></td><td>Gestion fine des rôles (admin / utilisateur), authentification sécurisée</td></tr>
+  </table>
+
+  <div class="callout">
+    <div class="callout-title">La proposition de valeur en une phrase</div>
+    <p>« Gérer son commerce de bout en bout, partout, même sans Internet. »</p>
+  </div>
+
+  <div class="page-footer">
+    <span>StockApp</span>
+    <span>2</span>
+  </div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 3 — PROPOSITION DE VALEUR                               -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">2 · Proposition de valeur</div>
+    <div class="ph-right">StockApp — Présentation plateforme</div>
+  </div>
+
+  <h1 class="section-title">Trois bénéfices clés pour l'entreprise</h1>
+  <p class="section-lead">
+    StockApp répond à des contraintes réelles de terrain : connectivité
+    faible ou inexistante, souveraineté des données, besoin de couvrir
+    tout le cycle commercial avec un seul outil cohérent.
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-icon">🌐</div>
+      <h3>1. Autonomie totale vis-à-vis d'Internet</h3>
+      <p>Fonctionnement sans aucune dépendance réseau. Aucune donnée
+      métier ne quitte le site — parfait pour la confidentialité et
+      les zones à faible connectivité. Choix entre un PC unique, un
+      réseau local ou le cloud, sans changer de code.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔗</div>
+      <h3>2. Couverture complète du cycle opérationnel</h3>
+      <p>Un seul logiciel couvre les achats, le stock, les ventes, les
+      paiements et la fiscalité — fini les tableurs multiples et la
+      double saisie. Les données sont cohérentes entre elles.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔐</div>
+      <h3>3. Maîtrise et sécurité des données</h3>
+      <p>Souveraineté des données : tout reste chez le client en mode
+      offline. Sauvegardes planifiables, restauration maîtrisée.
+      Authentification par utilisateur, profils différenciés.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">💶</div>
+      <h3>Bénéfices concrets sur le terrain</h3>
+      <p>Gain de temps (fin de la double saisie), fiabilité (calculs
+      automatiques des marges, TTC, stock), pilotage en temps réel,
+      suivi fin de la trésorerie (impayés, échéances, avoirs).</p>
+    </div>
+  </div>
+
+  <h2><span class="h2-tag">●</span> Bénéfices mesurables</h2>
+  <table class="benefit-table">
+    <tr><th style="width:30%">Bénéfice</th><th>Concret sur le terrain</th></tr>
+    <tr><td>⏱️ Gain de temps</td><td>Fin de la double saisie ; facturation et BL générés en quelques clics.</td></tr>
+    <tr><td>🎯 Fiabilité</td><td>Données cohérentes, calculs automatiques (marges, TTC, stock).</td></tr>
+    <tr><td>🌍 Résilience réseau</td><td>Travaille même quand Internet coupe — aucune interruption.</td></tr>
+    <tr><td>🔐 Confidentialité</td><td>Les données restent chez le client (mode offline).</td></tr>
+    <tr><td>📈 Pilotage</td><td>Tableau de bord et états financiers (G50) en temps réel.</td></tr>
+    <tr><td>💶 Trésorerie</td><td>Suivi fin des impayés, échéances, avoirs.</td></tr>
+  </table>
+
+  <div class="page-footer">
+    <span>StockApp</span>
+    <span>3</span>
+  </div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 4 — MODULES FONCTIONNELS                                -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">3 · Modules fonctionnels</div>
+    <div class="ph-right">StockApp — Présentation plateforme</div>
+  </div>
+
+  <h1 class="section-title">9 modules pour couvrir tout le métier</h1>
+  <p class="section-lead">
+    La plateforme s'articule autour d'un tableau de bord central et de
+    huit domaines fonctionnels, accessibles depuis une interface unique.
+  </p>
+
+  <table>
+    <tr>
+      <th style="width:24%">Module</th>
+      <th style="width:38%">Contenu</th>
+      <th>Fonctions clés</th>
+    </tr>
+    <tr>
+      <td><b>📊 Tableau de bord</b></td>
+      <td>Vue synthétique de l'activité</td>
+      <td>CA, stock, valorisation, totaux dynamiques, multi-tenant</td>
+    </tr>
+    <tr>
+      <td><b>📦 Articles &amp; Stock</b></td>
+      <td>Catalogue, familles, gestion du stock</td>
+      <td>Prix d'achat, marge, TVA, prix de vente, seuils, étiquettes</td>
+    </tr>
+    <tr>
+      <td><b>👥 Clients</b></td>
+      <td>Fiches clients et encours</td>
+      <td>CA par client, historique paiements, échéancier</td>
+    </tr>
+    <tr>
+      <td><b>🏭 Fournisseurs</b></td>
+      <td>Fiches fournisseurs et dettes</td>
+      <td>Factures d'achat, suivi des dettes</td>
+    </tr>
+    <tr>
+      <td><b>🛒 Commerce</b></td>
+      <td>Ventes : BL, factures, proforma</td>
+      <td>Création, modification, PDF, retours / avoirs</td>
+    </tr>
+    <tr>
+      <td><b>🛍️ Achats</b></td>
+      <td>Achats fournisseurs</td>
+      <td>BL fournisseurs, factures d'achat, statistiques</td>
+    </tr>
+    <tr>
+      <td><b>💶 Finances</b></td>
+      <td>Paiements et trésorerie</td>
+      <td>Encaissements, impayés, échéances, avoirs</td>
+    </tr>
+    <tr>
+      <td><b>📑 Fiscal</b></td>
+      <td>Déclarations fiscales</td>
+      <td>État G50, paramètres fiscaux, exercices</td>
+    </tr>
+    <tr>
+      <td><b>⚙️ Administration</b></td>
+      <td>Utilisateurs et configuration</td>
+      <td>Rôles ADMIN/USER, business units, thème clair/sombre</td>
+    </tr>
+  </table>
+
+  <h2><span class="h2-tag">●</span> Fonctionnalités transverses</h2>
+  <ul class="feature-list">
+    <li><b>Impression PDF professionnelle</b> — bons de livraison, factures, proforma, avec montant en lettres et coordonnées société.</li>
+    <li><b>Accès mobile</b> — interfaces dédiées (BL, factures) pour tablette et smartphone.</li>
+    <li><b>Intégration WhatsApp Business</b> — envoi de documents aux clients.</li>
+    <li><b>Support multi-base</b> — Supabase (cloud) ou MySQL/MariaDB (local), au choix, sans rupture.</li>
+  </ul>
+
+  <div class="page-footer">
+    <span>StockApp</span>
+    <span>4</span>
+  </div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 5 — ARCHITECTURE TECHNIQUE                              -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">4 · Architecture technique</div>
+    <div class="ph-right">StockApp — Présentation plateforme</div>
+  </div>
+
+  <h1 class="section-title">Une application web 3 tiers, double mode</h1>
+  <p class="section-lead">
+    La force technique de StockApp réside dans sa capacité à basculer
+    entre deux architectures — cloud et hors-ligne — sans modifier le
+    code métier.
+  </p>
+
+  <h2><span class="h2-tag">●</span> Les trois couches applicatives</h2>
+  <div class="arch-tier">
+    <div class="arch-block">
+      <div class="ab-tech">Couche 1 · Frontend</div>
+      <div class="ab-title">Interface web Next.js</div>
+      <p>Interface responsive consommée dans le navigateur. Poste fixe,
+      portable, tablette, mobile. Thème clair/sombre.</p>
+    </div>
+    <div class="arch-block">
+      <div class="ab-tech">Couche 2 · Backend</div>
+      <div class="ab-title">API Hono (Node / Bun)</div>
+      <p>Logique métier et règles de gestion exposées en API REST.
+      Exécution Node.js ou Bun.</p>
+    </div>
+    <div class="arch-block">
+      <div class="ab-tech">Couche 3 · Base cloud</div>
+      <div class="ab-title">Supabase (PostgreSQL)</div>
+      <p>Persistance managée pour le déploiement cloud (Vercel).
+      Accès depuis n'importe où via tunnel sécurisé.</p>
+    </div>
+    <div class="arch-block">
+      <div class="ab-tech">Couche 3 · Base locale</div>
+      <div class="ab-title">MySQL / MariaDB portable</div>
+      <p>Persistance 100&nbsp;% locale pour le mode hors-ligne.
+      Embarquée dans l'installeur Windows.</p>
+    </div>
+  </div>
+
+  <h2><span class="h2-tag">●</span> Le double mode : cloud ou hors-ligne</h2>
+  <table>
+    <tr>
+      <th style="width:20%"></th>
+      <th style="width:40%">Mode Cloud</th>
+      <th>Mode Hors-ligne</th>
+    </tr>
+    <tr>
+      <td><b>Hébergement</b></td>
+      <td>Vercel + Supabase (Internet)</td>
+      <td>PC serveur ou PC unique (LAN / localhost)</td>
+    </tr>
+    <tr>
+      <td><b>Base de données</b></td>
+      <td>PostgreSQL managé (Supabase)</td>
+      <td>MySQL / MariaDB portable, embarqué</td>
+    </tr>
+    <tr>
+      <td><b>Internet requis</b></td>
+      <td>Oui</td>
+      <td><b>Non</b> — aucune dépendance réseau</td>
+    </tr>
+    <tr>
+      <td><b>Souveraineté données</b></td>
+      <td>Hébergée chez un tiers de confiance</td>
+      <td>100&nbsp;% chez le client, rien ne sort</td>
+    </tr>
+    <tr>
+      <td><b>Code métier</b></td>
+      <td colspan="2" class="center"><b>Strictement identique</b> — un seul code, deux déploiements</td>
+    </tr>
+  </table>
+
+  <h2><span class="h2-tag">●</span> Le mode hors-ligne en 3 configurations</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>① Standalone — 1 PC</h3>
+      <p>Tout sur un seul poste (localhost). Idéal pour un petit commerce
+      ou un point de vente unique.</p>
+    </div>
+    <div class="card">
+      <h3>② Serveur LAN — multi-postes</h3>
+      <p>1 PC serveur centralise les données, N PC clients s'y
+      connectent. Idéal pour un magasin multi-postes.</p>
+    </div>
+  </div>
+  <p style="font-size:9.5pt;color:var(--text-muted);margin-top:2mm;">
+    ③ <b>Client LAN</b> — PC léger se connectant au serveur (poste de
+    saisie supplémentaire). Le client final n'a rien à installer&nbsp;:
+    l'installeur Windows embarque base de données, runtimes et application.
+  </p>
+
+  <div class="page-footer">
+    <span>StockApp</span>
+    <span>5</span>
+  </div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 6 — SÉCURITÉ, ROADMAP, SYNTHÈSE                         -->
+<!-- ============================================================ -->
+<section class="page body-page">
+  <div class="page-header">
+    <div class="ph-left">5 · Sécurité, roadmap &amp; synthèse</div>
+    <div class="ph-right">StockApp — Présentation plateforme</div>
+  </div>
+
+  <h1 class="section-title">Sécurité, conformité et perspectives</h1>
+  <p class="section-lead">
+    La plateforme intègre dès sa conception la sécurité des données,
+    la traçabilité des actions et la maîtrise des sauvegardes.
+  </p>
+
+  <h2><span class="h2-tag">●</span> Sécurité &amp; conformité</h2>
+  <ul class="feature-list">
+    <li><b>Authentification</b> par utilisateur, mots de passe hachés (SHA-256).</li>
+    <li><b>Profils différenciés</b> (ADMIN / USER) avec gestion des permissions.</li>
+    <li><b>Souveraineté des données</b> : en mode offline, aucune donnée ne sort du site du client.</li>
+    <li><b>Sauvegardes automatisables</b> — planification quotidienne, purge des anciens dumps, restauration maîtrisée.</li>
+    <li><b>Pare-feu maîtrisé</b> — ouverture des ports uniquement sur les profils réseau Privé / Domaine.</li>
+  </ul>
+
+  <div class="grid">
+    <div class="card" style="border-left-color:var(--accent);">
+      <div class="card-icon">✅</div>
+      <h3>Points forts actuels</h3>
+      <p>Couverture fonctionnelle large et cohérente · double déploiement
+      cloud / offline opérationnel · génération PDF professionnelle ·
+      multi-tenant et multi-postes.</p>
+    </div>
+    <div class="card" style="border-left-color:var(--gold);">
+      <div class="card-icon">🧭</div>
+      <h3>Pistes d'évolution</h3>
+      <p>Synchronisation cloud ↔ offline (réplication planifiée) ·
+      application mobile native · tableaux de bord analytiques avancés ·
+      API publique pour intégrations comptables.</p>
+    </div>
+  </div>
+
+  <h2><span class="h2-tag">●</span> Limitations connues</h2>
+  <table>
+    <tr><th style="width:40%">Point d'attention</th><th>Explication</th></tr>
+    <tr><td>Pas de synchro auto cloud ↔ local</td><td>Chaque installation est indépendante (synchro = évolution future).</td></tr>
+    <tr><td>Mode LAN = serveur allumé</td><td>Les clients ne travaillent que si le PC serveur reste sous tension.</td></tr>
+    <tr><td>Récupération mot de passe offline manuelle</td><td>Par conception (pas d'Internet = pas d'e-mail automatique).</td></tr>
+  </table>
+
+  <div class="callout" style="margin-top:6mm;">
+    <div class="callout-title">En résumé</div>
+    <p>StockApp est une plateforme <b>complète, souveraine et résiliente</b>
+    de gestion commerciale. Elle se démarque par sa capacité à fonctionner
+    indifféremment dans le cloud ou totalement hors-ligne, sans compromis
+    sur les fonctionnalités. Elle apporte à l'entreprise productivité,
+    fiabilité et maîtrise de ses données.</p>
+  </div>
+
+  <div class="page-footer">
+    <span>StockApp</span>
+    <span>6</span>
+  </div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- PAGE 7 — CLOSING                                             -->
+<!-- ============================================================ -->
+<section class="page closing">
+  <div class="closing-inner">
+    <h1>
+      Une plateforme <span class="em">complète, souveraine<br>
+      et résiliente</span>, prête pour le terrain.
+    </h1>
+    <p>
+      Qu'elle soit exploitée sur un seul poste, sur un réseau de magasin
+      ou dans le cloud, StockApp apporte à l'entreprise la productivité,
+      la fiabilité et la maîtrise de ses données — avec la capacité de
+      continuer à travailler même quand Internet coupe.
+    </p>
+    <p style="margin-top:4mm;">
+      <b>Documentation associée</b> — présentation actionnaires, guides
+      d'installation et d'utilisation, architecture, dépannage&nbsp;:
+      disponibles dans le dossier <code style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;color:#fff;">offline-pack/docs/</code>.
+    </p>
+    <div class="signoff">StockApp — Version 1.0 — Juin 2026</div>
+  </div>
+</section>
+
+</body>
+</html>

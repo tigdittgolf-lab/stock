@@ -33,14 +33,14 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('❌ Error forwarding to backend:', error);
     
-    // Fallback data
+    // Fallback data (neutre)
     return NextResponse.json({
       success: true,
       data: {
-        nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR',
-        adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
-        telephone: '(213)045.42.35.20',
-        email: 'outillagesaada@gmail.com'
+        nom_entreprise: '',
+        adresse: '',
+        telephone: '',
+        email: ''
       }
     });
   }

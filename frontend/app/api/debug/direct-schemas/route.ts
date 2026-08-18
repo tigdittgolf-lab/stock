@@ -69,10 +69,10 @@ export async function GET(request: NextRequest) {
         schema_name: schemaName,
         bu_code: buMatch ? buMatch[1] : '01',
         year: yearMatch ? parseInt(yearMatch[1]) : 2025,
-        nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR',
-        adresse: '10, Rue Belhandouz A.E.K, Mostaganem',
-        telephone: '(213)045.42.35.20',
-        email: 'outillagesaada@gmail.com',
+        nom_entreprise: '',
+        adresse: '',
+        telephone: '',
+        email: '',
         active: true
       };
     }).sort((a: any, b: any) => {
@@ -99,12 +99,12 @@ export async function GET(request: NextRequest) {
     
     // FALLBACK ULTIME: Retourner une structure de test étendue
     const fallbackBUs = [
-      { schema_name: '2025_bu01', bu_code: '01', year: 2025, nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR', active: true },
-      { schema_name: '2025_bu02', bu_code: '02', year: 2025, nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR', active: true },
-      { schema_name: '2025_bu03', bu_code: '03', year: 2025, nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR', active: true },
-      { schema_name: '2024_bu01', bu_code: '01', year: 2024, nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR', active: true },
-      { schema_name: '2024_bu02', bu_code: '02', year: 2024, nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR', active: true },
-      { schema_name: '2023_bu01', bu_code: '01', year: 2023, nom_entreprise: 'ETS BENAMAR BOUZID MENOUAR', active: true }
+      { schema_name: '2025_bu01', bu_code: '01', year: 2025, nom_entreprise: '', active: true },
+      { schema_name: '2025_bu02', bu_code: '02', year: 2025, nom_entreprise: '', active: true },
+      { schema_name: '2025_bu03', bu_code: '03', year: 2025, nom_entreprise: '', active: true },
+      { schema_name: '2024_bu01', bu_code: '01', year: 2024, nom_entreprise: '', active: true },
+      { schema_name: '2024_bu02', bu_code: '02', year: 2024, nom_entreprise: '', active: true },
+      { schema_name: '2023_bu01', bu_code: '01', year: 2023, nom_entreprise: '', active: true }
     ];
 
     return NextResponse.json({

@@ -78,6 +78,7 @@ export default function Dashboard() {
   const router = useRouter();
   const [tenantInfo, setTenantInfo] = useState<TenantInfo | null>(null);
   const [companyInfo, setCompanyInfo] = useState<any>(null);
+  const [licenseInfo, setLicenseInfo] = useState<any>(null);
   const [articles, setArticles] = useState<Article[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -130,16 +131,32 @@ export default function Dashboard() {
       return;
     }
 
+    const init = async () => {
     try {
       const tenant: TenantInfo = JSON.parse(tenantInfoStr);
       setTenantInfo(tenant);
       
       // Charger les données initiales
       loadDashboardData(tenant);
+
+      // Charger l'état de la licence
+      try {
+        const licRes = await fetch('/api/license', {
+          headers: { 'X-Tenant': tenant.schema || '2025_bu01' },
+        });
+        const licData = await licRes.json();
+        if (licData.success) {
+          setLicenseInfo(licData);
+        }
+      } catch (licErr) {
+        console.warn('Impossible de charger la licence:', licErr);
+      }
     } catch (error) {
       console.error('Error parsing tenant info:', error);
       router.push('/login');
     }
+    };
+    init();
   }, [router]);
 
   // Gérer les paramètres URL pour les messages et onglets
@@ -1074,6 +1091,17 @@ export default function Dashboard() {
             <span className={styles.label}>Fiscal</span>
           </button>
           <button
+            className={activeTab === 'license' ? styles.sidebarActive : ''}
+            onClick={() => {
+              router.push('/license');
+              setIsMobileMenuOpen(false);
+            }}
+            title="Licence"
+          >
+            <span className={styles.icon}>🔑</span>
+            <span className={styles.label}>Licence</span>
+          </button>
+          <button
             className={activeTab === 'settings' ? styles.sidebarActive : ''}
             onClick={() => {
               router.push('/settings');
@@ -1292,6 +1320,34 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
+
+      {/* Bandeau d'état de licence */}
+      {licenseInfo && !licenseInfo?.valid && (
+        <div style={{
+          background: '#fef3c7',
+          borderBottom: '1px solid #f59e0b',
+          padding: '8px 24px',
+          fontSize: '13px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '10px',
+          marginLeft: '240px',
+        }}>
+          <span>🔑</span>
+          <span>
+            {licenseInfo?.status === 'expired'
+              ? 'Votre licence d\'essai est expirée. '
+              : <strong>Licence non activée.</strong>}{' '}
+            <a href="/license" style={{ textDecoration: 'underline', fontWeight: '600', color: '#92400e' }}>
+              Activer ici
+            </a>
+            {licenseInfo?.daysLeft != null && (
+              <span style={{ marginLeft: '8px', color: '#7c3aed' }}>Essai : {licenseInfo.daysLeft} jour(s) restant(s)</span>
+            )}
+          </span>
+        </div>
+      )}
 
       <main className={`${styles.main} ${responsiveStyles.main}`} style={{ marginLeft: '240px' /* Décalé pour la sidebar */ }}>
         {loading && (
